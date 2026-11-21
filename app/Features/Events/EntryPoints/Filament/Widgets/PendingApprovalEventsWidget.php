@@ -7,7 +7,7 @@ use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Ui\SubmitterContactPresenter;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;

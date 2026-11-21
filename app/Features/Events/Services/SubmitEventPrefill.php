@@ -16,7 +16,7 @@ use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\EventSubmissionFo
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Support\SubmissionTimingPolicy;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Prayer\Api\EventPrayerTime;

@@ -16,8 +16,8 @@ use App\Features\Events\Models\EventSubmission;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountToken;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionDirectoryRecord;
 use App\Features\Membership\Api\AccountMembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectRecord;
 use App\Features\Membership\Api\MemberSubjectType;
@@ -327,7 +327,7 @@ class ViewUser extends ViewRecord
     {
         return $this->followedSubjects(
             EngagementSubjectType::Institution,
-            fn (array $ids): object => app(InstitutionLookup::class)->institutionsByIds($ids),
+            fn (array $ids): object => collect(app(InstitutionLookup::class)->institutionsByIds($ids)),
         );
     }
 
@@ -360,9 +360,9 @@ class ViewUser extends ViewRecord
         return $event instanceof Event ? AdminResourceLink::to('event', 'view', (string) $event->getKey()) : null;
     }
 
-    public function institutionUrl(?Institution $institution): ?string
+    public function institutionUrl(?InstitutionDirectoryRecord $institution): ?string
     {
-        return $institution instanceof Institution ? AdminResourceLink::to('institution', 'view', (string) $institution->getKey()) : null;
+        return $institution instanceof InstitutionDirectoryRecord ? AdminResourceLink::to('institution', 'view', $institution->id) : null;
     }
 
     public function personUrl(?PersonDirectoryRecord $person): ?string

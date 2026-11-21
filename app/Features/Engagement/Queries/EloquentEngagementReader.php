@@ -17,7 +17,7 @@ use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\Series;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;

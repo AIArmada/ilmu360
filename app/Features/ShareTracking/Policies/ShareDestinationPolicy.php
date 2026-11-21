@@ -6,7 +6,7 @@ namespace App\Features\ShareTracking\Policies;
 
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\SeriesAuthoring;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;

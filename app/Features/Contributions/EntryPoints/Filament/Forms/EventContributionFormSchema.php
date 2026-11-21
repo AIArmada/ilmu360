@@ -17,7 +17,7 @@ use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\Filament\VenueQuickAdd;

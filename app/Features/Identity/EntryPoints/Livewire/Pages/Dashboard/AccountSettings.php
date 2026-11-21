@@ -10,7 +10,7 @@ use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\AccountProfile;
 use App\Features\Identity\Api\AccountProfileUpdate;
 use App\Features\Identity\Services\AccountSettingsService;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Ui\InteractsWithToasts;

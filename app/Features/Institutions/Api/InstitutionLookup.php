@@ -2,17 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Institutions\Api\Orm;
+namespace App\Features\Institutions\Api;
 
-use App\Features\Institutions\Api\InstitutionSummary;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Reports\Api\ReportSubject;
 use App\Shared\Directory\FollowableSubject;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
  * Consumers: Institutions/FeatureServiceProvider.php, Engagement/Queries, Engagement/Services, Engagement/EntryPoints, Prayer/Support, Events/Queries
  */
 interface InstitutionLookup
@@ -59,24 +54,24 @@ interface InstitutionLookup
      * Documented transport: the institution the account is a member of, used
      * to authorise institution-scoped submission entry points.
      */
-    public function findMemberInstitution(string $institutionId, string $accountId): ?Institution;
+    public function findMemberInstitution(string $institutionId, string $accountId): ?InstitutionDirectoryRecord;
 
     /**
      * Documented transport: institutions for the supplied ids, ordered by
      * name.
      *
      * @param  list<string>  $institutionIds
-     * @return EloquentCollection<int, Institution>
+     * @return list<InstitutionDirectoryRecord>
      */
-    public function institutionsByIds(array $institutionIds): EloquentCollection;
+    public function institutionsByIds(array $institutionIds): array;
 
     /**
      * Documented transport: institutions the account is a member of, ordered
      * by name, with the member count eager loaded.
      *
-     * @return EloquentCollection<int, Institution>
+     * @return list<InstitutionDirectoryRecord>
      */
-    public function institutionsForMember(string $accountId): EloquentCollection;
+    public function institutionsForMember(string $accountId): array;
 
     /**
      * Publicly visible institutions keyed by id, ordered by name, using the
@@ -120,9 +115,9 @@ interface InstitutionLookup
      * media loaded, ordered by name.
      *
      * @param  list<string>  $institutionIds
-     * @return EloquentCollection<int, Institution>
+     * @return list<InstitutionDirectoryRecord>
      */
-    public function followedInstitutions(array $institutionIds): EloquentCollection;
+    public function followedInstitutions(array $institutionIds): array;
 
     public function resolveIdentifier(string $identifier): ?string;
 

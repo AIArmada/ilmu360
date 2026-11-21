@@ -10,7 +10,8 @@ use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Support\SubmitterContactRules;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionDirectoryRecord;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
@@ -202,9 +203,9 @@ class EventSubmissionController extends FrontendController
 
         $institution = app(InstitutionLookup::class)->findMemberInstitution($institutionId, (string) $user->getKey());
 
-        abort_unless($institution instanceof Institution, 403);
+        abort_unless($institution instanceof InstitutionDirectoryRecord, 403);
 
-        return $institution;
+        return Institution::query()->findOrFail($institution->id);
     }
 
     private function resolveEventContainer(mixed $eventId, mixed $scopedInstitutionId, ?User $user): ?Event

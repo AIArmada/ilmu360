@@ -10,7 +10,7 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Models\EventTerm;
 use App\Features\Discovery\Api\SearchFilterLabels;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\References\Api\ReferenceLookup;

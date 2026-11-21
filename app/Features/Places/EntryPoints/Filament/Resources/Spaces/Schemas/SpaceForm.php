@@ -3,7 +3,7 @@
 namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces\Schemas;
 
 use AIArmada\Events\Models\VenueSpaceType;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;

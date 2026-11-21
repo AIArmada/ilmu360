@@ -7,8 +7,9 @@ namespace App\Features\Institutions\Queries;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
+use App\Features\Institutions\Api\InstitutionDirectoryRecord;
 use App\Features\Institutions\Api\InstitutionSummary;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Reports\Api\ReportSubject;
@@ -20,7 +21,6 @@ use App\Shared\Directory\DirectoryOption;
 use App\Shared\Directory\FollowableSubject;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final readonly class EloquentInstitutionLookup implements InstitutionLookup
@@ -69,29 +69,35 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
         ];
     }
 
-    public function findMemberInstitution(string $institutionId, string $accountId): ?Institution
+    public function findMemberInstitution(string $institutionId, string $accountId): ?InstitutionDirectoryRecord
     {
-        return Institution::query()
+        $institution = Institution::query()
             ->whereKey($institutionId)
             ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($accountId))
             ->first();
+
+        return $institution instanceof Institution ? $this->directoryRecord($institution) : null;
     }
 
-    public function institutionsByIds(array $institutionIds): EloquentCollection
+    public function institutionsByIds(array $institutionIds): array
     {
         return Institution::query()
             ->whereKey($institutionIds)
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn (Institution $institution): InstitutionDirectoryRecord => $this->directoryRecord($institution))
+            ->all();
     }
 
-    public function institutionsForMember(string $accountId): EloquentCollection
+    public function institutionsForMember(string $accountId): array
     {
         return Institution::query()
             ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($accountId))
             ->withCount('members')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn (Institution $institution): InstitutionDirectoryRecord => $this->directoryRecord($institution))
+            ->all();
     }
 
     /**
@@ -172,13 +178,28 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             : null;
     }
 
-    public function followedInstitutions(array $institutionIds): EloquentCollection
+    public function followedInstitutions(array $institutionIds): array
     {
         return Institution::query()
             ->whereKey($institutionIds)
-            ->with(['media'])
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn (Institution $institution): InstitutionDirectoryRecord => $this->directoryRecord($institution))
+            ->all();
+    }
+
+    private function directoryRecord(Institution $institution): InstitutionDirectoryRecord
+    {
+        $status = $institution->getAttribute('status');
+
+        return new InstitutionDirectoryRecord(
+            id: (string) $institution->getKey(),
+            name: (string) $institution->name,
+            slug: is_string($institution->slug) ? $institution->slug : null,
+            status: $status instanceof BackedEnum ? (string) $status->value : (is_string($status) ? $status : null),
+            description: (string) ($institution->getAttributes()['description'] ?? ''),
+            memberCount: (int) ($institution->getAttributes()['members_count'] ?? 0),
+        );
     }
 
     private function membershipApplicationLabelFor(Institution $institution): string

@@ -10,7 +10,7 @@ use App\Features\Feedback\Api\FeedbackActor;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionSummary;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;

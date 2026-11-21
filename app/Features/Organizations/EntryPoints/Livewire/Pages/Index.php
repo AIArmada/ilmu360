@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 
 use AIArmada\Organizations\Models\Organization;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionDirectoryRecord;
 use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Features\Persons\Api\PersonLookup;
 use App\Models\User;
@@ -38,13 +38,13 @@ final class Index extends Component
             ->get();
     }
 
-    /** @return Collection<int, Institution> */
+    /** @return Collection<int, InstitutionDirectoryRecord> */
     public function institutions(): Collection
     {
         $user = $this->currentUser();
 
-        /** @var Collection<int, Institution> $institutions */
-        $institutions = app(InstitutionLookup::class)->institutionsForMember((string) $user->getKey());
+        /** @var Collection<int, InstitutionDirectoryRecord> $institutions */
+        $institutions = collect(app(InstitutionLookup::class)->institutionsForMember((string) $user->getKey()));
 
         return $institutions;
     }

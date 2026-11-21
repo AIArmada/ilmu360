@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Places\Api\SpaceLocation;
 use App\Features\Places\Services\SpaceLocationResolver;
 use Tests\TestCase;

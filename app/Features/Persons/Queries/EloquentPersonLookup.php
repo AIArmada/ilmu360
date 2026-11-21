@@ -450,7 +450,7 @@ final readonly class EloquentPersonLookup implements PersonLookup
             slug: is_string($person->slug) ? $person->slug : null,
             status: $status instanceof BackedEnum ? (string) $status->value : (is_string($status) ? $status : null),
             bio: is_string($localizedBio) ? $localizedBio : '',
-            memberCount: (int) ($person->getAttribute('members_count') ?? 0),
+            memberCount: (int) ($person->getAttributes()['members_count'] ?? 0),
         );
     }
 

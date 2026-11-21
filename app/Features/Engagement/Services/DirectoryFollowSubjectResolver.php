@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Engagement\Services;
 
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceLookup;
 use App\Shared\Directory\FollowableSubject;

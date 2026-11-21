@@ -7,7 +7,7 @@ namespace App\Features\Prayer\Support;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Places\Api\Orm\PlaceLookup;
 
 /**

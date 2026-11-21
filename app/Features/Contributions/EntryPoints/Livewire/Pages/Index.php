@@ -16,7 +16,7 @@ use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Api\PublicScheduleVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonLookup;

@@ -6,7 +6,7 @@ namespace App\Features\Reports\Services;
 
 use App\Features\DonationChannels\Api\DonationChannelLookup;
 use App\Features\Events\Api\EventReportSubjectProvider;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\Reports\Api\ReportSubject;

@@ -10,7 +10,7 @@ use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationSummary;
 use App\Features\Persons\Api\PersonLookup;

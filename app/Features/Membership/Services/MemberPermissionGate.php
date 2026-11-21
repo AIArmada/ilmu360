@@ -5,7 +5,7 @@ namespace App\Features\Membership\Services;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipDirectory;

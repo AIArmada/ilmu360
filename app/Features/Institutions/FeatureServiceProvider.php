@@ -22,7 +22,7 @@ use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Api\Orm\InstitutionAuthoringCandidates;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\EntryPoints\Admin\Member\InstitutionMemberResourceHooks;
 use App\Features\Institutions\EntryPoints\Admin\Resources\InstitutionMutationHooks;
 use App\Features\Institutions\EntryPoints\Api\Admin\InstitutionResourceDefinition;

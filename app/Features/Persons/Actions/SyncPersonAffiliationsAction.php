@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions;
 
 use AIArmada\Persons\Enums\AffiliationType;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Models\Affiliation;
 use App\Features\Persons\Models\Person;
 use Illuminate\Database\Eloquent\Builder;

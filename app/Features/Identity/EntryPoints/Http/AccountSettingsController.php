@@ -8,7 +8,7 @@ use App\Features\Identity\Api\AccountProfileUpdate;
 use App\Features\Identity\Api\AccountRecord;
 use App\Features\Identity\EntryPoints\Http\Data\AccountProfileData;
 use App\Features\Identity\Services\AccountSettingsService;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Shared\Auth\AccountDirectory;
 use DateTimeZone;
 use Dedoc\Scramble\Attributes\Endpoint;

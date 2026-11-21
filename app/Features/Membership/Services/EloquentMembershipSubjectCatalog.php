@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MembershipSubject;
 use App\Features\Membership\Api\MembershipSubjectCatalog;

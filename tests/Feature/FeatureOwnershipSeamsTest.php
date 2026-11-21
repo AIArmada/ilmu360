@@ -12,7 +12,7 @@ use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
 use App\Features\Institutions\Api\InstitutionWorkflow;
-use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Queries\EloquentInstitutionLookup;
 use App\Features\Institutions\Services\InstitutionVenueLinkService;
