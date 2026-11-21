@@ -9,6 +9,50 @@ use RuntimeException;
 /** Source-controlled ownership metadata; no database, container or parser dependency. */
 final class FeatureCatalog
 {
+    /** @var array<string, array<string, mixed>> */
+    private static array $runtimeCatalogs = [];
+
+    public static function flushRuntime(): void
+    {
+        self::$runtimeCatalogs = [];
+    }
+
+    public static function cachePath(string $root): string
+    {
+        return rtrim($root, '/').'/bootstrap/cache/platform.php';
+    }
+
+    /**
+     * Runtime callers use the precompiled manifest. Static analysis deliberately
+     * continues to call load() so changed manifests cannot evade validation.
+     *
+     * @return array<string, mixed>
+     */
+    public static function runtime(string $root): array
+    {
+        $root = rtrim($root, '/');
+
+        if (isset(self::$runtimeCatalogs[$root])) {
+            return self::$runtimeCatalogs[$root];
+        }
+
+        $cache = self::cachePath($root);
+        if (is_file($cache)) {
+            $catalog = require $cache;
+            if (! is_array($catalog) || ! isset($catalog['features'], $catalog['owners'], $catalog['writes'], $catalog['aliases'], $catalog['rootStoreWriters'], $catalog['extensions'])) {
+                throw new RuntimeException('Invalid cached Platform catalog. Run php artisan platform:clear.');
+            }
+
+            return self::$runtimeCatalogs[$root] = $catalog;
+        }
+
+        $configPath = $root.'/tools/architecture.json';
+        $config = is_file($configPath) ? json_decode((string) file_get_contents($configPath), true, 512, JSON_THROW_ON_ERROR) : [];
+        $rootStoreWriters = is_array($config['root_store_writers'] ?? null) ? $config['root_store_writers'] : [];
+
+        return self::$runtimeCatalogs[$root] = self::load($root, $rootStoreWriters);
+    }
+
     /** @var list<string> */
     private const array ROOT_STORE_WRITER_PREFIXES = [
         'App\\Console\\Commands\\',
@@ -19,12 +63,13 @@ final class FeatureCatalog
 
     /**
      * @param  array<string, mixed>  $rootStoreWriters
-     * @return array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>, rootStoreWriters: array<string, array{adapter: 'cache'|'filesystem'|'redis', resource: string, reason: string, expires: string}>}
+     * @return array{features: array<string, string>, owners: array<string, string>, writes: array<string, list<string>>, aliases: array<string, array<string, string>>, extensions: array<string, list<string>>, rootStoreWriters: array<string, array{adapter: 'cache'|'filesystem'|'redis', resource: string, reason: string, expires: string}>}
      */
     public static function load(string $root, array $rootStoreWriters = []): array
     {
         $features = $owners = $writes = $aliases = $declaredAliases = [];
         $aliasResources = [];
+        $extensions = [];
         $paths = glob($root.'/app/Features/*', GLOB_ONLYDIR) ?: [];
         sort($paths, SORT_STRING);
 
@@ -65,6 +110,29 @@ final class FeatureCatalog
                 }
             }
 
+            $declaredExtensions = $data['extensions'] ?? [];
+            if (! is_array($declaredExtensions) || array_is_list($declaredExtensions) && $declaredExtensions !== []) {
+                throw new RuntimeException("{$path}: extensions must map slots to class lists.");
+            }
+            foreach ($declaredExtensions as $slot => $classes) {
+                if (! is_string($slot) || ! preg_match('/^[a-z0-9][a-z0-9._-]*$/D', $slot)
+                    || ! is_array($classes) || ! array_is_list($classes) || count($classes) !== count(array_unique($classes))) {
+                    throw new RuntimeException("{$path}: invalid extension slot {$slot}.");
+                }
+                foreach ($classes as $class) {
+                    $prefix = "App\\Features\\{$name}\\Extensions\\";
+                    if (! is_string($class) || ! str_starts_with($class, $prefix)
+                        || ! preg_match('/^[A-Za-z_][A-Za-z0-9_\\\\]*$/D', substr($class, strlen($prefix)))) {
+                        throw new RuntimeException("{$path}: invalid extension class for {$slot}.");
+                    }
+                    $file = $root.'/app/'.str_replace('\\', '/', substr($class, 4)).'.php';
+                    if (! is_file($file) || ! str_starts_with(realpath($file), realpath($folder).DIRECTORY_SEPARATOR)) {
+                        throw new RuntimeException("{$path}: missing extension class {$class}.");
+                    }
+                    $extensions[$slot][] = $class;
+                }
+            }
+
             $featureAliases = $data['aliases'] ?? [];
             if (! is_array($featureAliases)) {
                 throw new RuntimeException("{$path}: aliases must map model aliases to declared storage resources.");
@@ -94,6 +162,7 @@ final class FeatureCatalog
             }
         }
 
+        ksort($extensions, SORT_STRING);
         $rootStoreWriters = self::validateRootStoreWriters($root, $rootStoreWriters, $owners, $writes);
 
         return [
@@ -101,6 +170,7 @@ final class FeatureCatalog
             'owners' => $owners,
             'writes' => $writes,
             'aliases' => $aliases,
+            'extensions' => $extensions,
             'rootStoreWriters' => $rootStoreWriters,
         ];
     }

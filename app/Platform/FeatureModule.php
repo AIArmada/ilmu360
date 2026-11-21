@@ -11,7 +11,7 @@ abstract class FeatureModule extends ServiceProvider
 {
     public function boot(): void
     {
-        FeatureCatalog::load($this->app->basePath());
+        FeatureCatalog::runtime($this->app->basePath());
         $root = dirname(new ReflectionClass($this)->getFileName());
 
         foreach (['web', 'api'] as $transport) {

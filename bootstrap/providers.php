@@ -4,34 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\AffiliatesServiceProvider;
 use AIArmada\CommerceSupport\SupportServiceProvider;
-use App\Features\Ai\FeatureServiceProvider as AiServiceProvider;
-use App\Features\Communications\FeatureServiceProvider as CommunicationsServiceProvider;
-use App\Features\Community\FeatureServiceProvider as CommunityServiceProvider;
-use App\Features\Contributions\FeatureServiceProvider as ContributionsServiceProvider;
-use App\Features\Discovery\FeatureServiceProvider as DiscoveryServiceProvider;
-use App\Features\DonationChannels\FeatureServiceProvider as DonationChannelsServiceProvider;
-use App\Features\Engagement\FeatureServiceProvider as EngagementServiceProvider;
-use App\Features\Events\FeatureServiceProvider as EventsServiceProvider;
-use App\Features\Feedback\FeatureServiceProvider as FeedbackServiceProvider;
-use App\Features\GitHubIssues\FeatureServiceProvider as GitHubIssuesServiceProvider;
-use App\Features\Identity\FeatureServiceProvider as IdentityServiceProvider;
-use App\Features\Inspirations\FeatureServiceProvider as InspirationsServiceProvider;
-use App\Features\Institutions\FeatureServiceProvider as InstitutionsServiceProvider;
-use App\Features\Mcp\FeatureServiceProvider as McpFeatureServiceProvider;
-use App\Features\Membership\FeatureServiceProvider as MembershipServiceProvider;
-use App\Features\Moderation\FeatureServiceProvider as ModerationServiceProvider;
-use App\Features\Organizations\FeatureServiceProvider as OrganizationsServiceProvider;
-use App\Features\Persons\FeatureServiceProvider as PersonsServiceProvider;
-use App\Features\Places\FeatureServiceProvider as PlacesServiceProvider;
-use App\Features\Prayer\FeatureServiceProvider;
-use App\Features\References\FeatureServiceProvider as ReferencesServiceProvider;
-use App\Features\Referrals\FeatureServiceProvider as ReferralsServiceProvider;
-use App\Features\Registration\FeatureServiceProvider as RegistrationServiceProvider;
-use App\Features\Reports\FeatureServiceProvider as ReportsServiceProvider;
-use App\Features\Rewards\FeatureServiceProvider as RewardsServiceProvider;
-use App\Features\SavedSearches\FeatureServiceProvider as SavedSearchesServiceProvider;
-use App\Features\ShareTracking\FeatureServiceProvider as ShareTrackingServiceProvider;
-use App\Features\SlugRedirects\FeatureServiceProvider as SlugRedirectsServiceProvider;
+use App\Platform\PlatformServiceProvider;
 use App\Providers\AdminRegistryServiceProvider;
 use App\Providers\ApiDocumentationServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -50,36 +23,9 @@ return [
     SupportServiceProvider::class,
     AffiliatesServiceProvider::class,
     AdminRegistryServiceProvider::class,
-    AiServiceProvider::class,
     ApiDocumentationServiceProvider::class,
     AppServiceProvider::class,
-    CommunityServiceProvider::class,
-    CommunicationsServiceProvider::class,
-    ContributionsServiceProvider::class,
-    PersonsServiceProvider::class,
-    DonationChannelsServiceProvider::class,
-    InstitutionsServiceProvider::class,
-    PlacesServiceProvider::class,
-    ReferencesServiceProvider::class,
-    ReferralsServiceProvider::class,
-    DiscoveryServiceProvider::class,
-    EngagementServiceProvider::class,
-    EventsServiceProvider::class,
-    FeedbackServiceProvider::class,
-    GitHubIssuesServiceProvider::class,
-    IdentityServiceProvider::class,
-    InspirationsServiceProvider::class,
-    MembershipServiceProvider::class,
-    ModerationServiceProvider::class,
-    McpFeatureServiceProvider::class,
-    OrganizationsServiceProvider::class,
-    FeatureServiceProvider::class,
-    RegistrationServiceProvider::class,
-    ReportsServiceProvider::class,
-    RewardsServiceProvider::class,
-    SavedSearchesServiceProvider::class,
-    SlugRedirectsServiceProvider::class,
-    ShareTrackingServiceProvider::class,
+    PlatformServiceProvider::class,
     BlazeServiceProvider::class,
     LivewireComponentAliasServiceProvider::class,
     FilamentPhoneInputServiceProvider::class,
