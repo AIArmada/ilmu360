@@ -53,6 +53,7 @@ use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Api\EventScheduleReads;
+use App\Features\Events\Api\EventDirectoryProjectionProvider;
 use App\Features\Events\Api\EventSearchCache;
 use App\Features\Events\Api\EventShareCardCache;
 use App\Features\Events\Api\EventSubmissionCompletion;
@@ -244,6 +245,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventDiscoveryReader::class, PostgresEventDiscovery::class);
         $this->app->bind(EventScheduleReads::class, PostgresEventDiscovery::class);
         $this->app->bind(EventOrmPort::class, PostgresEventDiscovery::class);
+        $this->app->bind(EventDirectoryProjectionProvider::class, PostgresEventDiscovery::class);
         $this->app->bind(PublicScheduleEventReads::class, PostgresEventDiscovery::class);
 
         $this->app->bind(SubmissionTimingContract::class, SubmissionTimingPolicy::class);

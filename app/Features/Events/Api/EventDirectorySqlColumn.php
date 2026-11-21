@@ -2,14 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Api\Orm;
+namespace App\Features\Events\Api;
 
 /**
  * Immutable owner-registered SQL fragment with its positional bindings.
  *
- * @internal SQL projection seam for the institution directory listing.
- *
- * Consumers: Institutions InstitutionDirectoryQuery.
+ * Public immutable correlated SQL expression for the institution directory.
  */
 final readonly class EventDirectorySqlColumn
 {

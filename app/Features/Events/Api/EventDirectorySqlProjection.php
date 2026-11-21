@@ -2,15 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Api\Orm;
+namespace App\Features\Events\Api;
 
 /**
  * Immutable correlated event columns for the institution directory listing.
  *
- * @internal Owner-registered SQL projection; consumers apply each column with
- *           selectRaw() and never receive a mutable query builder.
- *
- * Consumers: Institutions InstitutionDirectoryQuery.
+ * Contains no mutable Eloquent builder; the owner supplies SQL and bindings.
  */
 final readonly class EventDirectorySqlProjection
 {

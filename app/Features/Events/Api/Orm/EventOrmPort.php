@@ -27,13 +27,6 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 interface EventOrmPort extends EventScheduleReads
 {
     /**
-     * Immutable correlated SQL columns for the institutions directory listing.
-     * The caller applies each column with selectRaw(); no mutable builder
-     * crosses the owner boundary.
-     */
-    public function institutionDirectoryEventColumns(): EventDirectorySqlProjection;
-
-    /**
      * Card details for the already-selected next event ids, hydrated in one
      * batched query.
      *

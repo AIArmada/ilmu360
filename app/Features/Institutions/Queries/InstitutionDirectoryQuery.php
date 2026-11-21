@@ -2,7 +2,7 @@
 
 namespace App\Features\Institutions\Queries;
 
-use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\EventDirectoryProjectionProvider;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +12,7 @@ final readonly class InstitutionDirectoryQuery
 {
     public function __construct(
         private InstitutionSearchService $searchService,
-        private EventOrmPort $eventReader,
+        private EventDirectoryProjectionProvider $eventProjection,
     ) {}
 
     /**
@@ -158,7 +158,7 @@ final readonly class InstitutionDirectoryQuery
     private function baseInstitutionsQuery(array $locationIds, bool $followedOnly, array $followingInstitutionIds): Builder
     {
         $query = $this->scopedInstitutionsQuery($locationIds, $followedOnly, $followingInstitutionIds);
-        $eventColumns = $this->eventReader->institutionDirectoryEventColumns();
+        $eventColumns = $this->eventProjection->institutionDirectoryEventColumns();
         $grammar = $query->getQuery()->getGrammar();
 
         return $query

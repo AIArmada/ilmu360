@@ -23,9 +23,10 @@ use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Api\Orm\EventCategoryPayloads;
-use App\Features\Events\Api\Orm\EventDirectorySqlColumn;
-use App\Features\Events\Api\Orm\EventDirectorySqlProjection;
+use App\Features\Events\Api\EventDirectorySqlColumn;
+use App\Features\Events\Api\EventDirectorySqlProjection;
 use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\EventDirectoryProjectionProvider;
 use App\Features\Events\Api\Orm\PublicScheduleEligibility;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\PublicScheduleSlug;
@@ -60,7 +61,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
-final readonly class PostgresEventDiscovery implements EventDiscoveryReader, EventOrmPort, PublicScheduleEventReads
+final readonly class PostgresEventDiscovery implements EventDiscoveryReader, EventOrmPort, PublicScheduleEventReads, EventDirectoryProjectionProvider
 {
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
