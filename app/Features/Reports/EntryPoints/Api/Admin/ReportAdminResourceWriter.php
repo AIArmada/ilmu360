@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Reports\EntryPoints\Api\Admin;
 
 use App\Features\Reports\Api\ReportAdminContract;
+use App\Features\Reports\Models\Report;
 use App\Models\User;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
@@ -105,7 +106,7 @@ final class ReportAdminResourceWriter extends AbstractAdminResourceWriter
     {
         $snapshot = $this->reportAdmin->save($validated, $reportId);
 
-        return $this->reportAdmin->modelClass()::query()
+        return Report::query()
             ->with(['entity', 'reporter', 'handler', 'media'])
             ->findOrFail($snapshot->id);
     }

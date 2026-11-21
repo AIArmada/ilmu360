@@ -6,13 +6,8 @@ namespace App\Features\Reports\Api;
 
 use App\Features\Reports\Api\ReportSnapshot;
 
-/**
- */
 interface ReportAdminContract
 {
-    /** @return class-string<\Illuminate\Database\Eloquent\Model> */
-    public function modelClass(): string;
-
     /** @return list<array<string, mixed>> */
     public function fields(): array;
 
