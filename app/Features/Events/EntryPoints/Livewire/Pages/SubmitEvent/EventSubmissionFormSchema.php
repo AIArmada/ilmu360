@@ -24,7 +24,6 @@ use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Events\Support\SubmitEventFormContext;
 use App\Features\Events\Support\SubmitterContactRules;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\SpaceEligibility;
@@ -88,7 +87,7 @@ final readonly class EventSubmissionFormSchema
 
     public function form(Schema $schema, ?string $wizardStep): Schema
     {
-        $hasScopedInstitution = $this->context->scopedInstitution instanceof Institution;
+        $hasScopedInstitution = $this->context->scopedInstitutionId !== null;
         $hasScopedInstitutionJs = $hasScopedInstitution ? 'true' : 'false';
         $isReviewStep = $wizardStep === self::REVIEW_STEP_ID;
         $submitButtonLabel = $hasScopedInstitution
@@ -958,7 +957,7 @@ final readonly class EventSubmissionFormSchema
                             ->options(fn (Get $get): array => $this->options->institutionOptions(
                                 $this->context->submitter,
                                 $this->resolveSubmissionCountryId($get('submission_country_id')),
-                                $this->context->scopedInstitution,
+                                $this->context->scopedInstitutionId,
                             ))
                             ->searchable()
                             ->preload()
@@ -1085,7 +1084,7 @@ final readonly class EventSubmissionFormSchema
                             ->options(fn (Get $get): array => $this->options->institutionOptions(
                                 $this->context->submitter,
                                 $this->resolveSubmissionCountryId($get('submission_country_id')),
-                                $this->context->scopedInstitution,
+                                $this->context->scopedInstitutionId,
                             ))
                             ->searchable()
                             ->preload()
@@ -1478,7 +1477,7 @@ final readonly class EventSubmissionFormSchema
 
         $access = app(SubmissionEntityAccess::class);
 
-        if (! $this->context->scopedInstitution instanceof Institution) {
+        if ($this->context->scopedInstitutionId === null) {
             $organizerInstitutionId = $this->normalizeNullableUuid($get('primary_organizer_institution_id'));
 
             if ($organizerInstitutionId !== null && ! $access->institutionBelongsToCountry($organizerInstitutionId, $countryId)) {

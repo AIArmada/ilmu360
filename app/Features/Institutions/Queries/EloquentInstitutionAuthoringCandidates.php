@@ -7,16 +7,15 @@ namespace App\Features\Institutions\Queries;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
-use App\Features\Institutions\Api\Orm\InstitutionAuthoringCandidates;
+use App\Features\Institutions\Api\InstitutionAuthoringCandidates;
 use App\Features\Institutions\Models\Institution;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 final readonly class EloquentInstitutionAuthoringCandidates implements InstitutionAuthoringCandidates
 {
-    public function options(?User $submitter, ?string $countryId = null): array
+    public function options(?string $accountId, ?string $countryId = null): array
     {
-        return $this->submitterQuery($submitter, $countryId)
+        return $this->submitterQuery($accountId, $countryId)
             ->orderBy('name')
             ->with('names')
             ->get(['institutions.id', 'institutions.name'])
@@ -26,13 +25,13 @@ final readonly class EloquentInstitutionAuthoringCandidates implements Instituti
             ->all();
     }
 
-    public function labels(?User $submitter, array $institutionIds): array
+    public function labels(?string $accountId, array $institutionIds): array
     {
         if ($institutionIds === []) {
             return [];
         }
 
-        return $this->submitterQuery($submitter)
+        return $this->submitterQuery($accountId)
             ->whereKey($institutionIds)
             ->orderBy('name')
             ->with('names')
@@ -43,16 +42,16 @@ final readonly class EloquentInstitutionAuthoringCandidates implements Instituti
             ->all();
     }
 
-    public function canUse(?User $submitter, string $institutionId, ?string $countryId = null): bool
+    public function canUse(?string $accountId, string $institutionId, ?string $countryId = null): bool
     {
-        return $this->submitterQuery($submitter, $countryId)
+        return $this->submitterQuery($accountId, $countryId)
             ->whereKey($institutionId)
             ->exists();
     }
 
-    public function memberOptions(User $submitter): array
+    public function memberOptions(string $accountId): array
     {
-        return $this->memberQuery($submitter)
+        return $this->memberQuery($accountId)
             ->orderBy('name')
             ->with('names')
             ->get(['institutions.id', 'institutions.name'])
@@ -62,11 +61,11 @@ final readonly class EloquentInstitutionAuthoringCandidates implements Instituti
             ->all();
     }
 
-    public function findMemberCandidate(User $submitter, string $institutionId): ?Institution
+    public function canMemberUse(string $accountId, string $institutionId): bool
     {
-        return $this->memberQuery($submitter)
+        return $this->memberQuery($accountId)
             ->whereKey($institutionId)
-            ->first();
+            ->exists();
     }
 
     public function belongsToCountry(string $institutionId, string $countryId): bool
@@ -81,17 +80,17 @@ final readonly class EloquentInstitutionAuthoringCandidates implements Instituti
     /**
      * @return Builder<Institution>
      */
-    private function submitterQuery(?User $submitter, ?string $countryId = null): Builder
+    private function submitterQuery(?string $accountId, ?string $countryId = null): Builder
     {
         $query = Institution::query()
             ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
-            ->where(function (Builder $visibilityQuery) use ($submitter): void {
+            ->where(function (Builder $visibilityQuery) use ($accountId): void {
                 $visibilityQuery->where('allow_public_event_submission', true);
 
-                if ($submitter instanceof User) {
+                if ($accountId !== null) {
                     $visibilityQuery->orWhereHas(
                         'members',
-                        fn (Builder $memberQuery): Builder => $memberQuery->whereKey($submitter->getKey()),
+                        fn (Builder $memberQuery): Builder => $memberQuery->whereKey($accountId),
                     );
                 }
             });
@@ -106,10 +105,10 @@ final readonly class EloquentInstitutionAuthoringCandidates implements Instituti
     /**
      * @return Builder<Institution>
      */
-    private function memberQuery(User $submitter): Builder
+    private function memberQuery(string $accountId): Builder
     {
         return Institution::query()
             ->whereIn('institutions.status', InstitutionStatus::publiclyVisibleValues())
-            ->whereHas('members', fn (Builder $memberQuery): Builder => $memberQuery->whereKey($submitter->getKey()));
+            ->whereHas('members', fn (Builder $memberQuery): Builder => $memberQuery->whereKey($accountId));
     }
 }

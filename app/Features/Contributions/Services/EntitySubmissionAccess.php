@@ -7,8 +7,7 @@ namespace App\Features\Contributions\Services;
 use App\Features\Contributions\Api\Orm\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\SubmissionValues;
-use App\Features\Institutions\Api\Orm\InstitutionAuthoringCandidates;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionAuthoringCandidates;
 use App\Features\Persons\Api\PersonAuthoringCandidates;
 use App\Features\Places\Api\VenueAuthoringCandidates;
 use App\Models\User;
@@ -24,22 +23,17 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
 
     public function institutionOptions(?User $user, ?string $countryId = null): array
     {
-        return $this->institutions->options($user, $countryId);
+        return $this->institutions->options($user instanceof User ? (string) $user->getKey() : null, $countryId);
     }
 
     public function institutionLabels(?User $user, array $institutionIds): array
     {
-        return $this->institutions->labels($user, $institutionIds);
+        return $this->institutions->labels($user instanceof User ? (string) $user->getKey() : null, $institutionIds);
     }
 
     public function memberInstitutionOptions(User $user): array
     {
-        return $this->institutions->memberOptions($user);
-    }
-
-    public function memberInstitution(User $user, string $institutionId): ?Institution
-    {
-        return $this->institutions->findMemberCandidate($user, $institutionId);
+        return $this->institutions->memberOptions((string) $user->getKey());
     }
 
     public function personOptions(?User $user): array
@@ -64,12 +58,12 @@ final readonly class EntitySubmissionAccess implements SubmissionEntityAccess
 
     public function canUseInstitution(?User $user, string $institutionId): bool
     {
-        return $this->institutions->canUse($user, $institutionId);
+        return $this->institutions->canUse($user instanceof User ? (string) $user->getKey() : null, $institutionId);
     }
 
     public function canUseMemberInstitution(User $user, string $institutionId): bool
     {
-        return $this->institutions->findMemberCandidate($user, $institutionId) instanceof Institution;
+        return $this->institutions->canMemberUse((string) $user->getKey(), $institutionId);
     }
 
     public function canUsePerson(?User $user, string $personId): bool

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Events\Support;
 
 use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 
 /**
@@ -17,7 +16,7 @@ use App\Models\User;
 final readonly class SubmitEventFormContext
 {
     public function __construct(
-        public ?Institution $scopedInstitution,
+        public ?string $scopedInstitutionId,
         public ?Event $eventContainer,
         public ?User $submitter,
         public ?string $requestedOccurrenceId,

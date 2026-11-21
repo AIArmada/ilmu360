@@ -4,18 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Api\Orm;
 
-use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 
 /**
  * Submitter-scoped access to the entities an event submission may reference.
  *
- * The owning features execute their own candidate queries. This contract only
- * returns final option/label arrays and submitter booleans; no builder leaves
- * the boundary.
- *
- * @internal Model transport is limited to the scoped member institution that
- *           the submit-event page must render and authorize.
+ * The owning features execute candidate queries. This contract returns
+ * option/label arrays and permission facts, never models or builders.
  *
  * Consumers: Events submit-event options, form schema, prefill, scoped
  * institution resolver and request handler; Institution dashboard membership
@@ -44,11 +39,6 @@ interface EntitySubmissionAccessContract
      * @return array<string, string>
      */
     public function memberInstitutionOptions(User $user): array;
-
-    /**
-     * The visible member institution identity, or null when not eligible.
-     */
-    public function memberInstitution(User $user, string $institutionId): ?Institution;
 
     /**
      * Persons the submitter may choose, keyed by id.

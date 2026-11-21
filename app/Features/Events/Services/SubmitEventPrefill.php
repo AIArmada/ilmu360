@@ -17,7 +17,6 @@ use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
@@ -228,16 +227,16 @@ final class SubmitEventPrefill
     /**
      * @return array<string, mixed>
      */
-    public static function scopedDefaults(Institution $institution): array
+    public static function scopedDefaults(string $institutionId): array
     {
         return [
             'primary_organizer_kind' => 'institution',
-            'primary_organizer_id' => $institution->id,
-            'primary_organizer_institution_id' => $institution->id,
+            'primary_organizer_id' => $institutionId,
+            'primary_organizer_institution_id' => $institutionId,
             'primary_organizer_person_id' => null,
             'location_same_as_institution' => true,
             'location_type' => 'institution',
-            'location_institution_id' => $institution->id,
+            'location_institution_id' => $institutionId,
             'location_venue_id' => null,
             'space_id' => null,
         ];

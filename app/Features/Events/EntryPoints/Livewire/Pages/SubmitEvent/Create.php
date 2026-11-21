@@ -31,7 +31,6 @@ use App\Features\Events\States\EventStatus\Pending;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Events\Support\SubmitEventFormContext;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use App\Platform\Language\Models\Language;
@@ -169,7 +168,7 @@ class Create extends Component implements HasActions, HasForms
 
     public ?TemporaryUploadedFile $event_source_attachment = null;
 
-    protected ?Institution $resolvedScopedInstitution = null;
+    protected ?string $resolvedScopedInstitutionId = null;
 
     protected ?string $resolvedScopedInstitutionKey = null;
 
@@ -194,12 +193,12 @@ class Create extends Component implements HasActions, HasForms
         $defaultDomainId = $mountOptions->defaultEventTermId(EventTaxonomyCode::Domain->value, DomainTermCode::AgamaKerohanian->value);
         $defaultIsReligious = $defaultDomainId !== null;
 
-        if ($scopedInstitution instanceof Institution) {
-            $this->scopedInstitutionId = $scopedInstitution->id;
-            $this->resolvedScopedInstitution = $scopedInstitution;
+        if ($scopedInstitution !== null) {
+            $this->scopedInstitutionId = $scopedInstitution;
+            $this->resolvedScopedInstitutionId = $scopedInstitution;
             $user = $this->submitterUser();
             $this->resolvedScopedInstitutionKey = $user instanceof User
-                ? $user->getKey().':'.$scopedInstitution->id
+                ? $user->getKey().':'.$scopedInstitution
                 : null;
         }
 
@@ -250,7 +249,7 @@ class Create extends Component implements HasActions, HasForms
             $state = array_replace($state, $duplicateDefaults);
         }
 
-        if ($scopedInstitution instanceof Institution) {
+        if ($scopedInstitution !== null) {
             $state = array_replace($state, SubmitEventPrefill::scopedDefaults($scopedInstitution));
         }
 
@@ -272,7 +271,7 @@ class Create extends Component implements HasActions, HasForms
         $this->eventForm()->fill($state);
     }
 
-    protected function resolveScopedInstitution(mixed $institutionId): ?Institution
+    protected function resolveScopedInstitution(mixed $institutionId): ?string
     {
         if ($institutionId === null || $institutionId === '') {
             return null;
@@ -284,20 +283,17 @@ class Create extends Component implements HasActions, HasForms
 
         abort_unless($user instanceof User, 403);
 
-        $institution = app(SubmissionEntityAccess::class)
-            ->memberInstitution($user, $institutionId);
+        abort_unless(app(SubmissionEntityAccess::class)->canUseMemberInstitution($user, $institutionId), 403);
 
-        abort_unless($institution instanceof Institution, 403);
-
-        return $institution;
+        return $institutionId;
     }
 
-    protected function scopedInstitution(): ?Institution
+    protected function scopedInstitution(): ?string
     {
         $institutionId = $this->scopedInstitutionId;
 
         if (! is_string($institutionId) || ! Str::isUuid($institutionId)) {
-            $this->resolvedScopedInstitution = null;
+            $this->resolvedScopedInstitutionId = null;
             $this->resolvedScopedInstitutionKey = null;
 
             return null;
@@ -310,7 +306,7 @@ class Create extends Component implements HasActions, HasForms
         $user = $this->submitterUser();
 
         if (! $user instanceof User) {
-            $this->resolvedScopedInstitution = null;
+            $this->resolvedScopedInstitutionId = null;
             $this->resolvedScopedInstitutionKey = null;
 
             return null;
@@ -318,31 +314,28 @@ class Create extends Component implements HasActions, HasForms
 
         $memoKey = $user->getKey().':'.$institutionId;
 
-        if ($this->resolvedScopedInstitution instanceof Institution
+        if ($this->resolvedScopedInstitutionId === $institutionId
             && $this->resolvedScopedInstitutionKey === $memoKey
         ) {
-            return $this->resolvedScopedInstitution;
+            return $institutionId;
         }
 
-        $institution = app(SubmissionEntityAccess::class)
-            ->memberInstitution($user, $institutionId);
-
-        if (! $institution instanceof Institution) {
-            $this->resolvedScopedInstitution = null;
+        if (! app(SubmissionEntityAccess::class)->canUseMemberInstitution($user, $institutionId)) {
+            $this->resolvedScopedInstitutionId = null;
             $this->resolvedScopedInstitutionKey = null;
 
             return null;
         }
 
-        $this->resolvedScopedInstitution = $institution;
+        $this->resolvedScopedInstitutionId = $institutionId;
         $this->resolvedScopedInstitutionKey = $memoKey;
 
-        return $institution;
+        return $institutionId;
     }
 
     protected function hasScopedInstitution(): bool
     {
-        return $this->scopedInstitution() instanceof Institution;
+        return $this->scopedInstitution() !== null;
     }
 
     public function extractEventFromMedia(EventMediaExtraction $eventMediaExtraction): void
@@ -844,7 +837,7 @@ class Create extends Component implements HasActions, HasForms
 
         if (
             is_string($this->scopedInstitutionId) && $this->scopedInstitutionId !== ''
-            && ! $this->scopedInstitution() instanceof Institution
+            && $this->scopedInstitution() === null
         ) {
             throw ValidationException::withMessages([
                 'data.scoped_institution_id' => __('Anda tidak dibenarkan menghantar bagi pihak institusi ini.'),
@@ -1006,7 +999,7 @@ class Create extends Component implements HasActions, HasForms
         $scopedInstitution = $this->scopedInstitution();
 
         if (
-            $scopedInstitution instanceof Institution
+            $scopedInstitution !== null
             && ! $this->eventMatchesScopedInstitution($event, $scopedInstitution)
         ) {
             abort(403);
@@ -1018,14 +1011,14 @@ class Create extends Component implements HasActions, HasForms
         return $event;
     }
 
-    protected function eventMatchesScopedInstitution(Event $event, Institution $institution): bool
+    protected function eventMatchesScopedInstitution(Event $event, string $institutionId): bool
     {
         // The location institution is not ownership; only the primary
         // organizer establishes the institutional scope.
         return OrganizerResolver::involvementMatchesInstitution(
             $event->primaryOrganizerInvolvement?->involveable_type,
             $event->primaryOrganizerInvolvement?->involveable_id,
-            (string) $institution->getKey(),
+            $institutionId,
         );
     }
 

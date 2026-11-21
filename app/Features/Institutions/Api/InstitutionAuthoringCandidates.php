@@ -2,21 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Institutions\Api\Orm;
+namespace App\Features\Institutions\Api;
 
-use App\Features\Institutions\Models\Institution;
-use App\Models\User;
 
 /**
  * Institution-owned authoring candidate reads.
  *
  * The owner applies its own publicly-visible status, public-submission flag,
- * membership and country scope. Consumers receive final option labels or a
- * bounded member-institution identity; they never add predicates to an
- * Institution builder.
- *
- * @internal Model transport is limited to the scoped member institution a
- *           submission page must render and authorize.
+ * membership and country scope. Consumers receive final option labels and
+ * eligibility booleans; Eloquent models and builders remain private.
  *
  * Consumers: Contributions EntitySubmissionAccess and the Events submit-event
  * option/label providers and scoped-institution resolver.
@@ -28,7 +22,7 @@ interface InstitutionAuthoringCandidates
      *
      * @return array<string, string>
      */
-    public function options(?User $submitter, ?string $countryId = null): array;
+    public function options(?string $accountId, ?string $countryId = null): array;
 
     /**
      * Display labels for the supplied ids, restricted to the same submitter
@@ -37,25 +31,24 @@ interface InstitutionAuthoringCandidates
      * @param  list<string>  $institutionIds
      * @return array<string, string>
      */
-    public function labels(?User $submitter, array $institutionIds): array;
+    public function labels(?string $accountId, array $institutionIds): array;
 
     /**
      * Whether the submitter may use the institution.
      */
-    public function canUse(?User $submitter, string $institutionId, ?string $countryId = null): bool;
+    public function canUse(?string $accountId, string $institutionId, ?string $countryId = null): bool;
 
     /**
      * Institutions the account is a visible member of, keyed by id.
      *
      * @return array<string, string>
      */
-    public function memberOptions(User $submitter): array;
+    public function memberOptions(string $accountId): array;
 
     /**
-     * The visible member institution identity, or null when the account is
-     * not an eligible member.
+     * Whether the account currently belongs to this visible institution.
      */
-    public function findMemberCandidate(User $submitter, string $institutionId): ?Institution;
+    public function canMemberUse(string $accountId, string $institutionId): bool;
 
     public function belongsToCountry(string $institutionId, string $countryId): bool;
 }

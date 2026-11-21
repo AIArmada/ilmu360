@@ -16,7 +16,7 @@ use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
 use App\Models\User;
 use App\Platform\Language\MalaysiaLanguageCatalog;
@@ -48,10 +48,12 @@ final class SubmitEventOptionsProvider
     /**
      * @return array<string, string>
      */
-    public function institutionOptions(?User $submitter, ?string $countryId, ?Institution $scopedInstitution): array
+    public function institutionOptions(?User $submitter, ?string $countryId, ?string $scopedInstitutionId): array
     {
-        if ($scopedInstitution instanceof Institution) {
-            return [$scopedInstitution->id => $scopedInstitution->display_name];
+        if ($scopedInstitutionId !== null) {
+            $label = app(InstitutionLookup::class)->displayName($scopedInstitutionId);
+
+            return $label !== null ? [$scopedInstitutionId => $label] : [];
         }
 
         $memoKey = 'institutions:'.($countryId ?? 'all').':'.($submitter instanceof User ? (string) $submitter->getKey() : 'guest');
