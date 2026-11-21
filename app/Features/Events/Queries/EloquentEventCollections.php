@@ -11,7 +11,6 @@ use App\Features\Events\Api\EventCollections;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
-use App\Platform\Api\Frontend\SearchPayloadTransformer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
@@ -22,7 +21,6 @@ final readonly class EloquentEventCollections implements EventCollections
     public function __construct(
         private EventListPayloadPresenter $eventListPayloads,
         private EventScheduleSql $eventScheduleSql,
-        private SearchPayloadTransformer $searchPayloadTransformer,
     ) {}
 
     public function forInstitution(
