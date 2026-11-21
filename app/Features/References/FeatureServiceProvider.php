@@ -7,7 +7,6 @@ namespace App\Features\References;
 use App\Features\References\Api\ContributionProjection;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Features\References\Api\Orm\ReferenceLookup;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\References\Api\ReferenceCatalog;
 use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\References\Api\ReferenceQueries;
@@ -65,7 +64,6 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(ReferenceSearchCache::class, ReferenceSearchCacheStore::class);
         $this->app->bind(ReferenceWorkflow::class, ReferenceWorkflowService::class);
         $this->app->bind(ReferenceQueries::class, ReferenceQueryService::class);
-        $this->app->bind(ReferenceOrmPort::class, ReferenceQueryService::class);
         $this->app->bind(ReferenceLookup::class, EloquentReferenceLookup::class);
         $this->app->bind(ReferenceHomepageStats::class, ReferenceHomepageStatsCacheStore::class);
         $this->app->tag([ReferenceResourceSearchAdapter::class], ResourceSearchAdapter::TAG);

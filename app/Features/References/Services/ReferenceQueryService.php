@@ -4,23 +4,21 @@ declare(strict_types=1);
 
 namespace App\Features\References\Services;
 
-use App\Features\References\Api\Orm\ReferenceOrmPort;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
 use App\Features\References\Support\ReferenceFamily;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Implements the reference query boundary over the current Eloquent models.
  */
-final readonly class ReferenceQueryService implements ReferenceOrmPort
+final readonly class ReferenceQueryService implements ReferenceQueries
 {
     public function __construct(private ReferenceSearchService $search) {}
 
-    public function applyPublicVisibility(Builder|QueryBuilder $query, ?string $table = null): Builder|QueryBuilder
+    public function publiclyVisibleStatuses(): array
     {
-        return Reference::applyPublicVisibility($query, $table);
+        return Reference::PUBLIC_STATUSES;
     }
 
     public function expandReferenceIdsForFiltering(array $referenceIds): array
@@ -43,11 +41,6 @@ final readonly class ReferenceQueryService implements ReferenceOrmPort
     public function defaultEventReferenceIdsForMany(array $referenceIds): array
     {
         return ReferenceFamily::expandIdsForMany($referenceIds);
-    }
-
-    public function referenceModelClass(): string
-    {
-        return Reference::class;
     }
 
     public function referenceMorphType(): string

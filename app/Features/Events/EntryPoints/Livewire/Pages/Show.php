@@ -2,6 +2,8 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
+use App\Platform\Models\MorphModelResolver;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Models\Response;
@@ -31,7 +33,7 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Models\Venue;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
@@ -150,7 +152,7 @@ class Show extends Component
                 'series',
                 'references' => function (Relation $query) use ($event): void {
                     if (! $this->isEventOwner($event)) {
-                        app(ReferenceOrmPort::class)->applyPublicVisibility($query->getQuery());
+                        app(PublicReferenceConstraint::class)->apply($query->getQuery());
                         $query->where(config('events.database.tables.event_references', 'event_references').'.visibility', 'public');
                     }
 
@@ -477,7 +479,7 @@ class Show extends Component
             },
             'references.referenceable' => function (MorphTo $relation): void {
                 $relation->constrain([
-                    app(ReferenceOrmPort::class)->referenceModelClass() => fn (Builder $query) => app(ReferenceOrmPort::class)->applyPublicVisibility($query)
+                    MorphModelResolver::resolve('reference') => fn (Builder $query) => app(PublicReferenceConstraint::class)->apply($query)
                         ->with(['authors', 'parentReference']),
                 ]);
             },

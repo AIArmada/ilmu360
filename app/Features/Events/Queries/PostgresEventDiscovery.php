@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
+use App\Platform\Models\MorphModelResolver;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
@@ -40,7 +41,7 @@ use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
+use App\Features\References\Api\ReferenceQueries;
 use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
 use BackedEnum;
@@ -71,7 +72,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
         private EventCategoryCatalog $categoryCatalog,
         private EventSearchRelationProvider $relationProvider,
-        private ReferenceOrmPort $referenceQueries,
+        private ReferenceQueries $referenceQueries,
     ) {}
 
     /** @return LengthAwarePaginator<int, Event> */
@@ -358,7 +359,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
                 'persons.titleAssignments.title.category',
                 'keyPeople.person',
                 'references' => function (BelongsToMany $references): void {
-                    $this->referenceQueries->applyPublicVisibility($references->getQuery());
+                    app(PublicReferenceConstraint::class)->apply($references->getQuery());
                 },
                 'media',
                 'institution.media',
@@ -431,7 +432,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
         if ($referenceIds !== []) {
             $query->orWhereHas('references', function (Builder $query) use ($referenceIds): void {
-                $this->referenceQueries->applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
+                app(PublicReferenceConstraint::class)->apply($query)->whereIn('references.id', $referenceIds);
             });
         }
     }
@@ -919,7 +920,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
         if ($referenceFilter['ids'] !== []) {
             $queryBuilder->whereHas('references', function (Builder $referenceQuery) use ($referenceFilter): void {
-                $this->referenceQueries->applyPublicVisibility($referenceQuery)
+                app(PublicReferenceConstraint::class)->apply($referenceQuery)
                     ->whereIn('references.id', $referenceFilter['ids']);
             });
         } elseif ($referenceFilter['has_author_filter'] || $referenceFilter['has_id_filter']) {
@@ -1135,7 +1136,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
             if ($referenceIds !== []) {
                 $nestedQuery->orWhereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                    $this->referenceQueries->applyPublicVisibility($referenceQuery)
+                    app(PublicReferenceConstraint::class)->apply($referenceQuery)
                         ->whereIn('references.id', $referenceIds);
                 });
             }
@@ -2431,8 +2432,8 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
                             ->whereHas('references', function (Builder $referenceRows) use ($referenceIds): void {
                                 $referenceRows
                                     ->where('visibility', 'public')
-                                    ->whereHasMorph('referenceable', [$this->referenceQueries->referenceModelClass()], function (Builder $references) use ($referenceIds): void {
-                                        $this->referenceQueries->applyPublicVisibility($references)
+                                    ->whereHasMorph('referenceable', [MorphModelResolver::resolve('reference')], function (Builder $references) use ($referenceIds): void {
+                                        app(PublicReferenceConstraint::class)->apply($references)
                                             ->whereIn('references.id', $referenceIds);
                                     });
                             });
@@ -2446,7 +2447,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
                 'persons.titleAssignments.title.category',
                 'keyPeople.person',
                 'references' => function (BelongsToMany $references): void {
-                    $this->referenceQueries->applyPublicVisibility($references->getQuery());
+                    app(PublicReferenceConstraint::class)->apply($references->getQuery());
                 },
                 'media',
                 'institution.media',

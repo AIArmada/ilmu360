@@ -9,7 +9,6 @@ use App\Features\Events\Api\EventCollections;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Platform\Api\Frontend\SearchPayloadTransformer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -21,7 +20,6 @@ final readonly class EloquentEventCollections implements EventCollections
     public function __construct(
         private EventListPayloadPresenter $eventListPayloads,
         private EventScheduleSql $eventScheduleSql,
-        private ReferenceOrmPort $referenceQueries,
         private SearchPayloadTransformer $searchPayloadTransformer,
     ) {}
 
@@ -126,7 +124,7 @@ final readonly class EloquentEventCollections implements EventCollections
             Event::query()
                 ->active()
                 ->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                    $this->referenceQueries->applyPublicVisibility($referenceQuery)
+                    app(PublicReferenceConstraint::class)->apply($referenceQuery)
                         ->whereIn('references.id', $referenceIds);
                 })
                 ->whereRaw($this->directionSql($past), [$now ?? now()])
@@ -229,7 +227,7 @@ final readonly class EloquentEventCollections implements EventCollections
                     'persons.media',
                     'media',
                     'references' => function (BelongsToMany $references): void {
-                        $this->referenceQueries->applyPublicVisibility($references->getQuery());
+                        app(PublicReferenceConstraint::class)->apply($references->getQuery());
                     },
                 ]),
             ])

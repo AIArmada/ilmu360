@@ -2,6 +2,8 @@
 
 namespace App\Features\Events\EntryPoints\Http;
 
+use App\Platform\Models\MorphModelResolver;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
@@ -25,7 +27,7 @@ use App\Features\Events\Queries\PrimaryOccurrenceSql;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerReference;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
+use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Api\Data\EventCheckInStateData;
 use App\Features\Registration\Api\Data\EventRegistrationData;
@@ -55,7 +57,7 @@ class EventController extends Controller
 {
     public function __construct(
         private readonly SignalRecorder $signals,
-        private readonly ReferenceOrmPort $referenceQueries,
+        private readonly ReferenceQueries $referenceQueries,
         private readonly EventListPayloadPresenter $eventListPayloads,
         private readonly PlaceLookup $placeLookup,
         private readonly RegistrationLookup $registrationLookup,
@@ -394,7 +396,7 @@ class EventController extends Controller
                 $query->where(function (Builder $referenceFilter) use ($referenceIds): void {
                     $referenceFilter
                         ->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                            $this->referenceQueries->applyPublicVisibility($referenceQuery)
+                            app(PublicReferenceConstraint::class)->apply($referenceQuery)
                                 ->whereIn('references.id', $referenceIds);
                         })
                         ->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($referenceIds): void {
@@ -403,8 +405,8 @@ class EventController extends Controller
                                     $referenceRowQuery
                                         ->where('visibility', 'public')
                                         ->whereNull('event_session_id')
-                                        ->whereHasMorph('referenceable', [$this->referenceQueries->referenceModelClass()], function (Builder $referenceQuery) use ($referenceIds): void {
-                                            $this->referenceQueries->applyPublicVisibility($referenceQuery)
+                                        ->whereHasMorph('referenceable', [MorphModelResolver::resolve('reference')], function (Builder $referenceQuery) use ($referenceIds): void {
+                                            app(PublicReferenceConstraint::class)->apply($referenceQuery)
                                                 ->whereIn('references.id', $referenceIds);
                                         });
                                 });

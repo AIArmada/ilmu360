@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Support\EventModel;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -33,7 +33,7 @@ final class SubmissionRelationSync
             $errors[SubmissionValues::prefixedKey('languages', $validationKeyPrefix)] = __('The selected language is invalid.');
         }
 
-        if ($referenceIds !== [] && array_diff($referenceIds, app(ReferenceOrmPort::class)->applyPublicVisibility(EventModel::query('reference'))->whereIn('references.id', $referenceIds)->pluck('references.id')->all()) !== []) {
+        if ($referenceIds !== [] && array_diff($referenceIds, app(PublicReferenceConstraint::class)->apply(EventModel::query('reference'))->whereIn('references.id', $referenceIds)->pluck('references.id')->all()) !== []) {
             $errors[SubmissionValues::prefixedKey('references', $validationKeyPrefix)] = __('The selected reference is unavailable.');
         }
 

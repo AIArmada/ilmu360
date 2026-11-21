@@ -2,6 +2,7 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent;
 
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
@@ -29,7 +30,6 @@ use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Platform\Ui\Forms\Select;
 use App\Shared\Cache\SelectionCatalogCache;
 use Carbon\CarbonInterface;
@@ -798,7 +798,7 @@ final readonly class EventSubmissionFormSchema
                         ->closeOnSelect()
                         ->searchable()
                         ->native(false)
-                        ->relationship('references', 'title', fn (Builder $query) => app(ReferenceOrmPort::class)->applyPublicVisibility($query)->with('parentReference.parentReference'))
+                        ->relationship('references', 'title', fn (Builder $query) => app(PublicReferenceConstraint::class)->apply($query)->with('parentReference.parentReference'))
                         ->getSearchResultsUsing(fn (string $search): array => app(ReferenceQuickCreate::class)->searchReferenceOptions($search))
                         ->getOptionLabelsUsing(fn (array $values): array => app(ReferenceQuickCreate::class)->selectedReferenceLabels($values))
                         ->createOptionForm(app(ReferenceQuickCreate::class)->quickCreateSections())

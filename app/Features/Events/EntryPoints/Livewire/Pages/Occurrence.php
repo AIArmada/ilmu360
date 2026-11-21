@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
@@ -11,7 +12,6 @@ use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Livewire\Attributes\Computed;
@@ -171,7 +171,7 @@ class Occurrence extends Show
             'languages',
             'references' => function (Relation $query) use ($event): void {
                 if (! $this->isEventOwner($event)) {
-                    app(ReferenceOrmPort::class)->applyPublicVisibility($query->getQuery());
+                    app(PublicReferenceConstraint::class)->apply($query->getQuery());
                     $query->where(config('events.database.tables.event_references', 'event_references').'.visibility', 'public');
                 }
 

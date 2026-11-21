@@ -2,6 +2,7 @@
 
 namespace App\Features\Events\EntryPoints\Http\Data;
 
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
@@ -18,7 +19,6 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\SpaceLocation;
 use App\Features\Prayer\Api\PrayerOffset;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\References\Models\Reference;
 use App\Platform\Language\Models\Language;
 use App\Platform\Location\AddressHierarchyFormatter;
@@ -48,8 +48,7 @@ class EventPayloadData extends Data
 
     public static function fromModel(Event $event): self
     {
-        $referenceQueries = app(ReferenceOrmPort::class);
-        $referenceModelClass = $referenceQueries->referenceModelClass();
+        $referenceModelClass = MorphModelResolver::resolve('reference');
 
         $event->loadMissing([
             'latestPublishedChangeAnnouncement.replacementEvent',
@@ -68,9 +67,9 @@ class EventPayloadData extends Data
             'displayOccurrence.references' => static function (Relation $query): void {
                 $query->where('visibility', 'public')->orderBy('sort_order');
             },
-            'displayOccurrence.references.referenceable' => static function (MorphTo $relation) use ($referenceQueries, $referenceModelClass): void {
+            'displayOccurrence.references.referenceable' => static function (MorphTo $relation) use ($referenceModelClass): void {
                 $relation->constrain([
-                    $referenceModelClass => static fn (Builder $query): Builder => $referenceQueries->applyPublicVisibility($query)
+                    $referenceModelClass => static fn (Builder $query): Builder => app(PublicReferenceConstraint::class)->apply($query)
                         ->with(['media', 'authors', 'parentReference']),
                 ]);
             },

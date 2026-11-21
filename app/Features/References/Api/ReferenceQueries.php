@@ -7,11 +7,14 @@ namespace App\Features\References\Api;
 /**
  * Reference query boundary for Events, Discovery and public readers.
  *
- * Ordinary reads return immutable ids and scalar values. Query-builder
- * composition lives in the explicit ORM port.
+ * Reads return immutable ids and scalar values. Callers compose their own
+ * private query constraints from the owner-provided visibility statuses.
  */
 interface ReferenceQueries
 {
+    /** @return list<string> */
+    public function publiclyVisibleStatuses(): array;
+
     /**
      * @param  list<string>  $referenceIds
      * @return list<string>
@@ -35,11 +38,6 @@ interface ReferenceQueries
      * @return array<string, list<string>>
      */
     public function defaultEventReferenceIdsForMany(array $referenceIds): array;
-
-    /**
-     * @return class-string
-     */
-    public function referenceModelClass(): string;
 
     /**
      * The stored polymorphic alias for reference links.
