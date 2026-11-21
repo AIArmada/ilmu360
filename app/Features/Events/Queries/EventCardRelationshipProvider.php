@@ -52,6 +52,7 @@ final readonly class EventCardRelationshipProvider implements EventSearchRelatio
             'primaryOccurrence' => fn ($query) => $query
                 ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
                 ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES),
+            'displayOccurrence.media',
             'primaryOccurrence.timeExpressions',
             'primaryOccurrence.sessions' => fn ($query) => $query
                 ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
