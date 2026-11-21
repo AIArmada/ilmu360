@@ -40,13 +40,13 @@ app/
 ├── Shared/
 │   └── Contracts/                  # Pure interfaces, backed enums, final readonly DTOs
 tests/
-├── Arch/PlatformArchTest.php           # Pest architecture tests
+├── Unit/Platform/ArchitectureBoundaryTest.php           # Pest architecture tests
 └── Feature/Orders/                 # Normal Laravel test discovery
 tools/
-├── platform.json                       # Discovery mode, anti-slop toggles, expiry-dated exceptions
-├── platform-check.php                  # Zero-boot PHP-Parser AST boundary & anti-slop checker
-├── platform-phpstan.neon               # Standalone OwnedWriteRule PHPStan config
-└── Platform/OwnedWriteRule.php         # Type-aware Eloquent/DB/Cache/Storage/Redis write checker
+├── architecture.json                   # Ownership metadata and expiry-dated exceptions
+├── architecture-check.php              # Zero-boot PHP-Parser AST boundary & anti-slop checker
+├── architecture.neon                    # OwnedWriteRule and PHPStan config
+└── Architecture/OwnedWriteRule.php      # Type-aware Eloquent/DB/Cache/Storage/Redis write checker
 verify/
 ├── feature-map/                    # User-POV 4-H2 Feature Map (Layer 3)
 └── cli/                            # Reusable app verification CLI
@@ -58,7 +58,7 @@ Create only directories a feature actually needs. Avoid speculative repositories
 
 ```json
 {
-  "schema": 1,
+  "schema": 2,
   "name": "Orders",
   "owns": {
     "table:orders": [
@@ -77,9 +77,11 @@ Create only directories a feature actually needs. Avoid speculative repositories
 }
 ```
 
+The converted application uses schema 2 for explicit model aliases and package-resource ownership. The fresh-application starter remains schema 1; the scaffold selects the target architecture schema.
+
 ## Runtime Strictness & Performance Notes
 
 - `PlatformServiceProvider` enables `Model::shouldBeStrict(! $isProduction)`, `DB::prohibitDestructiveCommands($isProduction)`, and `Date::use(CarbonImmutable::class)` automatically.
-- `FeatureCatalog::load()` memoizes per process and reads `bootstrap/cache/platform.php` when `php artisan platform:cache` (or `php artisan optimize`) has run—eliminating per-request filesystem scans in production and under Laravel Octane.
+- `FeatureCatalog::runtime()` memoizes and loads `bootstrap/cache/platform.php` when present. `FeatureCatalog::load()` always validates uncached manifests for architecture checks and cache generation.
 - Feature route files declare their own `Route::middleware(...)`, `prefix(...)`, and `name(...)` groups explicitly; `FeatureModule` adds no hidden middleware.
 - One owning feature does not eliminate concurrency: actions must still use `DB::transaction()`, row locks (`lockForUpdate()`), unique DB constraints, idempotency keys, and `afterCommit()` queue dispatching where required.

@@ -6,7 +6,7 @@ paths:
 # Feature Modules
 
 ## Owned Capability Folder & Manifest
-- Every directory under `app/Features/<PascalCase>/` must contain `feature.json` (schema v1) and `FeatureServiceProvider.php` extending `App\Platform\FeatureModule`.
+- Every directory under `app/Features/<PascalCase>/` must contain `feature.json` (schema v2) and `FeatureServiceProvider.php` extending `App\Platform\FeatureModule`.
 - Declare every owned `table:<name>` and `store:<name>` in `feature.json` with the exact local `Actions\` or `Persistence\` FQCNs permitted to mutate it. Never register an `EntryPoints\` class as a write owner.
 - Multiple named actions in the same feature (e.g. `PlaceOrder`, `CancelOrder`) may write the same owned table—do not create a god-class `OrderWriter`.
 

@@ -207,6 +207,13 @@ jobs:
           QUEUE_CONNECTION: sync
         run: composer architecture:test
 
+      - name: Verify optimized Platform and Laravel bootstrap
+        run: |
+          php artisan optimize
+          test -f bootstrap/cache/platform.php
+          php artisan optimize:clear
+          test ! -f bootstrap/cache/platform.php
+
   tests:
     needs: changes
     if: needs.changes.outputs.tests == 'true'
