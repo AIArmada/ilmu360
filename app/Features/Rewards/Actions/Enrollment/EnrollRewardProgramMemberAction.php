@@ -38,6 +38,7 @@ final readonly class EnrollRewardProgramMemberAction implements MemberEnrollment
         private AccountDirectory $accounts,
         private PublishedProgramVersions $publishedVersions,
         private EvaluatePreclaimShareOutcomesAction $preclaimAction,
+        private SignalRecorder $signalRecorder,
     ) {}
 
     public function enroll(
@@ -86,7 +87,7 @@ final readonly class EnrollRewardProgramMemberAction implements MemberEnrollment
         );
 
         if ($recordSignal && ! $wasEnrolled) {
-            app(SignalRecorder::class)->record(
+            $this->signalRecorder->record(
                 eventName: 'rewards.program_enrolled',
                 eventCategory: 'engagement',
                 actorId: $memberId,

@@ -28,6 +28,7 @@ final readonly class PersistEventAuthoringAction
         private AdminEventScheduleResolver $scheduleResolver,
         private AdminEventRelationsSynchronizer $relationsSynchronizer,
         private SyncEventOrganizerAction $syncEventOrganizer,
+        private SyncEventScheduleAction $scheduleAction,
     ) {}
 
     /**
@@ -61,7 +62,7 @@ final readonly class PersistEventAuthoringAction
             $event->save();
         }
 
-        app(SyncEventScheduleAction::class)->execute(
+        $this->scheduleAction->execute(
             $event,
             $preparedSchedule['schedule_kind'],
             startsAt: $schedule['starts_at'],

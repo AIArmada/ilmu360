@@ -21,6 +21,7 @@ final readonly class ResolveAdvancedBuilderContextAction implements AdvancedBuil
     public function __construct(
         private AdvancedBuilderMembershipOptions $advancedBuilderMembershipOptions,
         private EventCategoryCatalog $categoryCatalog,
+        private AddressCountryResolver $countryResolver,
     ) {}
 
     /**
@@ -80,7 +81,7 @@ final readonly class ResolveAdvancedBuilderContextAction implements AdvancedBuil
                 'prayer_time' => EventPrayerTime::LainWaktu->value,
                 'custom_time' => $programStartsAt->format('H:i'),
                 'end_time' => $programEndsAt->format('H:i'),
-                'submission_country_id' => app(AddressCountryResolver::class)->resolveId('MY'),
+                'submission_country_id' => $this->countryResolver->resolveId('MY'),
                 'primary_organizer_id' => $defaultPrimaryOrganizerId,
                 'primary_organizer_kind' => $defaultPrimaryOrganizerIsInstitution ? 'institution' : 'person',
                 'location_institution_id' => $defaultPrimaryOrganizerIsInstitution

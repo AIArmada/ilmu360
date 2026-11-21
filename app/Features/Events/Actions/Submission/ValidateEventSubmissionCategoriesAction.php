@@ -14,6 +14,11 @@ use Illuminate\Validation\ValidationException;
 /** Semantic public event submission category rules. */
 final readonly class ValidateEventSubmissionCategoriesAction
 {
+    public function __construct(
+        private EventCategoryCatalog $categories,
+        private EventCategoryPolicyResolver $policies,
+    ) {}
+
     /** @param array<string, mixed> $validated
      * @return array<string, mixed>
      */
@@ -22,7 +27,7 @@ final readonly class ValidateEventSubmissionCategoriesAction
         // Semantic boundary: unknown, wrong-taxonomy, or inactive category IDs
         // must fail here. Catalog normalization silently drops such IDs, so an
         // unchecked result could turn a required selection into [].
-        $catalog = app(EventCategoryCatalog::class);
+        $catalog = $this->categories;
         $requestedCategoryIds = is_array($validated['event_category_ids'] ?? null) ? $validated['event_category_ids'] : [];
         $normalizedRequestedCategoryIds = array_values(array_unique(array_map(static fn (mixed $id): string => (string) $id, $requestedCategoryIds)));
         $knownCategoryIds = $catalog->validTermIds($normalizedRequestedCategoryIds);
@@ -62,8 +67,8 @@ final readonly class ValidateEventSubmissionCategoriesAction
         }
 
         try {
-            return app(EventCategoryPolicyResolver::class)->requiresPhysicalDelivery(
-                app(EventCategoryCatalog::class)->validateTermIds($categoryIds),
+            return $this->policies->requiresPhysicalDelivery(
+                $this->categories->validateTermIds($categoryIds),
             );
         } catch (ValidationException $exception) {
             $messages = [];
