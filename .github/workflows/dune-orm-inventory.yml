@@ -1,0 +1,21 @@
+name: Dune ORM consumer inventory
+on:
+  push:
+    branches: [refactor]
+  workflow_dispatch:
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: List ORM contract consumers and boundary imports
+        shell: bash
+        run: |
+          for contract in "EntitySubmissionAccessContract" "SubmissionContext" "SubmissionEntityAccess" "EventListPayloads" "PublicScheduleModelLeaf" "PublicScheduleOrmPort" "DonationQrMedia" "EventCategoryCatalog" "EventCategoryPayloads" "EventContributionStateMapper" "EventMedia" "EventOrmPort" "EventPageScheduleOrmPort" "EventSchedulePageData" "EventSubmissions" "EventContributionOptionsCountry" "PublicScheduleEligibility" "PublicScheduleEventReads" "SeriesAuthoring" "InstitutionAuthoringCandidates" "InstitutionLookup" "AccountMembershipDirectory" "MemberInvitationAccess" "PersonLookup" "PlaceLookup" "ReferenceLookup" "ReferenceOrmPort" "RegistrationLookup"; do
+            echo "CONTRACT_BEGIN $contract"
+            rg -l -F "$contract" app tests resources --glob '*.php' --glob '*.blade.php' | sort || true
+            echo "CONTRACT_END $contract"
+          done
+          echo 'CROSS_FEATURE_MODEL_IMPORTS_BEGIN'
+          rg -n 'use App\\Features\\[^;]+\\Models\\' app/Features --glob '*.php' | head -200 || true
+          echo 'CROSS_FEATURE_MODEL_IMPORTS_END'
