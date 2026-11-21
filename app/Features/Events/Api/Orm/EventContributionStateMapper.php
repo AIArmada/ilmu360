@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
+use App\Features\Events\Models\Event;
+use Illuminate\Database\Eloquent\Model;
+
 /**
  * Contribution form-state normalisation boundary for event subjects.
  *
@@ -26,15 +29,15 @@ interface EventContributionStateMapper
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
-    public function toPersistenceState(array $state, ?object $event = null): array;
+    public function toPersistenceState(array $state, ?Event $event = null): array;
 
     /**
      * @return array<string, mixed>
      */
-    public function provenanceOriginals(object $entity): array;
+    public function provenanceOriginals(Model $entity): array;
 
     /**
      * @param  array<string, mixed>  $formState
      */
-    public function effectiveOptionsCountry(array $formState, ?object $event = null): string;
+    public function effectiveOptionsCountry(array $formState, ?Event $event = null): string;
 }

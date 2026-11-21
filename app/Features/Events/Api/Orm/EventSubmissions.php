@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Events\Api\Orm;
 
 use App\Features\Events\Api\EventSubmissionInput;
+use App\Features\Events\Models\EventSubmission;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Public event-submission boundary.
@@ -122,25 +125,25 @@ interface EventSubmissions
      * events owned by an institution the account does not belong to, with the
      * contribution presentation relations eager loaded.
      *
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, \App\Features\Events\Models\EventSubmission>
+     * @return LengthAwarePaginator<int, EventSubmission>
      */
-    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): object;
+    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): LengthAwarePaginator;
 
     /**
      * Documented transport: submissions for an account with the event loaded,
      * newest first.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Events\Models\EventSubmission>
+     * @return EloquentCollection<int, EventSubmission>
      */
-    public function submissionsForAccount(string $accountId): object;
+    public function submissionsForAccount(string $accountId): EloquentCollection;
 
     /**
      * Documented transport: planner submissions for an account with the event
      * and planner relations loaded, newest first.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Events\Models\EventSubmission>
+     * @return EloquentCollection<int, EventSubmission>
      */
-    public function plannerSubmissionsForAccount(string $accountId): object;
+    public function plannerSubmissionsForAccount(string $accountId): EloquentCollection;
 
     public function existsForSubmitter(string $eventId, string $accountId): bool;
 
@@ -153,7 +156,7 @@ interface EventSubmissions
      * Documented transport: a hydrated submission model for framework read
      * adapters that need its recorded attributes.
      */
-    public function findSubmission(string $submissionId): ?object;
+    public function findSubmission(string $submissionId): ?EventSubmission;
 
     /**
      * Whether an earlier submission exists for the actor.

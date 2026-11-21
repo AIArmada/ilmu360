@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
+use App\Features\Events\Models\Event;
+
 /**
  * Event category payload boundary for list/detail/engagement surfaces.
  *
@@ -16,5 +18,5 @@ interface EventCategoryPayloads
     /**
      * @return list<array{id: string, code: string, name: string, path: string, is_primary: bool}>
      */
-    public function forEventPayload(object $event): array;
+    public function forEventPayload(Event $event): array;
 }

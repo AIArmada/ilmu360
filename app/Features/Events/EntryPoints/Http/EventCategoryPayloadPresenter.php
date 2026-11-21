@@ -17,15 +17,8 @@ final readonly class EventCategoryPayloadPresenter implements EventCategoryPaylo
         private EventCategoryPresenter $presenter,
     ) {}
 
-    public function forEventPayload(object $event): array
+    public function forEventPayload(Event $event): array
     {
-        if (! $event instanceof Event) {
-            throw new \InvalidArgumentException(sprintf(
-                'EventCategoryPayloadPresenter expects an instance of %s.',
-                Event::class,
-            ));
-        }
-
         return $this->presenter->forEvent($event);
     }
 }

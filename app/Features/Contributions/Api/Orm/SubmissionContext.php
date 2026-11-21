@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Contributions\Api\Orm;
 
 use App\Features\Contributions\Api\ContributionOrganizer;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 
 /**
@@ -24,18 +26,18 @@ interface SubmissionContext
      * @param  array<string, mixed>  $state
      */
     public function authorizedScopedInstitutionFor(
-        ?object $scopedInstitution,
+        ?Institution $scopedInstitution,
         ?User $submitter,
         string $validationKeyPrefix,
         array $state = [],
-    ): ?object;
+    ): ?Institution;
 
     public function authorizedEventContainerFor(
-        ?object $eventContainer,
+        ?Event $eventContainer,
         ?User $submitter,
-        ?object $scopedInstitution,
+        ?Institution $scopedInstitution,
         string $validationKeyPrefix,
-    ): ?object;
+    ): ?Event;
 
     /**
      * @param  array<string, mixed>  $validated
@@ -43,7 +45,7 @@ interface SubmissionContext
      */
     public function normalizeScopedInstitutionStateFor(
         array $validated,
-        ?object $scopedInstitution,
+        ?Institution $scopedInstitution,
         string $validationKeyPrefix,
     ): array;
 
@@ -58,10 +60,7 @@ interface SubmissionContext
      */
     public function resolveSubmissionCountryId(array $validated, string $validationKeyPrefix): string;
 
-    /**
-     * @return ContributionOrganizer|null Opaque organizer identity (kind + id), or null.
-     */
-    public function resolvePrimaryOrganizer(mixed $primaryOrganizerId): mixed;
+    public function resolvePrimaryOrganizer(mixed $primaryOrganizerId): ?ContributionOrganizer;
 
     /**
      * @param  array<string, mixed>  $validated
@@ -82,14 +81,14 @@ interface SubmissionContext
      * @param  array<string, mixed>  $validated
      * @return array{0: string|null, 1: string|null}
      */
-    public function resolveTargetLocationFor(array $validated, object $primaryOrganizer): array;
+    public function resolveTargetLocationFor(array $validated, ContributionOrganizer $primaryOrganizer): array;
 
     /**
      * @param  array<string, mixed>  $validated
      */
     public function resolveSelectedOccurrenceIdFor(
         array $validated,
-        ?object $eventContainer,
+        ?Event $eventContainer,
         string $validationKeyPrefix,
     ): ?string;
 }

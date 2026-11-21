@@ -7,6 +7,9 @@ namespace App\Features\Registration\Api\Orm;
 use App\Features\Registration\Api\Data\CheckInSourceFacts;
 use App\Features\Registration\Api\Data\EventCheckInFacts;
 use App\Features\Registration\Api\Data\EventRegistrationData;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Models\Registration;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Cross-owner read boundary for registration and check-in records.
@@ -40,13 +43,13 @@ interface RegistrationLookup
      * contracts that require the Eloquent row (participant relation,
      * lifecycle status helpers, occurrence/session scope fields).
      */
-    public function findRegistration(string $registrationId): ?object;
+    public function findRegistration(string $registrationId): ?Registration;
 
     /**
      * Documented transport: a hydrated check-in model for framework read
      * adapters that need its recorded attributes.
      */
-    public function findCheckIn(string $checkInId): ?object;
+    public function findCheckIn(string $checkInId): ?EventCheckin;
 
     /**
      * Whether an earlier registration exists for the actor.
@@ -72,34 +75,34 @@ interface RegistrationLookup
      * Documented transport: registrations for an account with the event
      * loaded, newest first.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Registration\Models\Registration>
+     * @return EloquentCollection<int, Registration>
      */
-    public function registrationsForAccount(string $accountId): object;
+    public function registrationsForAccount(string $accountId): EloquentCollection;
 
     /**
      * Documented transport: active planner registrations for the supplied ids
      * with the event and planner relations loaded, newest first.
      *
      * @param  list<string>  $registrationIds
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Registration\Models\Registration>
+     * @return EloquentCollection<int, Registration>
      */
-    public function plannerRegistrationsForIds(array $registrationIds): object;
+    public function plannerRegistrationsForIds(array $registrationIds): EloquentCollection;
 
     /**
      * Documented transport: check-ins for an account with the event and
      * verifier loaded, most recent first.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Registration\Models\EventCheckin>
+     * @return EloquentCollection<int, EventCheckin>
      */
-    public function checkInsForAccount(string $accountId): object;
+    public function checkInsForAccount(string $accountId): EloquentCollection;
 
     /**
      * Documented transport: planner check-ins for an account with the event
      * and planner relations loaded, most recent first.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Features\Registration\Models\EventCheckin>
+     * @return EloquentCollection<int, EventCheckin>
      */
-    public function plannerCheckInsForAccount(string $accountId): object;
+    public function plannerCheckInsForAccount(string $accountId): EloquentCollection;
 
     /**
      * Confirmed registration ids for the account.

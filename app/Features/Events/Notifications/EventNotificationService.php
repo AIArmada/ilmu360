@@ -372,12 +372,8 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
         }
     }
 
-    public function registrationConfirmed(object $registration): void
+    public function registrationConfirmed(Registration $registration): void
     {
-        if (! $registration instanceof Registration) {
-            return;
-        }
-
         $this->notifyRegistrationConfirmed($registration);
     }
 

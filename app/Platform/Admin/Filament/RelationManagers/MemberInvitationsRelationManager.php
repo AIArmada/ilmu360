@@ -42,10 +42,12 @@ abstract class MemberInvitationsRelationManager extends RelationManager
     {
         $user = auth()->user();
 
+        if (! $user instanceof User) {
+            return false;
+        }
+
         return parent::canViewForRecord($ownerRecord, $pageClass)
-            && in_array($ownerRecord->getMorphClass(), ['institution', 'person', 'event', 'reference'], true)
-            && $user instanceof User
-            && app(MemberInvitationAccess::class)->canInvite($user, $ownerRecord);
+            && app(MemberInvitationAccess::class)->canInviteOwnerRecord($user, $ownerRecord);
     }
 
     public function table(Table $table): Table

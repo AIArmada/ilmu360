@@ -469,13 +469,13 @@ final readonly class SubmissionContextResolver implements SubmissionContext
     }
 
     public function authorizedScopedInstitutionFor(
-        ?object $scopedInstitution,
+        ?Institution $scopedInstitution,
         ?User $submitter,
         string $validationKeyPrefix,
         array $state = [],
-    ): ?object {
+    ): ?Institution {
         return $this->authorizedScopedInstitution(
-            $scopedInstitution instanceof Institution ? $scopedInstitution : null,
+            $scopedInstitution,
             $submitter,
             $validationKeyPrefix,
             $state,
@@ -483,48 +483,44 @@ final readonly class SubmissionContextResolver implements SubmissionContext
     }
 
     public function authorizedEventContainerFor(
-        ?object $eventContainer,
+        ?Event $eventContainer,
         ?User $submitter,
-        ?object $scopedInstitution,
+        ?Institution $scopedInstitution,
         string $validationKeyPrefix,
-    ): ?object {
+    ): ?Event {
         return $this->authorizedEventContainer(
-            $eventContainer instanceof Event ? $eventContainer : null,
+            $eventContainer,
             $submitter,
-            $scopedInstitution instanceof Institution ? $scopedInstitution : null,
+            $scopedInstitution,
             $validationKeyPrefix,
         );
     }
 
     public function normalizeScopedInstitutionStateFor(
         array $validated,
-        ?object $scopedInstitution,
+        ?Institution $scopedInstitution,
         string $validationKeyPrefix,
     ): array {
         return $this->normalizeScopedInstitutionState(
             $validated,
-            $scopedInstitution instanceof Institution ? $scopedInstitution : null,
+            $scopedInstitution,
             $validationKeyPrefix,
         );
     }
 
-    public function resolveTargetLocationFor(array $validated, object $primaryOrganizer): array
+    public function resolveTargetLocationFor(array $validated, ContributionOrganizer $primaryOrganizer): array
     {
-        if (! $primaryOrganizer instanceof ContributionOrganizer) {
-            throw new InvalidArgumentException('The primary organizer must be an institution or a person.');
-        }
-
         return $this->resolveTargetLocation($validated, $primaryOrganizer);
     }
 
     public function resolveSelectedOccurrenceIdFor(
         array $validated,
-        ?object $eventContainer,
+        ?Event $eventContainer,
         string $validationKeyPrefix,
     ): ?string {
         return $this->resolveSelectedOccurrenceId(
             $validated,
-            $eventContainer instanceof Event ? $eventContainer : null,
+            $eventContainer,
             $validationKeyPrefix,
         );
     }

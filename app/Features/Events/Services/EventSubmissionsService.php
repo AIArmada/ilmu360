@@ -24,7 +24,9 @@ use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
 use Carbon\Carbon;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -241,7 +243,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
         return $model;
     }
 
-    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): object
+    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): LengthAwarePaginator
     {
         $institutionIdSelector = 'events.institution_id';
 
@@ -273,7 +275,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
             ->paginate(perPage: $perPage, pageName: $pageName);
     }
 
-    public function submissionsForAccount(string $accountId): object
+    public function submissionsForAccount(string $accountId): EloquentCollection
     {
         return EventSubmission::query()
             ->where('submitter_type', (new User)->getMorphClass())
@@ -283,7 +285,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
             ->get();
     }
 
-    public function plannerSubmissionsForAccount(string $accountId): object
+    public function plannerSubmissionsForAccount(string $accountId): EloquentCollection
     {
         return EventSubmission::query()
             ->where('submitter_type', (new User)->getMorphClass())
@@ -328,7 +330,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
         return (string) $status;
     }
 
-    public function findSubmission(string $submissionId): ?object
+    public function findSubmission(string $submissionId): ?EventSubmission
     {
         return EventSubmission::query()->find($submissionId);
     }

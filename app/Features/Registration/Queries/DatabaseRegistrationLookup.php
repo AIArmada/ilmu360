@@ -13,6 +13,7 @@ use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 final readonly class DatabaseRegistrationLookup implements RegistrationLookup
 {
@@ -167,12 +168,12 @@ final readonly class DatabaseRegistrationLookup implements RegistrationLookup
             ->all();
     }
 
-    public function findRegistration(string $registrationId): ?object
+    public function findRegistration(string $registrationId): ?Registration
     {
         return Registration::query()->find($registrationId);
     }
 
-    public function findCheckIn(string $checkInId): ?object
+    public function findCheckIn(string $checkInId): ?EventCheckin
     {
         return EventCheckin::query()->find($checkInId);
     }
@@ -211,7 +212,7 @@ final readonly class DatabaseRegistrationLookup implements RegistrationLookup
             ->exists();
     }
 
-    public function registrationsForAccount(string $accountId): object
+    public function registrationsForAccount(string $accountId): EloquentCollection
     {
         return Registration::query()
             ->where('registrant_type', (new User)->getMorphClass())
@@ -221,7 +222,7 @@ final readonly class DatabaseRegistrationLookup implements RegistrationLookup
             ->get();
     }
 
-    public function plannerRegistrationsForIds(array $registrationIds): object
+    public function plannerRegistrationsForIds(array $registrationIds): EloquentCollection
     {
         return Registration::query()
             ->whereKey($registrationIds)
@@ -234,7 +235,7 @@ final readonly class DatabaseRegistrationLookup implements RegistrationLookup
             ->get();
     }
 
-    public function checkInsForAccount(string $accountId): object
+    public function checkInsForAccount(string $accountId): EloquentCollection
     {
         return EventCheckin::query()
             ->where('attendee_id', $accountId)
@@ -243,7 +244,7 @@ final readonly class DatabaseRegistrationLookup implements RegistrationLookup
             ->get();
     }
 
-    public function plannerCheckInsForAccount(string $accountId): object
+    public function plannerCheckInsForAccount(string $accountId): EloquentCollection
     {
         return EventCheckin::query()
             ->where('attendee_id', $accountId)

@@ -27,7 +27,6 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
-use InvalidArgumentException;
 
 final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrmPort
 {
@@ -166,12 +165,8 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         )->values();
     }
 
-    public function leafFor(object $event, object $occurrence, iterable $sessions = []): PublicScheduleModelLeaf
+    public function leafFor(Event $event, EventOccurrence $occurrence, iterable $sessions = []): PublicScheduleModelLeaf
     {
-        if (! $event instanceof Event || ! $occurrence instanceof EventOccurrence) {
-            throw new InvalidArgumentException('A public schedule leaf requires an event and an occurrence model.');
-        }
-
         $sessionModels = [];
 
         foreach ($sessions as $session) {
@@ -233,12 +228,8 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
      * Overwrite package location venues with application Venue models for
      * one occurrence/session detail page.
      */
-    public function hydrateOccurrencePageVenues(object $event): void
+    public function hydrateOccurrencePageVenues(Event $event): void
     {
-        if (! $event instanceof Event) {
-            return;
-        }
-
         $this->hydrateApplicationVenues(new EloquentCollection([$event]));
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
+use App\Features\Events\Models\Series;
 use App\Shared\Directory\FollowableSubject;
 
 /**
@@ -43,7 +44,7 @@ interface SeriesAuthoring
      * Documented transport: a hydrated Series model for route/slug/title
      * presentation contracts.
      */
-    public function findSeriesBySlug(string $slug): ?object;
+    public function findSeriesBySlug(string $slug): ?Series;
 
     public function isPubliclyReachable(string $seriesId): bool;
 }

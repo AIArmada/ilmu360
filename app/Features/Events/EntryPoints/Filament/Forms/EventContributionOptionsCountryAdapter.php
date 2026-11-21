@@ -10,7 +10,7 @@ use App\Features\Events\Services\EventContributionUpdateStateMapper;
 
 final readonly class EventContributionOptionsCountryAdapter implements EventContributionOptionsCountry
 {
-    public function forFormState(array $formState, ?object $event = null): string
+    public function forFormState(array $formState, ?Event $event = null): string
     {
         return EventContributionUpdateStateMapper::effectiveOptionsCountry(
             $formState,

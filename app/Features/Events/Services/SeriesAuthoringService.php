@@ -77,7 +77,7 @@ final readonly class SeriesAuthoringService implements SeriesAuthoring
             ->all();
     }
 
-    public function findSeriesBySlug(string $slug): ?object
+    public function findSeriesBySlug(string $slug): ?Series
     {
         return Series::query()->where('slug', $slug)->first();
     }

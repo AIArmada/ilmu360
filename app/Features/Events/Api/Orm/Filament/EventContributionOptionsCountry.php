@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm\Filament;
 
+use App\Features\Events\Models\Event;
+
 /**
  * Effective prayer-options country for the contribution event form.
  *
@@ -19,5 +21,5 @@ interface EventContributionOptionsCountry
     /**
      * @param  array<string, mixed>  $formState
      */
-    public function forFormState(array $formState, ?object $event = null): string;
+    public function forFormState(array $formState, ?Event $event = null): string;
 }

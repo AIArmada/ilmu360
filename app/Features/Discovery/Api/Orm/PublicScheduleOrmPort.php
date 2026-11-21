@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Api\Orm;
 
+use AIArmada\Events\Models\EventOccurrence;
+use App\Features\Events\Models\Event;
 use App\Models\User;
 
 /**
@@ -39,7 +41,7 @@ interface PublicScheduleOrmPort
     public function homepageSelection(?User $user);
 
     /**
-     * @param  iterable<int, \App\Features\Events\Models\Event>  $events
+     * @param  iterable<int, Event>  $events
      * @return \Illuminate\Support\Collection<int, PublicScheduleModelLeaf>
      */
     public function leavesForEvents(iterable $events);
@@ -50,7 +52,7 @@ interface PublicScheduleOrmPort
      *
      * @param  iterable<int, object>  $sessions
      */
-    public function leafFor(object $event, object $occurrence, iterable $sessions = []): PublicScheduleModelLeaf;
+    public function leafFor(Event $event, EventOccurrence $occurrence, iterable $sessions = []): PublicScheduleModelLeaf;
 
-    public function hydrateOccurrencePageVenues(object $event): void;
+    public function hydrateOccurrencePageVenues(Event $event): void;
 }
