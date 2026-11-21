@@ -14,6 +14,7 @@ final readonly class PublicReferenceConstraint
 
     /**
      * @template TQuery of Builder|QueryBuilder
+     *
      * @param  TQuery  $query
      * @return TQuery
      */

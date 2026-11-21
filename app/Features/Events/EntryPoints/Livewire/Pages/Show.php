@@ -2,8 +2,6 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
-use App\Platform\Models\MorphModelResolver;
-use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Models\Response;
@@ -24,6 +22,7 @@ use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Policies\PublicSchedulePolicy;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Events\Services\EventDetailPresenter;
 use App\Features\Events\States\EventStatus\Approved;
 use App\Features\Events\States\EventStatus\Cancelled;
@@ -33,13 +32,13 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Models\Venue;
-use App\Features\References\Api\ReferenceQueries;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Models\User;
 use App\Platform\Language\Models\Language;
+use App\Platform\Models\MorphModelResolver;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\IntendedRedirect;
 use App\Shared\Cache\SelectionCatalogCache;

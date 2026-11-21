@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
-use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Api\SubmissionValues;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Events\Support\EventModel;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;

@@ -2,7 +2,6 @@
 
 namespace App\Features\Events\EntryPoints\Http\Data;
 
-use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
@@ -14,6 +13,7 @@ use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Queries\EventCategoryPresenter;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Events\Services\ShareCards\ShareCardService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;

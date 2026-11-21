@@ -2,8 +2,6 @@
 
 namespace App\Features\Events\EntryPoints\Http;
 
-use App\Platform\Models\MorphModelResolver;
-use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
@@ -24,6 +22,7 @@ use App\Features\Events\Models\Series;
 use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Queries\PrimaryLocationSql;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerReference;
@@ -36,6 +35,7 @@ use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
+use App\Platform\Models\MorphModelResolver;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Signals\SignalRecorder;
 use Closure;

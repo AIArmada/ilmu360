@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use App\Platform\Models\MorphModelResolver;
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
@@ -42,6 +41,7 @@ use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\ReferenceQueries;
+use App\Platform\Models\MorphModelResolver;
 use App\Platform\Search\EventDiscoveryReader;
 use App\Platform\Time\UserDateTimeFormatter;
 use BackedEnum;

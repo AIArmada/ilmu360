@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
-use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
@@ -12,6 +11,7 @@ use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Livewire\Attributes\Computed;

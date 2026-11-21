@@ -2,7 +2,6 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent;
 
-use App\Features\Events\Queries\PublicReferenceConstraint;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
@@ -18,6 +17,7 @@ use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Enums\Terms\DomainTermCode;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Services\SubmitEventOptionsProvider;
 use App\Features\Events\Support\SubmissionTimingPolicy;
