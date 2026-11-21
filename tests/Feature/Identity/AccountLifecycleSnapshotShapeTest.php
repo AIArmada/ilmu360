@@ -94,5 +94,5 @@ it('orders tagged contributors by priority and key', function (): void {
     $user = User::factory()->create();
 
     expect(array_keys(app(AccountLifecycle::class)->snapshot((string) $user->id)))
-        ->toBe(['identity', 'reports', 'saved_searches', 'membership', 'directory', 'events', 'contributions', 'moderation', 'engagement', 'ai', 'communications']);
+        ->toBe(['identity', 'reports', 'saved_searches', 'membership', 'directory', 'events', 'contributions', 'moderation', 'engagement', 'ai', 'communications', 'share_tracking']);
 });
