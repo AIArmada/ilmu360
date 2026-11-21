@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Queries;
 
-use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonDirectoryRecord;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonSummary;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;

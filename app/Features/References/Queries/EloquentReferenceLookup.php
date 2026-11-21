@@ -96,6 +96,7 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
         if (! $entity instanceof Reference) {
             return null;
         }
+
         return $this->summary($entity);
     }
 

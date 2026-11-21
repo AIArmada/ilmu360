@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Api;
 
-use App\Features\Persons\Api\PersonSummary;
 use App\Features\Reports\Api\ReportSubject;
 use App\Shared\Directory\FollowableSubject;
 
