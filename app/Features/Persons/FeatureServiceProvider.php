@@ -4,6 +4,18 @@ declare(strict_types=1);
 
 namespace App\Features\Persons;
 
+use AIArmada\Persons\Models\PersonName as PackagePersonName;
+use AIArmada\Persons\Models\Title;
+use AIArmada\Persons\Models\TitleAssignment;
+use AIArmada\Persons\Models\TitleCategory;
+use App\Features\Persons\Models\Person;
+use App\Features\Persons\Models\PersonName;
+use App\Features\Persons\Observers\PersonLifecycleObserver;
+use App\Features\Persons\Observers\PersonObserver;
+use App\Features\Persons\Observers\PersonNameObserver;
+use App\Features\Persons\Observers\PersonTitleObserver;
+use App\Features\Persons\Observers\TitleCategoryObserver;
+
 use App\Features\Persons\Actions\ChangePersonMemberRoleAction;
 use App\Features\Persons\Actions\PersonSubmissionAccessAction;
 use App\Features\Persons\Actions\PruneOrphanedPersonsAction;
@@ -97,6 +109,14 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Person::observe(PersonLifecycleObserver::class);
+        Person::observe(PersonObserver::class);
+        PersonName::observe(PersonNameObserver::class);
+        PackagePersonName::observe(PersonNameObserver::class);
+        Title::observe(PersonTitleObserver::class);
+        TitleAssignment::observe(PersonTitleObserver::class);
+        TitleCategory::observe(TitleCategoryObserver::class);
+
         $memberRegistry = $this->app->make(ResourceDefinitionRegistry::class);
         $memberDefinition = $this->app->make(PersonMemberResourceDefinition::class);
         $memberRegistry->register($memberDefinition);

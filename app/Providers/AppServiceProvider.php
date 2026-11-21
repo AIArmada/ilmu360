@@ -76,11 +76,6 @@ use App\Features\Moderation\Models\ModerationReview;
 use App\Features\Persons\Models\Affiliation;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Models\PersonName;
-use App\Features\Persons\Observers\PersonLifecycleObserver;
-use App\Features\Persons\Observers\PersonNameObserver;
-use App\Features\Persons\Observers\PersonObserver;
-use App\Features\Persons\Observers\PersonTitleObserver;
-use App\Features\Persons\Observers\TitleCategoryObserver;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
@@ -541,13 +536,6 @@ class AppServiceProvider extends ServiceProvider
         EventTaxonomy::observe(EventTaxonomyObserver::class);
         Language::observe(LanguageObserver::class);
         CommerceLanguage::observe(LanguageObserver::class);
-        Person::observe(PersonLifecycleObserver::class);
-        Person::observe(PersonObserver::class);
-        PersonName::observe(PersonNameObserver::class);
-        PackagePersonName::observe(PersonNameObserver::class);
-        Title::observe(PersonTitleObserver::class);
-        TitleAssignment::observe(PersonTitleObserver::class);
-        TitleCategory::observe(TitleCategoryObserver::class);
 
         app()->instance($registrationKey, true);
     }
