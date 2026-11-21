@@ -15,7 +15,7 @@ use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Models\User;
 use App\Shared\Submission\SpaceSelectionEligibility;

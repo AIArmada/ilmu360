@@ -25,7 +25,7 @@ use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Api\ReferenceLookup;
 use App\Models\User;

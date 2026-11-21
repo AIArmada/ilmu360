@@ -7,8 +7,8 @@ namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\Orm\PersonLookup;
-use App\Features\Persons\Models\Person;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -49,13 +49,13 @@ final class Index extends Component
         return $institutions;
     }
 
-    /** @return Collection<int, Person> */
+    /** @return Collection<int, PersonDirectoryRecord> */
     public function persons(): Collection
     {
         $user = $this->currentUser();
 
-        /** @var Collection<int, Person> $persons */
-        $persons = app(PersonLookup::class)->personsForMember((string) $user->getKey());
+        /** @var Collection<int, PersonDirectoryRecord> $persons */
+        $persons = collect(app(PersonLookup::class)->personsForMember((string) $user->getKey()));
 
         return $persons;
     }

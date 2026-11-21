@@ -3,7 +3,7 @@
 namespace App\Features\References\EntryPoints\Filament\Forms;
 
 use AIArmada\Persons\Enums\Gender;
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Api\SpeakerStatus;
 use App\Models\User;

@@ -9,7 +9,7 @@ use App\Features\Persons\Actions\PersonSubmissionAccessAction;
 use App\Features\Persons\Actions\PruneOrphanedPersonsAction;
 use App\Features\Persons\Api\ContributionProjection;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonAuthoringCandidates;
 use App\Features\Persons\Api\PersonCards;
 use App\Features\Persons\Api\PersonCatalog;

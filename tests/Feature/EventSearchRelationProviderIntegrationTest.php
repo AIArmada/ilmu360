@@ -10,7 +10,7 @@ use App\Features\Events\Queries\FuzzyEventMatcher;
 use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Events\Queries\TypesenseEventDiscovery;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\References\Api\ReferenceQueries;
 use Tests\Support\RecordingEventSearchRelationProvider;

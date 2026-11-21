@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
 
 final class OrganizerResolver
 {

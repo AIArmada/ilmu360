@@ -15,7 +15,7 @@ use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipApplicationSubjectType;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonSummary;
 use App\Platform\Media\StagedUploadFactory;
 use App\Platform\Ui\InteractsWithToasts;

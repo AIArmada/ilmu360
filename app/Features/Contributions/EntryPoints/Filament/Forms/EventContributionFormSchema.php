@@ -19,7 +19,7 @@ use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Api\SpaceEligibility;

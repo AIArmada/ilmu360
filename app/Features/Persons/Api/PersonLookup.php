@@ -2,17 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Persons\Api\Orm;
+namespace App\Features\Persons\Api;
 
 use App\Features\Persons\Api\PersonSummary;
-use App\Features\Persons\Models\Person;
 use App\Features\Reports\Api\ReportSubject;
 use App\Shared\Directory\FollowableSubject;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
  * Consumers: Persons/FeatureServiceProvider.php, Engagement/Queries, Engagement/Services, Engagement/EntryPoints, References/Models, References/Services
  */
 interface PersonLookup
@@ -58,9 +54,9 @@ interface PersonLookup
      * Documented transport: persons the account is a member of, ordered by
      * name, with the member count eager loaded.
      *
-     * @return EloquentCollection<int, Person>
+     * @return list<PersonDirectoryRecord>
      */
-    public function personsForMember(string $accountId): EloquentCollection;
+    public function personsForMember(string $accountId): array;
 
     /**
      * Verified/pending speakers keyed by id, ordered by name, using the
@@ -88,17 +84,17 @@ interface PersonLookup
      * loaded, ordered by name.
      *
      * @param  list<string>  $personIds
-     * @return EloquentCollection<int, Person>
+     * @return list<PersonDirectoryRecord>
      */
-    public function followedPersons(array $personIds): EloquentCollection;
+    public function followedPersons(array $personIds): array;
 
     /**
      * Documented transport: persons for the supplied ids, ordered by name.
      *
      * @param  list<string>  $personIds
-     * @return EloquentCollection<int, Person>
+     * @return list<PersonDirectoryRecord>
      */
-    public function personsByIds(array $personIds): EloquentCollection;
+    public function personsByIds(array $personIds): array;
 
     public function resolveIdentifier(string $identifier): ?string;
 

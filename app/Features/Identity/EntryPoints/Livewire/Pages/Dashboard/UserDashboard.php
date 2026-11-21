@@ -16,8 +16,8 @@ use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Persons\Api\Orm\PersonLookup;
-use App\Features\Persons\Models\Person;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
@@ -229,7 +229,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return Collection<int, Person>
+     * @return Collection<int, PersonDirectoryRecord>
      */
     #[Computed]
     public function followingPersons(): Collection
@@ -237,11 +237,11 @@ class UserDashboard extends Component
         $user = $this->user();
         $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Person);
 
-        /** @var Collection<int, Person> $persons */
-        /** @var Collection<int, Person> $persons */
+        /** @var Collection<int, PersonDirectoryRecord> $persons */
+        /** @var Collection<int, PersonDirectoryRecord> $persons */
         $persons = $ids === []
             ? new Collection
-            : app(PersonLookup::class)->followedPersons($ids);
+            : collect(app(PersonLookup::class)->followedPersons($ids));
 
         return $persons;
     }
@@ -557,7 +557,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return LengthAwarePaginator<int, Person>
+     * @return LengthAwarePaginator<int, PersonDirectoryRecord>
      */
     #[Computed]
     public function paginatedFollowingPersons(): LengthAwarePaginator

@@ -21,8 +21,8 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\AccountMembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectRecord;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Persons\Api\Orm\PersonLookup;
-use App\Features\Persons\Models\Person;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
@@ -339,7 +339,7 @@ class ViewUser extends ViewRecord
     {
         return $this->followedSubjects(
             EngagementSubjectType::Person,
-            fn (array $ids): object => app(PersonLookup::class)->personsByIds($ids),
+            fn (array $ids): object => collect(app(PersonLookup::class)->personsByIds($ids)),
         );
     }
 
@@ -365,9 +365,9 @@ class ViewUser extends ViewRecord
         return $institution instanceof Institution ? AdminResourceLink::to('institution', 'view', (string) $institution->getKey()) : null;
     }
 
-    public function personUrl(?Person $person): ?string
+    public function personUrl(?PersonDirectoryRecord $person): ?string
     {
-        return $person instanceof Person ? AdminResourceLink::to('person', 'view', (string) $person->getKey()) : null;
+        return $person instanceof PersonDirectoryRecord ? AdminResourceLink::to('person', 'view', $person->id) : null;
     }
 
     public function referenceUrl(?ReferenceSummary $reference): ?string

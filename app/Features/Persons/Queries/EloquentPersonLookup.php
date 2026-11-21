@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Queries;
 
-use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Features\Persons\Api\PersonSummary;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
@@ -15,7 +16,6 @@ use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\FollowableSubject;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 final readonly class EloquentPersonLookup implements PersonLookup
@@ -67,13 +67,16 @@ final readonly class EloquentPersonLookup implements PersonLookup
         ];
     }
 
-    public function personsForMember(string $accountId): EloquentCollection
+    public function personsForMember(string $accountId): array
     {
         return Person::query()
             ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($accountId))
+            ->with('titleAssignments.title.category')
             ->withCount('members')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn (Person $person): PersonDirectoryRecord => $this->directoryRecord($person))
+            ->all();
     }
 
     /**
@@ -410,21 +413,45 @@ final readonly class EloquentPersonLookup implements PersonLookup
         return $person instanceof Person ? (string) $person->formatted_name : null;
     }
 
-    public function followedPersons(array $personIds): EloquentCollection
+    public function followedPersons(array $personIds): array
     {
         return Person::query()
             ->whereKey($personIds)
-            ->with(['media'])
+            ->with('titleAssignments.title.category')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn (Person $person): PersonDirectoryRecord => $this->directoryRecord($person))
+            ->all();
     }
 
-    public function personsByIds(array $personIds): EloquentCollection
+    public function personsByIds(array $personIds): array
     {
         return Person::query()
             ->whereKey($personIds)
+            ->with('titleAssignments.title.category')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(fn (Person $person): PersonDirectoryRecord => $this->directoryRecord($person))
+            ->all();
+    }
+
+    private function directoryRecord(Person $person): PersonDirectoryRecord
+    {
+        $bio = $person->getAttribute('bio');
+        $localizedBio = is_array($bio)
+            ? (data_get($bio, app()->getLocale()) ?: data_get($bio, 'en') ?: '')
+            : $bio;
+        $status = $person->getAttribute('status');
+
+        return new PersonDirectoryRecord(
+            id: (string) $person->getKey(),
+            name: (string) $person->name,
+            formattedName: (string) $person->formatted_name,
+            slug: is_string($person->slug) ? $person->slug : null,
+            status: $status instanceof BackedEnum ? (string) $status->value : (is_string($status) ? $status : null),
+            bio: is_string($localizedBio) ? $localizedBio : '',
+            memberCount: (int) ($person->getAttribute('members_count') ?? 0),
+        );
     }
 
     /**
