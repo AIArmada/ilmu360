@@ -22,7 +22,7 @@ use AIArmada\Affiliates\Enums\CommissionType;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\Active;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;

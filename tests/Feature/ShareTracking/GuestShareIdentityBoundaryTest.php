@@ -17,7 +17,7 @@ use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\Identity\Api\SignupAttributionWorkflow;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Features\ShareTracking\Api\GuestShareClaims;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Features\ShareTracking\Api\ShareGuestClaimResult;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;

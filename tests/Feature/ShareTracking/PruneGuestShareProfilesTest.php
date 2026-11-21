@@ -17,7 +17,7 @@ use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Models\User;
 use Illuminate\Support\Str;
 

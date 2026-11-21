@@ -13,7 +13,7 @@ use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\GuestShareClaims;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Features\ShareTracking\Api\ShareGuestClaimResult;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;

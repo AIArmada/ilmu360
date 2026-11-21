@@ -20,7 +20,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\MemberAffiliateProfileResult;
 use App\Features\ShareTracking\Api\MemberAffiliateProfileWriter;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
