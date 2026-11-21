@@ -107,7 +107,7 @@ trait HasUserRestoration
         $contributorSnapshot = array_filter($snapshot, is_array(...));
         $accountId = (string) $restoredModel->getKey();
 
-        OwnerContext::withOwner(null, function () use ($contributorSnapshot, $authorization, $accountId): void {
+        OwnerContext::withOwner(null, function () use ($restoredModel, $contributorSnapshot, $authorization, $accountId): void {
             app(AccountLifecycle::class)->restore($accountId, $contributorSnapshot);
             $restoredModel->restoreGlobalPermissionRows($authorization);
             app(AccountLifecycle::class)->afterRestore($accountId);

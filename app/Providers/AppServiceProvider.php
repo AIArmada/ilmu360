@@ -235,6 +235,7 @@ use App\Features\ShareTracking\Services\ShareTrackingParticipationAttribution;
 use App\Features\ShareTracking\Services\ShareTrackingSignupRecorder;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Host\Pango\ShareCards\PangoShareCardRenderer;
+use App\Host\Affiliates\EloquentAffiliateSnapshotPersistence;
 use App\Host\Typesense\TypesenseHealthProbe;
 use App\Models\User;
 use App\Platform\Addressing\Observers\AddressableObserver;
@@ -282,6 +283,7 @@ use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Captcha\CaptchaVerifier;
 use App\Shared\Contracts\SearchHealthProbe;
+use App\Shared\Contracts\AffiliateSnapshotPersistence;
 use App\Shared\Language\LanguageCatalog;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Media\ShareCards\ShareCardRenderer;
@@ -353,6 +355,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(SearchHealthProbe::class, TypesenseHealthProbe::class);
+        $this->app->bind(AffiliateSnapshotPersistence::class, EloquentAffiliateSnapshotPersistence::class);
         $this->app->singleton(
             ShareCardRenderer::class,
             static fn (): ShareCardRenderer => new PangoShareCardRenderer(public_path('fonts/share-cards')),

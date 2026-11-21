@@ -181,6 +181,12 @@ final class OwnedWriteRule implements Rule
         }
         $resources = array_values(array_unique($resources));
 
+        // The Host layer may persist package-owned models through a pure Shared
+        // contract. No app-owned model or feature-owned resource can use this path.
+        if ($database && $this->isExternalHostModelWrite($relative, $root, $modelClasses, $resources)) {
+            return [];
+        }
+
         if ($resources !== []) {
             $errors = [];
 
@@ -432,6 +438,40 @@ final class OwnedWriteRule implements Rule
         }
 
         return $this->catalog['aliases'][$feature][$argument->value] ?? null;
+    }
+
+    /**
+     * A concrete vendor model can only be mutated by an isolated Host adapter.
+     * Application feature models and claimed resources retain their write gate.
+     *
+     * @param list<string> $models
+     * @param list<string> $resources
+     */
+    private function isExternalHostModelWrite(string $relative, string $root, array $models, array $resources): bool
+    {
+        if (! str_starts_with($relative, 'app/Host/') || $models === []) {
+            return false;
+        }
+
+        foreach ($resources as $resource) {
+            if (isset($this->catalog['owners'][$resource])) {
+                return false;
+            }
+        }
+
+        foreach ($models as $model) {
+            if ($model === Model::class || str_starts_with($model, 'App\\')
+                || ! $this->reflectionProvider->hasClass($model)) {
+                return false;
+            }
+
+            $file = $this->reflectionProvider->getClass($model)->getFileName();
+            if ($file === null || str_starts_with(str_replace('\\', '/', $file), $root.'/app/')) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function modelResource(string $model, ?string $feature): ?string

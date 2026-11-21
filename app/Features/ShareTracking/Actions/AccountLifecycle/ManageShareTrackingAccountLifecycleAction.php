@@ -14,13 +14,17 @@ use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Support\ShareTrackingFinance;
 use App\Features\ShareTracking\Support\ShareTrackingProfile;
+use App\Shared\Contracts\AffiliateSnapshotPersistence;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 
 final readonly class ManageShareTrackingAccountLifecycleAction
 {
-    public function __construct(private AffiliatesShareTrackingService $shareTracking) {}
+    public function __construct(
+        private AffiliatesShareTrackingService $shareTracking,
+        private AffiliateSnapshotPersistence $snapshots,
+    ) {}
 
     /** @return array<string, mixed> */
     public function snapshot(string $accountId): array
@@ -160,12 +164,9 @@ final readonly class ManageShareTrackingAccountLifecycleAction
         // of referral tracking until an explicit authorized fresh activation.
         $attributes['deactivated_at'] ??= now()->toDateTimeString();
 
-        $model = new Affiliate;
-        $model->timestamps = false;
-        $model->setRawAttributes($attributes, true);
-        $model->saveQuietly();
+        $restoredId = $this->snapshots->restoreProfile($attributes);
 
-        return $model;
+        return Affiliate::query()->withoutGlobalScope(OwnerScope::class)->find($restoredId);
     }
 
     /**
@@ -203,10 +204,14 @@ final readonly class ManageShareTrackingAccountLifecycleAction
                 continue;
             }
 
-            $model = new $modelClass;
-            $model->timestamps = false;
-            $model->setRawAttributes($this->sanitizeShareSnapshotAttributes($modelClass, $attributes), true);
-            $model->saveQuietly();
+            $kind = match ($modelClass) {
+                AffiliateLink::class => 'link',
+                AffiliateAttribution::class => 'attribution',
+                AffiliateTouchpoint::class => 'touchpoint',
+                AffiliateConversion::class => 'conversion',
+            };
+
+            $this->snapshots->restoreChild($kind, $this->sanitizeShareSnapshotAttributes($modelClass, $attributes));
         }
     }
 
