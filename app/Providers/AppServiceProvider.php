@@ -174,6 +174,7 @@ use App\Features\Persons\Models\Affiliation;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Models\PersonName;
 use App\Features\Persons\Observers\PersonNameObserver;
+use App\Features\Persons\Observers\PersonLifecycleObserver;
 use App\Features\Persons\Observers\PersonObserver;
 use App\Features\Persons\Observers\PersonTitleObserver;
 use App\Features\Persons\Observers\TitleCategoryObserver;
@@ -763,6 +764,7 @@ class AppServiceProvider extends ServiceProvider
         EventTaxonomy::observe(EventTaxonomyObserver::class);
         Language::observe(LanguageObserver::class);
         CommerceLanguage::observe(LanguageObserver::class);
+        Person::observe(PersonLifecycleObserver::class);
         Person::observe(PersonObserver::class);
         PersonName::observe(PersonNameObserver::class);
         PackagePersonName::observe(PersonNameObserver::class);

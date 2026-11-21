@@ -389,48 +389,13 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
         return (string) config('scout.driver') === 'database';
     }
 
+    /**
+     * The package Person booted() registers its own multi-table deletion cascade.
+     * App-owned lifecycle Actions replace those package model hooks.
+     */
     #[\Override]
     protected static function booted(): void
     {
-        static::deleting(function (Person $person): void {
-            $authorsReferences = ReferenceContributor::query()
-                ->where('contributor_type', $person->getMorphClass())
-                ->where('contributor_id', $person->getKey())
-                ->exists();
-
-            if ($authorsReferences) {
-                throw ValidationException::withMessages([
-                    'person' => __('This person is linked as a reference contributor and cannot be deleted.'),
-                ]);
-            }
-        });
-
-        static::saving(function (Person $person) {
-            if ($person->isDirty('status')) {
-                $now = now();
-                $person->last_state_change_at = $now;
-
-                match ($person->statusValue()) {
-                    'verified' => $person->verified_at ??= $now,
-                    'rejected' => $person->rejected_at ??= $now,
-                    'inactive' => $person->published_at ??= $now,
-                    default => null,
-                };
-
-                if ($person->statusValue() === 'verified') {
-                    $person->verified_by ??= auth()->id();
-                }
-            }
-
-            if ((($person->exists && ($person->isDirty('is_featured') || $person->isDirty('order_column')))
-                || (! $person->exists && ($person->is_featured || $person->order_column !== null)))
-                && auth()->user() instanceof User
-                && ! auth()->user()->hasGlobalAdminAccess()) {
-                throw new AuthorizationException('Only global administrators may curate featured people.');
-            }
-
-            $person->syncFeaturedOrder();
-        });
     }
 
     public function getAvatarUrlAttribute(): ?string
