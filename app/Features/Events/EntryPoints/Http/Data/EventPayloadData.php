@@ -16,7 +16,7 @@ use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Services\ShareCards\ShareCardService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\Api\Orm\SpaceLocation;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Features\References\Models\Reference;
@@ -192,8 +192,15 @@ class EventPayloadData extends Data
             if ($space instanceof VenueSpace) {
                 $payload['institution_space'] = [
                     'id' => (string) $space->getKey(),
-                    'name' => app(SpaceLocation::class)->name($location),
-                    'capacity' => app(SpaceLocation::class)->effectiveCapacity($location, (string) $event->institution_id),
+                    'name' => app(SpaceLocation::class)->name(
+                        (string) ($location?->space_name_snapshot ?? ''),
+                        $space->name,
+                    ),
+                    'capacity' => app(SpaceLocation::class)->effectiveCapacity(
+                        $location?->venue_space_id !== null ? (string) $location->venue_space_id : null,
+                        $space->capacity === null ? null : (int) $space->capacity,
+                        (string) $event->institution_id,
+                    ),
                 ];
             } else {
                 $payload['institution_space'] = null;
@@ -209,12 +216,20 @@ class EventPayloadData extends Data
                 ->all();
         }
 
-        if ($event->default_venue_id !== null && $event->primaryLocation?->venueSpace !== null) {
-            $space = $event->primaryLocation->venueSpace;
+        $location = $event->primaryLocation;
+
+        if ($event->default_venue_id !== null && $location?->venueSpace !== null) {
+            $space = $location->venueSpace;
             $payload['venue_space'] = [
                 'id' => (string) $space->getKey(),
-                'name' => app(SpaceLocation::class)->name($event->primaryLocation),
-                'capacity' => app(SpaceLocation::class)->effectiveCapacity($event->primaryLocation),
+                'name' => app(SpaceLocation::class)->name(
+                    (string) ($location->space_name_snapshot ?? ''),
+                    $space->name,
+                ),
+                'capacity' => app(SpaceLocation::class)->effectiveCapacity(
+                    $location->venue_space_id !== null ? (string) $location->venue_space_id : null,
+                    $space->capacity === null ? null : (int) $space->capacity,
+                ),
             ];
         } else {
             $payload['venue_space'] = null;

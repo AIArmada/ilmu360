@@ -181,7 +181,7 @@ use App\Features\Persons\Queries\PersonCardsQuery;
 use App\Features\Persons\Queries\PersonResourceSearchAdapter;
 use App\Features\Persons\Services\PersonSearchService;
 use App\Features\Places\Actions\PruneOrphanedVenuesAction;
-use App\Features\Places\Api\Orm\SpaceLocation;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\Places\Api\PruneOrphanedVenues;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;

@@ -4,22 +4,32 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Services;
 
-use AIArmada\Events\Models\EventLocation;
-use App\Features\Places\Api\Orm\SpaceLocation;
-use App\Features\Places\EntryPoints\Ui\SpaceLocationPresenter;
+use App\Features\Institutions\Api\Orm\InstitutionLookup;
+use App\Features\Places\Api\SpaceLocation;
 
-/**
- * Boundary adapter over the space-location presenter used by event payloads.
- */
 final readonly class SpaceLocationResolver implements SpaceLocation
 {
-    public function name(?EventLocation $location): ?string
+    public function name(?string $spaceNameSnapshot, ?string $venueSpaceName): ?string
     {
-        return SpaceLocationPresenter::name($location);
+        $snapshot = trim($spaceNameSnapshot ?? '');
+
+        return $snapshot !== '' ? $snapshot : $venueSpaceName;
     }
 
-    public function effectiveCapacity(?EventLocation $location, ?string $institutionId = null): ?int
+    public function effectiveCapacity(?string $venueSpaceId, ?int $venueSpaceCapacity, ?string $institutionId = null): ?int
     {
-        return SpaceLocationPresenter::effectiveCapacity($location, $institutionId);
+        if ($venueSpaceId === null) {
+            return null;
+        }
+
+        if ($institutionId !== null) {
+            $space = app(InstitutionLookup::class)->institutionSpaceCapacity($institutionId, $venueSpaceId);
+
+            if ($space['found']) {
+                return $space['capacity'];
+            }
+        }
+
+        return $venueSpaceCapacity;
     }
 }

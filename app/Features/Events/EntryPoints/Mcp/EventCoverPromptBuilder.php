@@ -20,7 +20,7 @@ use App\Features\Events\Models\MediaLink;
 use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\Api\Orm\SpaceLocation;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\Places\Models\Venue;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
@@ -543,7 +543,10 @@ class EventCoverPromptBuilder
                 'space' => $event->primaryLocation?->venueSpace instanceof Model
                     ? array_replace(
                         $this->modelPayload($event->primaryLocation->venueSpace),
-                        ['name' => app(SpaceLocation::class)->name($event->primaryLocation)],
+                        ['name' => app(SpaceLocation::class)->name(
+                            (string) ($event->primaryLocation?->space_name_snapshot ?? ''),
+                            $event->primaryLocation?->venueSpace?->name,
+                        )],
                     )
                     : null,
                 'organizer' => $event->organizer instanceof Model ? $this->modelPayload($event->organizer) : null,
@@ -866,7 +869,10 @@ class EventCoverPromptBuilder
         }
 
         if ($event->primaryLocation?->venueSpace !== null) {
-            $parts[] = (string) app(SpaceLocation::class)->name($event->primaryLocation);
+            $parts[] = (string) app(SpaceLocation::class)->name(
+                (string) ($event->primaryLocation?->space_name_snapshot ?? ''),
+                $event->primaryLocation?->venueSpace?->name,
+            );
         }
 
         $address = null;

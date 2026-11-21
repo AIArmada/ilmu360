@@ -14,7 +14,7 @@ use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Places\Api\Orm\SpaceLocation;
+use App\Features\Places\Api\SpaceLocation;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
@@ -645,7 +645,10 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                         ->implode(', ') ?: null),
                 TextColumn::make('primaryLocation.venueSpace.name')
                     ->label(__('Location'))
-                    ->state(fn (Event $record): ?string => app(SpaceLocation::class)->name($record->primaryLocation))
+                    ->state(fn (Event $record): ?string => app(SpaceLocation::class)->name(
+                        (string) ($record->primaryLocation?->space_name_snapshot ?? ''),
+                        $record->primaryLocation?->venueSpace?->name,
+                    ))
                     ->placeholder('-')
                     ->wrap(),
                 TextColumn::make('dashboard_registrations_count')
