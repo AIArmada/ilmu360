@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Host\Pango\ShareCards;
 
 use InvalidArgumentException;
+use App\Shared\Media\ShareCards\ShareCardRenderSpec;
 
 /**
  * Version-pinned font catalog for the share-card renderer leaf.
@@ -15,9 +16,9 @@ use InvalidArgumentException;
  */
 final readonly class ShareCardFonts
 {
-    public const string MANIFEST_FILE = 'fonts.json';
+    public const string MANIFEST_FILE = ShareCardRenderSpec::FONT_MANIFEST_FILE;
 
-    public const array SUPPORTED_LOCALES = ['ms', 'id', 'en', 'ar', 'zh', 'ta', 'jv'];
+    public const array SUPPORTED_LOCALES = ShareCardRenderSpec::SUPPORTED_LOCALES;
 
     /**
      * Canonical fallback order. The per-locale primary family moves first;
@@ -53,7 +54,7 @@ final readonly class ShareCardFonts
 
     public static function isSupportedLocale(string $locale): bool
     {
-        return in_array($locale, self::SUPPORTED_LOCALES, true);
+        return ShareCardRenderSpec::isSupportedLocale($locale);
     }
 
     /**

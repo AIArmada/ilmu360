@@ -9,10 +9,9 @@ use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Api\EventShareCardCache;
 use App\Features\Events\Contracts\EventShareCardPrewarm;
 use App\Features\Events\Models\Event;
-use App\Host\Pango\ShareCards\PangoShareCardRenderer;
-use App\Host\Pango\ShareCards\ShareCardFonts;
 use App\Shared\Media\ShareCards\ShareCardError;
 use App\Shared\Media\ShareCards\ShareCardRenderer;
+use App\Shared\Media\ShareCards\ShareCardRenderSpec;
 use App\Shared\Media\ShareCards\ShareCardRenderInput;
 use App\Shared\Media\ShareCards\ShareCardRenderResult;
 use BackedEnum;
@@ -152,13 +151,13 @@ final readonly class ShareCardService implements EventShareCardPrewarm
     {
         $candidate = strtolower(trim((string) $locale));
 
-        if ($candidate !== '' && ShareCardFonts::isSupportedLocale($candidate)) {
+        if ($candidate !== '' && ShareCardRenderSpec::isSupportedLocale($candidate)) {
             return $candidate;
         }
 
         $appLocale = strtolower((string) App::getLocale());
 
-        if (ShareCardFonts::isSupportedLocale($appLocale)) {
+        if (ShareCardRenderSpec::isSupportedLocale($appLocale)) {
             return $appLocale;
         }
 
@@ -167,7 +166,7 @@ final readonly class ShareCardService implements EventShareCardPrewarm
 
     public function isSupportedLocale(?string $locale): bool
     {
-        return is_string($locale) && ShareCardFonts::isSupportedLocale(strtolower(trim($locale)));
+        return is_string($locale) && ShareCardRenderSpec::isSupportedLocale(strtolower(trim($locale)));
     }
 
     /**
@@ -308,7 +307,7 @@ final readonly class ShareCardService implements EventShareCardPrewarm
             // Both ride the key, so a rebrand or catalog change settles the
             // revision instead of leaving stale immutable pixels.
             'brand', config('app.name').'@'.$this->runInLocale($locale, static fn (): string => (string) __('Majlis Ilmu')),
-            'renderer', PangoShareCardRenderer::RENDERER_REVISION,
+            'renderer', ShareCardRenderSpec::RENDERER_REVISION,
             'fonts', $this->fontManifestRevision(),
         ];
 
@@ -397,14 +396,7 @@ final readonly class ShareCardService implements EventShareCardPrewarm
 
     public function renderer(): ShareCardRenderer
     {
-        // Container seam for the operational boundary proof: production
-        // resolves the pinned Pango renderer; a bound contract double
-        // (tests only) may stand in to prove failure handling.
-        if (app()->bound(ShareCardRenderer::class)) {
-            return app(ShareCardRenderer::class);
-        }
-
-        return new PangoShareCardRenderer(public_path('fonts/share-cards'));
+        return app(ShareCardRenderer::class);
     }
 
     private function render(Event $event, ?EventOccurrence $occurrence, string $locale, string $displayTimezone): ShareCardRenderResult
@@ -417,9 +409,9 @@ final readonly class ShareCardService implements EventShareCardPrewarm
             return ShareCardRenderResult::failure(
                 ShareCardError::RenderFailed,
                 'Render failed unexpectedly.',
-                PangoShareCardRenderer::WIDTH,
-                PangoShareCardRenderer::HEIGHT,
-                PangoShareCardRenderer::RENDERER_REVISION,
+                ShareCardRenderSpec::WIDTH,
+                ShareCardRenderSpec::HEIGHT,
+                ShareCardRenderSpec::RENDERER_REVISION,
                 'unverified',
             );
         }
@@ -437,7 +429,7 @@ final readonly class ShareCardService implements EventShareCardPrewarm
         // Cheap portable pin: the manifest records every font's sha256, so
         // any font change that keeps verification green also changes these
         // bytes. Full verification stays in readiness(), never per render.
-        $manifest = public_path('fonts/share-cards/'.ShareCardFonts::MANIFEST_FILE);
+        $manifest = public_path('fonts/share-cards/'.ShareCardRenderSpec::FONT_MANIFEST_FILE);
         $bytes = is_file($manifest) ? file_get_contents($manifest) : false;
 
         return is_string($bytes) && $bytes !== '' ? substr(hash('sha256', $bytes), 0, 16) : 'missing';

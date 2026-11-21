@@ -7,6 +7,7 @@ namespace App\Host\Pango\ShareCards;
 use App\Shared\Media\ShareCards\ShareCardError;
 use App\Shared\Media\ShareCards\ShareCardReadiness;
 use App\Shared\Media\ShareCards\ShareCardRenderer;
+use App\Shared\Media\ShareCards\ShareCardRenderSpec;
 use App\Shared\Media\ShareCards\ShareCardRenderInput;
 use App\Shared\Media\ShareCards\ShareCardRenderResult;
 use GdImage;
@@ -29,11 +30,11 @@ use Throwable;
  */
 final readonly class PangoShareCardRenderer implements ShareCardRenderer
 {
-    public const int WIDTH = 1200;
+    public const int WIDTH = ShareCardRenderSpec::WIDTH;
 
-    public const int HEIGHT = 630;
+    public const int HEIGHT = ShareCardRenderSpec::HEIGHT;
 
-    public const string RENDERER_REVISION = 'scr-001';
+    public const string RENDERER_REVISION = ShareCardRenderSpec::RENDERER_REVISION;
 
     private const int MAX_RASTER_BYTES = 2000000;
 
