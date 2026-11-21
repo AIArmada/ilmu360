@@ -36,7 +36,7 @@ use App\Features\References\Queries\EloquentReferenceLookup;
 use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Services\CompositeReportSubjectResolver;
 use App\Models\User;
-use App\Platform\Api\Frontend\CatalogDispatcher;
+use App\Features\Discovery\Services\CatalogDispatcher;
 use App\Platform\Models\MorphModelResolver;
 
 it('binds the directory seams to their owning implementations', function (): void {

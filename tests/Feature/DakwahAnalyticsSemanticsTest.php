@@ -72,7 +72,7 @@ test('channel breakdown includes unattributed channels so visits reconcile with 
 
     expect($breakdown->firstWhere('provider', 'direct')['visits'])->toBe(2)
         ->and($breakdown->sum('visits'))->toBe(3)
-        ->and($analytics->summaryForUser($user)['visits'])->toBe(3);
+        ->and($analytics->summaryForAccount($user)['visits'])->toBe(3);
 });
 
 test('loading a library uses bounded measurement queries as the number of links grows', function (): void {

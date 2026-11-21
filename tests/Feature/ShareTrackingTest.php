@@ -34,7 +34,7 @@ use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Features\ShareTracking\Support\ShareSubjectFactory;
 use App\Models\User;
-use App\Platform\Auth\Fortify\CreateNewUser;
+use App\Features\Identity\EntryPoints\Fortify\CreateNewUser;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -211,7 +211,7 @@ test('a deactivated share link records no later visits or attributed signup cred
             ->where('owner_id', $this->sharer->getKey()))
         ->firstOrFail();
     $analytics = app(ShareTrackingAnalyticsService::class);
-    $summaryBefore = $analytics->summaryForUser($this->sharer);
+    $summaryBefore = $analytics->summaryForAccount($this->sharer);
     $visitsBefore = AffiliateTouchpoint::query()
         ->where('affiliate_link_id', $link->getKey())
         ->where('touchpoint_type', 'visit')
@@ -240,7 +240,7 @@ test('a deactivated share link records no later visits or attributed signup cred
     $receipt = ShareSourceAttributionReceipt::query()
         ->where('business_key', $signupKey)
         ->firstOrFail();
-    $summaryAfter = $analytics->summaryForUser($this->sharer);
+    $summaryAfter = $analytics->summaryForAccount($this->sharer);
 
     expect($receipt->isAttributed())->toBeFalse()
         ->and(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $signupKey))->exists())->toBeFalse()

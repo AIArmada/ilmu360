@@ -390,7 +390,7 @@ it('agrees with member and admin surfaces on the same definitions', function ():
         'UTC', CarbonImmutable::parse('2026-05-01'), CarbonImmutable::parse('2026-05-31'),
     );
 
-    $service = app(ShareTrackingAnalyticsService::class)->summaryForUser($this->sharer);
+    $service = app(ShareTrackingAnalyticsService::class)->summaryForAccount($this->sharer);
     $admin = app(AdminShareAnalyticsService::class)->dashboard();
 
     expect($service['outbound_shares'])->toBe($member['totals']['recorded_shares'])

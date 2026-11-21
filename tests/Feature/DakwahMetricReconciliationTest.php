@@ -10,7 +10,7 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\ShareTracking\Api\GuestShareClaims;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingProfile;
+use App\Features\ShareTracking\Support\ShareTrackingProfile;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
 use App\Features\ShareTracking\Queries\ShareMetricReader;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
@@ -128,7 +128,7 @@ test('all additive dakwah counts reconcile across summaries links subjects chann
     dakwahReconciliationConversion($eventLink, 'event_registration', 'reversed');
     $analytics = app(ShareTrackingAnalyticsService::class);
 
-    expect($analytics->summaryForUser($user))->toBe([
+    expect($analytics->summaryForAccount($user))->toBe([
         'outbound_shares' => 3,
         'visits' => 5,
         'distinct_browsers' => 3,
@@ -212,11 +212,11 @@ test('a reversed conversion disappears consistently without deleting the histori
     $link = dakwahReconciliationLink($user, route('events.index'));
     $conversion = dakwahReconciliationConversion($link, 'event_registration', 'approved');
     $analytics = app(ShareTrackingAnalyticsService::class);
-    expect($analytics->summaryForUser($user)['event_registrations'])->toBe(1);
+    expect($analytics->summaryForAccount($user)['event_registrations'])->toBe(1);
 
     $conversion->forceFill(['status' => 'reversed', 'reversed_at' => now()])->save();
 
-    expect($analytics->summaryForUser($user)['total_outcomes'])->toBe(0)
+    expect($analytics->summaryForAccount($user)['total_outcomes'])->toBe(0)
         ->and($analytics->linksForUser($user)->first()->outcomesCount)->toBe(0)
         ->and($analytics->linksForUser($user, outcomeType: 'event_registration'))->toBeEmpty()
         ->and($analytics->subjectSummariesForUser($user)->sum('total_outcomes'))->toBe(0)
@@ -238,7 +238,7 @@ test('reporting start includes the exact boundary and excludes earlier and futur
     }
 
     $analytics = app(ShareTrackingAnalyticsService::class);
-    expect($analytics->summaryForUser($user))->toMatchArray(['outbound_shares' => 1, 'visits' => 1, 'distinct_browsers' => 1, 'signups' => 1, 'total_outcomes' => 1])
+    expect($analytics->summaryForAccount($user))->toMatchArray(['outbound_shares' => 1, 'visits' => 1, 'distinct_browsers' => 1, 'signups' => 1, 'total_outcomes' => 1])
         ->and($analytics->linksForUser($user)->first()->outcomesCount)->toBe(1)
         ->and($analytics->providerBreakdownForUser($user)->sum('visits'))->toBe(1)
         ->and($analytics->recentOutcomesForUser($user))->toHaveCount(1);
@@ -264,7 +264,7 @@ test('member metrics exclude another member and commercial facts but include dea
     $link->update(['deactivated_at' => now()]);
     $analytics = app(ShareTrackingAnalyticsService::class);
 
-    expect($analytics->summaryForUser($user))->toMatchArray(['visits' => 1, 'distinct_browsers' => 1, 'signups' => 1, 'total_outcomes' => 1])
+    expect($analytics->summaryForAccount($user))->toMatchArray(['visits' => 1, 'distinct_browsers' => 1, 'signups' => 1, 'total_outcomes' => 1])
         ->and($analytics->linksForUser($user)->pluck('id')->all())->toBe([$link->id])
         ->and($analytics->findLinkForUser($user, $otherLink->id))->toBeNull()
         ->and($analytics->findLinkForUser($user, $commercialLink->id))->toBeNull()
@@ -293,12 +293,12 @@ test('actively claimed guest totals combine with member totals and detach on cla
     }
 
     $analytics = app(ShareTrackingAnalyticsService::class);
-    expect($analytics->summaryForUser($user))->toMatchArray(['outbound_shares' => 2, 'visits' => 2, 'distinct_browsers' => 1, 'signups' => 2, 'total_outcomes' => 2])
+    expect($analytics->summaryForAccount($user))->toMatchArray(['outbound_shares' => 2, 'visits' => 2, 'distinct_browsers' => 1, 'signups' => 2, 'total_outcomes' => 2])
         ->and($analytics->linksForUser($user))->toHaveCount(2);
 
     app(RevokeAffiliateClaim::class)->handle($claim);
 
-    expect($analytics->summaryForUser($user))->toMatchArray(['outbound_shares' => 1, 'visits' => 1, 'distinct_browsers' => 1, 'signups' => 1, 'total_outcomes' => 1])
+    expect($analytics->summaryForAccount($user))->toMatchArray(['outbound_shares' => 1, 'visits' => 1, 'distinct_browsers' => 1, 'signups' => 1, 'total_outcomes' => 1])
         ->and($analytics->linksForUser($user)->pluck('id')->all())->toBe([$memberLink->id])
         ->and($analytics->findLinkForUser($user, $guestLink->id))->toBeNull()
         ->and($analytics->providerBreakdownForUser($user)->sum('outcomes'))->toBe(1);
@@ -329,7 +329,7 @@ test('daily visits and outcomes use the full 25 hour viewer day through the autu
         ->and($daily->firstWhere('date', '2026-11-02'))->toMatchArray(['visits' => 1, 'signups' => 1, 'outcomes' => 1])
         ->and($daily->sum('visits'))->toBe(6)
         ->and($daily->sum('outcomes'))->toBe(6)
-        ->and($analytics->summaryForUser($user))->toMatchArray(['visits' => 6, 'signups' => 6, 'total_outcomes' => 6]);
+        ->and($analytics->summaryForAccount($user))->toMatchArray(['visits' => 6, 'signups' => 6, 'total_outcomes' => 6]);
 });
 
 test('viewing claimed guest link analytics never prepares another link or changes the member profile', function (): void {
@@ -361,7 +361,7 @@ test('historical responses without a surviving link remain in totals but not pag
     $conversion->forceFill(['affiliate_link_id' => null])->save();
     $analytics = app(ShareTrackingAnalyticsService::class);
 
-    expect($analytics->summaryForUser($user)['signups'])->toBe(1)
+    expect($analytics->summaryForAccount($user)['signups'])->toBe(1)
         ->and($analytics->providerBreakdownForUser($user)->sum('signups'))->toBe(1)
         ->and($analytics->linksForUser($user)->sum('signupsCount'))->toBe(0)
         ->and($analytics->subjectSummariesForUser($user)->sum('signups'))->toBe(0)
