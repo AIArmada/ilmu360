@@ -7,9 +7,10 @@ namespace App\Features\Persons\EntryPoints\Api\Admin;
 use App\Features\Contributions\Api\ContributionEntityState;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
-use App\Platform\Api\Resources\ContributionStateAdminResourceWriter;
+use App\Platform\Api\Resources\HookedAdminResourceWriter;
 use App\Platform\Api\Resources\FilamentResourceDefinition;
 use App\Platform\Api\Resources\ResourceDefinitionContext;
+use Illuminate\Database\Eloquent\Model;
 
 final class PersonResourceDefinition extends FilamentResourceDefinition
 {
@@ -21,12 +22,13 @@ final class PersonResourceDefinition extends FilamentResourceDefinition
         parent::__construct(
             $context,
             PersonResource::class,
-            new ContributionStateAdminResourceWriter(
+            new HookedAdminResourceWriter(
                 $context,
                 PersonResource::class,
                 $hooks,
-                $contributionState,
-                'person',
+                static fn (Model $record): array => $record->getMorphClass() === 'person'
+                    ? $contributionState->stateFor('person', (string) $record->getKey())
+                    : [],
             ),
         );
     }

@@ -8,7 +8,7 @@ use App\Features\Contributions\Api\ContributionEntityState;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
-use App\Platform\Api\Resources\ContributionStateAdminResourceWriter;
+use App\Platform\Api\Resources\HookedAdminResourceWriter;
 use App\Platform\Api\Resources\FilamentResourceDefinition;
 use App\Platform\Api\Resources\ResourceDefinitionContext;
 use Illuminate\Database\Eloquent\Model;
@@ -23,12 +23,13 @@ final class EventResourceDefinition extends FilamentResourceDefinition
         parent::__construct(
             $context,
             EventResource::class,
-            new ContributionStateAdminResourceWriter(
+            new HookedAdminResourceWriter(
                 $context,
                 EventResource::class,
                 $hooks,
-                $contributionState,
-                'event',
+                static fn (Model $record): array => $record->getMorphClass() === 'event'
+                    ? $contributionState->stateFor('event', (string) $record->getKey())
+                    : [],
             ),
         );
     }
