@@ -7,7 +7,6 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
-use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Platform\Api\Frontend\Data\CountryData;
 use App\Platform\Location\AddressAssignments;
 use App\Platform\Location\AddressHierarchyFormatter;
@@ -106,23 +105,6 @@ class SearchPayloadTransformer
         $location = AddressHierarchyFormatter::format($address);
 
         return $location !== '' ? $location : null;
-    }
-
-    public function keyPersonRoleLabel(mixed $role): string
-    {
-        if ($role instanceof EventKeyPersonRole) {
-            return $role->getLabel();
-        }
-
-        if ($role instanceof BackedEnum && is_string($role->value)) {
-            return EventKeyPersonRole::tryFrom($role->value)?->getLabel() ?? Str::headline($role->value);
-        }
-
-        if (is_string($role) && $role !== '') {
-            return EventKeyPersonRole::tryFrom($role)?->getLabel() ?? Str::headline($role);
-        }
-
-        return '';
     }
 
     private function enumValue(mixed $value): string

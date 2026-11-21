@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use BackedEnum;
+use Illuminate\Support\Str;
 use App\Features\Events\Api\EventCollections;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Models\Event;
@@ -281,12 +283,29 @@ final readonly class EloquentEventCollections implements EventCollections
         return [
             'id' => $keyPerson->id,
             'role' => (string) $keyPerson->role_code,
-            'role_label' => $this->searchPayloadTransformer->keyPersonRoleLabel($keyPerson->role_code),
+            'role_label' => $this->keyPersonRoleLabel($keyPerson->role_code),
             'display_name' => $keyPerson->display_name,
             'event' => $keyPerson->event instanceof Event
                 ? $this->eventListPayloads->forEvent($keyPerson->event)->toArray()
                 : null,
         ];
+    }
+
+    private function keyPersonRoleLabel(mixed $role): string
+    {
+        if ($role instanceof EventKeyPersonRole) {
+            return $role->getLabel();
+        }
+
+        if ($role instanceof BackedEnum && is_string($role->value)) {
+            return EventKeyPersonRole::tryFrom($role->value)?->getLabel() ?? Str::headline($role->value);
+        }
+
+        if (is_string($role) && $role !== '') {
+            return EventKeyPersonRole::tryFrom($role)?->getLabel() ?? Str::headline($role);
+        }
+
+        return '';
     }
 
     private function directionSql(bool $past): string
