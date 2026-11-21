@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\ShareTracking\Api\Orm;
+namespace App\Features\ShareTracking\Support;
 
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
@@ -19,9 +19,7 @@ use AIArmada\Affiliates\States\PaidConversion;
  * and never replayed from snapshots; zero-value share outcomes without
  * payout links remain deletable nonfinancial history.
  *
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
- * Consumers: ShareTracking cleanup/restoration actions
+ * Internal package-owned settlement classification. Never exposed as a feature API.
  */
 final readonly class ShareTrackingFinance
 {

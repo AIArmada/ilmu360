@@ -9,7 +9,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\States\ConversionStatus;
 use App\Features\Referrals\Api\ReferralOutcomeWorkflow;
 use App\Features\ShareTracking\Api\EffectReceipts;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingFinance;
+use App\Features\ShareTracking\Support\ShareTrackingFinance;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
