@@ -164,5 +164,10 @@
     "registration": "table:event_registrations",
     "institution": "table:institutions",
     "space": "table:venue_spaces"
+  },
+  "extensions": {
+    "membership.subject-records": [
+      "App\\Features\\Events\\Extensions\\EventMemberSubjectReader"
+    ]
   }
 }

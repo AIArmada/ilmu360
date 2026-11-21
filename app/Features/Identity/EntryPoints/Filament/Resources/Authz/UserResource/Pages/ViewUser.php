@@ -18,7 +18,9 @@ use App\Features\Identity\Api\AccountToken;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Membership\Api\Orm\Filament\AccountMembershipDirectory;
+use App\Features\Membership\Api\AccountMembershipDirectory;
+use App\Features\Membership\Api\MemberSubjectRecord;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Api\Orm\ReferenceLookup;
@@ -180,39 +182,51 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @return Collection<int, Institution>
+     * @return \Illuminate\Support\Collection<int, MemberSubjectRecord>
      */
     #[Computed]
-    public function memberInstitutions(): Collection
+    public function memberInstitutions(): \Illuminate\Support\Collection
     {
-        return new Collection(app(AccountMembershipDirectory::class)->institutions($this->userRecord()));
+        return collect(app(AccountMembershipDirectory::class)->subjects(
+            (string) $this->userRecord()->getKey(),
+            MemberSubjectType::Institution,
+        ));
     }
 
     /**
-     * @return Collection<int, Person>
+     * @return \Illuminate\Support\Collection<int, MemberSubjectRecord>
      */
     #[Computed]
-    public function memberPersons(): Collection
+    public function memberPersons(): \Illuminate\Support\Collection
     {
-        return new Collection(app(AccountMembershipDirectory::class)->persons($this->userRecord()));
+        return collect(app(AccountMembershipDirectory::class)->subjects(
+            (string) $this->userRecord()->getKey(),
+            MemberSubjectType::Person,
+        ));
     }
 
     /**
-     * @return Collection<int, Event>
+     * @return \Illuminate\Support\Collection<int, MemberSubjectRecord>
      */
     #[Computed]
-    public function memberEvents(): Collection
+    public function memberEvents(): \Illuminate\Support\Collection
     {
-        return new Collection(app(AccountMembershipDirectory::class)->events($this->userRecord()));
+        return collect(app(AccountMembershipDirectory::class)->subjects(
+            (string) $this->userRecord()->getKey(),
+            MemberSubjectType::Event,
+        ));
     }
 
     /**
-     * @return Collection<int, Reference>
+     * @return \Illuminate\Support\Collection<int, MemberSubjectRecord>
      */
     #[Computed]
-    public function memberReferences(): Collection
+    public function memberReferences(): \Illuminate\Support\Collection
     {
-        return new Collection(app(AccountMembershipDirectory::class)->references($this->userRecord()));
+        return collect(app(AccountMembershipDirectory::class)->subjects(
+            (string) $this->userRecord()->getKey(),
+            MemberSubjectType::Reference,
+        ));
     }
 
     /**

@@ -4,126 +4,55 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Queries;
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Organizations\Models\Organization;
-use App\Features\Events\Models\Event;
-use App\Features\Institutions\Models\Institution;
+use App\Features\Membership\Api\AccountMembershipDirectory;
+use App\Features\Membership\Api\MemberSubjectReader;
+use App\Features\Membership\Api\MemberSubjectRecord;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MembershipRecord;
-use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
-use App\Shared\Auth\AccountActor;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
+use App\Platform\ExtensionRegistry;
+use RuntimeException;
 
-/**
- * Read-only membership subject lists for account administration surfaces.
- *
- * Membership state is read through the MembershipDirectory contract; the
- * returned models are only presentation data for the user admin screens.
- */
-final readonly class MemberDirectorySummary
+final readonly class MemberDirectorySummary implements AccountMembershipDirectory
 {
     public function __construct(
         private MembershipDirectory $memberships,
+        private ExtensionRegistry $extensions,
     ) {}
 
-    /**
-     * @return Collection<int, Institution>
-     */
-    public function institutions(AccountActor $account): Collection
-    {
-        return $this->subjects($account, MemberSubjectType::Institution, Institution::class, 'name');
-    }
-
-    /**
-     * @return Collection<int, Person>
-     */
-    public function persons(AccountActor $account): Collection
-    {
-        return $this->subjects($account, MemberSubjectType::Person, Person::class, 'name');
-    }
-
-    /**
-     * @return Collection<int, Event>
-     */
-    public function events(AccountActor $account, string $orderColumn = 'created_at', string $direction = 'desc'): Collection
-    {
-        return $this->subjects(
-            $account,
-            MemberSubjectType::Event,
-            Event::class,
-            $orderColumn,
-            $direction,
-            ['institution:id,name', 'venue:id,name'],
-        );
-    }
-
-    /**
-     * @return Collection<int, Reference>
-     */
-    public function references(AccountActor $account): Collection
-    {
-        return $this->subjects(
-            $account,
-            MemberSubjectType::Reference,
-            Reference::class,
-            'title',
-            'asc',
-            ['parentReference.parentReference'],
-        );
-    }
-
-    /**
-     * @return Collection<int, Organization>
-     */
-    public function organizations(AccountActor $account): Collection
-    {
-        return $this->subjects(
-            $account,
-            MemberSubjectType::Organization,
-            Organization::class,
-            'name',
-        );
-    }
-
-    /**
-     * @return list<MembershipRecord>
-     */
-    public function memberships(AccountActor $account, MemberSubjectType $subjectType): array
-    {
-        return $this->memberships->membershipsFor($account->actorId(), $subjectType);
-    }
-
-    /**
-     * @template TModel of Model
-     *
-     * @param  class-string<TModel>  $modelClass
-     * @param  list<string>  $relations
-     * @return Collection<int, TModel>
-     */
-    private function subjects(
-        AccountActor $account,
+    public function subjects(
+        string $accountId,
         MemberSubjectType $subjectType,
-        string $modelClass,
-        string $orderColumn,
-        string $direction = 'asc',
-        array $relations = [],
-    ): Collection {
-        $subjectIds = $this->memberships->subjectIdsFor($account->actorId(), $subjectType);
+        ?string $orderColumn = null,
+        ?string $direction = null,
+    ): array {
+        $ids = $this->memberships->subjectIdsFor($accountId, $subjectType);
 
-        if ($subjectIds === []) {
-            return new Collection;
+        if ($ids === []) {
+            return [];
         }
 
-        /** @var Collection<int, TModel> $subjects */
-        $subjects = OwnerContext::withOwner(null, fn (): Collection => $modelClass::query()
-            ->with($relations)
-            ->whereKey($subjectIds)
-            ->orderBy($orderColumn, $direction)
-            ->get());
+        foreach ($this->extensions->resolve('membership.subject-records', MemberSubjectReader::class) as $reader) {
+            /** @var MemberSubjectReader $reader */
+            if ($reader->subjectType() !== $subjectType) {
+                continue;
+            }
 
-        return $subjects;
+            $column = $orderColumn ?? match ($subjectType) {
+                MemberSubjectType::Event => 'created_at',
+                MemberSubjectType::Reference => 'title',
+                default => 'name',
+            };
+            $sort = $direction ?? ($subjectType === MemberSubjectType::Event ? 'desc' : 'asc');
+
+            return $reader->forIds($ids, $column, $sort);
+        }
+
+        throw new RuntimeException("No subject reader registered for {$subjectType->value}.");
+    }
+
+    public function memberships(string $accountId, MemberSubjectType $subjectType): array
+    {
+        return $this->memberships->membershipsFor($accountId, $subjectType);
     }
 }

@@ -5,17 +5,17 @@
     use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
     use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
     use App\Shared\Auth\AccountActor;
-    use App\Features\Membership\Queries\MemberDirectorySummary;
+    use App\Features\Membership\Api\AccountMembershipDirectory;
     use App\Features\Membership\Services\MemberRoleCatalog;
 
     /** @var AccountActor|null $user */
     $user = $record instanceof AccountActor ? $record : null;
     $memberRoleCatalog = app(MemberRoleCatalog::class);
-    $memberDirectory = app(MemberDirectorySummary::class);
-    $institutions = $user instanceof AccountActor ? $memberDirectory->institutions($user) : collect();
-    $persons = $user instanceof AccountActor ? $memberDirectory->persons($user) : collect();
-    $events = $user instanceof AccountActor ? $memberDirectory->events($user) : collect();
-    $references = $user instanceof AccountActor ? $memberDirectory->references($user) : collect();
+    $memberDirectory = app(AccountMembershipDirectory::class);
+    $institutions = $user instanceof AccountActor ? $memberDirectory->subjects($user->actorId(), MemberSubjectType::Institution) : [];
+    $persons = $user instanceof AccountActor ? $memberDirectory->subjects($user->actorId(), MemberSubjectType::Person) : [];
+    $events = $user instanceof AccountActor ? $memberDirectory->subjects($user->actorId(), MemberSubjectType::Event) : [];
+    $references = $user instanceof AccountActor ? $memberDirectory->subjects($user->actorId(), MemberSubjectType::Reference) : [];
     $institutionRoles = $user instanceof AccountActor ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Institution)) : '';
     $personRoles = $user instanceof AccountActor ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Person)) : '';
     $eventRoles = $user instanceof AccountActor ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Event)) : '';
@@ -36,7 +36,7 @@
                 @forelse ($institutions as $institution)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
-                            <a class="font-medium text-primary-600 hover:underline" href="{{ InstitutionResource::getUrl('edit', ['record' => $institution], panel: 'admin') }}">
+                            <a class="font-medium text-primary-600 hover:underline" href="{{ InstitutionResource::getUrl('edit', ['record' => $institution->id], panel: 'admin') }}">
                                 {{ $institution->name }}
                             </a>
                             <span class="text-xs text-gray-500">
@@ -54,7 +54,7 @@
                 @forelse ($persons as $person)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
-                            <a class="font-medium text-primary-600 hover:underline" href="{{ PersonResource::getUrl('edit', ['record' => $person], panel: 'admin') }}">
+                            <a class="font-medium text-primary-600 hover:underline" href="{{ PersonResource::getUrl('edit', ['record' => $person->id], panel: 'admin') }}">
                                 {{ $person->name }}
                             </a>
                             <span class="text-xs text-gray-500">
@@ -72,8 +72,8 @@
                 @forelse ($events as $event)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
-                            <a class="font-medium text-primary-600 hover:underline" href="{{ EventResource::getUrl('edit', ['record' => $event], panel: 'admin') }}">
-                                {{ $event->title }}
+                            <a class="font-medium text-primary-600 hover:underline" href="{{ EventResource::getUrl('edit', ['record' => $event->id], panel: 'admin') }}">
+                                {{ $event->name }}
                             </a>
                             <span class="text-xs text-gray-500">
                                 {{ $eventRoles !== '' ? $eventRoles : 'No role' }}
@@ -90,8 +90,8 @@
                 @forelse ($references as $reference)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
-                            <a class="font-medium text-primary-600 hover:underline" href="{{ ReferenceResource::getUrl('edit', ['record' => $reference], panel: 'admin') }}">
-                                {{ $reference->displayTitle() }}
+                            <a class="font-medium text-primary-600 hover:underline" href="{{ ReferenceResource::getUrl('edit', ['record' => $reference->id], panel: 'admin') }}">
+                                {{ $reference->name }}
                             </a>
                             <span class="text-xs text-gray-500">
                                 {{ $referenceRoles !== '' ? $referenceRoles : 'No role' }}

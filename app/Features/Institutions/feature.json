@@ -48,5 +48,10 @@
     "institution_name": "table:institution_names",
     "institution_import_exclusion": "table:institution_import_exclusions",
     "institution_venue": "table:institution_venue"
+  },
+  "extensions": {
+    "membership.subject-records": [
+      "App\\Features\\Institutions\\Extensions\\InstitutionMemberSubjectReader"
+    ]
   }
 }

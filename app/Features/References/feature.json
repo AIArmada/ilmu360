@@ -24,5 +24,10 @@
   "aliases": {
     "reference": "table:references",
     "reference_contributor": "table:reference_contributors"
+  },
+  "extensions": {
+    "membership.subject-records": [
+      "App\\Features\\References\\Extensions\\ReferenceMemberSubjectReader"
+    ]
   }
 }
