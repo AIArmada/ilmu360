@@ -28,6 +28,7 @@
         "testing-best-practices",
         "configuring-horizon",
         "mcp-development",
+        "octane-development",
         "passport-development",
         "scout-development",
         "socialite-development",
@@ -47,6 +48,10 @@
         "spatie-laravel-php",
         "spatie-security",
         "spatie-version-control",
+        "laravel-dune",
+        "laravel-dune-convert",
+        "laravel-dune-correct",
+        "laravel-dune-verify",
         "laravel-specialist"
     ]
 }

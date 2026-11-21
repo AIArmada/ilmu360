@@ -1,0 +1,20 @@
+includes:
+    - ../vendor/larastan/larastan/extension.neon
+
+parameters:
+    customRulesetUsed: true
+    paths:
+        - ../app
+        - ../routes
+    excludePaths:
+        analyse:
+            - ../app/Features/*/Database/Migrations/*
+    tmpDir: ../storage/framework/cache/architecture-phpstan
+
+services:
+    -
+        class: AppArchitecture\StaticAnalysis\OwnedWriteRule
+        arguments:
+            projectRoot: %currentWorkingDirectory%
+        tags:
+            - phpstan.rules.rule
