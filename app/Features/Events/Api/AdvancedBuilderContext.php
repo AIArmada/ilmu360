@@ -2,13 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Api\Orm;
+namespace App\Features\Events\Api;
 
 /** Default form projection for an account's accessible event organizers.
  *
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
- * Consumers: Platform/Api, Events/FeatureServiceProvider.php, Events/Actions, Events/Api, Events/EntryPoints
  */
 interface AdvancedBuilderContext
 {

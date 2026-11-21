@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use App\Features\Events\Api\Orm\AdvancedBuilderMembershipOptions;
+use App\Features\Events\Api\AdvancedBuilderMembershipOptions;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;

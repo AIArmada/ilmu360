@@ -2,15 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Api\Orm;
+namespace App\Features\Events\Api;
 
 /**
  * Advanced program builder's owner-qualified organizer choices.
  * No model or membership-package collection escapes the Events boundary.
  *
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
- * Consumers: Events/FeatureServiceProvider.php, Events/Actions
  */
 interface AdvancedBuilderMembershipOptions
 {
