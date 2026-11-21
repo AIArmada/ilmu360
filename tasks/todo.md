@@ -930,3 +930,29 @@ One full Pest run at the final verification point, output retained in `/tmp`.
 - Keep Eloquent relationships, morphs, policies, Livewire/Filament model identity.
 - Do not rewrite unrelated work; no force-push; small commits.
 - No new broad architecture exceptions.
+
+## ORM boundary independent audit follow-up (2026-11-21)
+
+Source: `ilmu360-orm-refactor-independent-audit-2026-11-21.md`, reviewed at
+`a29ee6012a51626e49b0cdd59cb8f628b6e33251`. Resolve in the audit's order;
+preserve behavior and avoid duplicate filtering or compatibility wrappers.
+
+- [x] **F2 — prove the checker invariant:** cover unsupported builder mutators,
+  callback/alias propagation, model and collection mutation, `Api/Orm` callers,
+  non-feature consumers, missing/union returns, and prevent claims broader than
+  the implemented analysis.
+- [x] **F3 — bound reference directory work:** batch default event-reference
+  expansion, count links in SQL where practical, add query-budget coverage, and
+  record measured query counts and PostgreSQL plans for 1, 12, and 50 references.
+- [x] **F1 — make the Discovery boundary immutable:** move schedule leaf/read
+  projections into Events and preserve filters, ordering, distance, and paging
+  behavior with parity tests; keep model hydration only for actual UI identity.
+- [x] **F4 — execute owner schedule reads in Events:** replace Venue/Series
+  builder handoffs with owner-scoped reads; independently measure the correlated
+  Institution subqueries against existing batched facts before choosing a path.
+- [x] **F5 — make the inventory evidence specific:** distinguish framework
+  identity, SQL composition, and other retained seams; document concrete
+  consumer, effect, alternatives, guard, and behavior/performance evidence.
+- [ ] Run architecture checks, affected Pest tests, PHPStan, Pint, Rector, API
+  parity and the full GitHub Quality workflow at the final SHA. Commit and push
+  coherent slices to `refactor`; never force-push.

@@ -229,4 +229,110 @@ not a complete local suite run. `pest-serial-results.txt` contains those
 partial local results. CI is authoritative for the complete suite and the
 environment-dependent files.
 
+## Independent audit follow-up (2026-11-21)
+
+The independent audit at `a29ee601` identified F1–F5. The working tree now
+addresses each finding; the final GitHub Quality run is still pending the
+follow-up commit and push.
+
+### F1 — immutable Discovery schedule reads
+
+- Events returns readonly `EventScheduleFactSet`, `EventScheduleFact`, and
+  `EventScheduleTimeFact` values through `publicScheduleFactSet`,
+  `homepageScheduleFacts`, and `scheduleFactsForEventIds`.
+- Discovery applies leaf filters, ordering, distance and pagination to those
+  facts. Events hydrates only the selected page ids for Livewire rendering.
+- Eligibility and visibility remain centralized in Events. Regression
+  coverage checks meaningful sessions, private/draft exclusion, fact filtering
+  before page hydration, and public occurrence/session rendering.
+- The expanded focused run passed **259 tests / 1,716 assertions**, including
+  `PublicScheduleDiscoveryTest`, `DashboardPagesTest`, `ShareTrackingTest`,
+  `InstitutionDirectoryQueryTest`, `ReferenceFamilyTest`,
+  `ContributionPagesTest`, and `ArchitectureBoundaryTest`.
+
+### F2 — checker invariant and limits
+
+- `tools/architecture-check.php` now checks builder mutation/escape, supported
+  helper and alias propagation, model/collection mutation, `Api/Orm` consumers,
+  Platform and Blade consumers, and missing/union ORM return contracts.
+- Negative fixtures cover `whereBetween`, callback propagation, helper/alias
+  returns, model and collection mutation, non-feature consumers, `Api/Orm`
+  consumers, and absent/mixed/union returns. A positive fixture allows the
+  exact correlated `selectSub` composition while rejecting mutation of that
+  subquery.
+- `php tools/architecture-check.php` reports **0 violations across 28
+  features**. `composer architecture:test` passes with PHPStan reporting zero
+  errors.
+- The scanner is a tested static AST analysis, not general PHP interprocedural
+  type inference. Dynamic method names, reflection, runtime macros, and
+  framework callbacks still require review; the report is limited to tested
+  patterns.
+
+### F3 — bounded reference directory reads
+
+- `ReferenceFamily::expandIdsForMany()` resolves root/edition/part families in
+  batched queries. Events counts distinct public events in SQL rather than
+  materializing event-reference links in PHP.
+- The query-budget test creates nested reference families and asserts four
+  queries for 1, 12, and 50 rows (three family-depth reads plus one count
+  statement), so the query count stays bounded as the page grows.
+- A read-only staging sample had 84 references, 129 events, and 14 event-link
+  rows; it showed three queries for each requested size and count-plan times of
+  about 0.49, 0.44, and 0.59 ms. This is a small-dataset sanity check.
+- A second PostgreSQL plan used transaction-local temporary tables with 50
+  roots/150 family references, 20,000 events, 20,000 occurrences, and 60,000
+  event-reference links. Query counts remained 4 for 1/12/50 roots; the count
+  statement measured about 12.2/73.1/159.6 ms respectively. The transaction
+  was rolled back. Plan output is in
+  `/tmp/ilmu360-orm-boundary-reference-synthetic-plans.json`.
+
+### F4 — owner-executed page reads and directory SQL choice
+
+- Venue and Series page operations now accept scalar ids, limits and date
+  ranges; Events composes, executes and hydrates their schedule queries.
+- Institution directory subqueries remain as a narrowly categorized
+  `SQL_COMPOSITION_KEEP`. A synthetic PostgreSQL comparison used 500
+  institutions, 20,000 events and 20,000 occurrences. For 12 institution rows,
+  the correlated query ran as one query (8.55 ms client-side, 6.31 ms in
+  `EXPLAIN ANALYZE`); batched facts took three queries (15.21 ms combined,
+  16.80 ms total `EXPLAIN ANALYZE`). The correlated form is retained because
+  it was faster in this measured case and returns count/next-event selection in
+  the directory statement. Details are in
+  `/tmp/ilmu360-orm-boundary-institution-plan-comparison.json`.
+- `ArchitectureBoundaryTest::allows exact correlated SQL subquery composition
+  but rejects mutating the foreign subquery` locks the intended exception.
+
+### F5 — inventory evidence
+
+- `tasks/orm-boundary-inventory.csv` now has **317 rows**: 274 current methods,
+  14 replaced seams, and 29 removed baseline methods. All current public ORM
+  methods are indexed.
+- Current classifications: 215 scalar-safe, 44 framework-identity, 8
+  owner-model reads, 2 SQL-composition seams, 4 owner-query integration seams,
+  and 1 address-resolution seam. Model-carrying readonly schedule leaves and
+  the in-memory venue relation hydrator are explicitly inventoried as page
+  identity seams; their consumers are limited to the public page surfaces.
+- Every retained mutable seam records its named consumer requirement,
+  read/write effect, immutable alternative and why it does not fit, checker
+  fixture, and behavior/performance evidence. Historical methods replaced by
+  the audit work no longer carry live `FRAMEWORK_IDENTITY_KEEP` claims.
+
+### Follow-up verification status
+
+| Gate | Result |
+|---|---|
+| Focused Pest batch | 259 passed, 1,716 assertions |
+| Rector-adjusted schedule/reference tests | 19 passed, 141 assertions |
+| Venue/Series public page regression | 1 passed, 12 assertions |
+| Frontend API and published schema parity | 111 passed, 1,027 assertions |
+| `php tools/architecture-check.php` | 0 violations, 28 features |
+| `composer architecture:test` | passed; PHPStan 0 errors |
+| `vendor/bin/pint --dirty --format agent` | passed; formatting fixes applied before the gate rerun |
+| `vendor/bin/pint --test` | passed |
+| `vendor/bin/rector process --dry-run --ansi` | passed; 0 changes |
+| API parity | passed; 111 tests, 1,027 assertions |
+| Route parity | 738 routes before and after; no route added or removed |
+| Schedule parity | 24 entries before and after; cron/command rows identical |
+| GitHub Quality on follow-up SHA | pending |
+
 
