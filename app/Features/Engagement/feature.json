@@ -1,5 +1,17 @@
 {
   "schema": 1,
   "name": "Engagement",
-  "owns": {}
+  "owns": {
+    "table:bookmarks": [
+      "App\\Features\\Engagement\\Actions\\ManageEngagementAccountLifecycleAction",
+      "App\\Features\\Engagement\\Actions\\DeleteEventEngagementAction"
+    ],
+    "table:follows": [
+      "App\\Features\\Engagement\\Actions\\ManageEngagementAccountLifecycleAction"
+    ],
+    "table:responses": [
+      "App\\Features\\Engagement\\Actions\\ManageEngagementAccountLifecycleAction",
+      "App\\Features\\Engagement\\Actions\\DeleteEventEngagementAction"
+    ]
+  }
 }

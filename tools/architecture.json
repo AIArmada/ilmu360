@@ -263,51 +263,6 @@
     },
     {
       "rule": "architecture.writeLocation",
-      "file": "app/Features/Engagement/Actions/DeleteEventEngagementAction.php",
-      "target": "table:bookmarks",
-      "model": "AIArmada\\Engagement\\Models\\Bookmark",
-      "reason": "Engagement removes event bookmarks through the canonical package Bookmark model; the package owns its configured table.",
-      "owner": "Engagement",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Engagement/Actions/DeleteEventEngagementAction.php",
-      "target": "table:responses",
-      "model": "AIArmada\\Engagement\\Models\\Response",
-      "reason": "Engagement removes event responses through the canonical package Response model; the package owns its configured table.",
-      "owner": "Engagement",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Engagement/Contributors/EngagementAccountLifecycleContributor.php",
-      "target": "table:bookmarks",
-      "model": "AIArmada\\Engagement\\Models\\Bookmark",
-      "reason": "Engagement restores and detaches account bookmarks through the canonical package Bookmark model; the package owns its configured table.",
-      "owner": "Engagement",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Engagement/Contributors/EngagementAccountLifecycleContributor.php",
-      "target": "table:follows",
-      "model": "AIArmada\\Engagement\\Models\\Follow",
-      "reason": "Engagement restores, snapshots, and detaches account follows through the canonical package Follow model; the package owns its configured table.",
-      "owner": "Engagement",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Engagement/Contributors/EngagementAccountLifecycleContributor.php",
-      "target": "table:responses",
-      "model": "AIArmada\\Engagement\\Models\\Response",
-      "reason": "Engagement snapshots and detaches account responses through the canonical package Response model; the package owns its configured table.",
-      "owner": "Engagement",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
       "file": "app/Features/Events/Actions/Authoring/ConfigureEventAdmissionAction.php",
       "target": "table:ticket_ticket_type_seating_options",
       "model": "AIArmada\\Ticketing\\Models\\TicketTypeSeatingOption",
