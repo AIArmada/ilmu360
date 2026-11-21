@@ -187,7 +187,7 @@ use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Features\Places\Observers\VenueObserver;
 use App\Features\Places\Services\SpaceLocationResolver;
-use App\Features\Prayer\Api\Orm\PrayerLocationResolver;
+use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Services\PrayerLocationResolverService;
 use App\Features\References\Api\ReferenceSearch;
 use App\Features\References\Models\Reference;

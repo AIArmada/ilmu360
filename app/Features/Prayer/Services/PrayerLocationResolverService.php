@@ -4,22 +4,25 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Services;
 
-use AIArmada\Addressing\Models\Address;
-use App\Features\Prayer\Api\Orm\PrayerLocationResolver;
+use App\Features\Prayer\Api\PrayerLocationData;
+use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Support\PrayerLocation;
 
-/**
- * Boundary adapter over the static prayer-location extraction helpers.
- */
 final readonly class PrayerLocationResolverService implements PrayerLocationResolver
 {
-    public function forTargets(?string $venueId, ?string $institutionId): ?Address
+    public function forTargets(?string $venueId, ?string $institutionId, ?string $countryFallback = null): PrayerLocationData
     {
-        return PrayerLocation::forTargets($venueId, $institutionId);
-    }
+        $inputs = PrayerLocation::fromAddress(
+            PrayerLocation::forTargets($venueId, $institutionId),
+            $countryFallback,
+        );
 
-    public function fromAddress(?Address $address, ?string $countryFallback = null): array
-    {
-        return PrayerLocation::fromAddress($address, $countryFallback);
+        return new PrayerLocationData(
+            countryCode: $inputs['countryCode'],
+            latitude: $inputs['latitude'],
+            longitude: $inputs['longitude'],
+            stateCode: $inputs['stateCode'],
+            districtCandidates: $inputs['districtCandidates'],
+        );
     }
 }

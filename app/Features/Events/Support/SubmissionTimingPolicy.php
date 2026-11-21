@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Support;
 
-use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Features\Contributions\Api\ContributionOrganizer;
@@ -15,7 +14,8 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Prayer\Api\BuildPrayerPreviewAction;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
-use App\Features\Prayer\Api\Orm\PrayerLocationResolver;
+use App\Features\Prayer\Api\PrayerLocationData;
+use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Api\RamadanGate;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -384,19 +384,18 @@ final class SubmissionTimingPolicy implements SubmissionTimingContract
 
         $countryId = $state['submission_country_id'] ?? null;
         $country = is_string($countryId) && $countryId !== '' ? AddressCountry::query()->find($countryId) : null;
-        $address = $this->previewLocationAddress($state);
         $timezone = $state['submission_timezone'] ?? null;
-        $location = app(PrayerLocationResolver::class)->fromAddress($address, $country?->iso2);
+        $location = $this->previewLocationInputs($state, $country?->iso2);
 
         return app(BuildPrayerPreviewAction::class)->handle(
-            country: $location['countryCode'] ?? 'MY',
+            country: $location->countryCode ?? 'MY',
             date: $date,
             timezone: is_string($timezone) && $timezone !== '' ? $timezone : null,
-            latitude: $location['latitude'],
-            longitude: $location['longitude'],
-            stateCode: $location['stateCode'],
+            latitude: $location->latitude,
+            longitude: $location->longitude,
+            stateCode: $location->stateCode,
             allowLive: false,
-            districtCandidates: $location['districtCandidates'],
+            districtCandidates: $location->districtCandidates,
         );
     }
 
@@ -408,26 +407,24 @@ final class SubmissionTimingPolicy implements SubmissionTimingContract
      *
      * @param  array<string, mixed>  $state
      */
-    private function previewLocationAddress(array $state): ?Address
+    private function previewLocationInputs(array $state, ?string $countryFallback): PrayerLocationData
     {
+        $venueId = null;
+        $institutionId = null;
+
         try {
             $context = app(SubmissionContext::class);
             $organizer = $context->resolvePrimaryOrganizer($state['primary_organizer_id'] ?? null);
 
-            if (! $organizer instanceof ContributionOrganizer) {
-                return null;
+            if ($organizer instanceof ContributionOrganizer) {
+                [$institutionId, $venueId] = $context->resolveTargetLocationFor($state, $organizer);
             }
-
-            [$institutionId, $venueId] = $context->resolveTargetLocationFor($state, $organizer);
         } catch (Throwable) {
-            return null;
+            $venueId = null;
+            $institutionId = null;
         }
 
-        if ($venueId === null && $institutionId === null) {
-            return null;
-        }
-
-        return app(PrayerLocationResolver::class)->forTargets($venueId, $institutionId);
+        return app(PrayerLocationResolver::class)->forTargets($venueId, $institutionId, $countryFallback);
     }
 
     /**

@@ -2,12 +2,12 @@
 
 namespace App\Features\Events\Support;
 
-use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\Event as PackageEvent;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\Prayer\Api\Orm\PrayerLocationResolver;
+use App\Features\Prayer\Api\PrayerLocationData;
+use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Features\Prayer\Api\ResolvePrayerStartClockAction;
 use BackedEnum;
@@ -61,7 +61,7 @@ final readonly class AdminEventScheduleResolver
         // country feeds both resolution and fallback persistence.
         // Explicit country input is a deliberate override; an unchanged
         // inherited id is provenance, not an instruction.
-        $prayerAddress = $this->prayerLocation->forTargets($prayerVenueId, $prayerInstitutionId);
+        $prayerLocationData = $this->prayerLocation->forTargets($prayerVenueId, $prayerInstitutionId);
         $recordCountryId = $creating ? null : $this->normalizeOptionalString($recordState['submission_country_id'] ?? null);
         $stateCountryId = $this->normalizeOptionalString($state['submission_country_id'] ?? null);
         $explicitCountry = $creating
@@ -72,7 +72,7 @@ final readonly class AdminEventScheduleResolver
             : null;
         $targetsChanged = $creating || $this->prayerTargetsChanged($state, $recordState);
         $prayerCountryIso = $this->prayerCountryIso(
-            $prayerAddress,
+            $prayerLocationData,
             $explicitCountryIso,
             $targetsChanged,
             $creating ? null : $this->pinnedPrayerCountry($event),
@@ -97,7 +97,7 @@ final readonly class AdminEventScheduleResolver
 
         $resolvedStart = $preserveTiming
             ? $this->persistedStartClock($event, $timezone)
-            : $this->resolveProviderStartClock($state, $prayerAddress, $prayerCountryIso);
+            : $this->resolveProviderStartClock($state, $prayerLocationData, $prayerCountryIso);
 
         $persistence = AdminEventTimeMapper::normalizeForPersistence(array_merge($state, [
             'resolved_start_clock' => $resolvedStart['clock'] ?? null,
@@ -223,7 +223,7 @@ final readonly class AdminEventScheduleResolver
      * @param  array<string, mixed>  $state
      * @return array{clock: string, date: string, starts_at: string, source: string, fetched_at: string, zone: string|null}|null
      */
-    private function resolveProviderStartClock(array $state, ?Address $address, string $countryIso): ?array
+    private function resolveProviderStartClock(array $state, PrayerLocationData $location, string $countryIso): ?array
     {
         $prayerTime = EventPrayerTime::tryFrom((string) ($state['prayer_time'] ?? ''));
         $timezone = (string) ($state['timezone'] ?? 'Asia/Kuala_Lumpur');
@@ -233,17 +233,15 @@ final readonly class AdminEventScheduleResolver
             return null;
         }
 
-        $location = $this->prayerLocation->fromAddress($address);
-
         return $this->resolveStartClock->handle(
             countryCode: $countryIso,
             date: $eventDate,
             timezone: $timezone,
             prayerTime: $prayerTime,
-            latitude: $location['latitude'],
-            longitude: $location['longitude'],
-            stateCode: $location['stateCode'],
-            districtCandidates: $location['districtCandidates'],
+            latitude: $location->latitude,
+            longitude: $location->longitude,
+            stateCode: $location->stateCode,
+            districtCandidates: $location->districtCandidates,
         );
     }
 
@@ -279,9 +277,9 @@ final readonly class AdminEventScheduleResolver
      * Without explicit input, changed targets follow the new address;
      * unchanged or address-less targets retain the pinned country.
      */
-    private function prayerCountryIso(?Address $address, ?string $explicitCountryIso, bool $targetsChanged, ?string $pinnedCountryIso): string
+    private function prayerCountryIso(PrayerLocationData $location, ?string $explicitCountryIso, bool $targetsChanged, ?string $pinnedCountryIso): string
     {
-        $addressCountry = $this->prayerLocation->fromAddress($address)['countryCode'] ?? null;
+        $addressCountry = $location->countryCode;
         $addressCountry = is_string($addressCountry) && trim($addressCountry) !== '' ? $addressCountry : null;
 
         if ($explicitCountryIso !== null) {
