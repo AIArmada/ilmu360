@@ -3,14 +3,9 @@
 namespace App\Providers;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\Addressable;
 use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
 use AIArmada\Checkout\Models\CheckoutSession;
-use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Customers\Models\Customer;
@@ -77,12 +72,6 @@ use App\Host\Affiliates\EloquentAffiliateSnapshotPersistence;
 use App\Host\Pango\ShareCards\PangoShareCardRenderer;
 use App\Host\Typesense\TypesenseHealthProbe;
 use App\Models\User;
-use App\Platform\Addressing\Observers\AddressableObserver;
-use App\Platform\Addressing\Observers\AddressAreaObserver;
-use App\Platform\Addressing\Observers\AddressAreaRelationshipObserver;
-use App\Platform\Addressing\Observers\AddressCatalogObserver;
-use App\Platform\Addressing\Observers\AddressCountryObserver;
-use App\Platform\Addressing\Observers\AddressObserver;
 use App\Platform\Addressing\Policies\AddressAreaPolicy;
 use App\Platform\Addressing\Policies\AddressCountryPolicy;
 use App\Platform\Api\Admin\AdminValidateOnlyRemediationEnricher;
@@ -99,7 +88,6 @@ use App\Platform\Language\Api\LanguageOptions;
 use App\Platform\Language\DatabaseLanguageCatalog;
 use App\Platform\Language\EloquentLanguageOptions;
 use App\Platform\Language\Models\Language;
-use App\Platform\Language\Observers\LanguageObserver;
 use App\Platform\Location\Api\AddressCatalog;
 use App\Platform\Location\EloquentAddressCatalog;
 use App\Platform\Location\VisitorCountryResolver;
@@ -304,8 +292,6 @@ class AppServiceProvider extends ServiceProvider
             self::$filamentColorsRegistered = true;
         }
 
-        $this->registerModelObservers();
-
         // Event ownership is an application projection of the reusable
         // organization aggregate; the organizations package remains event-agnostic.
         Organization::resolveRelationUsing(
@@ -473,27 +459,6 @@ class AppServiceProvider extends ServiceProvider
             });
             self::$mediaUploadConfiguredFor = $componentManager;
         }
-    }
-
-    private function registerModelObservers(): void
-    {
-        $registrationKey = 'ilmu360.model_observers.registered';
-
-        if (app()->bound($registrationKey)) {
-            return;
-        }
-
-        Address::observe(AddressObserver::class);
-        AddressArea::observe(AddressAreaObserver::class);
-        AddressAreaRelationship::observe(AddressAreaRelationshipObserver::class);
-        Addressable::observe(AddressableObserver::class);
-        AddressCountry::observe(AddressCountryObserver::class);
-        City::observe(AddressCatalogObserver::class);
-        State::observe(AddressCatalogObserver::class);
-        Language::observe(LanguageObserver::class);
-        CommerceLanguage::observe(LanguageObserver::class);
-
-        app()->instance($registrationKey, true);
     }
 
     private function registerPublicSlugRegistry(): void
