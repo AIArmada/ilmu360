@@ -953,6 +953,7 @@ preserve behavior and avoid duplicate filtering or compatibility wrappers.
 - [x] **F5 — make the inventory evidence specific:** distinguish framework
   identity, SQL composition, and other retained seams; document concrete
   consumer, effect, alternatives, guard, and behavior/performance evidence.
-- [ ] Run architecture checks, affected Pest tests, PHPStan, Pint, Rector, API
-  parity and the full GitHub Quality workflow at the final SHA. Commit and push
-  coherent slices to `refactor`; never force-push.
+- [x] Run architecture checks, affected Pest tests, PHPStan, Pint, Rector, API
+  parity, and full GitHub Quality on code SHA `6273517d`; all passed. Commit
+  and push coherent slices to `refactor`; verify the documentation closeout
+  SHA with `workflow_dispatch`. Never force-push.
