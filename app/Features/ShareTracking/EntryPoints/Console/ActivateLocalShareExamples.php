@@ -298,7 +298,7 @@ final class ActivateLocalShareExamples extends Command
 
         $account = $accounts->findByEmail($email);
 
-        if ($account === null) {
+        if (! $account instanceof \App\Features\Identity\Api\AccountProfile) {
             $administration->create(['email' => $email, ...$attributes]);
 
             return;
