@@ -59,7 +59,6 @@ final readonly class ManageShareTrackingAccountLifecycleAction
         });
     }
 
-
     public function detach(string $accountId): void
     {
         $this->shareTracking->deleteUserTracking(User::query()->findOrFail($accountId));
@@ -91,13 +90,12 @@ final readonly class ManageShareTrackingAccountLifecycleAction
 
             $affiliateId = (string) $affiliate->getKey();
 
-            $this->restoreShareChildren(AffiliateLink::class, $this->snapshotRowsForAffiliate($record['links'] ?? [], $affiliateId), $affiliateId);
-            $this->restoreShareChildren(AffiliateAttribution::class, $this->snapshotRowsForAffiliate($record['attributions'] ?? [], $affiliateId), $affiliateId);
-            $this->restoreShareChildren(AffiliateTouchpoint::class, $this->snapshotRowsForAffiliate($record['touchpoints'] ?? [], $affiliateId), $affiliateId);
-            $this->restoreShareChildren(AffiliateConversion::class, $this->snapshotRowsForAffiliate($record['conversions'] ?? [], $affiliateId), $affiliateId);
+            $this->restoreShareChildren(AffiliateLink::class, $this->snapshotRowsForAffiliate($record['links'] ?? [], $affiliateId));
+            $this->restoreShareChildren(AffiliateAttribution::class, $this->snapshotRowsForAffiliate($record['attributions'] ?? [], $affiliateId));
+            $this->restoreShareChildren(AffiliateTouchpoint::class, $this->snapshotRowsForAffiliate($record['touchpoints'] ?? [], $affiliateId));
+            $this->restoreShareChildren(AffiliateConversion::class, $this->snapshotRowsForAffiliate($record['conversions'] ?? [], $affiliateId));
         });
     }
-
 
     /**
      * @param  array<string, mixed>  $affiliateAttributes
@@ -174,7 +172,7 @@ final readonly class ManageShareTrackingAccountLifecycleAction
      * @param  class-string<AffiliateLink|AffiliateAttribution|AffiliateTouchpoint|AffiliateConversion>  $modelClass
      * @param  array<int, mixed>  $records
      */
-    private function restoreShareChildren(string $modelClass, array $records, string $affiliateId): void
+    private function restoreShareChildren(string $modelClass, array $records): void
     {
         $primaryKey = (new $modelClass)->getKeyName();
 

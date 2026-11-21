@@ -216,6 +216,4 @@ trait HasUserRestoration
 
         return is_string($key) && $key !== '' ? $key : 'team_id';
     }
-
-
 }

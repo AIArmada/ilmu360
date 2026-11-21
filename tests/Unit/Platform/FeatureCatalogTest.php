@@ -8,7 +8,7 @@ use Tests\Fixtures\Architecture\FixtureProject;
 /**
  * Explicitly configure the fixture and scan its manifests uncached.
  *
- * @param array<string, array<string, string>> $rootStoreWriters
+ * @param  array<string, array<string, string>>  $rootStoreWriters
  */
 function scanWithRootStoreWriters(FixtureProject $project, array $rootStoreWriters): array
 {
