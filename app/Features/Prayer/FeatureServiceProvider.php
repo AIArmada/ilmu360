@@ -21,7 +21,6 @@ class FeatureServiceProvider extends FeatureModule
     {
         $this->app->bind(PrayerLocationResolver::class, PrayerLocationResolverService::class);
         $this->app->bind(PrayerInstitutionCatalog::class, PrayerInstitutionCatalogService::class);
-        $this->mergeConfigFrom(__DIR__.'/Config/prayer.php', 'prayer');
 
         $this->app->bind(BuildPrayerPreviewAction::class, __NAMESPACE__.'\\Actions\\BuildPrayerPreviewAction');
 
