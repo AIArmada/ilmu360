@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
-use App\Features\Events\Actions\Projection\GuardFeaturedOccurrenceUpdateAction;
 use AIArmada\Events\Models\EventOccurrence;
-
+use App\Features\Events\Actions\Projection\GuardFeaturedOccurrenceUpdateAction;
 
 /** Framework observer adapter; the feature Action owns the behavior. */
 final readonly class EventOccurrenceFeaturedObserver

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References;
 
+use AIArmada\References\Models\ReferenceContributor;
 use App\Features\References\Api\ContributionProjection;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Features\References\Api\ReferenceCatalog;
@@ -22,7 +23,6 @@ use App\Features\References\EntryPoints\Filament\Ahli\Resources\References\Refer
 use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\EntryPoints\Filament\Stats\PendingReferencesStat;
-use AIArmada\References\Models\ReferenceContributor;
 use App\Features\References\Models\Reference;
 use App\Features\References\Observers\ReferenceContributorObserver;
 use App\Features\References\Observers\ReferenceObserver;

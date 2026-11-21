@@ -4,15 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Identity;
 
-use App\Features\Identity\Listeners\ClaimGuestSubmissionsOnVerified;
-use App\Features\Identity\Listeners\RecordVerifiedEmail;
-use App\Features\Identity\Listeners\SendRegisteredUserEmails;
-use App\Features\Identity\Observers\UserObserver;
-use App\Models\User;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Auth\Events\Verified;
-use Illuminate\Support\Facades\Event;
-
 use App\Features\Identity\Actions\RecordNewAccountAttributionAction;
 use App\Features\Identity\Api\AccountAccess;
 use App\Features\Identity\Api\AccountAdministration;
@@ -35,6 +26,10 @@ use App\Features\Identity\EntryPoints\ApiDocumentation\IdentityRequestExampleCon
 use App\Features\Identity\EntryPoints\Filament\Pages\DeletedUsers;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
 use App\Features\Identity\Integrations\Signup\SignupAttributionContextResolverAdapter;
+use App\Features\Identity\Listeners\ClaimGuestSubmissionsOnVerified;
+use App\Features\Identity\Listeners\RecordVerifiedEmail;
+use App\Features\Identity\Listeners\SendRegisteredUserEmails;
+use App\Features\Identity\Observers\UserObserver;
 use App\Features\Identity\Persistence\EloquentAccountAccess;
 use App\Features\Identity\Persistence\EloquentAccountDirectory;
 use App\Features\Identity\Persistence\EloquentAccountSettingsStore;
@@ -47,6 +42,7 @@ use App\Features\Identity\Services\SignupAttributionsService;
 use App\Features\Identity\Services\SignupAttributionWorkflowService;
 use App\Features\Identity\Services\SocialAccountsService;
 use App\Features\Identity\Support\Telemetry\IdentitySignalSchemaContributor;
+use App\Models\User;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
@@ -59,7 +55,10 @@ use App\Shared\Auth\AccountLifecycleContributor;
 use App\Shared\Auth\UserMorphType;
 use App\Shared\Contracts\AccountTimezoneUpdater;
 use App\Shared\Contracts\AccountTokenRevoker;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Facades\Event;
 
 class FeatureServiceProvider extends FeatureModule
 {

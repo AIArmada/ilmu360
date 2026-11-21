@@ -18,7 +18,7 @@ final readonly class InvalidateTitleCategoryCacheAction
         }
     }
 
-    public function deleted(TitleCategory $category): void
+    public function deleted(): void
     {
         $this->selectionCatalogCache->bustTitles();
     }

@@ -25,7 +25,7 @@ final readonly class InvalidateEventTermCatalogAction
         $this->selectionCatalogCache->bustEventCategories();
     }
 
-    public function deleted(EventTerm $term): void
+    public function deleted(): void
     {
         $this->publicListingsCache->bustMajlisListing();
         $this->selectionCatalogCache->bustEventCategories();

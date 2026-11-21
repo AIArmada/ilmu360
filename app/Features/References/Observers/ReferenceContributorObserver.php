@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\References\Observers;
 
-use App\Features\References\Actions\Projection\ReindexReferenceContributorEffectsAction;
 use AIArmada\References\Models\ReferenceContributor;
+use App\Features\References\Actions\Projection\ReindexReferenceContributorEffectsAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 /** Framework observer adapter; the feature Action owns the behavior. */

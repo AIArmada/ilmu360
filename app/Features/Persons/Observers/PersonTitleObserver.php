@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Observers;
 
-use App\Features\Persons\Actions\Projection\SyncPersonTitleEffectsAction;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
+use App\Features\Persons\Actions\Projection\SyncPersonTitleEffectsAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 /** Framework observer adapter; the feature Action owns the behavior. */

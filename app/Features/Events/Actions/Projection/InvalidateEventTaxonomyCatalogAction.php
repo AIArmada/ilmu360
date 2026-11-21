@@ -18,7 +18,7 @@ final readonly class InvalidateEventTaxonomyCatalogAction
         }
     }
 
-    public function deleted(EventTaxonomy $taxonomy): void
+    public function deleted(): void
     {
         $this->selectionCatalogCache->bustEventCategories();
     }

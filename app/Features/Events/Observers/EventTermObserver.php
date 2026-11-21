@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
-use App\Features\Events\Actions\Projection\InvalidateEventTermCatalogAction;
 use AIArmada\Events\Models\EventTerm;
+use App\Features\Events\Actions\Projection\InvalidateEventTermCatalogAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 /** Eloquent notification adapter; derived projections run in the owning Action. */

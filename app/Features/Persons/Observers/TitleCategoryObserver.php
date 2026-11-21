@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Observers;
 
-use App\Features\Persons\Actions\Projection\InvalidateTitleCategoryCacheAction;
 use AIArmada\Persons\Models\TitleCategory;
+use App\Features\Persons\Actions\Projection\InvalidateTitleCategoryCacheAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 /** Framework observer adapter; the feature Action owns the behavior. */
