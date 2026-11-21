@@ -16,6 +16,7 @@ use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventScheduleFact;
 use App\Features\Events\Api\EventScheduleFactSet;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Event;
@@ -33,6 +34,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
 {
     public function __construct(
         private PublicScheduleEventReads $scheduleEvents,
+        private EventScheduleReads $scheduleFacts,
         private EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
     ) {}
 
@@ -80,7 +82,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
 
             $factSet = $this->factsFromSearchPage($parentPage);
         } else {
-            $directFactSet = $this->scheduleEvents->publicScheduleFactSet($criteria->text, $eventFilters);
+            $directFactSet = $this->scheduleFacts->publicScheduleFactSet($criteria->text, $eventFilters);
 
             if ($criteria->text === null || $directFactSet->eventIds !== []) {
                 $factSet = $directFactSet;
@@ -123,10 +125,10 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         $referenceIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Reference) : [];
         $hasFollows = $personIds !== [] || $institutionIds !== [] || $referenceIds !== [];
 
-        $factSet = $this->scheduleEvents->homepageScheduleFacts($personIds, $institutionIds, $referenceIds);
+        $factSet = $this->scheduleFacts->homepageScheduleFacts($personIds, $institutionIds, $referenceIds);
 
         $followedEventIds = $hasFollows
-            ? collect($this->scheduleEvents->homepageFollowedEventIds($personIds, $institutionIds, $referenceIds))->flip()
+            ? collect($this->scheduleFacts->homepageFollowedEventIds($personIds, $institutionIds, $referenceIds))->flip()
             : collect();
 
         $filters = [
@@ -175,7 +177,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
     public function leavesForEventIds(array $eventIds): Collection
     {
         $eventIds = array_values(array_unique($eventIds));
-        $factSet = $this->scheduleEvents->scheduleFactsForEventIds($eventIds);
+        $factSet = $this->scheduleFacts->scheduleFactsForEventIds($eventIds);
         $leaves = collect($factSet->leaves)
             ->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($left, $right))
             ->values();
@@ -447,7 +449,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
             $page->items,
         );
 
-        return $this->scheduleEvents->scheduleFactsForEventIds($eventIds, $page->distances);
+        return $this->scheduleFacts->scheduleFactsForEventIds($eventIds, $page->distances);
     }
 
     /**

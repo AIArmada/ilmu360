@@ -12,6 +12,7 @@ use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventScheduleFact;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\Models\Event;
@@ -127,7 +128,7 @@ it('filters immutable schedule facts before hydrating the selected page leaves',
         'starts_at' => now()->addDays(2),
     ]);
 
-    $factSet = app(PublicScheduleEventReads::class)->publicScheduleFactSet(null, ['time_scope' => 'all']);
+    $factSet = app(EventScheduleReads::class)->publicScheduleFactSet(null, ['time_scope' => 'all']);
     $eventFacts = collect($factSet->leaves)
         ->where('eventId', (string) $event->getKey())
         ->values();
@@ -567,7 +568,7 @@ it('rejects rehydrated search ids whose events are no longer publicly visible', 
         'starts_at' => now()->addDays(3),
     ]);
 
-    $factSet = app(PublicScheduleEventReads::class)->scheduleFactsForEventIds([
+    $factSet = app(EventScheduleReads::class)->scheduleFactsForEventIds([
         (string) $private->getKey(),
         (string) $unpublished->getKey(),
         (string) $public->getKey(),
@@ -664,12 +665,12 @@ it('revalidates public state between fact selection and final hydration', functi
         'published_at' => now()->subDay(),
         'starts_at' => now()->addDays(2),
     ]);
-    $readers = app(PublicScheduleEventReads::class);
+    $readers = app(EventScheduleReads::class);
     $facts = $readers->publicScheduleFactSet('Hydration Race Programme', ['time_scope' => 'all']);
 
     expect($facts->eventIds)->toContain((string) $event->getKey());
 
     $event->updateQuietly(['visibility' => 'private']);
 
-    expect($readers->hydrateScheduleEvents($facts->eventIds))->toBeEmpty();
+    expect(app(PublicScheduleEventReads::class)->hydrateScheduleEvents($facts->eventIds))->toBeEmpty();
 });

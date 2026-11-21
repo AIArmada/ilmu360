@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
-use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -25,52 +24,6 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
  */
 interface PublicScheduleEventReads
 {
-    /**
-     * Public event candidates matching the owner-applied parent filters, with
-     * immutable eligible schedule facts for Discovery's leaf-level filters.
-     *
-     * @param  array<string, mixed>  $filters
-     */
-    public function publicScheduleFactSet(?string $query, array $filters): EventScheduleFactSet;
-
-    /**
-     * Homepage candidate events: featured occurrences plus events followed by
-     * the supplied person, institution or reference ids.
-     *
-     * @param  list<string>  $personIds
-     * @param  list<string>  $institutionIds
-     * @param  list<string>  $referenceIds
-     */
-    public function homepageScheduleFacts(
-        array $personIds,
-        array $institutionIds,
-        array $referenceIds,
-    ): EventScheduleFactSet;
-
-    /**
-     * Schedule facts for page-owned event ids. Discovery uses only ids from
-     * its input models; Events owns the query and eligibility policy.
-     *
-     * @param  list<string>  $eventIds
-     * @param  array<string, float>  $distanceByEventId
-     */
-    public function scheduleFactsForEventIds(array $eventIds, array $distanceByEventId = []): EventScheduleFactSet;
-
-    /**
-     * Event ids matched by the homepage follow predicates, used to order the
-     * non-featured homepage selection.
-     *
-     * @param  list<string>  $personIds
-     * @param  list<string>  $institutionIds
-     * @param  list<string>  $referenceIds
-     * @return list<string>
-     */
-    public function homepageFollowedEventIds(
-        array $personIds,
-        array $institutionIds,
-        array $referenceIds,
-    ): array;
-
     /**
      * Rehydrate search-page ids into schedule models, preserving the search
      * result order and dropping ids that no longer resolve.
