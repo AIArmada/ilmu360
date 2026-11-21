@@ -140,4 +140,6 @@ Deleted 11 `config/*.pre-majlisilmu-merge-20260511` backups plus
   count/id/details now share public occurrence eligibility, final public
   schedule hydration revalidates parent state, and stale Typesense hits are
   covered by a fake-engine test. See the follow-up section in
-  `tasks/orm-boundary-refactor-progress.md`.
+  `tasks/orm-boundary-refactor-progress.md`. Code + ledger SHA `664b2ce1`
+  passed all 26 Quality jobs in
+  [run 44897003682](https://github.com/AIArmada/ilmu360/actions/runs/44897003682).

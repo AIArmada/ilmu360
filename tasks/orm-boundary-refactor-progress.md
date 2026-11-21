@@ -449,7 +449,7 @@ Audit: `ilmu360-orm-audit-2026-11-21-1834.md`, reviewed HEAD
 | `EventSearchTest` | 127 passed, 457 assertions |
 | `EventShowPageTest` / `DashboardPagesTest` / `ReferenceFamilyTest` / `ArchitectureBoundaryTest` | 161 passed, 849 assertions |
 | `FrontendApiParityTest` | 108 passed, 772 assertions |
-| GitHub Quality on the final closeout SHA | pending |
+| GitHub Quality on `664b2ce1` (code + ledgers) | passed; 26/26 jobs; [run 44897003682](https://github.com/AIArmada/ilmu360/actions/runs/44897003682) |
 
 Local suites were run with `APP_ENV=testing DB_CONNECTION=sqlite
 DB_DATABASE=:memory: CACHE_STORE=array APP_URL=https://ilmu360.test`; the shell
