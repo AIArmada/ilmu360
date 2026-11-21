@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Features\Persons\Actions;
+namespace App\Features\Persons\EntryPoints\Filament\Concerns;
 
 use App\Features\Persons\Api\PersonWorkflow;
 
