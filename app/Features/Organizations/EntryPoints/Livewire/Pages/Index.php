@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 
 use AIArmada\Organizations\Models\Organization;
-use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionDirectoryRecord;
+use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Features\Persons\Api\PersonLookup;
 use App\Models\User;
