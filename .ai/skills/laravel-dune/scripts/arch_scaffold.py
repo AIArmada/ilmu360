@@ -51,7 +51,7 @@ def write_files(root: Path, files: dict, apply: bool) -> None:
     print(f"{len(pending)} new file(s); existing identical files retained.")
 
 
-def build_feature_files(name: str, with_example: bool, manifest_schema: int) -> dict:
+def build_feature_files(name: str, with_example: bool) -> dict:
     if not re.fullmatch(r"[A-Z][A-Za-z0-9]*", name):
         raise ValueError("Feature name must be single-word PascalCase (e.g. Orders, Billing).")
     ns = f"App\\Features\\{name}"
@@ -62,7 +62,7 @@ def build_feature_files(name: str, with_example: bool, manifest_schema: int) -> 
         files[f"app/Features/{name}/{rel}"] = text.encode("utf-8")
 
     manifest = {
-        "schema": manifest_schema,
+        "schema": 1,
         "name": name,
         "owns": {},
         "extensions": {},
@@ -200,12 +200,7 @@ def main() -> int:
         parser.error(f"{args.mode} requires --name")
 
     if args.mode == "feature":
-        architecture_path = root / "tools" / "architecture.json"
-        architecture = json.loads(architecture_path.read_text(encoding="utf-8")) if architecture_path.is_file() else {}
-        schema = architecture.get("schema", 1)
-        if schema not in (1, 2):
-            raise ValueError(f"Unsupported architecture manifest schema: {schema}")
-        files = build_feature_files(args.name, with_example=not args.no_example, manifest_schema=schema)
+        files = build_feature_files(args.name, with_example=not args.no_example)
         write_files(root, files, args.apply)
         print("Feature auto-discovers via PlatformServiceProvider (in 'auto' mode). Declare owned table:*/store:* in feature.json.")
         return 0
