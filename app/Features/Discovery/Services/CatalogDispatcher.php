@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Api\Frontend;
+namespace App\Features\Discovery\Services;
 
 use App\Features\Contributions\Api\SubmissionCatalog;
 use App\Features\Events\Api\AdvancedBuilderContext;
@@ -128,7 +128,6 @@ final readonly class CatalogDispatcher
         return $this->prayerInstitutions->verifiedInstitutions($search);
     }
 
-    /** @return array<string, mixed> */
     /** @return array<string, mixed> */
     public function advancedBuilderContext(User $user, ?string $requestedInstitutionId = null): array
     {

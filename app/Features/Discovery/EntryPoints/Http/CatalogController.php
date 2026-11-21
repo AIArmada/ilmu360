@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Platform\Api\Frontend\EntryPoints\Http;
+namespace App\Features\Discovery\EntryPoints\Http;
 
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Platform\Api\Frontend\CatalogDispatcher;
+use App\Features\Discovery\Services\CatalogDispatcher;
 use App\Platform\Http\FrontendController;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

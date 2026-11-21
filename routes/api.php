@@ -32,7 +32,6 @@ use App\Features\ShareTracking\EntryPoints\Http\ShareController;
 use App\Platform\Api\Admin\EntryPoints\Http\CatalogController as AdminCatalogController;
 use App\Platform\Api\Admin\EntryPoints\Http\ManifestController as AdminManifestController;
 use App\Platform\Api\Admin\EntryPoints\Http\ResourceController as AdminResourceController;
-use App\Platform\Api\Frontend\EntryPoints\Http\CatalogController;
 use App\Platform\Api\Frontend\EntryPoints\Http\ManifestController;
 use App\Platform\ApiDocumentation\EntryPoints\Http\DocumentationController;
 use App\Platform\Http\Middleware\EnsureAdminApiAccess;
@@ -54,26 +53,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/submit-event', [ManifestController::class, 'submitEvent'])->name('submit-event');
             Route::get('/contributions/institutions', [ManifestController::class, 'submitInstitution'])->name('contributions.institutions');
             Route::get('/contributions/persons', [ManifestController::class, 'submitPerson'])->name('contributions.persons');
-        });
-
-        Route::prefix('catalogs')->name('catalogs.')->group(function () {
-            Route::get('/countries', [CatalogController::class, 'countries'])->name('countries');
-            Route::get('/states', [CatalogController::class, 'states'])->name('states');
-            Route::get('/cities', [CatalogController::class, 'cities'])->name('cities');
-            Route::get('/administrative-districts', [CatalogController::class, 'administrativeDistricts'])->name('administrative-districts');
-            Route::get('/administrative-subdivisions', [CatalogController::class, 'administrativeSubdivisions'])->name('administrative-subdivisions');
-            Route::get('/languages', [CatalogController::class, 'languages'])->name('languages');
-            Route::get('/taxonomy-terms/{type}', [CatalogController::class, 'taxonomyTerms'])->name('taxonomy-terms');
-            Route::get('/references', [CatalogController::class, 'references'])->name('references');
-            Route::get('/submit-institutions', [CatalogController::class, 'submitInstitutions'])->name('submit-institutions');
-            Route::get('/submit-persons', [CatalogController::class, 'submitPersons'])->name('submit-persons');
-            Route::get('/reference-authors', [CatalogController::class, 'referenceAuthors'])->name('reference-authors');
-            Route::get('/venues', [CatalogController::class, 'venues'])->name('venues');
-            Route::get('/spaces', [CatalogController::class, 'spaces'])->name('spaces');
-            Route::get('/membership-application-subjects/{subjectType}', [CatalogController::class, 'membershipApplicationSubjects'])
-                ->whereIn('subjectType', MembershipApplicationSubjectType::routeSegments())
-                ->name('membership-application-subjects');
-            Route::get('/prayer-institutions', [CatalogController::class, 'prayerInstitutions'])->name('prayer-institutions');
         });
 
         Route::get('/search', [SearchController::class, 'search'])->name('search.index');
@@ -165,10 +144,6 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             Route::get('/contributions/{subjectType}/{subject}/suggest', [ContributionController::class, 'suggestContext'])
                 ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
                 ->name('contributions.suggest');
-        });
-
-        Route::prefix('catalogs')->name('catalogs.')->group(function () {
-            Route::get('/institution-roles', [CatalogController::class, 'institutionRoles'])->name('institution-roles');
         });
 
         Route::get('/account-settings/mcp-tokens', [AccountSettingsMcpTokenController::class, 'index'])->name('account-settings.mcp-tokens.index');
