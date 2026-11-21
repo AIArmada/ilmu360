@@ -9,6 +9,9 @@ use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSession;
+use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
@@ -17,12 +20,15 @@ use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Api\Orm\EventCategoryPayloads;
 use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\Orm\PublicScheduleEventReads;
+use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\Series;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
+use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
@@ -36,14 +42,17 @@ use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
-final readonly class PostgresEventDiscovery implements EventDiscoveryReader, EventOrmPort
+final readonly class PostgresEventDiscovery implements EventDiscoveryReader, EventOrmPort, PublicScheduleEventReads
 {
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
@@ -127,9 +136,301 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
      *
      * @param  array<string, mixed>  $filters
      */
-    public function publicEventQuery(?string $query, array $filters): EventBuilder
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function buildPublicEventQuery(?string $query, array $filters): EventBuilder
     {
         return $this->buildDatabaseQuery($this->normalizeSearchQuery($query), $filters);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @param  array<int|string, mixed>  $relations
+     * @return EloquentCollection<int, Event>
+     */
+    public function publicScheduleEvents(?string $query, array $filters, array $relations): EloquentCollection
+    {
+        return $this->buildPublicEventQuery($query, $filters)
+            ->with($relations)
+            ->get();
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     * @param  array<int|string, mixed>  $relations
+     * @return EloquentCollection<int, Event>
+     */
+    public function homepageScheduleEvents(
+        array $personIds,
+        array $institutionIds,
+        array $referenceIds,
+        array $relations,
+    ): EloquentCollection {
+        return $this->homepageEventQuery($personIds, $institutionIds, $referenceIds)
+            ->with($relations)
+            ->get();
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     * @return list<string>
+     */
+    public function homepageFollowedEventIds(
+        array $personIds,
+        array $institutionIds,
+        array $referenceIds,
+    ): array {
+        return $this->homepageFollowedEventQuery($personIds, $institutionIds, $referenceIds)
+            ->pluck('events.id')
+            ->map(static fn (mixed $eventId): string => (string) $eventId)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    public function publicScheduleCardRelations(): array
+    {
+        return collect($this->scheduleRelations())
+            // Keys are strings for constrained relations, but bare nested paths
+            // arrive with numeric keys — match those by value, or Eloquent
+            // resurrects the dropped parents unconstrained to satisfy them.
+            ->reject(function (mixed $constraints, int|string $key): bool {
+                $path = is_string($key) ? $key : (is_string($constraints) ? $constraints : null);
+
+                return is_string($path)
+                    && ($path === 'primaryOccurrence'
+                        || str_starts_with($path, 'primaryOccurrence.')
+                        || in_array($path, [
+                            'goingWindowOccurrences',
+                            'primaryLocation.venue',
+                            'occurrences.locations.venue',
+                            'occurrences.sessions.locations.venue',
+                        ], true));
+            })
+            ->all();
+    }
+
+    /**
+     * @param  EloquentCollection<int, Event>  $events
+     */
+    public function loadScheduleGraph(EloquentCollection $events, bool $withOccurrenceReferences = false): void
+    {
+        $events->load(
+            $withOccurrenceReferences
+                ? [...$this->publicScheduleCardRelations(), 'occurrences.references']
+                : $this->publicScheduleCardRelations(),
+        );
+    }
+
+    /**
+     * @param  list<string>  $eventIds
+     * @return EloquentCollection<int, Event>
+     */
+    public function hydrateScheduleEvents(array $eventIds): EloquentCollection
+    {
+        if ($eventIds === []) {
+            return new EloquentCollection;
+        }
+
+        /** @var EloquentCollection<string, Event> $events */
+        $events = $this->hydrateEventsForIds($eventIds, $this->publicScheduleCardRelations());
+
+        return new EloquentCollection(
+            collect($eventIds)
+                ->map(static fn (string $eventId): ?Event => $events->get($eventId))
+                ->filter()
+                ->values()
+                ->all(),
+        );
+    }
+
+    public function findPublicOccurrence(Event $event, string $slug): ?EventOccurrence
+    {
+        // Load the public schedule set up front so detail mounts can reuse it
+        // via loadMissing() instead of querying occurrences twice.
+        $event->loadMissing(['occurrences' => function (Relation $query): void {
+            $this->constrainPublicSchedule($query);
+            $query
+                ->orderBy('starts_at')
+                ->orderBy('created_at')
+                ->orderBy('id');
+        }]);
+
+        /** @var EventOccurrence|null $occurrence */
+        $occurrence = $event->occurrences->first(
+            fn (EventOccurrence $candidate): bool => PublicScheduleSlug::occurrence(
+                slug: (string) $candidate->slug,
+                title: $candidate->title,
+                id: (string) $candidate->getKey(),
+            ) === $slug,
+        );
+
+        return $occurrence;
+    }
+
+    public function findPublicSession(EventOccurrence $occurrence, string $slug): ?EventSession
+    {
+        $occurrence->loadMissing(['sessions' => function (Relation $query): void {
+            $this->constrainPublicSchedule($query);
+            $query
+                ->orderBy('sort_order')
+                ->orderBy('starts_at')
+                ->orderBy('created_at')
+                ->orderBy('id');
+        }]);
+
+        /** @var EventSession|null $session */
+        $session = $occurrence->sessions->first(
+            fn (EventSession $candidate): bool => PublicScheduleSlug::session(
+                slug: (string) $candidate->slug,
+                title: $candidate->title,
+                id: (string) $candidate->getKey(),
+            ) === $slug,
+        );
+
+        return $session;
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     */
+    private function homepageEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
+    {
+        $occurrenceTable = (new EventOccurrence)->getTable();
+
+        /** @var EventBuilder $query */
+        $query = $this->buildPublicEventQuery(null, ['time_scope' => 'all']);
+
+        return $query
+            ->where('events.status', 'approved')
+            ->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds, $occurrenceTable): void {
+                $query->whereHas(
+                    'occurrences',
+                    fn (Builder $occurrenceQuery): Builder => $occurrenceQuery
+                        ->where("{$occurrenceTable}.is_featured", true)
+                        ->whereIn("{$occurrenceTable}.status", Event::PUBLIC_SCHEDULE_STATUSES)
+                        ->whereIn("{$occurrenceTable}.visibility", Event::PUBLIC_SCHEDULE_VISIBILITIES),
+                );
+
+                $this->applyHomepageFollowConditions($query, $personIds, $institutionIds, $referenceIds);
+            });
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     */
+    private function homepageFollowedEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
+    {
+        /** @var EventBuilder $baseQuery */
+        $baseQuery = $this->buildPublicEventQuery(null, ['time_scope' => 'all']);
+        $query = $baseQuery->whereIn('events.status', Event::PUBLIC_STATUSES);
+
+        $query->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds): void {
+            $this->applyHomepageFollowConditions($query, $personIds, $institutionIds, $referenceIds);
+        });
+
+        return $query;
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     */
+    private function applyHomepageFollowConditions(Builder $query, array $personIds, array $institutionIds, array $referenceIds): void
+    {
+        if ($personIds !== []) {
+            $query->orWhereHas('persons', fn (Builder $query): Builder => $query->whereIn('persons.id', $personIds));
+        }
+
+        if ($institutionIds !== []) {
+            $query->orWhereIn('events.institution_id', $institutionIds);
+        }
+
+        if ($referenceIds !== []) {
+            $query->orWhereHas('references', function (Builder $query) use ($referenceIds): void {
+                $this->referenceQueries->applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
+            });
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function scheduleRelations(): array
+    {
+        $publicScheduleScope = $this->constrainPublicSchedule(...);
+
+        return [
+            ...$this->relationProvider->relations(),
+            'primaryLocation.venue',
+            'occurrences' => function (Relation $query) use ($publicScheduleScope): void {
+                $publicScheduleScope($query);
+                $query
+                    ->orderBy('starts_at')
+                    ->orderBy('created_at')
+                    ->orderBy('id');
+            },
+            'occurrences.media',
+            'occurrences.timeExpressions',
+            'occurrences.locations' => static function (Relation $query): void {
+                $query->whereNull('event_session_id')->where('status', 'active')->where('visibility', 'public');
+            },
+            'occurrences.locations.venue',
+            'occurrences.locations.venueSpace',
+            'occurrences.sessions' => function (Relation $query) use ($publicScheduleScope): void {
+                $publicScheduleScope($query);
+                $query
+                    ->orderBy('sort_order')
+                    ->orderBy('starts_at')
+                    ->orderBy('created_at')
+                    ->orderBy('id');
+            },
+            'occurrences.sessions.media',
+            'occurrences.sessions.timeExpressions',
+            'occurrences.sessions.locations.venue',
+            'occurrences.sessions.locations.venueSpace',
+            'occurrences.sessions.involvements' => fn (Relation $query) => $query
+                ->where('status', 'active')
+                ->where('visibility', 'public'),
+            'occurrences.sessions.involvements.involveable' => function (MorphTo $relation): void {
+                // Cards render formatted_name per involveable; preload the full
+                // title graph so the accessor never falls back to per-person queries.
+                $relation->morphWith([
+                    Person::class => [
+                        'titleAssignments' => fn (Relation $query) => $query
+                            ->where('status', AssignmentStatus::Active)
+                            ->with('title.category'),
+                    ],
+                ]);
+            },
+        ];
+    }
+
+    /**
+     * @template TRelatedModel of \Illuminate\Database\Eloquent\Model
+     * @template TDeclaringModel of \Illuminate\Database\Eloquent\Model
+     * @template TResult
+     *
+     * @param  Relation<TRelatedModel, TDeclaringModel, TResult>  $query
+     */
+    private function constrainPublicSchedule(Relation $query): void
+    {
+        $query
+            ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+            ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
     }
 
     /**
@@ -1727,7 +2028,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryReader, Eve
                     ->whereHas('references', fn (Builder $references): Builder => $references
                         ->whereIn('references.id', $referenceIds))
                     ->orWhereHas('occurrences', function (Builder $occurrences) use ($referenceIds): void {
-                        $occurrence = new \AIArmada\Events\Models\EventOccurrence;
+                        $occurrence = new EventOccurrence;
                         $occurrences
                             ->whereIn($occurrence->qualifyColumn('status'), Event::PUBLIC_SCHEDULE_STATUSES)
                             ->whereIn($occurrence->qualifyColumn('visibility'), Event::PUBLIC_SCHEDULE_VISIBILITIES)

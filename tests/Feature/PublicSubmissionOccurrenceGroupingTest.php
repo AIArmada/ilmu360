@@ -12,7 +12,6 @@ use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventSubmissionLog;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
@@ -235,13 +234,13 @@ it('assigns unique occurrence slugs when identical contributions share a parent 
 
     $firstSlug = (string) $first['occurrence']->slug;
     $secondSlug = (string) $second['occurrence']->slug;
-    $discovery = app(PublicScheduleDiscoveryService::class);
+    $discovery = app(App\Features\Events\Api\Orm\PublicScheduleEventReads::class);
 
     expect($second['event']->getKey())->toBe($first['event']->getKey())
         ->and($second['occurrence']->getKey())->not->toBe($first['occurrence']->getKey())
         ->and($firstSlug)->not->toBe($secondSlug)
-        ->and($discovery->findOccurrence($first['event'], $firstSlug)?->getKey())->toBe($first['occurrence']->getKey())
-        ->and($discovery->findOccurrence($second['event'], $secondSlug)?->getKey())->toBe($second['occurrence']->getKey());
+        ->and($discovery->findPublicOccurrence($first['event'], $firstSlug)?->getKey())->toBe($first['occurrence']->getKey())
+        ->and($discovery->findPublicOccurrence($second['event'], $secondSlug)?->getKey())->toBe($second['occurrence']->getKey());
 });
 
 it('uses the nearest eligible future occurrence as the parent date without per-event lookups', function (): void {

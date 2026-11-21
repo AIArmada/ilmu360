@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Events\Resolvers\DefaultEventSearchRelationProvider;
-use App\Features\Discovery\Queries\EventCardRelationshipProvider;
+use App\Features\Events\Queries\EventCardRelationshipProvider;
 
 it('composes package relations with application-owned event card relations', function (): void {
     $relations = new EventCardRelationshipProvider(new DefaultEventSearchRelationProvider)->relations();

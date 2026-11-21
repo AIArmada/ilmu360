@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use AIArmada\Events\Models\EventRegistrationQuestion;
-use App\Features\Discovery\Queries\EventCardRelationshipProvider;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Queries\EventCardRelationshipProvider;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 

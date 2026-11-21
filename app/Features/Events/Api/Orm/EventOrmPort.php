@@ -17,16 +17,11 @@ use App\Features\Events\Api\EventScheduleReads;
  *
  * Consumers: Registration dashboard/checkout, Identity user dashboard,
  * Organizations workspace, Institution dashboard, Person dashboard,
- * References pages, ShareTracking, Discovery public schedule and the
- * Institutions/References lookup queries.
+ * References pages, ShareTracking and the Institutions/References lookup
+ * queries. Discovery schedule reads use {@see PublicScheduleEventReads}.
  */
 interface EventOrmPort extends EventScheduleReads
 {
-    /**
-     * @param  array<string, mixed>  $filters
-     */
-    public function publicEventQuery(?string $query, array $filters): mixed;
-
     /**
      * Correlated upcoming-occurrence count subquery for the institutions
      * directory listing. The caller applies it with selectSub().

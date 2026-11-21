@@ -7,6 +7,7 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
@@ -53,7 +54,7 @@ class Occurrence extends Show
                 ->orderBy('id');
         }]);
 
-        $occurrence = $discovery->findOccurrence($event, $occurrenceSlug);
+        $occurrence = app(PublicScheduleEventReads::class)->findPublicOccurrence($event, $occurrenceSlug);
 
         if (! $occurrence instanceof EventOccurrence || ! PublicSchedulePolicy::isPublicOccurrence($occurrence)) {
             abort(404);

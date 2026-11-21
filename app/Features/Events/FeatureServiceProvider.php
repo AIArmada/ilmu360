@@ -72,6 +72,7 @@ use App\Features\Events\Api\Orm\EventOccurrenceDeletionPreflight;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\EventSubmissions;
 use App\Features\Events\Api\Orm\Filament\EventContributionOptionsCountry;
+use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\Orm\SeriesAuthoring;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
 use App\Features\Events\Api\ProductSignalsInsights;
@@ -243,6 +244,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventDiscoveryReader::class, PostgresEventDiscovery::class);
         $this->app->bind(EventScheduleReads::class, PostgresEventDiscovery::class);
         $this->app->bind(EventOrmPort::class, PostgresEventDiscovery::class);
+        $this->app->bind(PublicScheduleEventReads::class, PostgresEventDiscovery::class);
 
         $this->app->bind(SubmissionTimingContract::class, SubmissionTimingPolicy::class);
 

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Api\Orm;
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
 use App\Models\User;
 
 /**
@@ -53,10 +51,6 @@ interface PublicScheduleOrmPort
      * @param  iterable<int, object>  $sessions
      */
     public function leafFor(object $event, object $occurrence, iterable $sessions = []): PublicScheduleModelLeaf;
-
-    public function findOccurrence(object $event, string $slug): ?EventOccurrence;
-
-    public function findSession(EventOccurrence $occurrence, string $slug): ?EventSession;
 
     public function hydrateOccurrencePageVenues(object $event): void;
 }

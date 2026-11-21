@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Services;
 
-use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
@@ -16,25 +14,17 @@ use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Discovery\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\PublicScheduleEligibility;
-use App\Features\Events\Api\PublicScheduleSlug;
-use App\Features\Events\Models\Builders\EventBuilder;
+use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Event;
-use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
-use App\Features\References\Api\Orm\ReferenceOrmPort;
 use App\Models\User;
 use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -42,9 +32,7 @@ use InvalidArgumentException;
 final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrmPort
 {
     public function __construct(
-        private EventOrmPort $eventDiscovery,
-        private EventSearchRelationProvider $relationProvider,
-        private ReferenceOrmPort $referenceQueries,
+        private PublicScheduleEventReads $scheduleEvents,
         private EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
     ) {}
 
@@ -92,16 +80,13 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
 
             $events = $this->eventsFromSearchPage($parentPage);
         } else {
+            $relations = $this->scheduleEvents->publicScheduleCardRelations();
+
             if ($criteria->text === null) {
                 /** @var EloquentCollection<int, Event> $events */
-                $events = $this->eventDiscovery
-                    ->publicEventQuery(null, $eventFilters)
-                    ->with($this->searchRelations())
-                    ->get();
+                $events = $this->scheduleEvents->publicScheduleEvents(null, $eventFilters, $relations);
             } else {
-                /** @var EventBuilder $query */
-                $query = $this->eventDiscovery->publicEventQuery($criteria->text, $eventFilters);
-                $directEvents = $query->with($this->searchRelations())->get();
+                $directEvents = $this->scheduleEvents->publicScheduleEvents($criteria->text, $eventFilters, $relations);
 
                 if ($directEvents->isNotEmpty()) {
                     /** @var EloquentCollection<int, Event> $events */
@@ -149,14 +134,11 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         $referenceIds = $accountId !== null ? $engagement->followedSubjectIds($accountId, EngagementSubjectType::Reference) : [];
         $hasFollows = $personIds !== [] || $institutionIds !== [] || $referenceIds !== [];
 
-        $events = $this->homepageEventQuery($personIds, $institutionIds, $referenceIds)
-            ->with($this->searchRelations())
-            ->get();
+        $relations = $this->scheduleEvents->publicScheduleCardRelations();
+        $events = $this->scheduleEvents->homepageScheduleEvents($personIds, $institutionIds, $referenceIds, $relations);
 
         $followedEventIds = $hasFollows
-            ? $this->homepageFollowedEventQuery($personIds, $institutionIds, $referenceIds)
-                ->pluck('events.id')
-                ->flip()
+            ? collect($this->scheduleEvents->homepageFollowedEventIds($personIds, $institutionIds, $referenceIds))->flip()
             : collect();
 
         $this->hydrateApplicationVenues($events);
@@ -182,74 +164,6 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
                 ->shuffle()
                 ->take(9 - $featured->count()),
         )->values();
-    }
-
-    /**
-     * @param  list<string>  $personIds
-     * @param  list<string>  $institutionIds
-     * @param  list<string>  $referenceIds
-     */
-    private function homepageEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
-    {
-        $occurrenceTable = (new EventOccurrence)->getTable();
-
-        /** @var EventBuilder $query */
-        $query = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all']);
-
-        return $query
-            ->where('events.status', 'approved')
-            ->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds, $occurrenceTable): void {
-                $query->whereHas(
-                    'occurrences',
-                    fn (Builder $occurrenceQuery): Builder => $occurrenceQuery
-                        ->where("{$occurrenceTable}.is_featured", true)
-                        ->whereIn("{$occurrenceTable}.status", Event::PUBLIC_SCHEDULE_STATUSES)
-                        ->whereIn("{$occurrenceTable}.visibility", Event::PUBLIC_SCHEDULE_VISIBILITIES),
-                );
-
-                $this->applyHomepageFollowConditions($query, $personIds, $institutionIds, $referenceIds);
-            });
-    }
-
-    /**
-     * @param  list<string>  $personIds
-     * @param  list<string>  $institutionIds
-     * @param  list<string>  $referenceIds
-     */
-    private function homepageFollowedEventQuery(array $personIds, array $institutionIds, array $referenceIds): EventBuilder
-    {
-        /** @var EventBuilder $baseQuery */
-        $baseQuery = $this->eventDiscovery->publicEventQuery(null, ['time_scope' => 'all']);
-        $query = $baseQuery->whereIn('events.status', Event::PUBLIC_STATUSES);
-
-        $query->where(function (Builder $query) use ($personIds, $institutionIds, $referenceIds): void {
-            $this->applyHomepageFollowConditions($query, $personIds, $institutionIds, $referenceIds);
-        });
-
-        return $query;
-    }
-
-    /**
-     * @param  Builder<Event>  $query
-     * @param  list<string>  $personIds
-     * @param  list<string>  $institutionIds
-     * @param  list<string>  $referenceIds
-     */
-    private function applyHomepageFollowConditions(Builder $query, array $personIds, array $institutionIds, array $referenceIds): void
-    {
-        if ($personIds !== []) {
-            $query->orWhereHas('persons', fn (Builder $query): Builder => $query->whereIn('persons.id', $personIds));
-        }
-
-        if ($institutionIds !== []) {
-            $query->orWhereIn('events.institution_id', $institutionIds);
-        }
-
-        if ($referenceIds !== []) {
-            $query->orWhereHas('references', function (Builder $query) use ($referenceIds): void {
-                $this->referenceQueries->applyPublicVisibility($query)->whereIn('references.id', $referenceIds);
-            });
-        }
     }
 
     public function leafFor(object $event, object $occurrence, iterable $sessions = []): PublicScheduleModelLeaf
@@ -280,64 +194,13 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
             ? $events
             : EloquentCollection::make($events);
 
-        $eventCollection->load([...$this->searchRelations(), 'occurrences.references']);
+        $this->scheduleEvents->loadScheduleGraph($eventCollection, withOccurrenceReferences: true);
         $this->hydrateApplicationVenues($eventCollection);
 
         return $this->flatten($eventCollection)
             ->filter(fn (PublicScheduleModelLeaf $leaf): bool => $leaf->startsAt() instanceof CarbonInterface)
             ->sort(fn (PublicScheduleModelLeaf $left, PublicScheduleModelLeaf $right): int => $this->compareByTime($left, $right))
             ->values();
-    }
-
-    public function findOccurrence(object $event, string $slug): ?EventOccurrence
-    {
-        if (! $event instanceof Event) {
-            return null;
-        }
-
-        // Load the public schedule set up front so detail mounts can reuse it
-        // via loadMissing() instead of querying occurrences twice.
-        $event->loadMissing(['occurrences' => function (Relation $query): void {
-            $this->constrainPublicSchedule($query);
-            $query
-                ->orderBy('starts_at')
-                ->orderBy('created_at')
-                ->orderBy('id');
-        }]);
-
-        /** @var EventOccurrence|null $occurrence */
-        $occurrence = $event->occurrences->first(
-            fn (EventOccurrence $candidate): bool => PublicScheduleSlug::occurrence(
-                slug: (string) $candidate->slug,
-                title: $candidate->title,
-                id: (string) $candidate->getKey(),
-            ) === $slug,
-        );
-
-        return $occurrence;
-    }
-
-    public function findSession(EventOccurrence $occurrence, string $slug): ?EventSession
-    {
-        $occurrence->loadMissing(['sessions' => function (Relation $query): void {
-            $this->constrainPublicSchedule($query);
-            $query
-                ->orderBy('sort_order')
-                ->orderBy('starts_at')
-                ->orderBy('created_at')
-                ->orderBy('id');
-        }]);
-
-        /** @var EventSession|null $session */
-        $session = $occurrence->sessions->first(
-            fn (EventSession $candidate): bool => PublicScheduleSlug::session(
-                slug: (string) $candidate->slug,
-                title: $candidate->title,
-                id: (string) $candidate->getKey(),
-            ) === $slug,
-        );
-
-        return $session;
     }
 
     /**
@@ -367,113 +230,8 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
     }
 
     /**
-     * @template TRelatedModel of Model
-     * @template TDeclaringModel of Model
-     * @template TResult
-     *
-     * @param  Relation<TRelatedModel, TDeclaringModel, TResult>  $query
-     */
-    private function constrainPublicSchedule(Relation $query): void
-    {
-        $query
-            ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
-            ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function scheduleRelations(): array
-    {
-        $publicScheduleScope = $this->constrainPublicSchedule(...);
-
-        return [
-            ...$this->relationProvider->relations(),
-            'primaryLocation.venue',
-            'occurrences' => function (Relation $query) use ($publicScheduleScope): void {
-                $publicScheduleScope($query);
-                $query
-                    ->orderBy('starts_at')
-                    ->orderBy('created_at')
-                    ->orderBy('id');
-            },
-            'occurrences.media',
-            'occurrences.timeExpressions',
-            'occurrences.locations' => static function (Relation $query): void {
-                $query->whereNull('event_session_id')->where('status', 'active')->where('visibility', 'public');
-            },
-            'occurrences.locations.venue',
-            'occurrences.locations.venueSpace',
-            'occurrences.sessions' => function (Relation $query) use ($publicScheduleScope): void {
-                $publicScheduleScope($query);
-                $query
-                    ->orderBy('sort_order')
-                    ->orderBy('starts_at')
-                    ->orderBy('created_at')
-                    ->orderBy('id');
-            },
-            'occurrences.sessions.media',
-            'occurrences.sessions.timeExpressions',
-            'occurrences.sessions.locations.venue',
-            'occurrences.sessions.locations.venueSpace',
-            'occurrences.sessions.involvements' => fn (Relation $query) => $query
-                ->where('status', 'active')
-                ->where('visibility', 'public'),
-            'occurrences.sessions.involvements.involveable' => function (MorphTo $relation): void {
-                // Cards render formatted_name per involveable; preload the full
-                // title graph so the accessor never falls back to per-person queries.
-                $relation->morphWith([
-                    Person::class => [
-                        'titleAssignments' => fn (Relation $query) => $query
-                            ->where('status', AssignmentStatus::Active)
-                            ->with('title.category'),
-                    ],
-                ]);
-            },
-        ];
-    }
-
-    /**
-     * Relations for the search path: the full schedule graph minus loads the
-     * listing provably never reads.
-     *
-     * - The `primaryOccurrence` subtree duplicates the full occurrence graph
-     *   (same tables, subset of rows); cards read leaves, and the change-badge
-     *   accessor no longer touches the relation either.
-     * - The nested location `venue` loads are unconditionally overwritten by
-     *   hydrateApplicationVenues() with application Venue models.
-     *
-     * Detail pages keep scheduleRelations() untouched via publicRelations().
-     *
-     * @return array<int|string, mixed>
-     */
-    private function searchRelations(): array
-    {
-        return collect($this->scheduleRelations())
-            // Keys are strings for constrained relations, but bare nested paths
-            // arrive with numeric keys — match those by value, or Eloquent
-            // resurrects the dropped parents unconstrained to satisfy them.
-            ->reject(function (mixed $constraints, int|string $key): bool {
-                $path = is_string($key) ? $key : (is_string($constraints) ? $constraints : null);
-
-                return is_string($path)
-                    && ($path === 'primaryOccurrence'
-                        || str_starts_with($path, 'primaryOccurrence.')
-                        || in_array($path, [
-                            'goingWindowOccurrences',
-                            'primaryLocation.venue',
-                            'occurrences.locations.venue',
-                            'occurrences.sessions.locations.venue',
-                        ], true));
-            })
-            ->all();
-    }
-
-    /**
      * Overwrite package location venues with application Venue models for
-     * one occurrence/session detail page. Complements
-     * occurrencePageRelations(), which omits the nested package venue loads
-     * because the base package Venue is not morph-mapped.
+     * one occurrence/session detail page.
      */
     public function hydrateOccurrencePageVenues(object $event): void
     {
@@ -751,17 +509,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
             return new EloquentCollection;
         }
 
-        /** @var EloquentCollection<string, Event> $events */
-        $events = app(EventOrmPort::class)
-            ->hydrateEventsForIds($eventIds, [...$this->relationProvider->relations(), ...$this->searchRelations()]);
-
-        return new EloquentCollection(
-            collect($eventIds)
-                ->map(static fn (string $eventId): ?Event => $events->get($eventId))
-                ->filter()
-                ->values()
-                ->all(),
-        );
+        return $this->scheduleEvents->hydrateScheduleEvents($eventIds);
     }
 
     /**
