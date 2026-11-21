@@ -5,33 +5,21 @@ declare(strict_types=1);
 namespace App\Features\Events\Observers;
 
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Actions\Discovery\SyncEventSearchIndexAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-final class EventTimeExpressionObserver implements ShouldHandleEventsAfterCommit
+final readonly class EventTimeExpressionObserver implements ShouldHandleEventsAfterCommit
 {
+    public function __construct(private SyncEventSearchIndexAction $searchIndex) {}
+
     public function saved(EventTimeExpression $expression): void
     {
-        $this->syncEventIndex($expression);
+        $this->searchIndex->handle((string) $expression->event_id);
     }
 
     public function deleted(EventTimeExpression $expression): void
     {
-        $this->syncEventIndex($expression);
+        $this->searchIndex->handle((string) $expression->event_id);
     }
 
-    private function syncEventIndex(EventTimeExpression $expression): void
-    {
-        $event = Event::query()->find($expression->event_id);
-
-        if (! $event instanceof Event) {
-            return;
-        }
-
-        if ($event->shouldBeSearchable()) {
-            $event->searchable();
-        } elseif ($event->wasSearchableBeforeUpdate()) {
-            $event->unsearchable();
-        }
-    }
 }
