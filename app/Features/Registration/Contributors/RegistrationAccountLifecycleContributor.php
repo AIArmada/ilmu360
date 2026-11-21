@@ -9,6 +9,7 @@ use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use App\Features\Events\Api\EventAccountOwnership;
+use App\Features\Registration\Actions\ManageRegistrationAccountLinksAction;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Database\Eloquent\Model;
@@ -28,7 +29,10 @@ use Illuminate\Database\Eloquent\Model;
  */
 final readonly class RegistrationAccountLifecycleContributor implements AccountLifecycleContributor
 {
-    public function __construct(private EventAccountOwnership $eventOwnership) {}
+    public function __construct(
+        private EventAccountOwnership $eventOwnership,
+        private ManageRegistrationAccountLinksAction $links,
+    ) {}
 
     public function key(): string
     {
@@ -89,51 +93,24 @@ final readonly class RegistrationAccountLifecycleContributor implements AccountL
     {
         $userClass = MorphModelResolver::resolve('user');
         $user = $userClass::query()->find($accountId);
-
         if (! $user instanceof Model) {
             return;
         }
 
-        $registrationClass = MorphModelResolver::resolve('registration');
-        $checkinClass = MorphModelResolver::resolve('checkin');
-        $userType = $user->getMorphClass();
-
         $this->eventOwnership->detach($accountId);
-
-        $checkinClass::query()
-            ->where('verified_by_user_id', $accountId)
-            ->update(['verified_by_user_id' => null]);
-
-        // Event facts are retained; only the personal registration link is
-        // detached so the admission and purchaser history remain intact.
-        $registrationClass::query()
-            ->where('registrant_type', $userType)
-            ->where('registrant_id', $accountId)
-            ->update(['registrant_type' => null, 'registrant_id' => null]);
-
-        // Attendance and check-in log rows survive; only the account's
-        // attendee link is detached.
-        $checkinClass::query()
-            ->where('attendee_type', $userType)
-            ->where('attendee_id', $accountId)
-            ->update(['attendee_type' => null, 'attendee_id' => null]);
+        $this->links->detach($accountId, (string) $user->getMorphClass());
     }
 
     public function restore(string $accountId, array $snapshot): void
     {
         $userClass = MorphModelResolver::resolve('user');
         $user = $userClass::query()->find($accountId);
-
         if (! $user instanceof Model) {
             return;
         }
 
         $this->eventOwnership->restore($accountId, $snapshot);
-
-        $this->restoreRegistrations($accountId, $user, $this->stringIds($snapshot['registration_ids'] ?? []));
-        $this->restoreCheckins($accountId, $user, $this->stringIds($snapshot['event_checkin_ids'] ?? []));
-
-        $this->restoreVerifiedCheckinLinks($accountId, $this->stringIds($snapshot['verified_event_checkin_ids'] ?? []));
+        $this->links->restore($accountId, (string) $user->getMorphClass(), $snapshot);
     }
 
     public function afterRestore(string $accountId): void {}
@@ -157,72 +134,4 @@ final readonly class RegistrationAccountLifecycleContributor implements AccountL
         ];
     }
 
-    /** @param list<string> $ids */
-    private function restoreRegistrations(string $accountId, Model $user, array $ids): void
-    {
-        $registrationClass = MorphModelResolver::resolve('registration');
-
-        if ($ids === []) {
-            return;
-        }
-
-        $registrationClass::query()
-            ->whereKey($ids)
-            ->whereNull('registrant_id')
-            ->update([
-                'registrant_type' => $user->getMorphClass(),
-                'registrant_id' => $accountId,
-            ]);
-    }
-
-    /** @param list<string> $ids */
-    private function restoreCheckins(string $accountId, Model $user, array $ids): void
-    {
-        $checkinClass = MorphModelResolver::resolve('checkin');
-
-        if ($ids === []) {
-            return;
-        }
-
-        $checkinClass::query()
-            ->whereKey($ids)
-            ->whereNull('attendee_id')
-            ->update([
-                'attendee_type' => $user->getMorphClass(),
-                'attendee_id' => $accountId,
-            ]);
-    }
-
-    /**
-     * @param  list<string>  $ids
-     */
-    private function restoreVerifiedCheckinLinks(string $accountId, array $ids): void
-    {
-        if ($ids === []) {
-            return;
-        }
-
-        $checkinClass = MorphModelResolver::resolve('checkin');
-
-        $checkinClass::query()
-            ->whereKey($ids)
-            ->whereNull('verified_by_user_id')
-            ->update(['verified_by_user_id' => $accountId]);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function stringIds(mixed $ids): array
-    {
-        if (! is_array($ids)) {
-            return [];
-        }
-
-        return collect($ids)
-            ->filter(static fn (mixed $id): bool => is_string($id) || is_int($id))
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
-    }
 }
