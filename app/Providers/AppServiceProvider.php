@@ -32,14 +32,6 @@ use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\EntryPoints\Ui\EventJsonLd;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\EventPolicy;
-use App\Features\Membership\Models\MemberInvitation;
-use App\Features\Membership\Models\MembershipApplication;
-use App\Features\Moderation\Models\ModerationReview;
-use App\Features\Persons\Models\Affiliation;
-use App\Features\Persons\Models\Person;
-use App\Features\Persons\Models\PersonName;
-use App\Features\Places\Models\Space;
-use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
@@ -315,16 +307,8 @@ class AppServiceProvider extends ServiceProvider
             'order_payment' => OrderPayment::class,
             'order_refund' => OrderRefund::class,
             'event_registration_participant' => EventRegistrationParticipant::class,
-            'membership_application' => MembershipApplication::class,
-            'moderation_review' => ModerationReview::class,
-            'member_invitation' => MemberInvitation::class,
             'registration' => Registration::class,
-            'person' => Person::class,
-            'person_name' => PersonName::class,
-            'affiliation' => Affiliation::class,
             'social_media' => SocialProfile::class,
-            'space' => Space::class,
-            'venue' => Venue::class,
             'language' => Language::class,
             'reference' => Reference::class,
             'share_browser_selection' => ShareBrowserSelection::class,

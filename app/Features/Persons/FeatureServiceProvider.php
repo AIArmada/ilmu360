@@ -38,6 +38,7 @@ use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\EntryPoints\Filament\Stats\PendingPersonsStat;
 use App\Features\Persons\EntryPoints\Sitemap\PersonSitemapUrls;
 use App\Features\Persons\Listeners\PersonMediaCacheListener;
+use App\Features\Persons\Models\Affiliation;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Models\PersonName;
 use App\Features\Persons\Observers\PersonLifecycleObserver;
@@ -68,6 +69,7 @@ use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\SignalSchemaRegistry;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -110,6 +112,12 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'person' => Person::class,
+            'person_name' => PersonName::class,
+            'affiliation' => Affiliation::class,
+        ]);
+
         Person::observe(PersonLifecycleObserver::class);
         Person::observe(PersonObserver::class);
         PersonName::observe(PersonNameObserver::class);

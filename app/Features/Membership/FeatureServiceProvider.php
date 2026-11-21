@@ -34,6 +34,8 @@ use App\Features\Membership\EntryPoints\Mcp\Tools\MemberCancelMembershipApplicat
 use App\Features\Membership\EntryPoints\Mcp\Tools\MemberListMembershipApplicationsTool;
 use App\Features\Membership\EntryPoints\Mcp\Tools\MemberSubmitMembershipApplicationTool;
 use App\Features\Membership\Integrations\AppMembershipHook;
+use App\Features\Membership\Models\MemberInvitation;
+use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Membership\Notifications\AppMembershipApplicationNotifier;
 use App\Features\Membership\Persistence\EloquentScopedMembershipRoleStore;
 use App\Features\Membership\Queries\MemberDirectorySummary;
@@ -56,6 +58,7 @@ use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Shared\Auth\AccountLifecycleContributor;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Livewire\Livewire;
 
 /**
@@ -116,6 +119,11 @@ final class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'member_invitation' => MemberInvitation::class,
+            'membership_application' => MembershipApplication::class,
+        ]);
+
         $this->app->make(ResourceDefinitionRegistry::class)->register($this->app->make(MembershipApplicationResourceDefinition::class));
         parent::boot();
 

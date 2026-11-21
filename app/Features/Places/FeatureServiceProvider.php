@@ -42,6 +42,7 @@ use App\Platform\FeatureModule;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Shared\Submission\SpaceSelectionEligibility;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -68,6 +69,11 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'space' => Space::class,
+            'venue' => Venue::class,
+        ]);
+
         Space::observe(SpaceInstitutionLinkCleanupObserver::class);
         Venue::observe(VenueObserver::class);
         Venue::observe(VenueInstitutionLinkCleanupObserver::class);

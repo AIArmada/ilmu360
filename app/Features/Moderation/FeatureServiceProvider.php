@@ -7,9 +7,11 @@ namespace App\Features\Moderation;
 use App\Features\Moderation\Api\ModerationActionHistory;
 use App\Features\Moderation\Api\RecordModerationAction;
 use App\Features\Moderation\Contributors\ModerationAccountLifecycleContributor;
+use App\Features\Moderation\Models\ModerationReview;
 use App\Features\Moderation\Persistence\ModerationActionStore;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
  * Moderation owns recorded moderation actions and their account attribution.
@@ -24,5 +26,13 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->tag([ModerationAccountLifecycleContributor::class], AccountLifecycleContributor::TAG);
         $this->app->bind(ModerationActionHistory::class, ModerationActionStore::class);
         $this->app->bind(RecordModerationAction::class, ModerationActionStore::class);
+    }
+    public function boot(): void
+    {
+        parent::boot();
+
+        Relation::morphMap([
+            'moderation_review' => ModerationReview::class,
+        ]);
     }
 }
