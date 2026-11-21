@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Submission;
 
 use App\Features\Events\Api\Enums\EventFormat;
-use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\SubmissionValues;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;

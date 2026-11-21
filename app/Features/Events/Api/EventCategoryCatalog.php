@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
-
 /** Event taxonomy reads for display, validation and classification. */
 interface EventCategoryCatalog
 {

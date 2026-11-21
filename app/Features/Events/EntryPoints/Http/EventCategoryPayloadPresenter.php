@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Http;
 
 use App\Features\Events\Api\Orm\EventCategoryPayloads;
-use App\Features\Events\Queries\EventCategoryPresenter;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Queries\EventCategoryPresenter;
 
 /**
  * Boundary adapter over the event category presenter used by payload builders.
