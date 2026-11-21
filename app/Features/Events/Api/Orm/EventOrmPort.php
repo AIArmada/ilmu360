@@ -33,13 +33,6 @@ interface EventOrmPort extends EventScheduleReads
     public function findEvent(string $eventId): ?Event;
 
     /**
-     * Immutable event identity for share URL construction.
-     *
-     * @return array{id: string, slug: string, title: string}|null
-     */
-    public function shareIdentityBySlug(string $slug): ?array;
-
-    /**
      * Events owned by an organization, newest first.
      *
      * @return EloquentCollection<int, Event>
@@ -102,13 +95,6 @@ interface EventOrmPort extends EventScheduleReads
      * A guaranteed-empty event query.
      */
     public function emptyEventsQuery(): EventBuilder;
-
-    /**
-     * Counts for a person's event workspace, including private and draft rows.
-     *
-     * @return array{total: int, upcoming: int, needs_attention: int}
-     */
-    public function personDashboardEventStats(string $personId): array;
 
     /**
      * Paginated person workspace rows, filtered and ordered by Events before

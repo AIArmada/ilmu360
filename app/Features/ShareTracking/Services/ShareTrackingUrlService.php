@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use App\Features\Events\Api\Orm\EventOrmPort;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
@@ -179,7 +179,7 @@ final readonly class ShareTrackingUrlService
         }
 
         if (preg_match('#^/events/([^/]+)$#', $path, $matches) === 1 || preg_match('#^/majlis/([^/]+)$#', $path, $matches) === 1) {
-            $event = app(EventOrmPort::class)->shareIdentityBySlug($matches[1]);
+            $event = app(EventScheduleReads::class)->shareIdentityBySlug($matches[1]);
 
             if ($event !== null) {
                 return $this->subjectResult(
@@ -611,7 +611,7 @@ final readonly class ShareTrackingUrlService
      */
     private function eventTarget(string $slug): array
     {
-        $event = app(EventOrmPort::class)->shareIdentityBySlug($slug);
+        $event = app(EventScheduleReads::class)->shareIdentityBySlug($slug);
 
         if ($event === null) {
             return $this->subjectResult(

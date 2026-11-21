@@ -6,6 +6,7 @@ namespace App\Features\Persons\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Membership\Api\MemberPermissions;
@@ -320,7 +321,7 @@ final class PersonDashboard extends Component
     /** @return array{total:int,upcoming:int,needs_attention:int} */
     public function eventStats(): array
     {
-        return app(EventOrmPort::class)->personDashboardEventStats((string) $this->selectedPerson()->getKey());
+        return app(EventScheduleReads::class)->personDashboardEventStats((string) $this->selectedPerson()->getKey());
     }
 
     /** @return LengthAwarePaginator<int, Event> */

@@ -13,6 +13,20 @@ namespace App\Features\Events\Api;
 interface EventScheduleReads
 {
     /**
+     * Immutable event identity for share URL construction.
+     *
+     * @return array{id: string, slug: string, title: string}|null
+     */
+    public function shareIdentityBySlug(string $slug): ?array;
+
+    /**
+     * Counts for a person's event workspace, including private and draft rows.
+     *
+     * @return array{total: int, upcoming: int, needs_attention: int}
+     */
+    public function personDashboardEventStats(string $personId): array;
+
+    /**
      * Active events for the supplied ids, in starts_at order.
      *
      * @param  list<string>  $eventIds
