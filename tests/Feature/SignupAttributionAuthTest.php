@@ -11,10 +11,10 @@ use App\Features\Identity\Api\SignupAttributionSource as SharedSignupAttribution
 use App\Features\Identity\Api\SignupAttributionSourceResolver;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\Identity\Api\SignupAttributionStatus;
+use App\Features\Identity\EntryPoints\Fortify\CreateNewUser;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
 use App\Models\User;
-use App\Features\Identity\EntryPoints\Fortify\CreateNewUser;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
