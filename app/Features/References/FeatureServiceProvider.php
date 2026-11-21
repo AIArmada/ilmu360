@@ -46,6 +46,7 @@ use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Search\ResourceSearchAdapter;
 use App\Platform\Telemetry\SignalSchemaRegistry;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class FeatureServiceProvider extends FeatureModule
 {
@@ -78,6 +79,10 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'reference' => Reference::class,
+        ]);
+
         Reference::observe(ReferenceObserver::class);
         ReferenceContributor::observe(ReferenceContributorObserver::class);
 

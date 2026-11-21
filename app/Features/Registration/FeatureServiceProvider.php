@@ -27,6 +27,8 @@ use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
 use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
 use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
+use App\Features\Registration\Models\EventCheckin;
+use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Notifications\EventNotificationCheckInNotifier;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
 use App\Features\Registration\Queries\DatabasePaidRegistrationFacts;
@@ -36,6 +38,7 @@ use App\Features\Registration\Queries\DatabaseRegistrationLookup;
 use App\Features\Registration\Queries\ResolveAttendanceState;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
 
 /**
@@ -70,6 +73,11 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'checkin' => EventCheckin::class,
+            'registration' => Registration::class,
+        ]);
+
         parent::boot();
 
         // Event discovery only scans app/Listeners, so the feature registers

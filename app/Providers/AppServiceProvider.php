@@ -32,16 +32,8 @@ use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\EntryPoints\Ui\EventJsonLd;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\EventPolicy;
-use App\Features\References\Models\Reference;
-use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Policies\RegistrationPolicy;
-use App\Features\Rewards\Models\RewardDigestSlot;
-use App\Features\ShareTracking\Models\ShareBrowserSelection;
-use App\Features\ShareTracking\Models\ShareCohortProjection;
-use App\Features\ShareTracking\Models\ShareEffectReceipt;
-use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
-use App\Features\ShareTracking\Models\ShareSignalReaderSkip;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Host\Affiliates\EloquentAffiliateSnapshotPersistence;
 use App\Host\Pango\ShareCards\PangoShareCardRenderer;
@@ -299,7 +291,6 @@ class AppServiceProvider extends ServiceProvider
             'event_location' => EventLocation::class,
             'event_occurrence' => EventOccurrence::class,
             'event_session' => EventSession::class,
-            'checkin' => EventCheckin::class,
             'checkout_session' => CheckoutSession::class,
             'order' => Order::class,
             'order_item' => OrderItem::class,
@@ -307,16 +298,8 @@ class AppServiceProvider extends ServiceProvider
             'order_payment' => OrderPayment::class,
             'order_refund' => OrderRefund::class,
             'event_registration_participant' => EventRegistrationParticipant::class,
-            'registration' => Registration::class,
             'social_media' => SocialProfile::class,
             'language' => Language::class,
-            'reference' => Reference::class,
-            'share_browser_selection' => ShareBrowserSelection::class,
-            'share_cohort_projection' => ShareCohortProjection::class,
-            'share_effect_receipt' => ShareEffectReceipt::class,
-            'share_signal_reader_cursor' => ShareSignalReaderCursor::class,
-            'share_signal_reader_skip' => ShareSignalReaderSkip::class,
-            'reward_digest_slot' => RewardDigestSlot::class,
             'organization' => Organization::class,
             'inventory_location' => InventoryLocation::class,
             'inventory_level' => InventoryLevel::class,

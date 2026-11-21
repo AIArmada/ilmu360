@@ -31,6 +31,7 @@ use App\Features\Rewards\Actions\GratitudeDigests\GratitudeDigestAction;
 use App\Features\Rewards\Api\GratitudeDigest;
 use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\Rewards\Api\PublishedProgramVersions;
+use App\Features\Rewards\Models\RewardDigestSlot;
 use App\Features\Rewards\Policies\RewardAppealPolicy;
 use App\Features\Rewards\Policies\RewardAwardPolicy;
 use App\Features\Rewards\Policies\RewardBenefitGrantPolicy;
@@ -49,6 +50,7 @@ use App\Features\Rewards\Support\VouchersRewardBenefitCouponFulfillment;
 use App\Platform\FeatureModule;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Auth\AccountActor;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -150,6 +152,10 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Relation::morphMap([
+            'reward_digest_slot' => RewardDigestSlot::class,
+        ]);
+
         parent::boot();
 
         $this->app->make(SignalSchemaRegistry::class)->register(new RewardsSignalSchemaContributor);

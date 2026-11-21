@@ -66,7 +66,12 @@ use App\Features\ShareTracking\EntryPoints\Listeners\ReverseRegistrationShareOut
 use App\Features\ShareTracking\EntryPoints\Listeners\ReverseScheduleCancellationShareOutcome;
 use App\Features\ShareTracking\EntryPoints\Observers\CommittedShareTouchpointObserver;
 use App\Features\ShareTracking\Integrations\Auth\AffiliateSignupAttributionSourceResolver;
+use App\Features\ShareTracking\Models\ShareBrowserSelection;
+use App\Features\ShareTracking\Models\ShareCohortProjection;
+use App\Features\ShareTracking\Models\ShareEffectReceipt;
 use App\Features\ShareTracking\Models\ShareOutcomeCorrection;
+use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
+use App\Features\ShareTracking\Models\ShareSignalReaderSkip;
 use App\Features\ShareTracking\Models\ShareSourceAttributionReceipt;
 use App\Features\ShareTracking\Observers\ShareOutcomeCorrectionObserver;
 use App\Features\ShareTracking\Observers\ShareSourceAttributionReceiptObserver;
@@ -168,6 +173,11 @@ class FeatureServiceProvider extends FeatureModule
         parent::boot();
 
         Relation::morphMap([
+            'share_browser_selection' => ShareBrowserSelection::class,
+            'share_cohort_projection' => ShareCohortProjection::class,
+            'share_effect_receipt' => ShareEffectReceipt::class,
+            'share_signal_reader_cursor' => ShareSignalReaderCursor::class,
+            'share_signal_reader_skip' => ShareSignalReaderSkip::class,
             'share_outcome_correction' => ShareOutcomeCorrection::class,
             'share_source_attribution_receipt' => ShareSourceAttributionReceipt::class,
         ]);
