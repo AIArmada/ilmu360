@@ -8,7 +8,7 @@ use App\Features\DonationChannels\Api\DonationChannelLookup;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\Reports\Api\ReportSubject;
 use App\Features\Reports\Api\ReportSubjectPresentation;
 use App\Features\Reports\Api\ReportSubjectResolver;

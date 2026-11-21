@@ -27,7 +27,7 @@ use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Models\User;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Language\MalaysiaLanguageCatalog;

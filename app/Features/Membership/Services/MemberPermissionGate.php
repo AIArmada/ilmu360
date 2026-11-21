@@ -14,7 +14,7 @@ use App\Features\Membership\Contracts\MembershipPermissionEvaluator;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Auth\AccountActor;

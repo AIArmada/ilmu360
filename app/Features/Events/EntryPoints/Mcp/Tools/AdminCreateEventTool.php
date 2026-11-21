@@ -14,7 +14,7 @@ use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Platform\Api\Admin\AdminResourceService;
 use App\Platform\Mcp\Tools\Admin\AbstractAdminWriteTool;
 use App\Platform\Mcp\Tools\Concerns\DefinesMcpFileDescriptorSchema;

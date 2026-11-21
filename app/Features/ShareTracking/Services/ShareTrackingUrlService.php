@@ -8,7 +8,7 @@ use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\SeriesAuthoring;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;

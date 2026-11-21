@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\References\Queries;
 
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
 use App\Features\References\Models\Reference;
 use App\Features\Reports\Api\ReportSubject;
@@ -14,7 +14,6 @@ use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\FollowableSubject;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 final readonly class EloquentReferenceLookup implements ReferenceLookup
 {
@@ -97,6 +96,11 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
         if (! $entity instanceof Reference) {
             return null;
         }
+        return $this->summary($entity);
+    }
+
+    private function summary(Reference $entity): ReferenceSummary
+    {
         $fallback = (string) $entity->getKey();
         $status = $entity->getAttribute('status');
         $status = $status instanceof BackedEnum ? (string) $status->value : (filled($status) ? (string) $status : null);
@@ -245,21 +249,25 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
             ->all();
     }
 
-    public function followedReferences(array $referenceIds): EloquentCollection
+    public function followedReferences(array $referenceIds): array
     {
         return Reference::query()
             ->whereKey($referenceIds)
             ->with(['media'])
             ->orderBy('title')
-            ->get();
+            ->get()
+            ->map(fn (Reference $reference): ReferenceSummary => $this->summary($reference))
+            ->all();
     }
 
-    public function referencesByIds(array $referenceIds): EloquentCollection
+    public function referencesByIds(array $referenceIds): array
     {
         return Reference::query()
             ->whereKey($referenceIds)
             ->orderBy('title')
-            ->get();
+            ->get()
+            ->map(fn (Reference $reference): ReferenceSummary => $this->summary($reference))
+            ->all();
     }
 
     public function title(string $referenceId): ?string

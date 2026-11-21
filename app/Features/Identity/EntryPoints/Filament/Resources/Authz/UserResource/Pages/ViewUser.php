@@ -23,8 +23,8 @@ use App\Features\Membership\Api\MemberSubjectRecord;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Api\Orm\ReferenceLookup;
-use App\Features\References\Models\Reference;
+use App\Features\References\Api\ReferenceLookup;
+use App\Features\References\Api\ReferenceSummary;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
@@ -351,7 +351,7 @@ class ViewUser extends ViewRecord
     {
         return $this->followedSubjects(
             EngagementSubjectType::Reference,
-            fn (array $ids): object => app(ReferenceLookup::class)->referencesByIds($ids),
+            fn (array $ids): object => collect(app(ReferenceLookup::class)->referencesByIds($ids)),
         );
     }
 
@@ -370,9 +370,9 @@ class ViewUser extends ViewRecord
         return $person instanceof Person ? AdminResourceLink::to('person', 'view', (string) $person->getKey()) : null;
     }
 
-    public function referenceUrl(?Reference $reference): ?string
+    public function referenceUrl(?ReferenceSummary $reference): ?string
     {
-        return $reference instanceof Reference ? AdminResourceLink::to('reference', 'edit', (string) $reference->getKey()) : null;
+        return $reference instanceof ReferenceSummary ? AdminResourceLink::to('reference', 'edit', $reference->id) : null;
     }
 
     /**

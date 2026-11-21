@@ -18,8 +18,8 @@ use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Api\Orm\ReferenceLookup;
-use App\Features\References\Models\Reference;
+use App\Features\References\Api\ReferenceLookup;
+use App\Features\References\Api\ReferenceSummary;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
@@ -211,7 +211,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return Collection<int, Reference>
+     * @return Collection<int, ReferenceSummary>
      */
     #[Computed]
     public function followingReferences(): Collection
@@ -219,11 +219,11 @@ class UserDashboard extends Component
         $user = $this->user();
         $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), EngagementSubjectType::Reference);
 
-        /** @var Collection<int, Reference> $references */
-        /** @var Collection<int, Reference> $references */
+        /** @var Collection<int, ReferenceSummary> $references */
+        /** @var Collection<int, ReferenceSummary> $references */
         $references = $ids === []
             ? new Collection
-            : app(ReferenceLookup::class)->followedReferences($ids);
+            : collect(app(ReferenceLookup::class)->followedReferences($ids));
 
         return $references;
     }
@@ -548,7 +548,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return LengthAwarePaginator<int, Reference>
+     * @return LengthAwarePaginator<int, ReferenceSummary>
      */
     #[Computed]
     public function paginatedFollowingReferences(): LengthAwarePaginator

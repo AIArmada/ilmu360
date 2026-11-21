@@ -6,7 +6,7 @@ namespace App\Features\References;
 
 use App\Features\References\Api\ContributionProjection;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceCatalog;
 use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\References\Api\ReferenceQueries;

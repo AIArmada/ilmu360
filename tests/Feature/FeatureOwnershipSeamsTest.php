@@ -31,7 +31,7 @@ use App\Features\Places\Queries\EloquentPlaceLookup;
 use App\Features\Places\Services\InstitutionSpaceLinkService;
 use App\Features\Places\Services\SpaceWorkflowService;
 use App\Features\Places\Services\VenueWorkflowService;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Models\Reference;
 use App\Features\References\Queries\EloquentReferenceLookup;
 use App\Features\Reports\Api\ReportSubjectResolver;

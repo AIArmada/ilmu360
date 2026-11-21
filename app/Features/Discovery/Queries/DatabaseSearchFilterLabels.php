@@ -13,7 +13,7 @@ use App\Features\Discovery\Api\SearchFilterLabels;
 use App\Features\Institutions\Api\Orm\InstitutionLookup;
 use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Places\Api\Orm\PlaceLookup;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use Illuminate\Support\Str;
 
 final class DatabaseSearchFilterLabels implements SearchFilterLabels

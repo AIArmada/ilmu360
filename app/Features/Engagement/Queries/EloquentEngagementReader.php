@@ -23,7 +23,7 @@ use App\Features\Persons\Api\Orm\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Models\Venue;
-use App\Features\References\Api\Orm\ReferenceLookup;
+use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use BackedEnum;

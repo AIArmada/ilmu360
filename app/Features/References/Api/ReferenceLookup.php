@@ -2,19 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Features\References\Api\Orm;
+namespace App\Features\References\Api;
 
-use App\Features\References\Api\ReferenceSummary;
-use App\Features\References\Models\Reference;
 use App\Features\Reports\Api\ReportSubject;
 use App\Shared\Directory\FollowableSubject;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-/**
- * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
- *
- * Consumers: References/FeatureServiceProvider.php, Engagement/Queries, Engagement/Services, Engagement/EntryPoints, References/Queries, Events/EntryPoints
- */
+/** Immutable reference identity and directory lookup boundary. */
 interface ReferenceLookup
 {
     /**
@@ -70,19 +63,18 @@ interface ReferenceLookup
     public function title(string $referenceId): ?string;
 
     /**
-     * Documented transport: followed references for the supplied ids with
-     * media loaded, ordered by title.
+     * Followed reference summaries in title order.
      *
      * @param  list<string>  $referenceIds
-     * @return EloquentCollection<int, Reference>
+     * @return list<ReferenceSummary>
      */
-    public function followedReferences(array $referenceIds): EloquentCollection;
+    public function followedReferences(array $referenceIds): array;
 
     /**
-     * Documented transport: references for the supplied ids, ordered by title.
+     * Reference summaries in title order.
      *
      * @param  list<string>  $referenceIds
-     * @return EloquentCollection<int, Reference>
+     * @return list<ReferenceSummary>
      */
-    public function referencesByIds(array $referenceIds): EloquentCollection;
+    public function referencesByIds(array $referenceIds): array;
 }
