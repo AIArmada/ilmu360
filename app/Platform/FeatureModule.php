@@ -13,12 +13,15 @@ abstract class FeatureModule extends ServiceProvider
     {
         $root = dirname(new ReflectionClass($this)->getFileName());
 
-        foreach (['web', 'api', 'console'] as $transport) {
+        foreach (['web', 'api'] as $transport) {
             $path = $root.'/Routes/'.$transport.'.php';
             if (is_file($path)) {
-                // Each route file declares its own middleware, prefix and name group.
                 $this->loadRoutesFrom($path);
             }
+        }
+
+        if ($this->app->runningInConsole() && is_file($root.'/Routes/console.php')) {
+            require $root.'/Routes/console.php';
         }
 
         if (is_dir($root.'/Views')) {
