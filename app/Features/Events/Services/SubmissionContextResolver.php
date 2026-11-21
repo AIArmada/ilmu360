@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Contributions\Services;
+namespace App\Features\Events\Services;
 
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Contributions\Api\ContributionOrganizer;
-use App\Features\Contributions\Api\Orm\SubmissionContext;
+use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\OrganizerLookup;
 use App\Features\Events\Api\Orm\EventOrmPort;
@@ -14,14 +14,12 @@ use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Prayer\Api\PrayerTargetSelector;
 use App\Models\User;
 use App\Shared\Submission\SpaceSelectionEligibility;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 
 /**
  * Fail-closed context resolution for the event-submission pipeline.
@@ -30,12 +28,12 @@ use InvalidArgumentException;
  * normalization, and model/country/target/occurrence resolution. The
  * orchestrator calls these in phase order; this class never writes.
  */
-final readonly class SubmissionContextResolver implements SubmissionContext
+final readonly class SubmissionContextResolver
 {
     public function __construct(
         private SubmissionTimingContract $timing,
         private SpaceSelectionEligibility $spaceEligibilityResolver,
-        private EntitySubmissionAccess $entitySubmissionAccess,
+        private SubmissionEntityAccess $entitySubmissionAccess,
     ) {}
 
     /**
@@ -48,7 +46,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      *
      * @param  array<string, mixed>  $state
      */
-    public function authorizedScopedInstitution(
+    public function authorizedScopedInstitutionFor(
         ?string $scopedInstitutionId,
         ?User $submitter,
         string $validationKeyPrefix,
@@ -97,7 +95,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      * and — under an institution scope — require actual primary-organizer
      * ownership. The location institution is not ownership.
      */
-    public function authorizedEventContainer(
+    public function authorizedEventContainerFor(
         ?Event $eventContainer,
         ?User $submitter,
         ?string $scopedInstitutionId,
@@ -149,7 +147,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    public function normalizeScopedInstitutionState(array $validated, ?string $scopedInstitutionId, string $validationKeyPrefix): array
+    public function normalizeScopedInstitutionStateFor(array $validated, ?string $scopedInstitutionId, string $validationKeyPrefix): array
     {
         if ($scopedInstitutionId === null) {
             return $validated;
@@ -350,11 +348,10 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      * @param  array<string, mixed>  $validated
      * @return array{0: string|null, 1: string|null}
      */
-    public function resolveTargetLocation(
+    public function resolveTargetLocationFor(
         array $validated,
-        object $primaryOrganizer,
+        ContributionOrganizer $primaryOrganizer,
     ): array {
-        $primaryOrganizer = $this->normalizeOrganizer($primaryOrganizer);
 
         if (SubmissionValues::enumValue($validated['event_format'] ?? null) === EventFormat::Online->value) {
             return PrayerTargetSelector::forOnline($primaryOrganizer->kind, $primaryOrganizer->id);
@@ -398,7 +395,7 @@ final readonly class SubmissionContextResolver implements SubmissionContext
      *
      * @param  array<string, mixed>  $validated
      */
-    public function resolveSelectedOccurrenceId(
+    public function resolveSelectedOccurrenceIdFor(
         array $validated,
         ?Event $eventContainer,
         string $validationKeyPrefix,
@@ -464,63 +461,6 @@ final readonly class SubmissionContextResolver implements SubmissionContext
         return (string) $eligible->first()->getKey();
     }
 
-    public function authorizedScopedInstitutionFor(
-        ?string $scopedInstitutionId,
-        ?User $submitter,
-        string $validationKeyPrefix,
-        array $state = [],
-    ): ?string {
-        return $this->authorizedScopedInstitution(
-            $scopedInstitutionId,
-            $submitter,
-            $validationKeyPrefix,
-            $state,
-        );
-    }
-
-    public function authorizedEventContainerFor(
-        ?Event $eventContainer,
-        ?User $submitter,
-        ?string $scopedInstitutionId,
-        string $validationKeyPrefix,
-    ): ?Event {
-        return $this->authorizedEventContainer(
-            $eventContainer,
-            $submitter,
-            $scopedInstitutionId,
-            $validationKeyPrefix,
-        );
-    }
-
-    public function normalizeScopedInstitutionStateFor(
-        array $validated,
-        ?string $scopedInstitutionId,
-        string $validationKeyPrefix,
-    ): array {
-        return $this->normalizeScopedInstitutionState(
-            $validated,
-            $scopedInstitutionId,
-            $validationKeyPrefix,
-        );
-    }
-
-    public function resolveTargetLocationFor(array $validated, ContributionOrganizer $primaryOrganizer): array
-    {
-        return $this->resolveTargetLocation($validated, $primaryOrganizer);
-    }
-
-    public function resolveSelectedOccurrenceIdFor(
-        array $validated,
-        ?Event $eventContainer,
-        string $validationKeyPrefix,
-    ): ?string {
-        return $this->resolveSelectedOccurrenceId(
-            $validated,
-            $eventContainer,
-            $validationKeyPrefix,
-        );
-    }
-
     private function isTerminalOccurrence(EventOccurrence $occurrence): bool
     {
         return in_array((string) $occurrence->status, [EventOccurrence::CANCELLED, EventOccurrence::COMPLETED, EventOccurrence::ARCHIVED], true);
@@ -546,20 +486,4 @@ final readonly class SubmissionContextResolver implements SubmissionContext
         return $normalized !== '' ? $normalized : null;
     }
 
-    private function normalizeOrganizer(object $organizer): ContributionOrganizer
-    {
-        if ($organizer instanceof ContributionOrganizer) {
-            return $organizer;
-        }
-
-        if ($organizer instanceof Institution) {
-            return new ContributionOrganizer('institution', (string) $organizer->getKey());
-        }
-
-        if ($organizer instanceof \App\Features\Persons\Models\Person) {
-            return new ContributionOrganizer('person', (string) $organizer->getKey());
-        }
-
-        throw new InvalidArgumentException('The primary organizer must be an institution or a person.');
-    }
 }

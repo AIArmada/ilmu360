@@ -1,7 +1,8 @@
 <?php
 
 use AIArmada\Events\Models\EventTimeExpression;
-use App\Features\Contributions\Services\SubmissionContextResolver;
+use App\Features\Contributions\Api\ContributionOrganizer;
+use App\Features\Events\Services\SubmissionContextResolver;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\AdminEventFormStateBuilder;
@@ -116,7 +117,10 @@ it('resolves an online event from the organizer institution like frontend submit
 
     // Frontend submit resolves identical targets through the shared selector.
     [$frontendInstitutionId, $frontendVenueId] = app(SubmissionContextResolver::class)
-        ->resolveTargetLocation(['event_format' => EventFormat::Online->value], $organizer);
+        ->resolveTargetLocationFor(
+            ['event_format' => EventFormat::Online->value],
+            new ContributionOrganizer('institution', (string) $organizer->getKey()),
+        );
 
     expect([$frontendInstitutionId, $frontendVenueId])->toBe([(string) $organizer->getKey(), null]);
 });

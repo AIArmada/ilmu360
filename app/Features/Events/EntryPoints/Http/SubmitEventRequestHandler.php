@@ -5,7 +5,6 @@ namespace App\Features\Events\EntryPoints\Http;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Contributions\Api\ContributionOrganizer;
-use App\Features\Contributions\Api\Orm\SubmissionContext;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventVisibility;
@@ -18,6 +17,7 @@ use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Notifications\EventOccurrenceSubmittedNotification;
+use App\Features\Events\Services\SubmissionContextResolver;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Events\Support\SubmitterContactRules;
 use App\Features\Prayer\Api\EventPrayerTime;
@@ -51,7 +51,7 @@ final readonly class SubmitEventRequestHandler
         private EventSubmissionCompletion $submissionCompletion,
         private ShareTrackingContract $shareTracking,
         private SubmissionTimingPolicy $timing,
-        private SubmissionContext $context,
+        private SubmissionContextResolver $context,
     ) {}
 
     /**

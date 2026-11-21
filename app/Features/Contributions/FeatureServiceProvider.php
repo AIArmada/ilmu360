@@ -18,7 +18,6 @@ use App\Features\Contributions\Api\ContributionUpdateContextReader;
 use App\Features\Contributions\Api\Filament\PersonContributionSchema;
 use App\Features\Contributions\Api\Frontend\SubmitInstitutionFormContractContributor;
 use App\Features\Contributions\Api\Frontend\SubmitPersonFormContractContributor;
-use App\Features\Contributions\Api\Orm\SubmissionContext;
 use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\SubmissionCatalog;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
@@ -47,7 +46,6 @@ use App\Features\Contributions\Services\ContributionReviewAccessService;
 use App\Features\Contributions\Services\ContributionSubmissionPreparationService;
 use App\Features\Contributions\Services\EloquentSubmissionCatalog;
 use App\Features\Contributions\Services\EntitySubmissionAccess;
-use App\Features\Contributions\Services\SubmissionContextResolver;
 use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Features\Contributions\Support\Telemetry\ContributionsSignalSchemaContributor;
 use App\Platform\Admin\FilamentResourceRegistry;
@@ -94,7 +92,6 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(SubmissionEntityAccess::class, EntitySubmissionAccess::class);
-        $this->app->bind(SubmissionContext::class, SubmissionContextResolver::class);
         $this->app->bind(ContributionEntityState::class, ContributionEntityStateService::class);
         $this->app->bind(ContributionRequestNotifier::class, ContributionRequestNotificationService::class);
         $this->app->bind(PersonContributionSchema::class, PersonContributionFormSchema::class);

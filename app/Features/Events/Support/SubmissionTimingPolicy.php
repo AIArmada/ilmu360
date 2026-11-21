@@ -7,7 +7,7 @@ namespace App\Features\Events\Support;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Features\Contributions\Api\ContributionOrganizer;
-use App\Features\Contributions\Api\Orm\SubmissionContext;
+use App\Features\Events\Services\SubmissionContextResolver;
 use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Institutions\Models\Institution;
@@ -413,7 +413,7 @@ final class SubmissionTimingPolicy implements SubmissionTimingContract
         $institutionId = null;
 
         try {
-            $context = app(SubmissionContext::class);
+            $context = app(SubmissionContextResolver::class);
             $organizer = $context->resolvePrimaryOrganizer($state['primary_organizer_id'] ?? null);
 
             if ($organizer instanceof ContributionOrganizer) {
