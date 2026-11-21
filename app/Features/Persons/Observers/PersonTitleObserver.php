@@ -4,57 +4,23 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Observers;
 
+use App\Features\Persons\Actions\Projection\SyncPersonTitleEffectsAction;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
-use App\Features\Persons\Models\Person;
-use App\Features\Persons\Services\PersonSearchService;
-use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
+/** Framework observer adapter; the feature Action owns the behavior. */
 final readonly class PersonTitleObserver implements ShouldHandleEventsAfterCommit
 {
-    public function __construct(
-        private PersonSearchService $personSearchService,
-        private SelectionCatalogCache $selectionCatalogCache,
-    ) {}
+    public function __construct(private SyncPersonTitleEffectsAction $effects) {}
 
     public function saved(Title|TitleAssignment $model): void
     {
-        if ($model instanceof Title) {
-            $this->selectionCatalogCache->bustTitles();
-            $this->syncTitle($model);
-
-            return;
-        }
-
-        $this->syncPerson($model->titleable);
+        $this->effects->saved($model);
     }
 
     public function deleted(Title|TitleAssignment $model): void
     {
-        if ($model instanceof Title) {
-            $this->selectionCatalogCache->bustTitles();
-            $this->syncTitle($model);
-
-            return;
-        }
-
-        $this->syncPerson($model->titleable);
-    }
-
-    private function syncTitle(Title $title): void
-    {
-        $title->loadMissing('assignments.titleable');
-
-        foreach ($title->assignments as $assignment) {
-            $this->syncPerson($assignment->titleable);
-        }
-    }
-
-    private function syncPerson(mixed $titleable): void
-    {
-        if ($titleable instanceof Person) {
-            $this->personSearchService->syncPersonRecord($titleable->fresh());
-        }
+        $this->effects->deleted($model);
     }
 }
