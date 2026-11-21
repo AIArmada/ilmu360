@@ -38,7 +38,7 @@ final readonly class InstitutionMemberSubjectReader implements MemberSubjectRead
                 type: MemberSubjectType::Institution,
                 id: (string) $model->getKey(),
                 name: (string) $model->name,
-                status: (string) $model->status,
+                status: $model->status->value,
             ))
             ->values()
             ->all());

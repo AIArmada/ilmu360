@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
+use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Api\EventCards;
 use App\Features\Events\Models\Event;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 final readonly class EventCardsQuery implements EventCards
@@ -30,10 +32,23 @@ final readonly class EventCardsQuery implements EventCards
             ->with($this->relationProvider->relations())
             ->whereHas('occurrences')
             ->whereKey($eventIds)
-            ->get()
-            ->keyBy('id');
+            ->get();
 
-        return $this->orderedEvents($eventIds, $events)
+        $events->loadMissing(['displayOccurrence', 'primaryOccurrence']);
+
+        $occurrences = $events
+            ->flatMap(static fn (Event $event): array => array_values(array_filter([
+                $event->displayOccurrence,
+                $event->primaryOccurrence,
+            ], static fn (mixed $occurrence): bool => $occurrence instanceof EventOccurrence)))
+            ->unique(static fn (EventOccurrence $occurrence): string => (string) $occurrence->getKey())
+            ->values();
+
+        if ($occurrences->isNotEmpty()) {
+            (new EloquentCollection($occurrences->all()))->loadMissing('media');
+        }
+
+        return $this->orderedEvents($eventIds, $events->keyBy('id'))
             ->map(fn (Event $event): array => $this->eventListPayloads->forEvent($event)->toArray())
             ->all();
     }
