@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Platform\Media\ShareCards;
+namespace App\Host\Pango\ShareCards;
 
 use IntlChar;
 use Normalizer;

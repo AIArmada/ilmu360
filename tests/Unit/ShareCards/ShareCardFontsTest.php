@@ -1,6 +1,6 @@
 <?php
 
-use App\Platform\Media\ShareCards\ShareCardFonts;
+use App\Host\Pango\ShareCards\ShareCardFonts;
 
 if (! function_exists('shareCardFontsDir')) {
     function shareCardFontsDir(): string

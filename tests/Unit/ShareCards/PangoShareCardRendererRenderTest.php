@@ -1,6 +1,6 @@
 <?php
 
-use App\Platform\Media\ShareCards\PangoShareCardRenderer;
+use App\Host\Pango\ShareCards\PangoShareCardRenderer;
 use App\Shared\Media\ShareCards\ShareCardError;
 use App\Shared\Media\ShareCards\ShareCardRenderInput;
 

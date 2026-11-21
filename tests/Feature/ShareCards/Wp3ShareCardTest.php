@@ -16,7 +16,7 @@ use App\Features\Events\Services\ShareCards\ShareCardEventPresenter;
 use App\Features\Events\Services\ShareCards\ShareCardService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Platform\Media\ShareCards\PangoShareCardRenderer;
+use App\Host\Pango\ShareCards\PangoShareCardRenderer;
 use App\Shared\Media\ShareCards\ShareCardRenderer;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
