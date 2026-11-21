@@ -9,7 +9,6 @@ use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\OrganizerLookup;
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\SubmissionTimingContract;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
@@ -113,7 +112,7 @@ final readonly class SubmissionContextResolver
             ]);
         }
 
-        $persisted = app(EventOrmPort::class)->findEvent($containerId);
+        $persisted = Event::query()->find($containerId);
 
         if (! $persisted instanceof Event) {
             throw ValidationException::withMessages([
