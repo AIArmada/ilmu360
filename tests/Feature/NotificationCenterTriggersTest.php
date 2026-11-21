@@ -196,9 +196,9 @@ it('creates registration and check-in confirmation notifications', function () {
 
     $checkin = EventCheckin::factory()->for($event)->for($user)->create();
 
-    $service = app(EventNotificationService::class);
-    $service->notifyRegistrationConfirmed($registration);
-    $service->notifyCheckinConfirmed($checkin);
+    $service = app(\App\Features\Events\Api\EventRegistrationNotifications::class);
+    $service->registrationConfirmed((string) $registration->getKey());
+    $service->checkInConfirmed((string) $checkin->getKey());
 
     $this->assertDatabaseHas('notification_inboxes', [
         'recipient_id' => $user->id,
