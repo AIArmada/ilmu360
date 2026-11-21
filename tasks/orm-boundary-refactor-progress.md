@@ -289,8 +289,10 @@ verification are complete; the final gate results are recorded below.
 
 - Venue and Series page operations now accept scalar ids, limits and date
   ranges; Events composes, executes and hydrates their schedule queries.
-- Institution directory subqueries remain as a narrowly categorized
-  `SQL_COMPOSITION_KEEP`. A synthetic PostgreSQL comparison used 500
+- Institution directory subqueries remained as a narrowly categorized
+  `SQL_COMPOSITION_KEEP` at this point; **superseded by O2 below**, which
+  replaces the mutable builders with an immutable owner projection. A
+  synthetic PostgreSQL comparison used 500
   institutions, 20,000 events and 20,000 occurrences. For 12 institution rows,
   the correlated query ran as one query (8.55 ms client-side, 6.31 ms in
   `EXPLAIN ANALYZE`); batched facts took three queries (15.21 ms combined,
@@ -303,11 +305,11 @@ verification are complete; the final gate results are recorded below.
 
 ### F5 — inventory evidence
 
-- `tasks/orm-boundary-inventory.csv` now has **317 rows**: 274 current methods,
-  14 replaced seams, and 29 removed baseline methods. All current public ORM
+- `tasks/orm-boundary-inventory.csv` now has **318 rows**: 273 current methods,
+  16 replaced seams, and 29 removed baseline methods. All current public ORM
   methods are indexed.
-- Current classifications: 215 scalar-safe, 44 framework-identity, 8
-  owner-model reads, 2 SQL-composition seams, 4 owner-query integration seams,
+- Current classifications: 216 scalar-safe, 44 framework-identity, 8
+  owner-model reads, 0 SQL-composition seams, 4 owner-query integration seams,
   and 1 address-resolution seam. Model-carrying readonly schedule leaves and
   the in-memory venue relation hydrator are explicitly inventoried as page
   identity seams; their consumers are limited to the public page surfaces.
@@ -337,5 +339,70 @@ verification are complete; the final gate results are recorded below.
 All 26 Quality jobs passed, including the 20 Pest shards, PHPStan, Rector,
 Pint, and Chromium smoke. The closeout commit changes only these audit records;
 a separate `workflow_dispatch` run verifies its resulting branch SHA.
+
+## Final independent audit closeout (2026-11-21)
+
+Audit: `ilmu360-orm-boundary-final-audit-2026-11-21.md`, reviewed HEAD
+`0539b391bdc1434d3a4150e809cd90f1d9430dbf`. Functional closeout:
+`427569deb1e7a497c74a90ec3e37434ba0bf3d1f`.
+
+### O1 — Current-DB revalidation for search-derived ids
+
+- `PostgresEventDiscovery::scheduleFactsForEventIds()` now applies current
+  public parent state (status, `public` visibility, non-null `published_at`)
+  and requires at least one public-schedule occurrence before projecting
+  facts. `scheduleFactSet()` also drops non-public parents defensively.
+- `TypesenseEventDiscovery` mirrors the same constraints in its Eloquent
+  rehydration callback for `search`, `nearby`, and `nearbyWithQuery`.
+- Regression coverage: stale private/unpublished ids are rehydrated directly
+  and through the mocked discovery fallback/nearby page
+  (`PublicScheduleDiscoveryTest`), and through the Typesense callback after a
+  visibility/publication change (`EventSearchTypesenseFilterTest`).
+
+### O2 — Cross-owner SQL builders removed
+
+- `EventOrmPort::institutionUpcomingCountSubquery()` and
+  `institutionNextEventIdSubquery()` are replaced by
+  `institutionDirectoryEventColumns(): EventDirectorySqlProjection`.
+- `EventDirectorySqlProjection` and `EventDirectorySqlColumn` are readonly
+  values carrying SQL text and positional bindings.
+  `InstitutionDirectoryQuery` applies them with `selectRaw()` and the query
+  grammar's alias wrapping.
+- The institutions directory keeps the identical one-query correlated plan,
+  bindings and ordering; no mutable Eloquent/Query builder crosses the Events
+  boundary. The inventory records both old methods as `REPLACE_QUERY` and the
+  new surface as `SCALAR_ALREADY_SAFE`.
+
+### O3 — Checker PHPDoc parsing
+
+- `tools/architecture-check.php` now parses `@return` with the installed
+  `phpstan/phpdoc-parser`; the token regex remains only as a fallback for
+  malformed documents.
+- Nested `mixed`/`object` inside arrays/collections no longer mark a return
+  opaque; top-level `mixed`/`object` still do.
+- New fixtures cover spaced and unspaced `Collection<int, Order>` generics and
+  prove `orm-mutation-escape`. The checker remains bounded AST enforcement,
+  not a formal whole-program proof.
+
+### Verification
+
+| Gate | Result |
+|---|---|
+| `php tools/architecture-check.php` | 0 violations, 28 features |
+| `composer architecture:types` | 0 errors |
+| `vendor/bin/phpstan analyse` | 0 errors |
+| `vendor/bin/rector process --dry-run` | passed, 0 changes |
+| `vendor/bin/pint --dirty --format agent` | passed |
+| `ArchitectureBoundaryTest` | 78 passed, 312 assertions |
+| `PublicScheduleDiscoveryTest` / `EventSearchTypesenseFilterTest` / `InstitutionDirectoryQueryTest` | 29 passed, 117 assertions |
+| `InstitutionIndexTest` | 44 passed, 224 assertions |
+| `ReferenceFamilyTest` | 10 passed, 72 assertions |
+| Full GitHub Quality CI | pending final closeout SHA |
+
+Local-only exemptions, unchanged by this work: `EventSearchTest`'s registration
+group can hit the persistent local rate-limit cache when several tests share
+one process, and one Event show assertion expects the CI `APP_URL`
+(`https://ilmu360.test`) while the local `.env` points at another host. Neither
+is a code-path regression; CI provides the authoritative run.
 
 

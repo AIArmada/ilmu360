@@ -117,6 +117,12 @@ Deleted 11 `config/*.pre-majlisilmu-merge-20260511` backups plus
   fixtures. Model transport that remains is limited to typed
   Livewire/Filament rendering, policy/media identity and owner-executed
   directory projections.
+- The final independent audit (reviewed `0539b391`) closed its architecture
+  findings: search-derived event ids are revalidated against current
+  visibility/publication at both rehydration boundaries, the Institution
+  directory count/next-event builders were replaced by the readonly owner
+  `EventDirectorySqlProjection`, and the checker now parses PHPDoc returns with
+  `phpstan/phpdoc-parser`.
 
 
 ## Verification at this closeout

@@ -957,3 +957,24 @@ preserve behavior and avoid duplicate filtering or compatibility wrappers.
   parity, and full GitHub Quality on code SHA `6273517d`; all passed. Commit
   and push coherent slices to `refactor`; verify the documentation closeout
   SHA with `workflow_dispatch`. Never force-push.
+
+## ORM boundary final audit closeout (2026-11-21)
+
+Source: `ilmu360-orm-boundary-final-audit-2026-11-21.md`, reviewed at
+`0539b391bdc1434d3a4150e809cd90f1d9430dbf`.
+
+- [x] **O1 — revalidate current visibility at search rehydration:** apply
+  current status/visibility/publication and public-occurrence rules to
+  `scheduleFactsForEventIds()` and the Typesense Eloquent callback; cover stale
+  private/unpublished ids in list, nearby, and fallback paths.
+- [x] **O2 — remove the last cross-owner builders:** replace the two
+  `EventOrmPort` `selectSub` methods with the readonly
+  `EventDirectorySqlProjection`; preserve the one-query directory plan,
+  aliases, bindings, and ordering.
+- [x] **O3 — normalize checker PHPDoc parsing:** parse `@return` with
+  `phpstan/phpdoc-parser`, keep a malformed-document fallback, and add spaced
+  and unspaced `Collection<int, Order>` negative fixtures.
+- [x] Run architecture, PHPStan, Pint, Rector, and focused Pest; record the
+  evidence in `tasks/orm-boundary-refactor-progress.md`.
+- [ ] Push the validated code and closeout records to `refactor`, then verify
+  the exact final SHA with a full GitHub Quality run. Never force-push.

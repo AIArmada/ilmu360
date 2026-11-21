@@ -137,5 +137,7 @@ Detail: `tasks/post-refactor-audit-closeout.md`.
 | `EventOrmPort` query methods used by directory/dashboard consumers | ✅ typed; count/stats moved to owner reads; 29 methods removed/replaced |
 | Submitter candidate builders (`newInstitutionQuery`, …) | ✅ owner authoring candidate APIs |
 | Opaque `object`/`mixed` `Api/Orm` returns | ✅ zero |
-| Checker proves the seam | ✅ `orm-opaque-return`, `orm-query-escape`, negative fixtures |
-| Inventory | ✅ `tasks/orm-boundary-inventory.csv` (301 rows) |
+| Checker proves the seam | ✅ `orm-opaque-return`, `orm-query-escape`, PHPDoc-parser fixtures |
+| Cross-owner directory SQL subquery builders | ✅ readonly owner `EventDirectorySqlProjection`; no mutable builder |
+| Search-derived event ids revalidated against current DB state | ✅ Events + Typesense rehydration constraints; stale-id regressions |
+| Inventory | ✅ `tasks/orm-boundary-inventory.csv` (318 rows) |
