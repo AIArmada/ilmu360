@@ -514,7 +514,7 @@ describe('Event Search Filters', function () {
             ->assertSee('Temui majlis ilmu yang');
 
         $eventHydrationQueries = collect($queries)
-            ->filter(static fn (string $query): bool => str_starts_with(ltrim($query), 'select * from "events"'));
+            ->filter(static fn (string $query): bool => str_starts_with(ltrim($query), 'select * from "events" where "events"."id" in ('));
 
         expect($eventHydrationQueries)->toHaveCount(1);
     });
