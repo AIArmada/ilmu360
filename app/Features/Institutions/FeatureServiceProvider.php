@@ -56,8 +56,8 @@ use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
 use App\Platform\Media\MediaChangeListener;
 use App\Platform\Telemetry\SignalSchemaRegistry;
-use App\Shared\Contracts\AddressChangeEffects;
 use App\Shared\Contracts\AddressableChangeEffects;
+use App\Shared\Contracts\AddressChangeEffects;
 
 class FeatureServiceProvider extends FeatureModule
 {

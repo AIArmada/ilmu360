@@ -29,8 +29,8 @@ use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
-use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
+use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\User;
@@ -375,7 +375,7 @@ class EventNotificationService implements EventRegistrationNotifications, EventR
     public function registrationConfirmed(string $registrationId): void
     {
         $facts = $this->registrationConfirmationFacts->find($registrationId);
-        if ($facts === null) {
+        if (! $facts instanceof \App\Features\Registration\Api\Data\RegistrationConfirmationFacts) {
             return;
         }
 

@@ -2,8 +2,8 @@
 
 namespace App\Features\Discovery\EntryPoints\Http;
 
-use App\Http\Controllers\Controller;
 use App\Features\Discovery\Services\CatalogDispatcher;
+use App\Http\Controllers\Controller;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;

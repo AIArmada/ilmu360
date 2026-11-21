@@ -11,7 +11,6 @@ use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSubjectResolver;
 use App\Features\Reports\Api\ReportTriageContract;
 use App\Features\Reports\Contracts\ReportLifecycle;
-use App\Features\Reports\EntryPoints\Admin\AdminReportTriageService;
 use App\Features\Reports\EntryPoints\Admin\RecordActions\ReportRecordActionContributor;
 use App\Features\Reports\EntryPoints\Api\Admin\ReportResourceDefinition;
 use App\Features\Reports\EntryPoints\ApiDocumentation\ReportsRequestExampleContributor;

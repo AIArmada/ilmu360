@@ -715,7 +715,7 @@ it('falls back to database institution search when public query typesense fails'
 it('passes the public status filter to typesense institution search', function () {
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(TypesenseHealthCheckService::class, fn () => new class(app(\App\Shared\Contracts\SearchHealthProbe::class)) extends TypesenseHealthCheckService
+    $this->app->bind(TypesenseHealthCheckService::class, fn () => new class(app(App\Shared\Contracts\SearchHealthProbe::class)) extends TypesenseHealthCheckService
     {
         public function isAvailable(): bool
         {

@@ -88,7 +88,7 @@ it('discovers the feature manifest with its request table claim', function (): v
         ->and($catalog['owners']['table:contribution_requests'] ?? null)->toBe('Contributions')
         ->and($manifest)->toMatchArray(['schema' => 1, 'name' => 'Contributions'])
         ->and($manifest['owns']['table:contribution_requests'] ?? [])->toContain(ApproveContributionRequestAction::class)
-        ->and(array_keys($providers, \App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
+        ->and(array_keys($providers, App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(ContributionsServiceProvider::class);
 });
 

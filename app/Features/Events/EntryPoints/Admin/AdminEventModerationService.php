@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Admin;
 
-use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\AdminEventModeration;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
-use App\Shared\Auth\AccountActor;
 use App\Platform\Api\Admin\AdminResourceRegistry;
 use App\Platform\Api\Admin\Concerns\ProvidesWorkflowResponse;
+use App\Shared\Auth\AccountActor;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 

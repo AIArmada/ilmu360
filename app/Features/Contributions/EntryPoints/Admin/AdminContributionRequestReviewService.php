@@ -15,7 +15,7 @@ use App\Platform\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
-final readonly class AdminContributionRequestReviewService 
+final readonly class AdminContributionRequestReviewService
 {
     use ProvidesWorkflowResponse;
 

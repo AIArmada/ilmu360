@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Reports\Api;
 
-use App\Features\Reports\Api\ReportSnapshot;
-
 interface ReportAdminContract
 {
     /** @return list<array<string, mixed>> */

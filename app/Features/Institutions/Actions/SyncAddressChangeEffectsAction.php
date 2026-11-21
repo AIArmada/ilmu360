@@ -11,10 +11,10 @@ use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
-use App\Shared\Contracts\AddressChangeEffects;
 use App\Shared\Contracts\AddressableChangeEffects;
+use App\Shared\Contracts\AddressChangeEffects;
 
-final readonly class SyncAddressChangeEffectsAction implements AddressChangeEffects, AddressableChangeEffects
+final readonly class SyncAddressChangeEffectsAction implements AddressableChangeEffects, AddressChangeEffects
 {
     public function __construct(
         private EventAuthoring $eventAuthoring,
@@ -48,8 +48,8 @@ final readonly class SyncAddressChangeEffectsAction implements AddressChangeEffe
     }
 
     /**
-     * @param list<string> $eventIds
-     * @param array<string, mixed>|null $deletedAddress
+     * @param  list<string>  $eventIds
+     * @param  array<string, mixed>|null  $deletedAddress
      */
     public function syncAddressable(string $morphType, string $id, string $name, array $eventIds, ?array $deletedAddress = null): void
     {
@@ -77,5 +77,4 @@ final readonly class SyncAddressChangeEffectsAction implements AddressChangeEffe
                 break;
         }
     }
-
 }

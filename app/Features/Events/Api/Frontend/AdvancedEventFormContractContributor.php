@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Frontend;
 
+use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\Orm\EventCategoryCatalog;
 use App\Features\Events\Api\RegistrationScope;
 use App\Models\User;

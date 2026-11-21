@@ -28,7 +28,6 @@ final readonly class ManageContributionAccountAttributionAction
         $this->restoreLinks($accountId, 'reviewer_id', $this->stringIds($snapshot['reviewer_ids'] ?? []));
     }
 
-
     /**
      * @param  list<string>  $ids
      */

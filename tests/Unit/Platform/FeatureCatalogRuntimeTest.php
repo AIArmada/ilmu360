@@ -50,7 +50,7 @@ it('rejects contributor classes as declared state owners', function (): void {
         $project->feature('Engagement', ['table:bookmarks' => [$writer]]);
 
         expect(fn () => FeatureCatalog::scan($project->path))
-            ->toThrow(\RuntimeException::class, 'write classes must be under');
+            ->toThrow(RuntimeException::class, 'write classes must be under');
     } finally {
         FeatureCatalog::flushMemory();
         $project->remove();

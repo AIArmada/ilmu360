@@ -2,9 +2,9 @@
 
 namespace App\Features\Discovery\EntryPoints\Http;
 
+use App\Features\Discovery\Services\CatalogDispatcher;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Discovery\Services\CatalogDispatcher;
 use App\Platform\Http\FrontendController;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

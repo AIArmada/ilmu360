@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Signals\Models\SignalEvent;
+use App\Features\Identity\EntryPoints\Fortify\CreateNewUser;
 use App\Features\Identity\Models\SignupAttribution;
 use App\Features\ShareTracking\Api\SignupRecorder;
 use App\Models\User;
-use App\Features\Identity\EntryPoints\Fortify\CreateNewUser;
 use App\Shared\ShareTracking\ShareRequestContext;
 use Illuminate\Validation\ValidationException;
 

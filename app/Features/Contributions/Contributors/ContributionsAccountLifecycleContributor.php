@@ -61,5 +61,4 @@ final readonly class ContributionsAccountLifecycleContributor implements Account
             ->values()
             ->all();
     }
-
 }

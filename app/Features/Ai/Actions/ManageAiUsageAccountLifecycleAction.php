@@ -33,5 +33,4 @@ final readonly class ManageAiUsageAccountLifecycleAction
             $model->saveQuietly();
         }
     }
-
 }

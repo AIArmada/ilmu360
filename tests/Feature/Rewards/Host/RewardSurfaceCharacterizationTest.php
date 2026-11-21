@@ -96,7 +96,7 @@ it('discovers the Rewards feature with the digest-slot claim and registers its p
 
     $providers = require base_path('bootstrap/providers.php');
 
-    expect(array_keys($providers, \App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
+    expect(array_keys($providers, App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(RewardsFeatureServiceProvider::class)
         ->and(is_subclass_of(RewardsFeatureServiceProvider::class, FeatureModule::class))->toBeTrue();
 

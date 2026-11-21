@@ -14,8 +14,8 @@ interface AddressableChangeEffects
     public function bumpAffectedDirectoryVersions(array $morphTypes): void;
 
     /**
-     * @param list<string> $eventIds
-     * @param array<string, mixed>|null $deletedAddress
+     * @param  list<string>  $eventIds
+     * @param  array<string, mixed>|null  $deletedAddress
      */
     public function syncAddressable(
         string $morphType,

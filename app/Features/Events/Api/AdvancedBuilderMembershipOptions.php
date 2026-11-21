@@ -7,7 +7,6 @@ namespace App\Features\Events\Api;
 /**
  * Advanced program builder's owner-qualified organizer choices.
  * No model or membership-package collection escapes the Events boundary.
- *
  */
 interface AdvancedBuilderMembershipOptions
 {

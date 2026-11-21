@@ -64,7 +64,7 @@ it('claims the browser selection, source receipt, effect receipt, outcome correc
         ->and($catalog['owners'])->toHaveKey('table:share_source_attribution_receipts')
         ->and($catalog['owners']['table:share_source_attribution_receipts'])->toBe('ShareTracking')
         ->and(array_filter($catalog['owners'], static fn (string $owner): bool => $owner === 'ShareTracking'))->toHaveCount(8)
-        ->and(array_keys($providers, \App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
+        ->and(array_keys($providers, App\Platform\PlatformServiceProvider::class, true))->toHaveCount(1)
         ->and(app()->getLoadedProviders())->toHaveKey(ShareTrackingServiceProvider::class);
 });
 

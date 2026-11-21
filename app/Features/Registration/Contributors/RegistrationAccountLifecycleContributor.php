@@ -133,5 +133,4 @@ final readonly class RegistrationAccountLifecycleContributor implements AccountL
             'attendance_logs' => $checkinIds === [] ? 0 : EventAttendanceLog::query()->whereIn('event_attendance_id', $checkinIds)->count(),
         ];
     }
-
 }
