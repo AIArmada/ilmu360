@@ -4,7 +4,7 @@ use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
-use App\Features\Events\Api\Orm\EventMedia;
+use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\EventMediaService;
 use App\Features\Institutions\Models\Institution;
@@ -70,7 +70,12 @@ it('applies staged single and gallery media with the exact platform chain', func
         'is_single' => false,
     ]);
 
-    app(EventMedia::class)->applyStagedMedia($event, $request->getMedia('pending_media'));
+    app(EventMedia::class)->applyStagedMedia(
+        (string) $event->getKey(),
+        $request->getMorphClass(),
+        (string) $request->getKey(),
+        $request->getMedia('pending_media')->map(fn (Media $media): string => (string) $media->getKey())->all(),
+    );
 
     $event->refresh();
     $appliedCover = $event->getFirstMedia('cover');
@@ -128,9 +133,43 @@ it('delegates staged donation QR media to the DonationChannels boundary and disc
             ->andReturnUsing(fn (HasMedia $entity, Media $media) => $donationMedia->attachStagedDonationQr($entity, $media));
     });
 
-    app(EventMedia::class)->applyStagedMedia($event, [$staged]);
+    app(EventMedia::class)->applyStagedMedia(
+        (string) $event->getKey(),
+        $request->getMorphClass(),
+        (string) $request->getKey(),
+        [(string) $staged->getKey()],
+    );
 
     expect($event->refresh()->getMedia('donation_qr'))->toBeEmpty()
         ->and(Media::query()->whereKey($staged->getKey())->exists())->toBeFalse()
         ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
+});
+
+it('rejects media staged by a different contribution request', function (): void {
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $event = Event::factory()->for($institution)->create();
+    $first = ContributionRequest::factory()->create([
+        'status' => ContributionRequestStatus::Pending,
+        'subject_type' => ContributionSubjectType::Event,
+        'entity_type' => $event->getMorphClass(),
+        'entity_id' => $event->getKey(),
+        'proposed_data' => [],
+    ]);
+    $second = ContributionRequest::factory()->create([
+        'status' => ContributionRequestStatus::Pending,
+        'subject_type' => ContributionSubjectType::Event,
+        'entity_type' => $event->getMorphClass(),
+        'entity_id' => $event->getKey(),
+        'proposed_data' => [],
+    ]);
+    $file = stageEventMedia($first, 'foreign-cover.jpg', ['contribution_field' => 'cover']);
+
+    expect(fn () => app(EventMedia::class)->applyStagedMedia(
+        (string) $event->getKey(),
+        $second->getMorphClass(),
+        (string) $second->getKey(),
+        [(string) $file->getKey()],
+    ))->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+    expect(Media::query()->whereKey($file->getKey())->exists())->toBeTrue();
 });

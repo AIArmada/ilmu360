@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
-use App\Features\Events\Api\Orm\EventMedia;
+use App\Features\Events\Api\EventMedia;
 use App\Platform\Media\MediaCollectionSync;
+use App\Features\Events\Models\Event;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -23,11 +25,33 @@ final readonly class EventMediaService implements EventMedia
         private DonationQrMedia $donationQrMedia,
     ) {}
 
-    public function applyStagedMedia(HasMedia $event, iterable $stagedMedia): void
+    public function applyStagedMedia(string $eventId, string $requestMorphType, string $requestId, array $stagedMediaIds): void
     {
+        $event = Event::query()->findOrFail($eventId);
+
+        $stagedMediaIds = array_values(array_unique($stagedMediaIds));
+
+        if ($stagedMediaIds === []) {
+            return;
+        }
+
+        $staged = Media::query()
+            ->where('model_type', $requestMorphType)
+            ->where('model_id', $requestId)
+            ->where('collection_name', 'pending_media')
+            ->whereKey($stagedMediaIds)
+            ->get()
+            ->keyBy(fn (Media $media): string => (string) $media->getKey());
+
+        if ($staged->count() !== count($stagedMediaIds)) {
+            throw (new ModelNotFoundException)->setModel(Media::class, $stagedMediaIds);
+        }
+
+        $ordered = array_map(fn (string $mediaId): Media => $staged->get($mediaId), $stagedMediaIds);
+
         $this->mediaCollectionSync->applyStagedMedia(
             $event,
-            $stagedMedia,
+            $ordered,
             fn (Media $media): bool => $this->applySpecialStagedMedia($event, $media),
         );
     }

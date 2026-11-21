@@ -13,7 +13,7 @@ use App\Features\Contributions\Support\ContributionRequestNotifier;
 use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventModeration;
-use App\Features\Events\Api\Orm\EventMedia;
+use App\Features\Events\Api\EventMedia;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;
@@ -368,7 +368,12 @@ class ApproveContributionRequestAction
         }
 
         if (ContributionModel::isEvent($entity)) {
-            $this->eventMedia->applyStagedMedia(ContributionModel::assert($entity, 'event'), $staged);
+            $this->eventMedia->applyStagedMedia(
+                (string) $entity->getKey(),
+                $request->getMorphClass(),
+                (string) $request->getKey(),
+                $staged->map(fn (Media $media): string => (string) $media->getKey())->all(),
+            );
 
             return;
         }

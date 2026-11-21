@@ -78,7 +78,7 @@ use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\OrganizerLookup;
 use App\Features\Events\Api\EventContributionStateMapper;
-use App\Features\Events\Api\Orm\EventMedia;
+use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Api\Orm\EventSubmissions;
