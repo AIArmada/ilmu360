@@ -494,10 +494,13 @@ describe('Event Search Filters', function () {
 
     it('reuses the computed event paginator when resolving saved event ids', function () {
         config()->set('cache.default', 'array');
+        config()->set('location.geoip.enabled', false);
+        config()->set('location.default_country_code', '');
         app('cache')->setDefaultDriver('array');
         Cache::flush();
 
         Event::factory()->create([
+            'title' => 'Event Paginator Cache Regression',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -511,7 +514,8 @@ describe('Event Search Filters', function () {
 
         Livewire::actingAs(User::factory()->create())
             ->test(Index::class)
-            ->assertSee('Temui majlis ilmu yang');
+            ->assertSee('Temui majlis ilmu yang')
+            ->assertSee('Event Paginator Cache Regression');
 
         $eventHydrationQueries = collect($queries)
             ->filter(static fn (string $query): bool => str_starts_with(ltrim($query), 'select * from "events" where "events"."id" in ('));
