@@ -7,9 +7,10 @@ namespace App\Features\ShareTracking\Services;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
-use App\Features\ShareTracking\Api\Orm\ShareTrackingAnalytics;
+use App\Features\ShareTracking\Api\ShareTrackingAnalytics;
 use App\Features\ShareTracking\Services\Analytics\AffiliatesShareTrackingAnalyticsService;
 use App\Models\User;
+use App\Shared\Auth\AccountActor;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
@@ -31,8 +32,12 @@ final readonly class ShareTrackingAnalyticsService implements ShareTrackingAnaly
      *     total_outcomes: int
      * }
      */
-    public function summaryForUser(User $user): array
+    public function summaryForAccount(AccountActor $account): array
     {
+        $user = $account instanceof User
+            ? $account
+            : User::query()->findOrFail($account->actorId());
+
         return $this->affiliates->summaryForUser($user);
     }
 
