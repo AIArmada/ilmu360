@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 1,
   "name": "Registration",
   "owns": {
     "table:event_registrations": [
