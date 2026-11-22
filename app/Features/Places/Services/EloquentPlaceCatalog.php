@@ -6,11 +6,13 @@ namespace App\Features\Places\Services;
 
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceEligibility;
+use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
+use App\Platform\Models\SlugOrUuidResolver;
 
 final readonly class EloquentPlaceCatalog implements PlaceCatalog
 {
-    public function __construct(private SpaceEligibility $spaceEligibilityResolver) {}
+    public function __construct(private SpaceEligibility $spaceEligibilityResolver, private SlugOrUuidResolver $resolver) {}
 
     public function venues(?string $search = null, int $limit = 50): array
     {
@@ -43,6 +45,92 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
         return collect($options)
             ->map(static fn (string $label, string $id): array => ['id' => $id, 'label' => $label])
             ->values()
+            ->all();
+    }
+
+    public function resolveVenueIdentifier(string $identifier): ?string
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+        $venue = $this->resolver->first(Venue::query(), 'venues.slug', $identifier);
+
+        return $venue instanceof Venue ? (string) $venue->getKey() : null;
+    }
+
+    public function resolveSpaceIdentifier(string $identifier): ?string
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+        $space = $this->resolver->first(Space::query(), 'venue_spaces.slug', $identifier);
+
+        return $space instanceof Space ? (string) $space->getKey() : null;
+    }
+
+    public function venueName(string $venueId): ?string
+    {
+        $name = Venue::query()->whereKey($venueId)->value('name');
+
+        return is_string($name) ? $name : null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function venueNameOptions(string $search = '', int $limit = 50): array
+    {
+        $query = Venue::query();
+        $normalizedSearch = trim($search);
+
+        if ($normalizedSearch !== '') {
+            $query->where('name', 'like', '%'.$normalizedSearch.'%');
+        }
+
+        return $query
+            ->orderBy('name')
+            ->limit(max(1, $limit))
+            ->pluck('name', 'id')
+            ->mapWithKeys(static fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $statuses
+     * @return array<string, string>
+     */
+    public function venueOptionsForStatuses(array $statuses, ?int $limit = null): array
+    {
+        $query = Venue::query()
+            ->whereIn('status', $statuses)
+            ->orderBy('name');
+
+        if ($limit !== null) {
+            $query->limit(max(1, $limit));
+        }
+
+        return $query
+            ->pluck('name', 'id')
+            ->mapWithKeys(static fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $venueIds
+     * @return array<string, string>
+     */
+    public function venueNamesByIds(array $venueIds): array
+    {
+        if ($venueIds === []) {
+            return [];
+        }
+
+        return Venue::query()
+            ->whereKey($venueIds)
+            ->pluck('name', 'id')
+            ->mapWithKeys(static fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
             ->all();
     }
 
