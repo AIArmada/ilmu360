@@ -2531,6 +2531,10 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         });
     }
 
+    /**
+     * @param list<string> $referenceIds
+     * @param array<int|string, mixed> $venueEagerLoads
+     */
     public function referenceEventsQuery(array $referenceIds, array $venueEagerLoads): EventBuilder
     {
         return Event::query()

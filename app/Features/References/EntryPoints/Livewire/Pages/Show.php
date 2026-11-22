@@ -253,7 +253,6 @@ class Show extends Component
 
         $range = $this->upcomingDateRange();
 
-        /** @var array{upcoming: list<PublicScheduleRenderedCard>, past: list<PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
         $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
         $data = app(EventSchedulePageData::class)->forReferenceFamily(
             referenceIds: $referenceIds,
@@ -261,8 +260,8 @@ class Show extends Component
             pastLimit: $this->pastPerPage,
             rangeFrom: $range['from'] ?? null,
             rangeTo: $range['to'] ?? null,
-            savedEventIds: $this->savedEventIds,
-            goingEventIds: $this->goingEventIds,
+            savedEventIds: $this->savedEventIds(),
+            goingEventIds: $this->goingEventIds(),
         );
 
         return $this->schedulePageData = $data;

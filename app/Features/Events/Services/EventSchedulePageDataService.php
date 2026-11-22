@@ -33,10 +33,10 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     public function __construct(private PublicScheduleDiscoveryService $schedule, private PostgresEventDiscovery $events) {}
 
     /**
-     * Reference family schedule selection is owned entirely by Events:
-     * no Eloquent builder, model query or relation callback crosses into References.
+     * Institution schedule composition stays inside the Events owner.
      *
-     * @param  list<string>  $referenceIds
+     * @param list<string> $savedEventIds
+     * @param list<string> $goingEventIds
      */
     public function forInstitution(
         string $institutionId,
@@ -257,6 +257,10 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             ->addSelect("{$statesTable}.name as hierarchy_state_name");
     }
 
+    /**
+     * @param (callable(Collection<int, PublicScheduleLeaf>): Collection<int, PublicScheduleLeaf>)|null $filterLeaves
+     * @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     */
     private function forQuery(
         EventBuilder $baseQuery,
         int $upcomingLimit,

@@ -280,8 +280,8 @@ class Show extends Component
             $this->pastPerPage,
             $range['from'] ?? null,
             $range['to'] ?? null,
-            savedEventIds: $this->savedEventIds,
-            goingEventIds: $this->goingEventIds,
+            savedEventIds: $this->savedEventIds(),
+            goingEventIds: $this->goingEventIds(),
         );
 
         return $this->schedulePageData = $data;

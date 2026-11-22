@@ -62,14 +62,9 @@ class Show extends Component
     public bool $isFollowing = false;
 
     /**
-     * @var array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, other: Collection<int, EventKeyPerson>}|null
+     * @var array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, other: Collection<int, EventKeyPerson>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}|null
      */
     private ?array $eventPageData = null;
-
-    /**
-     * @var array{upcoming: int, past: int, upcoming_overall: int, past_overall: int}|null
-     */
-    private ?array $eventTotals = null;
 
     public function boot(): void
     {
@@ -195,7 +190,6 @@ class Show extends Component
     {
         $this->upcomingPerPage = 10;
         $this->eventPageData = null;
-        $this->eventTotals = null;
     }
 
     public function updatedUpcomingDateFilter(): void
@@ -246,12 +240,12 @@ class Show extends Component
 
     public function getUpcomingTotalProperty(): int
     {
-        return $this->eventTotals()['upcoming'];
+        return $this->eventPageData()['upcoming_total'];
     }
 
     public function getUpcomingOverallTotalProperty(): int
     {
-        return $this->eventTotals()['upcoming_overall'];
+        return $this->eventPageData()['upcoming_overall_total'];
     }
 
     /**
@@ -264,12 +258,12 @@ class Show extends Component
 
     public function getPastTotalProperty(): int
     {
-        return $this->eventTotals()['past'];
+        return $this->eventPageData()['past_total'];
     }
 
     public function getPastOverallTotalProperty(): int
     {
-        return $this->eventTotals()['past_overall'];
+        return $this->eventPageData()['past_overall_total'];
     }
 
     /**
@@ -298,7 +292,7 @@ class Show extends Component
     }
 
     /**
-     * @return array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, other: Collection<int, EventKeyPerson>}
+     * @return array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, other: Collection<int, EventKeyPerson>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function eventPageData(): array
     {
@@ -313,16 +307,10 @@ class Show extends Component
             pastLimit: $this->pastPerPage,
             rangeFrom: $range['from'] ?? null,
             rangeTo: $range['to'] ?? null,
-            savedEventIds: $this->savedEventIds,
-            goingEventIds: $this->goingEventIds,
+            savedEventIds: $this->savedEventIds(),
+            goingEventIds: $this->goingEventIds(),
         );
 
-        $this->eventTotals = [
-            'upcoming' => $schedule['upcoming_total'],
-            'past' => $schedule['past_total'],
-            'upcoming_overall' => $schedule['upcoming_overall_total'],
-            'past_overall' => $schedule['past_overall_total'],
-        ];
         $upcoming = collect($schedule['upcoming']);
         $past = collect($schedule['past']);
 
@@ -389,6 +377,10 @@ class Show extends Component
             'upcoming' => $upcoming,
             'past' => $past,
             'other' => $other,
+            'upcoming_total' => $schedule['upcoming_total'],
+            'past_total' => $schedule['past_total'],
+            'upcoming_overall_total' => $schedule['upcoming_overall_total'],
+            'past_overall_total' => $schedule['past_overall_total'],
         ];
     }
 

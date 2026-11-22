@@ -159,6 +159,7 @@ final readonly class PublicScheduleDiscoveryService
         return $this->hydrateLeaves($selected);
     }
 
+    /** @param iterable<int, EventSession> $sessions */
     public function leafFor(Event $event, EventOccurrence $occurrence, iterable $sessions = []): PublicScheduleLeafValue
     {
         $sessionModels = [];
