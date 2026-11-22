@@ -6,7 +6,7 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
@@ -36,7 +36,7 @@ class Occurrence extends Show
 
     public function mount(Event $event, string $occurrenceSlug = ''): void
     {
-        $discovery = app(PublicScheduleOrmPort::class);
+        $discovery = app(PublicScheduleDiscoveryService::class);
 
         // Load the public schedule set first with counts attached, so the
         // slug resolver below reuses the loaded relation instead of issuing

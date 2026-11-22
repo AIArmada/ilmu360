@@ -13,8 +13,8 @@ use AIArmada\Events\Models\EventTerm;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
-use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
-use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Support\PublicScheduleLeaf;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\EventSaveCommands;
@@ -330,7 +330,7 @@ class Index extends Component implements HasForms
     /** @var LengthAwarePaginator<int, Event>|null */
     private ?LengthAwarePaginator $eventsForRequest = null;
 
-    /** @var LengthAwarePaginator<int, PublicScheduleModelLeaf>|null */
+    /** @var LengthAwarePaginator<int, PublicScheduleLeaf>|null */
     private ?LengthAwarePaginator $scheduleItemsForRequest = null;
 
     public function boot(): void
@@ -1053,7 +1053,7 @@ class Index extends Component implements HasForms
         $eventIds = [];
 
         foreach ($this->scheduleItems()->items() as $scheduleLeaf) {
-            if ($scheduleLeaf instanceof PublicScheduleModelLeaf) {
+            if ($scheduleLeaf instanceof PublicScheduleLeaf) {
                 $eventIds[] = $scheduleLeaf->eventId();
             }
         }
@@ -1601,7 +1601,7 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return LengthAwarePaginator<int, PublicScheduleModelLeaf>
+     * @return LengthAwarePaginator<int, PublicScheduleLeaf>
      */
     #[Computed]
     public function scheduleItems(): LengthAwarePaginator
@@ -1617,7 +1617,7 @@ class Index extends Component implements HasForms
         $filters = $this->normalizedUrlState();
         $searchFilters = $this->buildSearchFilters($filters);
 
-        $discovery = app(PublicScheduleOrmPort::class);
+        $discovery = app(PublicScheduleDiscoveryService::class);
 
         return $this->scheduleItemsForRequest = $discovery->search(
             query: $filters['search'],
@@ -1771,7 +1771,7 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return LengthAwarePaginator<int, PublicScheduleModelLeaf>
+     * @return LengthAwarePaginator<int, PublicScheduleLeaf>
      */
     private function emptySchedulePaginator(): LengthAwarePaginator
     {

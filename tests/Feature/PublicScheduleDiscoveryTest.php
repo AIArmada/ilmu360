@@ -6,7 +6,7 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventReference;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
-use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
+use App\Features\Events\Support\PublicScheduleLeaf;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\TimingMode;
@@ -144,7 +144,7 @@ it('filters immutable schedule facts before hydrating the selected page leaves',
         ->and(new ReflectionClass(EventScheduleFact::class)->isReadOnly())->toBeTrue()
         ->and($eventFacts->first()->sessionIds)->toBe([(string) $session->getKey()])
         ->and($page->total())->toBe(1)
-        ->and($leaf)->toBeInstanceOf(PublicScheduleModelLeaf::class)
+        ->and($leaf)->toBeInstanceOf(PublicScheduleLeaf::class)
         ->and($leaf->event()->getKey())->toBe($event->getKey())
         ->and($leaf->occurrence()->getKey())->toBe($publicOccurrence->getKey());
 });

@@ -10,8 +10,7 @@ use AIArmada\Events\Models\EventSession;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
-use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
-use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
@@ -32,7 +31,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 
-final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrmPort
+final readonly class PublicScheduleDiscoveryService 
 {
     public function __construct(
         private PostgresEventDiscovery $scheduleEvents,
@@ -45,7 +44,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, PublicScheduleModelLeaf>
+     * @return LengthAwarePaginator<int, PublicScheduleLeafValue>
      */
     public function search(
         ?string $query = null,
@@ -121,7 +120,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         return $this->paginateFacts($leaves, $perPage);
     }
 
-    /** @return Collection<int, PublicScheduleModelLeaf> */
+    /** @return Collection<int, PublicScheduleLeafValue> */
     public function homepageSelection(?string $accountId): Collection
     {
         $personIds = $accountId !== null ? $this->subjectFollows->followedSubjectIds($accountId, EngagementSubjectType::Person) : [];
@@ -161,7 +160,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
         return $this->hydrateLeaves($selected);
     }
 
-    public function leafFor(Event $event, EventOccurrence $occurrence, iterable $sessions = []): PublicScheduleModelLeaf
+    public function leafFor(Event $event, EventOccurrence $occurrence, iterable $sessions = []): PublicScheduleLeafValue
     {
         $sessionModels = [];
 
@@ -176,7 +175,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
 
     /**
      * @param  list<string>  $eventIds
-     * @return Collection<int, PublicScheduleModelLeaf>
+     * @return Collection<int, PublicScheduleLeafValue>
      */
     public function leavesForEventIds(array $eventIds): Collection
     {
@@ -458,7 +457,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
 
     /**
      * @param  Collection<int, EventScheduleFact>  $facts
-     * @return LengthAwarePaginator<int, PublicScheduleModelLeaf>
+     * @return LengthAwarePaginator<int, PublicScheduleLeafValue>
      */
     private function paginateFacts(Collection $facts, int $perPage): LengthAwarePaginator
     {
@@ -483,7 +482,7 @@ final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrm
      * Hydrate only facts selected for a page or explicit model-bound section.
      *
      * @param  Collection<int, EventScheduleFact>  $facts
-     * @return Collection<int, PublicScheduleModelLeaf>
+     * @return Collection<int, PublicScheduleLeafValue>
      */
     private function hydrateLeaves(Collection $facts, bool $withOccurrenceReferences = false): Collection
     {

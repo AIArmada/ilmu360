@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
 /**
  * One public majlis: an occurrence with its meaningful sessions attached.
  */
-final readonly class PublicScheduleLeaf implements \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf
+final readonly class PublicScheduleLeaf implements \App\Features\Discovery\Api\PublicScheduleLeaf
 {
     /**
      * @param  Collection<int, EventSession>  $sessions
@@ -80,7 +80,7 @@ final readonly class PublicScheduleLeaf implements \App\Features\Discovery\Api\O
     /**
      * @param  list<string>  $sessionIds
      */
-    public function withSessions(array $sessionIds): \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf
+    public function withSessions(array $sessionIds): self
     {
         $wanted = array_flip($sessionIds);
 

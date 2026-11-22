@@ -6,8 +6,8 @@ namespace App\Features\Events\Services;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
-use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
-use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Support\PublicScheduleLeaf;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Events\Models\Builders\EventBuilder;
@@ -31,7 +31,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
 {
     use JoinsHierarchyAreaName;
 
-    public function __construct(private PublicScheduleOrmPort $schedule, private PostgresEventDiscovery $events) {}
+    public function __construct(private PublicScheduleDiscoveryService $schedule, private PostgresEventDiscovery $events) {}
 
     /**
      * Reference family schedule selection is owned entirely by Events:
@@ -90,7 +90,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             ->values()->all();
 
         $leaves = $this->schedule->leavesForEventIds($eventIds)
-            ->map(fn (PublicScheduleModelLeaf $leaf): ?PublicScheduleModelLeaf => $this->speakerLeafFor($leaf, $personId))
+            ->map(fn (PublicScheduleLeaf $leaf): ?PublicScheduleLeaf => $this->speakerLeafFor($leaf, $personId))
             ->filter()
             ->values();
 
@@ -101,7 +101,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         );
     }
 
-    private function speakerLeafFor(PublicScheduleModelLeaf $leaf, string $personId): ?PublicScheduleModelLeaf
+    private function speakerLeafFor(PublicScheduleLeaf $leaf, string $personId): ?PublicScheduleLeaf
     {
         $event = $leaf->event();
         $event->loadMissing('involvements');
@@ -158,7 +158,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     /**
      * Server-render inside Events so no mutable models cross feature boundaries.
      *
-     * @param array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $page
+     * @param array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $page
      * @param list<string> $savedEventIds
      * @param list<string> $goingEventIds
      * @return array{upcoming: list<PublicScheduleRenderedCard>, past: list<PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
@@ -172,7 +172,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         string $signalComponent,
         string $testIdPrefix,
     ): array {
-        $render = static function (PublicScheduleModelLeaf $leaf, string $section) use (
+        $render = static function (PublicScheduleLeaf $leaf, string $section) use (
             $savedEventIds, $goingEventIds, $hideLocation, $hideReference, $signalComponent, $testIdPrefix,
         ): PublicScheduleRenderedCard {
             $eventId = $leaf->eventId();
@@ -197,15 +197,15 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
 
         return [
             ...$page,
-            'upcoming' => $page['upcoming']->map(static fn (PublicScheduleModelLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'upcoming'))->values()->all(),
-            'past' => $page['past']->map(static fn (PublicScheduleModelLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'past'))->values()->all(),
+            'upcoming' => $page['upcoming']->map(static fn (PublicScheduleLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'upcoming'))->values()->all(),
+            'past' => $page['past']->map(static fn (PublicScheduleLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'past'))->values()->all(),
         ];
     }
 
     /**
-     * @param Collection<int, PublicScheduleModelLeaf> $leaves
+     * @param Collection<int, PublicScheduleLeaf> $leaves
      * @param list<string> $referenceIds
-     * @return Collection<int, PublicScheduleModelLeaf>
+     * @return Collection<int, PublicScheduleLeaf>
      */
     private function filterReferenceLeaves(Collection $leaves, array $referenceIds): Collection
     {
@@ -213,7 +213,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         $referenceMorphType = (new $referenceClass)->getMorphClass();
 
         return $leaves
-            ->map(static function (PublicScheduleModelLeaf $leaf) use ($referenceIds, $referenceMorphType): ?PublicScheduleModelLeaf {
+            ->map(static function (PublicScheduleLeaf $leaf) use ($referenceIds, $referenceMorphType): ?PublicScheduleLeaf {
                 $event = $leaf->event();
                 $occurrence = $leaf->occurrence();
 
@@ -276,9 +276,9 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     }
 
     /**
-     * @param Collection<int, PublicScheduleModelLeaf> $leaves
-     * @param (callable(Collection<int, PublicScheduleModelLeaf>): Collection<int, PublicScheduleModelLeaf>)|null $filterLeaves
-     * @return array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     * @param Collection<int, PublicScheduleLeaf> $leaves
+     * @param (callable(Collection<int, PublicScheduleLeaf>): Collection<int, PublicScheduleLeaf>)|null $filterLeaves
+     * @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function splitLeaves(
         Collection $leaves,
@@ -293,14 +293,14 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         }
 
         $now = now();
-        $endInstant = static fn (PublicScheduleModelLeaf $leaf): ?CarbonInterface => $leaf->endsAt() ?? $leaf->startsAt();
+        $endInstant = static fn (PublicScheduleLeaf $leaf): ?CarbonInterface => $leaf->endsAt() ?? $leaf->startsAt();
 
         $upcomingOverall = $leaves
-            ->filter(fn (PublicScheduleModelLeaf $leaf): bool => ($endInstant($leaf)?->greaterThanOrEqualTo($now)) ?? false)
+            ->filter(fn (PublicScheduleLeaf $leaf): bool => ($endInstant($leaf)?->greaterThanOrEqualTo($now)) ?? false)
             ->values();
 
         $upcoming = $upcomingOverall
-            ->filter(static function (PublicScheduleModelLeaf $leaf) use ($rangeFrom, $rangeTo): bool {
+            ->filter(static function (PublicScheduleLeaf $leaf) use ($rangeFrom, $rangeTo): bool {
                 if (! $rangeFrom instanceof CarbonInterface || ! $rangeTo instanceof CarbonInterface) {
                     return true;
                 }
@@ -314,7 +314,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             ->values();
 
         $past = $leaves
-            ->filter(fn (PublicScheduleModelLeaf $leaf): bool => ($endInstant($leaf)?->lessThan($now)) ?? false)
+            ->filter(fn (PublicScheduleLeaf $leaf): bool => ($endInstant($leaf)?->lessThan($now)) ?? false)
             ->reverse()
             ->values();
 

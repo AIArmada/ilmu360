@@ -19,7 +19,6 @@ use AIArmada\FilamentEvents\Resources\EventTaxonomyResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTermResource;
 use AIArmada\Organizations\Models\Organization;
-use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Events\Actions\Authoring\CreateEventWithInitialOccurrenceAction;
 use App\Features\Events\Actions\Authoring\CreateEventWithRegistrationAction;
 use App\Features\Events\Actions\Authoring\PrepareAdvancedParentProgramSubmissionAction;
@@ -310,7 +309,6 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventEngagementEligibility::class, EventEngagementEligibilityService::class);
         $this->app->bind(EventSchedulePageData::class, EventSchedulePageDataService::class);
         $this->app->bind(EventPageSchedule::class, EventPageScheduleService::class);
-        $this->app->bind(PublicScheduleOrmPort::class, Services\PublicScheduleDiscoveryService::class);
         $this->app->bind(InstitutionEventTable::class, EntryPoints\Filament\Support\InstitutionEventTableBuilder::class);
         $this->app->bind(EventCollections::class, EloquentEventCollections::class);
         $this->app->bind(AdminEventSearch::class, McpEventSearchService::class);

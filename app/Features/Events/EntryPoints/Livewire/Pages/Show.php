@@ -10,8 +10,8 @@ use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistration;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
-use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Support\PublicScheduleLeaf;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventGoingCommands;
 use App\Features\Engagement\Api\EventSaveCommands;
@@ -59,8 +59,8 @@ use Livewire\Component;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
- * @property-read Collection<int, PublicScheduleModelLeaf> $scheduleLeaves
- * @property-read Collection<int, PublicScheduleModelLeaf> $siblingScheduleLeaves
+ * @property-read Collection<int, PublicScheduleLeaf> $scheduleLeaves
+ * @property-read Collection<int, PublicScheduleLeaf> $siblingScheduleLeaves
  */
 #[Layout('layouts.app')]
 #[Title('Event Details')]
@@ -710,7 +710,7 @@ class Show extends Component
      * Every public date on the event, shaped as the same schedule cards used
      * by the public directory.
      *
-     * @return Collection<int, PublicScheduleModelLeaf>
+     * @return Collection<int, PublicScheduleLeaf>
      */
     #[Computed]
     public function scheduleLeaves(): Collection
@@ -733,10 +733,10 @@ class Show extends Component
             $venue->loadMissing('addresses.areaAssignments.area');
         }
 
-        $reader = app(PublicScheduleOrmPort::class);
+        $reader = app(PublicScheduleDiscoveryService::class);
 
         return $occurrences
-            ->map(fn (EventOccurrence $occurrence): PublicScheduleModelLeaf => $reader->leafFor(
+            ->map(fn (EventOccurrence $occurrence): PublicScheduleLeaf => $reader->leafFor(
                 $this->event,
                 $occurrence,
                 $occurrence->sessions
@@ -749,7 +749,7 @@ class Show extends Component
     /**
      * Other public dates of the selected occurrence's own event.
      *
-     * @return Collection<int, PublicScheduleModelLeaf>
+     * @return Collection<int, PublicScheduleLeaf>
      */
     #[Computed]
     public function siblingScheduleLeaves(): Collection
@@ -761,7 +761,7 @@ class Show extends Component
         }
 
         return $this->scheduleLeaves
-            ->reject(fn (PublicScheduleModelLeaf $leaf): bool => $leaf->id() === (string) $selected->getKey())
+            ->reject(fn (PublicScheduleLeaf $leaf): bool => $leaf->id() === (string) $selected->getKey())
             ->take(6)
             ->values();
     }

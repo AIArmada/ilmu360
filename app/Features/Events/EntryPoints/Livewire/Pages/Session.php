@@ -7,7 +7,7 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
-use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Events\Queries\PublicScheduleDetailResolver;
@@ -67,7 +67,7 @@ class Session extends Occurrence
             // The selected session's own locations load after the first
             // hydration pass, so their venues need the same application-side
             // hydration as the rest of the schedule graph.
-            app(PublicScheduleOrmPort::class)->hydrateOccurrencePageVenues($this->event);
+            app(PublicScheduleDiscoveryService::class)->hydrateOccurrencePageVenues($this->event);
         });
 
         $this->session = $session;
