@@ -50,7 +50,7 @@ class Show extends Component
     public bool $showCustomDateRange = false;
 
     /**
-     * @var array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}|null
+     * @var array{upcoming: list<PublicScheduleRenderedCard>, past: list<PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}|null
      */
     private ?array $schedulePageData = null;
 
@@ -221,7 +221,7 @@ class Show extends Component
      */
     public function getUpcomingEventsProperty(): Collection
     {
-        return $this->schedulePageData()['upcoming'];
+        return collect($this->schedulePageData()['upcoming']);
     }
 
     public function getUpcomingTotalProperty(): int
@@ -234,7 +234,7 @@ class Show extends Component
      */
     public function getPastEventsProperty(): Collection
     {
-        return $this->schedulePageData()['past'];
+        return collect($this->schedulePageData()['past']);
     }
 
     public function getPastTotalProperty(): int
@@ -263,7 +263,7 @@ class Show extends Component
     }
 
     /**
-     * @return array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     * @return array{upcoming: list<PublicScheduleRenderedCard>, past: list<PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function schedulePageData(): array
     {
@@ -273,7 +273,7 @@ class Show extends Component
 
         $range = $this->upcomingDateRange();
 
-        /** @var array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
+        /** @var array{upcoming: list<PublicScheduleRenderedCard>, past: list<PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
         $data = app(EventSchedulePageData::class)->forInstitution(
             (string) $this->institution->getKey(),
             $this->upcomingPerPage,

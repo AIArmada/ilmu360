@@ -90,7 +90,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
      * @param array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $page
      * @param list<string> $savedEventIds
      * @param list<string> $goingEventIds
-     * @return array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     * @return array{upcoming: list<PublicScheduleRenderedCard>, past: list<PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function renderSchedulePage(
         array $page,
@@ -126,8 +126,8 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
 
         return [
             ...$page,
-            'upcoming' => $page['upcoming']->map(static fn (PublicScheduleModelLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'upcoming')),
-            'past' => $page['past']->map(static fn (PublicScheduleModelLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'past')),
+            'upcoming' => $page['upcoming']->map(static fn (PublicScheduleModelLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'upcoming'))->values()->all(),
+            'past' => $page['past']->map(static fn (PublicScheduleModelLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'past'))->values()->all(),
         ];
     }
 
