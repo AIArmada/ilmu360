@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Queries;
 
+use App\Features\Registration\Api\Data\CheckInSnapshot;
 use App\Features\Registration\Api\Data\CheckInSourceFacts;
 use App\Features\Registration\Api\Data\EventCheckInFacts;
 use App\Features\Registration\Api\Data\EventRegistrationData;
-use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Api\Data\RegistrationSnapshot;
-use App\Features\Registration\Api\Data\CheckInSnapshot;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
@@ -234,7 +234,7 @@ final readonly class DatabaseRegistrationLookup implements RegistrationLookup, R
     }
 
     /** @param list<string> $registrationIds
-     *  @return list<RegistrationSnapshot>
+     * @return list<RegistrationSnapshot>
      */
     public function plannerRegistrationsForIds(array $registrationIds): array
     {

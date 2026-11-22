@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Api;
 
+use App\Features\Registration\Api\Data\CheckInSnapshot;
 use App\Features\Registration\Api\Data\CheckInSourceFacts;
 use App\Features\Registration\Api\Data\EventCheckInFacts;
 use App\Features\Registration\Api\Data\EventRegistrationData;
-use App\Features\Registration\Api\Data\CheckInSnapshot;
 use App\Features\Registration\Api\Data\RegistrationSnapshot;
 
 /**

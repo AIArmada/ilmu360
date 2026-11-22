@@ -14,9 +14,9 @@ use App\Features\Engagement\Api\EngagementActivity;
 use App\Features\Engagement\Api\EngagementActivityReader;
 use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Registration\Api\RegistrationLookup;
-use App\Features\Registration\Api\Data\RegistrationSnapshot;
 use App\Features\Registration\Api\Data\CheckInSnapshot;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\ShareTracking\Api\ActivityRewardBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
@@ -61,7 +61,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         if (in_array($outcome, [ShareOutcomeType::EventRegistration, ShareOutcomeType::EventCheckin], true)) {
             return $this->admissionFact($sourceBusinessKey, $outcome, $parsed['source_transition_id']);
         }
-
 
         if ($this->isEngagementOutcome($outcome)) {
             $activity = $this->resolveEngagementActivity($outcome, $parsed['source_transition_id']);

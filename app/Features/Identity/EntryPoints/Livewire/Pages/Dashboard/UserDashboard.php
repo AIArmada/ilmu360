@@ -20,9 +20,9 @@ use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
-use App\Features\Registration\Api\RegistrationLookup;
-use App\Features\Registration\Api\Data\RegistrationSnapshot;
 use App\Features\Registration\Api\Data\CheckInSnapshot;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\Rewards\Api\PublishedProgramVersions;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -618,7 +618,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @param Collection<int, RegistrationSnapshot> $registrations
+     * @param  Collection<int, RegistrationSnapshot>  $registrations
      * @return Collection<int, RegistrationSnapshot>
      */
     protected function sortRegistrationsForPlanner(Collection $registrations): Collection
