@@ -7,7 +7,7 @@ namespace App\Features\Places\Api\Orm;
 /**
  * @internal Explicit ORM integration port for framework callbacks, hydrated page state and builder composition.
  *
- * Consumers: Places/FeatureServiceProvider.php, Engagement/Queries, Prayer/Support, Events/Queries, Events/EntryPoints, Contributions/Services
+ * Consumers: Places/FeatureServiceProvider.php, Discovery/PublicScheduleDiscoveryService, Events/EntryPoints/Livewire/Pages/Show
  */
 interface PlaceLookup
 {
