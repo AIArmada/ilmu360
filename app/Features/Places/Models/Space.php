@@ -40,7 +40,9 @@ class Space extends VenueSpace implements AuditableContract
         // The app event-reference guard registers BEFORE the parent
         // deleting cleanup, so a rejected Space deletion leaves its
         // facilities intact.
-        static::deleting(static fn (self $space): mixed => app(GuardSpaceDeletionAction::class)->handle($space));
+        static::deleting(static function (self $space): void {
+            app(GuardSpaceDeletionAction::class)->handle($space);
+        });
 
         parent::booted();
 
