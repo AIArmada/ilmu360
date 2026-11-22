@@ -2,6 +2,8 @@
 
 namespace App\Features\Contributions\EntryPoints\Livewire\Pages;
 
+use App\Platform\Media\MediaFileNamer;
+use App\Features\Contributions\Support\DonationQrFormUploads;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
@@ -19,7 +21,7 @@ use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionForm
 use App\Features\Contributions\EntryPoints\Filament\Forms\ReferenceContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Features\Events\Api\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
@@ -371,7 +373,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             // missing temporary files, and anything persisted first would
             // strand partial state that blocks the contributor from retrying.
             $rawDonationRows = $this->data['donation_channels'] ?? null;
-            app(DonationQrMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
+            DonationQrFormUploads::assertFresh($rawDonationRows);
 
             $formState = $this->contributionForm()->getState();
             $donationQrUploads = DonationQrFields::rekeyDonationRowsByRawKeys(
@@ -426,10 +428,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     }
 
                     if ($donationQrUploads !== []) {
-                        app(DonationQrMedia::class)->attachDonationQrUploads(
-                            $this->entity,
+                        app(DonationQrWorkflow::class)->attachDonationQrUploads(
+                            $this->entity->getMorphClass(),
+                            (string) $this->entity->getKey(),
                             $submittedDonationRows,
-                            $donationQrUploads,
+                            DonationQrFormUploads::prepare($donationQrUploads),
                         );
                     }
 
@@ -1070,7 +1073,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function stageDonationQrUploads(ContributionRequest $request, array $submittedRows, array $uploads): void
     {
-        $media = app(DonationQrMedia::class);
+        $media = app(DonationQrWorkflow::class);
         $failed = [];
 
         foreach ($uploads as $index => $file) {
@@ -1090,7 +1093,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             }
 
             $request->addMediaFromString($contents)
-                ->usingFileName($media->safeDonationQrFileName($file, $request))
+                ->usingFileName($media->safeDonationQrFileName((string) $file->guessExtension(), MediaFileNamer::resolveBaseNameFromModel($request)))
                 ->withCustomProperties([
                     'contribution_field' => 'donation_qr',
                     'donation_fingerprint' => $fingerprint,

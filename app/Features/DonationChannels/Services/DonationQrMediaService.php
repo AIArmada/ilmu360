@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace App\Features\DonationChannels\Services;
 
-use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\DonationChannels\Api\Data\DonationQrUploadData;
+use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
-use App\Platform\Ui\Forms\DonationQrUploads;
+use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-final readonly class DonationQrMediaService implements DonationQrMedia
+final readonly class DonationQrMediaService implements DonationQrWorkflow
 {
     public function __construct(private MediaCollectionSync $mediaCollectionSync) {}
 
+    /** @param array<string, mixed> $row */
     public function donationChannelFingerprint(array $row): ?string
     {
         $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
@@ -45,48 +46,31 @@ final readonly class DonationQrMediaService implements DonationQrMedia
         return 'sha256:'.hash('sha256', $method.'|'.implode('|', $normalized));
     }
 
-    public function assertDonationQrUploadsFresh(mixed $donationRows): void
+    public function safeDonationQrFileName(string $guessedExtension, string $baseName = 'media'): string
     {
-        $rows = is_array($donationRows) ? $donationRows : [];
-        $failed = [];
-
-        foreach (DonationQrUploads::collect($rows) as $index => $file) {
-            $row = $rows[$index] ?? null;
-            $fingerprint = is_array($row) ? $this->donationChannelFingerprint($row) : null;
-
-            try {
-                $fresh = $file->exists();
-            } catch (\Throwable) {
-                $fresh = false;
-            }
-
-            if (! $fresh || $fingerprint === null) {
-                $failed["data.donation_channels.{$index}.qr_upload"] = __('The QR upload expired or is invalid. Please upload the QR image again.');
-            }
-        }
-
-        if ($failed !== []) {
-            throw ValidationException::withMessages($failed);
-        }
-    }
-
-    public function safeDonationQrFileName(TemporaryUploadedFile $file, ?HasMedia $subject = null): string
-    {
-        $extension = strtolower((string) $file->guessExtension());
+        $extension = strtolower($guessedExtension);
 
         if (! in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
             $extension = 'png';
         }
 
-        $base = MediaFileNamer::resolveBaseNameFromModel($subject instanceof Model ? $subject : null);
         $suffix = strtolower(substr((string) Str::ulid(), -8));
 
-        return "{$base}-{$suffix}.{$extension}";
+        return "{$baseName}-{$suffix}.{$extension}";
     }
 
-    public function attachDonationQrUploads(HasMedia $model, array $submittedRows, array $uploads): void
+    /** @param array<int|string, array<string, mixed>> $submittedRows
+     *  @param array<int|string, DonationQrUploadData> $uploads
+     */
+    public function attachDonationQrUploads(string $subjectType, string $subjectId, array $submittedRows, array $uploads): void
     {
-        if (! method_exists($model, 'donationChannels') || $uploads === []) {
+        if ($uploads === []) {
+            return;
+        }
+
+        $model = $this->subject($subjectType, $subjectId);
+
+        if (! method_exists($model, 'donationChannels')) {
             return;
         }
 
@@ -97,21 +81,15 @@ final readonly class DonationQrMediaService implements DonationQrMedia
             $fingerprint = is_array($row) ? $this->donationChannelFingerprint($row) : null;
             $channel = $fingerprint === null ? null : $this->findDonationChannelByFingerprint($model, $fingerprint);
 
-            try {
-                $contents = $file->exists() ? $file->get() : null;
-            } catch (\Throwable) {
-                $contents = null;
-            }
-
-            if (! is_string($contents) || $contents === '' || ! $channel instanceof HasMedia) {
+            if (! $file instanceof DonationQrUploadData || ! is_string($file->contents) || $file->contents === '' || ! $channel instanceof HasMedia) {
                 $failed["data.donation_channels.{$index}.qr_upload"] = __('The QR upload expired or is invalid. Please upload the QR image again.');
 
                 continue;
             }
 
-            $channel->addMediaFromString($contents)
-                ->usingFileName($this->safeDonationQrFileName($file, $channel))
-                ->usingName(MediaFileNamer::resolveDisplayNameFromModel($channel, 'qr', $file->getClientOriginalName()))
+            $channel->addMediaFromString($file->contents)
+                ->usingFileName($this->safeDonationQrFileName($file->guessedExtension, MediaFileNamer::resolveBaseNameFromModel($channel)))
+                ->usingName(MediaFileNamer::resolveDisplayNameFromModel($channel, 'qr', $file->originalFileName))
                 ->toMediaCollection('qr');
         }
 
@@ -120,8 +98,10 @@ final readonly class DonationQrMediaService implements DonationQrMedia
         }
     }
 
-    public function attachStagedDonationQr(HasMedia $entity, Media $staged): void
+    public function attachStagedDonationQr(string $subjectType, string $subjectId, string $stagedMediaId): void
     {
+        $entity = $this->subject($subjectType, $subjectId);
+        $staged = Media::query()->findOrFail($stagedMediaId);
         $fingerprint = $staged->getCustomProperty('donation_fingerprint');
         $channel = is_string($fingerprint) && $fingerprint !== '' && method_exists($entity, 'donationChannels')
             ? $this->findDonationChannelByFingerprint($entity, $fingerprint)
@@ -136,6 +116,18 @@ final readonly class DonationQrMediaService implements DonationQrMedia
         $this->mediaCollectionSync->deleteMedia($staged);
     }
 
+    private function subject(string $subjectType, string $subjectId): Model&HasMedia
+    {
+        $modelClass = MorphModelResolver::resolve($subjectType);
+        $model = $modelClass::query()->findOrFail($subjectId);
+
+        if (! $model instanceof HasMedia) {
+            throw new \InvalidArgumentException('The donation QR target must support media collections.');
+        }
+
+        return $model;
+    }
+
     private function findDonationChannelByFingerprint(HasMedia $model, string $fingerprint): ?Model
     {
         if (! method_exists($model, 'donationChannels')) {
@@ -147,9 +139,7 @@ final readonly class DonationQrMediaService implements DonationQrMedia
         );
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     private function donationChannelRow(Model $channel): array
     {
         return [

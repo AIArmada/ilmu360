@@ -2,6 +2,7 @@
 
 namespace App\Features\Contributions\EntryPoints\Livewire\Pages;
 
+use App\Features\Contributions\Support\DonationQrFormUploads;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
@@ -9,7 +10,7 @@ use App\Features\Contributions\Api\StagedContributionCreates;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\EntryPoints\Filament\Forms\InstitutionContributionFormSchema;
-use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
@@ -251,7 +252,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
             // missing temporary files, and the create wraps persistence in a
             // transaction that would strand orphaned media files on disk.
             $rawDonationRows = $this->data['donation_channels'] ?? null;
-            app(DonationQrMedia::class)->assertDonationQrUploadsFresh($rawDonationRows);
+            DonationQrFormUploads::assertFresh($rawDonationRows);
 
             $state = $this->contributionForm()->getState();
             $donationQrUploads = DonationQrFields::rekeyDonationRowsByRawKeys(
@@ -297,10 +298,11 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                             $this->contributionForm()->model($institution)->saveRelationships();
 
                             if ($donationQrUploads !== []) {
-                                app(DonationQrMedia::class)->attachDonationQrUploads(
-                                    $institution,
+                                app(DonationQrWorkflow::class)->attachDonationQrUploads(
+                                    $institution->getMorphClass(),
+                                    (string) $institution->getKey(),
                                     $submittedDonationRows,
-                                    $donationQrUploads,
+                                    DonationQrFormUploads::prepare($donationQrUploads),
                                 );
                             }
                         },

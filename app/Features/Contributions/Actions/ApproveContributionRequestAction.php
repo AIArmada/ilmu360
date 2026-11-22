@@ -10,7 +10,7 @@ use App\Features\Contributions\Exceptions\ContributionRequestAlreadyReviewedExce
 use App\Features\Contributions\Exceptions\ContributionRequestNotPendingException;
 use App\Features\Contributions\Support\ContributionModel;
 use App\Features\Contributions\Support\ContributionRequestNotifier;
-use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Api\EventModeration;
@@ -36,7 +36,7 @@ class ApproveContributionRequestAction
 
     public function __construct(
         private readonly EventModeration $eventModeration,
-        private readonly DonationQrMedia $donationQrMedia,
+        private readonly DonationQrWorkflow $donationQrMedia,
         private readonly MediaCollectionSync $mediaCollectionSync,
         private readonly EventAuthoring $eventAuthoring,
         private readonly EventMedia $eventMedia,
@@ -397,7 +397,7 @@ class ApproveContributionRequestAction
             return false;
         }
 
-        $this->donationQrMedia->attachStagedDonationQr($entity, $media);
+        $this->donationQrMedia->attachStagedDonationQr($entity->getMorphClass(), (string) $entity->getKey(), (string) $media->getKey());
 
         return true;
     }

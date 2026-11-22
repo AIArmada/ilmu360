@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Models\Event;
 use App\Platform\Media\MediaCollectionSync;
@@ -22,7 +22,7 @@ final readonly class EventMediaService implements EventMedia
 {
     public function __construct(
         private MediaCollectionSync $mediaCollectionSync,
-        private DonationQrMedia $donationQrMedia,
+        private DonationQrWorkflow $donationQrMedia,
     ) {}
 
     public function applyStagedMedia(string $eventId, string $requestMorphType, string $requestId, array $stagedMediaIds): void
@@ -62,7 +62,7 @@ final readonly class EventMediaService implements EventMedia
             return false;
         }
 
-        $this->donationQrMedia->attachStagedDonationQr($event, $media);
+        $this->donationQrMedia->attachStagedDonationQr($event->getMorphClass(), (string) $event->getKey(), (string) $media->getKey());
 
         return true;
     }

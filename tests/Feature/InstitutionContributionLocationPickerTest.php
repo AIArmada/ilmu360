@@ -16,7 +16,7 @@ use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitPerson;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SuggestUpdate;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
-use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\Contributions\Support\DonationQrFormUploads;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
@@ -794,11 +794,11 @@ it('handles donation QR uploads stored under Filament file keys', function () {
 
     expect(DonationQrFields::collectDonationQrUploads($keyedRows))->toHaveCount(1);
 
-    app(DonationQrMedia::class)->assertDonationQrUploadsFresh($keyedRows);
+    DonationQrFormUploads::assertFresh($keyedRows);
 
     Storage::disk('tmp-for-tests')->deleteDirectory('livewire-tmp');
 
-    expect(fn () => app(DonationQrMedia::class)->assertDonationQrUploadsFresh($keyedRows))
+    expect(fn () => DonationQrFormUploads::assertFresh($keyedRows))
         ->toThrow(ValidationException::class);
 });
 

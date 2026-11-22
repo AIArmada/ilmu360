@@ -3,7 +3,7 @@
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\DonationChannels\Api\Orm\DonationQrMedia;
+use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\EventMediaService;
@@ -124,13 +124,13 @@ it('delegates staged donation QR media to the DonationChannels boundary and disc
         'is_single' => true,
     ]);
 
-    $donationMedia = app(DonationQrMedia::class);
+    $donationMedia = app(DonationQrWorkflow::class);
 
-    $this->mock(DonationQrMedia::class, function ($mock) use ($event, $staged, $donationMedia): void {
+    $this->mock(DonationQrWorkflow::class, function ($mock) use ($event, $staged, $donationMedia): void {
         $mock->shouldReceive('attachStagedDonationQr')
             ->once()
-            ->withArgs(fn (HasMedia $entity, Media $media): bool => $entity->is($event) && $media->is($staged))
-            ->andReturnUsing(fn (HasMedia $entity, Media $media) => $donationMedia->attachStagedDonationQr($entity, $media));
+            ->withArgs(fn (string $subjectType, string $subjectId, string $mediaId): bool => $subjectType === $event->getMorphClass() && $subjectId === (string) $event->getKey() && $mediaId === (string) $staged->getKey())
+            ->andReturnUsing(fn (string $subjectType, string $subjectId, string $mediaId) => $donationMedia->attachStagedDonationQr($subjectType, $subjectId, $mediaId));
     });
 
     app(EventMedia::class)->applyStagedMedia(
