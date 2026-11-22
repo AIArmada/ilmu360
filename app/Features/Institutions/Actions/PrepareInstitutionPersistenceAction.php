@@ -69,8 +69,8 @@ final readonly class PrepareInstitutionPersistenceAction
             } else {
                 // Creation preserves explicitly provided fixture timestamps.
                 if ($institution->getAttribute('last_state_change_at') === null) {
-                        $institution->setAttribute('last_state_change_at', $now);
-                    }
+                    $institution->setAttribute('last_state_change_at', $now);
+                }
 
                 match ($status) {
                     InstitutionStatus::Pending => null,
