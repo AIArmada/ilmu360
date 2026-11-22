@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
-use App\Models\User;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Models\Event;
+use App\Models\User;
 
 it('returns immutable organization workspace cards without exporting event models', function (): void {
     $owner = User::factory()->create();

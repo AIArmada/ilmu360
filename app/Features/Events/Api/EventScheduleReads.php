@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Events\Api;
 
 use App\Features\Events\Api\Data\AdminEventCard;
-use App\Features\Events\Api\Data\PlannerEventCard;
-
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
+use App\Features\Events\Api\Data\PlannerEventCard;
 
 /**
  * Scalar event-schedule reads owned by the Events feature.
@@ -93,7 +92,7 @@ interface EventScheduleReads
     public function personDashboardEventStats(string $personId): array;
 
     /** @param list<string> $eventIds
-     *  @return list<PlannerEventCard>
+     * @return list<PlannerEventCard>
      */
     public function plannerEventCardsForIds(array $eventIds, bool $activeOnly): array;
 
@@ -101,7 +100,7 @@ interface EventScheduleReads
     public function recommendedPlannerEventCard(array $excludedEventIds, string $fromUtc): ?PlannerEventCard;
 
     /** @param list<string> $eventIds
-     *  @return list<AdminEventCard>
+     * @return list<AdminEventCard>
      */
     public function adminEventCardsForIds(array $eventIds): array;
 

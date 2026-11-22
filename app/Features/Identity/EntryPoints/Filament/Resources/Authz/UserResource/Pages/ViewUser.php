@@ -9,10 +9,10 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
-use App\Features\Events\Api\Data\EventSubmissionCard;
-use App\Features\Events\Api\EventSubmissions;
-use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\Data\AdminEventCard;
+use App\Features\Events\Api\Data\EventSubmissionCard;
+use App\Features\Events\Api\EventScheduleReads;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountToken;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
@@ -182,10 +182,10 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, MemberSubjectRecord>
+     * @return Collection<int, MemberSubjectRecord>
      */
     #[Computed]
-    public function memberInstitutions(): \Illuminate\Support\Collection
+    public function memberInstitutions(): Collection
     {
         return collect(app(AccountMembershipDirectory::class)->subjects(
             (string) $this->userRecord()->getKey(),
@@ -194,10 +194,10 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, MemberSubjectRecord>
+     * @return Collection<int, MemberSubjectRecord>
      */
     #[Computed]
-    public function memberPersons(): \Illuminate\Support\Collection
+    public function memberPersons(): Collection
     {
         return collect(app(AccountMembershipDirectory::class)->subjects(
             (string) $this->userRecord()->getKey(),
@@ -206,10 +206,10 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, MemberSubjectRecord>
+     * @return Collection<int, MemberSubjectRecord>
      */
     #[Computed]
-    public function memberEvents(): \Illuminate\Support\Collection
+    public function memberEvents(): Collection
     {
         return collect(app(AccountMembershipDirectory::class)->subjects(
             (string) $this->userRecord()->getKey(),
@@ -218,10 +218,10 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, MemberSubjectRecord>
+     * @return Collection<int, MemberSubjectRecord>
      */
     #[Computed]
-    public function memberReferences(): \Illuminate\Support\Collection
+    public function memberReferences(): Collection
     {
         return collect(app(AccountMembershipDirectory::class)->subjects(
             (string) $this->userRecord()->getKey(),
@@ -271,68 +271,68 @@ class ViewUser extends ViewRecord
         });
     }
 
-    /** @return \Illuminate\Support\Collection<int, CheckInSnapshot> */
+    /** @return Collection<int, CheckInSnapshot> */
     #[Computed]
-    public function eventCheckins(): \Illuminate\Support\Collection
+    public function eventCheckins(): Collection
     {
-        return OwnerContext::withOwner(null, fn (): \Illuminate\Support\Collection => collect(
+        return OwnerContext::withOwner(null, fn (): Collection => collect(
             app(RegistrationLookup::class)->checkInsForAccount((string) $this->userRecord()->getKey()),
         ));
     }
 
-    /** @return \Illuminate\Support\Collection<int, RegistrationSnapshot> */
+    /** @return Collection<int, RegistrationSnapshot> */
     #[Computed]
-    public function registrations(): \Illuminate\Support\Collection
+    public function registrations(): Collection
     {
-        return OwnerContext::withOwner(null, fn (): \Illuminate\Support\Collection => collect(
+        return OwnerContext::withOwner(null, fn (): Collection => collect(
             app(RegistrationLookup::class)->registrationsForAccount((string) $this->userRecord()->getKey()),
         ));
     }
 
-    /** @return \Illuminate\Support\Collection<int, EventSubmissionCard> */
+    /** @return Collection<int, EventSubmissionCard> */
     #[Computed]
-    public function eventSubmissions(): \Illuminate\Support\Collection
+    public function eventSubmissions(): Collection
     {
         $user = $this->userRecord();
 
-        return OwnerContext::withOwner(null, fn (): \Illuminate\Support\Collection => collect(
+        return OwnerContext::withOwner(null, fn (): Collection => collect(
             app(EventSubmissions::class)->submissionsForAccount((string) $user->getKey()),
         ));
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, InstitutionDirectoryRecord>
+     * @return Collection<int, InstitutionDirectoryRecord>
      */
     #[Computed]
-    public function followingInstitutions(): \Illuminate\Support\Collection
+    public function followingInstitutions(): Collection
     {
         return $this->followedSubjects(
             EngagementSubjectType::Institution,
-            fn (array $ids): \Illuminate\Support\Collection => collect(app(InstitutionLookup::class)->institutionsByIds($ids)),
+            fn (array $ids): Collection => collect(app(InstitutionLookup::class)->institutionsByIds($ids)),
         );
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, PersonDirectoryRecord>
+     * @return Collection<int, PersonDirectoryRecord>
      */
     #[Computed]
-    public function followingPersons(): \Illuminate\Support\Collection
+    public function followingPersons(): Collection
     {
         return $this->followedSubjects(
             EngagementSubjectType::Person,
-            fn (array $ids): \Illuminate\Support\Collection => collect(app(PersonLookup::class)->personsByIds($ids)),
+            fn (array $ids): Collection => collect(app(PersonLookup::class)->personsByIds($ids)),
         );
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, ReferenceSummary>
+     * @return Collection<int, ReferenceSummary>
      */
     #[Computed]
-    public function followingReferences(): \Illuminate\Support\Collection
+    public function followingReferences(): Collection
     {
         return $this->followedSubjects(
             EngagementSubjectType::Reference,
-            fn (array $ids): \Illuminate\Support\Collection => collect(app(ReferenceLookup::class)->referencesByIds($ids)),
+            fn (array $ids): Collection => collect(app(ReferenceLookup::class)->referencesByIds($ids)),
         );
     }
 
@@ -436,21 +436,21 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @param  callable(list<string>): \Illuminate\Support\Collection<int, mixed>  $fetch
-     * @return \Illuminate\Support\Collection<int, mixed>
+     * @param  callable(list<string>): Collection<int, mixed>  $fetch
+     * @return Collection<int, mixed>
      */
-    private function followedSubjects(EngagementSubjectType $subjectType, callable $fetch): \Illuminate\Support\Collection
+    private function followedSubjects(EngagementSubjectType $subjectType, callable $fetch): Collection
     {
         $user = $this->userRecord();
 
-        return OwnerContext::withOwner(null, function () use ($subjectType, $fetch, $user): \Illuminate\Support\Collection {
+        return OwnerContext::withOwner(null, function () use ($subjectType, $fetch, $user): Collection {
             $ids = app(SubjectFollows::class)->followedSubjectIds((string) $user->getKey(), $subjectType);
 
             if ($ids === []) {
                 return new Collection;
             }
 
-            /** @var \Illuminate\Support\Collection<int, mixed> $subjects */
+            /** @var Collection<int, mixed> $subjects */
             $subjects = $fetch($ids);
 
             return $subjects;
