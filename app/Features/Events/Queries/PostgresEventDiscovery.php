@@ -43,7 +43,7 @@ use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceLocation;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
@@ -76,7 +76,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         private EventDiscoveryFilterSet $filterSet,
         private PersonLookup $personLookup,
         private InstitutionLookup $institutionLookup,
-        private PlaceLookup $placeLookup,
+        private PlaceCatalog $placeCatalog,
 
         private EventCategoryCatalog $categoryCatalog,
         private EventSearchRelationProvider $relationProvider,
@@ -1247,12 +1247,12 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
         $primaryPackageVenue = PrimaryLocationSql::venueId($eventsTable);
         $effectiveVenue = "coalesce({$eventsTable}.default_venue_id, {$primaryPackageVenue})";
-        $venueTable = $this->placeLookup->venueTable();
+        $venueTable = $this->placeCatalog->venueTable();
         $venueExists = "exists (select 1 from {$venueTable} where {$venueTable}.id = ({$effectiveVenue}))";
         $latitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.latitude when {$venueExists} then venue_addresses.latitude end";
         $longitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.longitude when {$venueExists} then venue_addresses.longitude end";
         $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
-        $venueMorphType = $this->placeLookup->venueMorphType();
+        $venueMorphType = $this->placeCatalog->venueMorphType();
         $institutionMorphType = $this->institutionLookup->institutionMorphType();
 
         return $queryBuilder
@@ -1320,8 +1320,8 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         $addressesTable = AddressingTableResolver::resolve('addresses');
         $addressablesTable = AddressingTableResolver::resolve('addressables');
         $assignmentsTable = AddressingTableResolver::resolve('address_area_assignments');
-        $venueTable = $this->placeLookup->venueTable();
-        $venueMorphType = $this->placeLookup->venueMorphType();
+        $venueTable = $this->placeCatalog->venueTable();
+        $venueMorphType = $this->placeCatalog->venueMorphType();
         $institutionMorphType = $this->institutionLookup->institutionMorphType();
 
         $matchesOwnerAddress = static function (Builder $ownerQuery, string $ownerColumn, string $morphType) use ($addressesTable, $addressablesTable, $assignmentsTable, $criteria, $assignments): void {

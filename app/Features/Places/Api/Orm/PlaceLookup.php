@@ -15,10 +15,6 @@ interface PlaceLookup
 
     public function resolveSpaceIdentifier(string $identifier): ?string;
 
-    public function venueTable(): string;
-
-    public function venueMorphType(): string;
-
     public function venueName(string $venueId): ?string;
 
     /** @return array<string, string> */

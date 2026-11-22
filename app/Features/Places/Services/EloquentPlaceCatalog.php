@@ -46,6 +46,16 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
             ->all();
     }
 
+    public function venueTable(): string
+    {
+        return (new Venue)->getTable();
+    }
+
+    public function venueMorphType(): string
+    {
+        return (new Venue)->getMorphClass();
+    }
+
     public function resolvedPrimaryAddressId(string $venueId): ?string
     {
         $venue = Venue::query()->find($venueId);

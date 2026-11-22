@@ -13,4 +13,8 @@ interface PlaceCatalog
     public function spaces(?string $institutionId = null): array;
 
     public function resolvedPrimaryAddressId(string $venueId): ?string;
+
+    public function venueTable(): string;
+
+    public function venueMorphType(): string;
 }

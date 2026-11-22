@@ -23,7 +23,7 @@ use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Queries\PrimaryLocationSql;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
 use App\Features\Events\Queries\PublicReferenceConstraint;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\ReferenceQueries;
@@ -59,7 +59,7 @@ class EventController extends Controller
         private readonly SignalRecorder $signals,
         private readonly ReferenceQueries $referenceQueries,
         private readonly EventListPayloadPresenter $eventListPayloads,
-        private readonly PlaceLookup $placeLookup,
+        private readonly PlaceCatalog $placeCatalog,
         private readonly RegistrationLookup $registrationLookup,
     ) {}
 
@@ -1179,8 +1179,8 @@ class EventController extends Controller
         $addressesTable = AddressingTableResolver::resolve('addresses');
         $addressablesTable = AddressingTableResolver::resolve('addressables');
         $assignmentsTable = AddressingTableResolver::resolve('address_area_assignments');
-        $venueTable = $this->placeLookup->venueTable();
-        $venueMorphType = $this->placeLookup->venueMorphType();
+        $venueTable = $this->placeCatalog->venueTable();
+        $venueMorphType = $this->placeCatalog->venueMorphType();
 
         $venueQuery->whereExists(function ($addressQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $venueTable, $venueMorphType, $criteria, $assignments): void {
             $addressQuery

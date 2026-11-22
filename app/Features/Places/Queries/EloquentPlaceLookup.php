@@ -36,16 +36,6 @@ final readonly class EloquentPlaceLookup implements PlaceLookup
         return $space instanceof Space ? (string) $space->getKey() : null;
     }
 
-    public function venueTable(): string
-    {
-        return (new Venue)->getTable();
-    }
-
-    public function venueMorphType(): string
-    {
-        return (new Venue)->getMorphClass();
-    }
-
     public function venueName(string $venueId): ?string
     {
         $name = Venue::query()->whereKey($venueId)->value('name');
