@@ -15,7 +15,7 @@ interface DonationQrWorkflow
     public function safeDonationQrFileName(string $guessedExtension, string $baseName = 'media'): string;
 
     /** @param array<int|string, array<string, mixed>> $submittedRows
-     *  @param array<int|string, DonationQrUploadData> $uploads
+     * @param  array<int|string, DonationQrUploadData>  $uploads
      */
     public function attachDonationQrUploads(string $subjectType, string $subjectId, array $submittedRows, array $uploads): void;
 

@@ -9,7 +9,6 @@ use App\Features\Events\Models\Event;
 use App\Features\Events\Services\EventMediaService;
 use App\Features\Institutions\Models\Institution;
 use Illuminate\Support\Facades\Storage;
-use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 beforeEach(function (): void {

@@ -39,7 +39,7 @@ final class DonationQrFormUploads
     }
 
     /** @param array<int|string, TemporaryUploadedFile> $uploads
-     *  @return array<int|string, DonationQrUploadData>
+     * @return array<int|string, DonationQrUploadData>
      */
     public static function prepare(array $uploads): array
     {
