@@ -9,7 +9,7 @@ use App\Features\Contributions\EntryPoints\Livewire\Pages\SuggestUpdate;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Models\Event;

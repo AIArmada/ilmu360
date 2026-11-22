@@ -7,7 +7,7 @@ use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\Orm\EventSchedulePageData;
+use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
 use App\Models\User;

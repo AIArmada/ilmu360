@@ -1,7 +1,7 @@
 <?php
 
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\PostgresEventDiscovery;

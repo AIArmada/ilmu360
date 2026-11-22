@@ -10,7 +10,7 @@ use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\Orm\EventSchedulePageData;
+use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
