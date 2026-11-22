@@ -69,7 +69,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         $referenceMorphType = (new $referenceClass)->getMorphClass();
 
         return $leaves
-            ->map(static function (PublicScheduleModelLeaf $leaf) use ($referenceIds, $matchingReference): ?PublicScheduleModelLeaf {
+            ->map(static function (PublicScheduleModelLeaf $leaf) use ($referenceIds, $referenceMorphType): ?PublicScheduleModelLeaf {
                 $event = $leaf->event();
                 $occurrence = $leaf->occurrence();
 
@@ -113,7 +113,6 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             ->leftJoin($statesTable, "{$addressesTable}.state_id", '=', "{$statesTable}.id")
             ->addSelect("{$statesTable}.name as hierarchy_state_name");
     }
-
 
     public function forQuery(
         EventBuilder $baseQuery,
