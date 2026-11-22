@@ -31,7 +31,9 @@ final readonly class InitializeDonationChannelStatusAction
             $channel->setAttribute($timestampAttribute, $now);
         }
 
-        $channel->last_state_change_at ??= $now;
+        if ($channel->getAttribute('last_state_change_at') === null) {
+            $channel->setAttribute('last_state_change_at', $now);
+        }
 
         if ($status === DonationChannelStatus::Verified) {
             $channel->verified_by ??= auth()->id();
