@@ -7,17 +7,20 @@ namespace App\Features\Registration\Queries;
 use App\Features\Registration\Api\Data\CheckInSourceFacts;
 use App\Features\Registration\Api\Data\EventCheckInFacts;
 use App\Features\Registration\Api\Data\EventRegistrationData;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
+use App\Features\Registration\Api\Data\CheckInSnapshot;
 use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 final readonly class DatabaseRegistrationLookup implements RegistrationLookup, RegistrationNotificationAudience
 {
+    public function __construct(private RegistrationSnapshotProjector $snapshots) {}
+
     public function exists(string $registrationId): bool
     {
         return Registration::query()->whereKey($registrationId)->exists();
@@ -169,14 +172,18 @@ final readonly class DatabaseRegistrationLookup implements RegistrationLookup, R
             ->all();
     }
 
-    public function findRegistration(string $registrationId): ?Registration
+    public function findRegistration(string $registrationId): ?RegistrationSnapshot
     {
-        return Registration::query()->find($registrationId);
+        $registration = Registration::query()->with('event')->find($registrationId);
+
+        return $registration instanceof Registration ? $this->snapshots->registration($registration, true) : null;
     }
 
-    public function findCheckIn(string $checkInId): ?EventCheckin
+    public function findCheckIn(string $checkInId): ?CheckInSnapshot
     {
-        return EventCheckin::query()->find($checkInId);
+        $checkIn = EventCheckin::query()->with(['event', 'verifiedBy:id,name'])->find($checkInId);
+
+        return $checkIn instanceof EventCheckin ? $this->snapshots->checkIn($checkIn) : null;
     }
 
     public function hasEarlierRegistrationActivity(
@@ -213,48 +220,56 @@ final readonly class DatabaseRegistrationLookup implements RegistrationLookup, R
             ->exists();
     }
 
-    public function registrationsForAccount(string $accountId): EloquentCollection
+    /** @return list<RegistrationSnapshot> */
+    public function registrationsForAccount(string $accountId): array
     {
         return Registration::query()
             ->where('registrant_type', (new User)->getMorphClass())
             ->where('registrant_id', $accountId)
             ->with('event')
             ->latest()
-            ->get();
+            ->get()
+            ->map(fn (Registration $registration): RegistrationSnapshot => $this->snapshots->registration($registration))
+            ->all();
     }
 
-    public function plannerRegistrationsForIds(array $registrationIds): EloquentCollection
+    /** @param list<string> $registrationIds
+     *  @return list<RegistrationSnapshot>
+     */
+    public function plannerRegistrationsForIds(array $registrationIds): array
     {
         return Registration::query()
             ->whereKey($registrationIds)
             ->active()
-            ->with(array_map(
-                static fn (string $relation): string => 'event.'.$relation,
-                $this->plannerEventRelations(),
-            ))
+            ->with(array_map(static fn (string $relation): string => 'event.'.$relation, $this->plannerEventRelations()))
             ->latest()
-            ->get();
+            ->get()
+            ->map(fn (Registration $registration): RegistrationSnapshot => $this->snapshots->registration($registration))
+            ->all();
     }
 
-    public function checkInsForAccount(string $accountId): EloquentCollection
+    /** @return list<CheckInSnapshot> */
+    public function checkInsForAccount(string $accountId): array
     {
         return EventCheckin::query()
             ->where('attendee_id', $accountId)
             ->with(['event', 'verifiedBy:id,name'])
             ->orderByDesc('checked_in_at')
-            ->get();
+            ->get()
+            ->map(fn (EventCheckin $checkIn): CheckInSnapshot => $this->snapshots->checkIn($checkIn))
+            ->all();
     }
 
-    public function plannerCheckInsForAccount(string $accountId): EloquentCollection
+    /** @return list<CheckInSnapshot> */
+    public function plannerCheckInsForAccount(string $accountId): array
     {
         return EventCheckin::query()
             ->where('attendee_id', $accountId)
-            ->with(array_map(
-                static fn (string $relation): string => 'event.'.$relation,
-                $this->plannerEventRelations(),
-            ))
+            ->with(array_map(static fn (string $relation): string => 'event.'.$relation, $this->plannerEventRelations()))
             ->orderByDesc('checked_in_at')
-            ->get();
+            ->get()
+            ->map(fn (EventCheckin $checkIn): CheckInSnapshot => $this->snapshots->checkIn($checkIn))
+            ->all();
     }
 
     /**

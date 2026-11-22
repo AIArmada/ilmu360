@@ -10,8 +10,8 @@ use AIArmada\Checkout\Steps\AbstractCheckoutStep;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Features\Events\Api\EventScheduleReads;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
-use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
 use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;
@@ -79,17 +79,17 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
         foreach ($registrationIds as $registrationId) {
             $registration = app(RegistrationLookup::class)->findRegistration($registrationId);
 
-            if (! $registration instanceof Registration) {
+            if (! $registration instanceof RegistrationSnapshot) {
                 continue;
             }
 
             if ($session->order_id === null
-                || (string) $registration->external_order_id !== (string) $session->order_id) {
+                || (string) $registration->externalOrderId !== (string) $session->order_id) {
                 continue;
             }
 
             $actor = $this->participantUser($registration);
-            $identity = app(EventScheduleReads::class)->shareIdentityById((string) $registration->event_id);
+            $identity = app(EventScheduleReads::class)->shareIdentityById($registration->eventId);
             $subject = $identity !== null
                 ? ShareSubject::for(ShareSubjectType::Event->value, $identity['id'], $identity['title'])
                 : null;
@@ -103,12 +103,12 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
 
             $this->shareTracking->recordCheckoutInheritedOutcome(
                 type: ShareOutcomeType::EventRegistration,
-                businessKey: ShareOutcomeBusinessKey::eventRegistration((string) $registration->getKey()),
+                businessKey: ShareOutcomeBusinessKey::eventRegistration($registration->id),
                 persistedAttributionId: $effectiveAttributionId,
                 subject: $subject,
                 actor: $actor,
                 metadata: [
-                    'registration_id' => (string) $registration->getKey(),
+                    'registration_id' => $registration->id,
                     'guest' => ! $actor instanceof User,
                     'via_checkout' => true,
                     'purchaser_user_id' => $purchaserId,
@@ -116,7 +116,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
                 occurredAt: $effectiveOccurredAt,
             );
 
-            $recorded[] = (string) $registration->getKey();
+            $recorded[] = $registration->id;
         }
 
         if ($recorded === []) {
@@ -193,7 +193,7 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
         throw new \InvalidArgumentException('Checkout share intent carries no trusted occurrence timestamp.');
     }
 
-    private function fallbackOccurredAt(CheckoutSession $session, Registration $registration): CarbonInterface
+    private function fallbackOccurredAt(CheckoutSession $session, RegistrationSnapshot $registration): CarbonInterface
     {
         $createdAt = $session->created_at;
 
@@ -201,38 +201,38 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
             return CarbonImmutable::createFromInterface($createdAt);
         }
 
-        $registeredAt = $registration->created_at;
+        $registeredAt = $registration->createdAt;
 
-        if ($registeredAt instanceof CarbonInterface) {
-            return CarbonImmutable::createFromInterface($registeredAt);
+        if (is_string($registeredAt) && $registeredAt !== '') {
+            return CarbonImmutable::parse($registeredAt);
         }
 
         throw new \InvalidArgumentException('Checkout share intent carries no trusted occurrence timestamp.');
     }
 
-    private function isScopeCancelled(Registration $registration): bool
+    private function isScopeCancelled(RegistrationSnapshot $registration): bool
     {
-        if (app(EventScheduleReads::class)->eventStatus((string) $registration->event_id) === 'cancelled') {
+        if (app(EventScheduleReads::class)->eventStatus($registration->eventId) === 'cancelled') {
             return true;
         }
 
-        if (is_string($registration->event_occurrence_id) && $registration->event_occurrence_id !== '') {
-            $occurrence = EventOccurrence::query()->whereKey($registration->event_occurrence_id)->first();
+        if (is_string($registration->eventOccurrenceId) && $registration->eventOccurrenceId !== '') {
+            $occurrence = EventOccurrence::query()->whereKey($registration->eventOccurrenceId)->first();
 
             if ($occurrence !== null && (string) $occurrence->status === 'cancelled') {
                 return true;
             }
         }
 
-        if (is_string($registration->event_session_id) && $registration->event_session_id !== '') {
-            $session = EventSession::query()->whereKey($registration->event_session_id)->first();
+        if (is_string($registration->eventSessionId) && $registration->eventSessionId !== '') {
+            $session = EventSession::query()->whereKey($registration->eventSessionId)->first();
 
             if ($session !== null && (string) $session->status === 'cancelled') {
                 return true;
             }
         }
 
-        return in_array($registration->statusValue(), ['cancelled', 'rejected'], true);
+        return in_array($registration->status, ['cancelled', 'rejected'], true);
     }
 
     private function purchaserUserId(CheckoutSession $session): ?string
@@ -257,27 +257,11 @@ final class RecordCheckoutShareProvenanceStep extends AbstractCheckoutStep
         return $id;
     }
 
-    private function participantUser(Registration $registration): ?User
+    private function participantUser(RegistrationSnapshot $registration): ?User
     {
-        $participant = $registration->participants()->where('is_primary', true)->first()
-            ?? $registration->participants()->first();
-
-        if ($participant === null) {
-            return null;
-        }
-
-        $type = $participant->participant_type ?? null;
-        $id = $participant->participant_id ?? null;
-
-        if (! is_string($type) || ! is_string($id) || $id === '') {
-            return null;
-        }
-
-        if ($type !== (new User)->getMorphClass() && $type !== User::class) {
-            return null;
-        }
-
-        return User::query()->whereKey($id)->first();
+        return $registration->primaryParticipantUserId !== null
+            ? User::query()->whereKey($registration->primaryParticipantUserId)->first()
+            : null;
     }
 
     /**

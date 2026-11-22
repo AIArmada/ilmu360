@@ -6,9 +6,9 @@ namespace App\Features\ShareTracking\Services;
 
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Registration\Api\Data\CheckInSourceFacts;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\Data\ShareSubject;
 use App\Features\ShareTracking\Api\Enums\ShareSubjectType;
 use App\Features\ShareTracking\Api\ParticipationAttribution;
@@ -64,7 +64,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             }
         }
 
-        $createdAt = $registration instanceof Registration ? $registration->getAttribute('created_at') : null;
+        $createdAt = $registration instanceof RegistrationSnapshot ? $registration->createdAt : null;
 
         $this->shareTracking->recordOutcome(
             type: ShareOutcomeType::EventRegistration,
@@ -73,7 +73,7 @@ final readonly class ShareTrackingParticipationAttribution implements Participat
             actor: $actor,
             request: ShareRequestContext::fromRequest($request instanceof Request ? $request : request()),
             metadata: $metadata,
-            occurredAt: $createdAt instanceof CarbonInterface ? $createdAt : now(),
+            occurredAt: is_string($createdAt) && $createdAt !== '' ? Carbon::parse($createdAt) : now(),
         );
     }
 
