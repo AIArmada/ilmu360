@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
-use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
@@ -38,14 +37,4 @@ interface PublicScheduleEventReads
         array $distanceByEventId = [],
     ): EloquentCollection;
 
-    /**
-     * Base event query for an institution detail page schedule section.
-     *
-     * The owner applies active/public state, the reference visibility rule and
-     * the supplied presenter relations; the page only splits and renders the
-     * result.
-     *
-     * @param  array<int|string, mixed>  $relations
-     */
-    public function institutionScheduleQuery(string $institutionId, array $relations): EventBuilder;
 }

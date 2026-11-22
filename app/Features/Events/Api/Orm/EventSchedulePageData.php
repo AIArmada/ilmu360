@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
-use App\Features\Events\Models\Builders\EventBuilder;
 use Carbon\CarbonInterface;
 
 /**
@@ -19,29 +18,4 @@ use Carbon\CarbonInterface;
  */
 interface EventSchedulePageData
 {
-    /**
-     * @param  EventBuilder  $baseQuery  Events-owned base query.
-     * @param  (callable(\Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>): \Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>)|null  $filterLeaves
-     * @return array{upcoming: \Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>, past: \Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
-     */
-    /**
-     * @param list<string> $referenceIds
-     * @return array{upcoming: \Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>, past: \Illuminate\Support\Collection<int, \App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
-     */
-    public function forReferenceFamily(
-        array $referenceIds,
-        int $upcomingLimit,
-        int $pastLimit,
-        ?CarbonInterface $rangeFrom = null,
-        ?CarbonInterface $rangeTo = null,
-    ): array;
-
-    public function forQuery(
-        EventBuilder $baseQuery,
-        int $upcomingLimit,
-        int $pastLimit,
-        ?CarbonInterface $rangeFrom = null,
-        ?CarbonInterface $rangeTo = null,
-        ?callable $filterLeaves = null,
-    ): array;
 }

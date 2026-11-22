@@ -34,6 +34,23 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
      *
      * @param list<string> $referenceIds
      */
+    public function forInstitution(
+        string $institutionId,
+        int $upcomingLimit,
+        int $pastLimit,
+        ?CarbonInterface $rangeFrom = null,
+        ?CarbonInterface $rangeTo = null,
+    ): array {
+        $query = $this->events->institutionScheduleQuery($institutionId, [
+            'venue.media',
+            'venue.addresses' => $this->joinAddressStateName(...),
+            'venue.addresses.city',
+            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
+        ]);
+
+        return $this->forQuery($query, $upcomingLimit, $pastLimit, $rangeFrom, $rangeTo);
+    }
+
     public function forReferenceFamily(
         array $referenceIds,
         int $upcomingLimit,
@@ -114,7 +131,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             ->addSelect("{$statesTable}.name as hierarchy_state_name");
     }
 
-    public function forQuery(
+    private function forQuery(
         EventBuilder $baseQuery,
         int $upcomingLimit,
         int $pastLimit,

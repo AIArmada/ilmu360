@@ -11,8 +11,6 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
-use App\Features\Events\Api\Orm\PublicScheduleEventReads;
-use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
@@ -264,30 +262,6 @@ class Show extends Component
             ->exists());
     }
 
-    private function eventQuery(): EventBuilder
-    {
-        /** @var array<string, string|\Closure> $addressRelations */
-        $addressRelations = [
-            'venue.media',
-            'venue.addresses' => $this->joinAddressStateName(...),
-            'venue.addresses.city',
-            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
-        ];
-
-        /** @var EventBuilder $query */
-        $query = app(PublicScheduleEventReads::class)->institutionScheduleQuery(
-            (string) $this->institution->getKey(),
-            $addressRelations,
-        );
-
-        return $query;
-    }
-
-    protected function eventPageBaseQuery(): EventBuilder
-    {
-        return $this->eventQuery();
-    }
-
     /**
      * @return array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
@@ -300,8 +274,8 @@ class Show extends Component
         $range = $this->upcomingDateRange();
 
         /** @var array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
-        $data = app(EventSchedulePageData::class)->forQuery(
-            $this->eventPageBaseQuery(),
+        $data = app(EventSchedulePageData::class)->forInstitution(
+            (string) $this->institution->getKey(),
             $this->upcomingPerPage,
             $this->pastPerPage,
             $range['from'] ?? null,
