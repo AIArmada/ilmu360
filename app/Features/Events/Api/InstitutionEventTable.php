@@ -14,15 +14,14 @@ use Filament\Tables\Table;
 interface InstitutionEventTable
 {
     /**
+     * @param  Closure(): array{institutionId: ?string, selectedInstitutionId: ?string, canUseSelectedInstitutionForScopedSubmission: bool}  $scopeState
      * @param  Closure(): array{sort: string, hasExplicitTableSort: bool}  $sortState
      * @param  array<string, string>  $statusOptions
      * @param  array<string, string>  $visibilityOptions
      */
     public function configure(
         Table $table,
-        ?string $institutionId,
-        ?string $selectedInstitutionId,
-        bool $canUseSelectedInstitutionForScopedSubmission,
+        Closure $scopeState,
         Closure $sortState,
         array $statusOptions,
         array $visibilityOptions,

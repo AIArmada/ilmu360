@@ -28,15 +28,15 @@ final readonly class InstitutionEventTableBuilder implements InstitutionEventTab
 {
     public function configure(
         Table $table,
-        ?string $institutionId,
-        ?string $selectedInstitutionId,
-        bool $canUseSelectedInstitutionForScopedSubmission,
+        Closure $scopeState,
         Closure $sortState,
         array $statusOptions,
         array $visibilityOptions,
     ): Table {
         return $table
-            ->query(static function () use ($institutionId): Builder {
+            ->query(static function () use ($scopeState): Builder {
+                $institutionId = $scopeState()['institutionId'];
+
                 if ($institutionId === null) {
                     return Event::query()->whereRaw('1 = 0');
                 }
@@ -65,14 +65,18 @@ final readonly class InstitutionEventTableBuilder implements InstitutionEventTab
                     ->sortable()
                     ->html()
                     ->wrap()
-                    ->formatStateUsing(fn (Event $record): HtmlString => new HtmlString(view(
-                        'livewire.pages.dashboard.partials.institution-event-title-cell',
-                        [
-                            'event' => $record,
-                            'canUseSelectedInstitutionForScopedSubmission' => $canUseSelectedInstitutionForScopedSubmission,
-                            'selectedInstitutionId' => $selectedInstitutionId,
-                        ],
-                    )->render())),
+                    ->formatStateUsing(function (Event $record) use ($scopeState): HtmlString {
+                        $state = $scopeState();
+
+                        return new HtmlString(view(
+                            'livewire.pages.dashboard.partials.institution-event-title-cell',
+                            [
+                                'event' => $record,
+                                'canUseSelectedInstitutionForScopedSubmission' => $state['canUseSelectedInstitutionForScopedSubmission'],
+                                'selectedInstitutionId' => $state['selectedInstitutionId'],
+                            ],
+                        )->render());
+                    }),
                 TextColumn::make('starts_at')
                     ->label(__('Date'))
                     ->state(fn (Event $record): string => $this->formatEventSchedule($record))

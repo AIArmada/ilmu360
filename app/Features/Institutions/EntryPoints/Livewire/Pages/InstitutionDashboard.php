@@ -544,13 +544,17 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
     public function table(Table $table): Table
     {
-        $institution = $this->selectedInstitution();
-
         return app(InstitutionEventTable::class)->configure(
             table: $table,
-            institutionId: $institution instanceof Institution ? (string) $institution->getKey() : null,
-            selectedInstitutionId: $this->institutionId,
-            canUseSelectedInstitutionForScopedSubmission: $this->canUseSelectedInstitutionForScopedSubmission(),
+            scopeState: function (): array {
+                $selected = $this->selectedInstitution();
+
+                return [
+                    'institutionId' => $selected instanceof Institution ? (string) $selected->getKey() : null,
+                    'selectedInstitutionId' => $this->institutionId,
+                    'canUseSelectedInstitutionForScopedSubmission' => $this->canUseSelectedInstitutionForScopedSubmission(),
+                ];
+            },
             sortState: fn (): array => [
                 'sort' => $this->eventSort,
                 'hasExplicitTableSort' => filled($this->tableSort),
