@@ -207,6 +207,7 @@ use App\Features\Events\Services\SeriesAuthoringService;
 use App\Features\Events\Services\ShareCards\ShareCardService;
 use App\Features\Events\Support\EventModel;
 use App\Features\Events\Support\ScopedEventDeletionScope;
+use App\Features\Events\Support\VenueAddressResolver;
 use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Events\Support\Telemetry\EventsSignalSchemaContributor;
 use App\Platform\Admin\FilamentPageRegistry;
@@ -375,6 +376,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventChangePublisher::class, PublishEventChangeAnnouncementAction::class);
         $this->app->bind(EventDeletion::class, CleanupEventAction::class);
         $this->app->scoped(EventDeletionScope::class, ScopedEventDeletionScope::class);
+        $this->app->scoped(VenueAddressResolver::class);
         $this->app->bind(EventSubmissions::class, EventSubmissionsService::class);
         $this->app->bind(EventSubmissionCompletion::class, CompleteFrontendEventSubmissionAction::class);
         $this->app->bind(OccurrenceSubmissionReviews::class, ModerateEventOccurrenceSubmissionAction::class);

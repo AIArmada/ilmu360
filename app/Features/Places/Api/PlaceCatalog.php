@@ -33,6 +33,11 @@ interface PlaceCatalog
 
     public function resolvedPrimaryAddressId(string $venueId): ?string;
 
+    /** @param list<string> $venueIds
+     * @return array<string, string>
+     */
+    public function primaryAddressIdsFor(array $venueIds): array;
+
     public function venueTable(): string;
 
     public function venueMorphType(): string;

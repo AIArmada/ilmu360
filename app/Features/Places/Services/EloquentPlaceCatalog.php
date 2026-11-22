@@ -146,26 +146,42 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
 
     public function resolvedPrimaryAddressId(string $venueId): ?string
     {
-        $venue = Venue::query()->find($venueId);
-
-        if (! $venue instanceof Venue) {
-            return null;
-        }
-
-        $address = $venue->primaryAddress();
-
-        if ($address instanceof \AIArmada\Addressing\Models\Address) {
-            return (string) $address->getKey();
-        }
-
-        $owner = $venue->institutions()
-            ->reorder()
-            ->orderByDesc('institution_venue.is_primary')
-            ->oldest('institutions.id')
-            ->first();
-
-        $ownerAddress = $owner?->primaryAddress();
-
-        return $ownerAddress !== null ? (string) $ownerAddress->getKey() : null;
+        return $this->primaryAddressIdsFor([$venueId])[$venueId] ?? null;
     }
+
+    /**
+     * @param list<string> $venueIds
+     * @return array<string, string>
+     */
+    public function primaryAddressIdsFor(array $venueIds): array
+    {
+        $ids = array_values(array_unique(array_filter($venueIds, static fn (string $id): bool => $id !== '')));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $addresses = [];
+
+        foreach (Venue::query()->whereKey($ids)->with('addresses')->get() as $venue) {
+            $address = $venue->primaryAddress();
+
+            if (! $address instanceof \AIArmada\Addressing\Models\Address) {
+                $owner = $venue->institutions()
+                    ->reorder()
+                    ->orderByDesc('institution_venue.is_primary')
+                    ->oldest('institutions.id')
+                    ->with('addresses')
+                    ->first();
+                $address = $owner?->primaryAddress();
+            }
+
+            if ($address instanceof \AIArmada\Addressing\Models\Address) {
+                $addresses[(string) $venue->getKey()] = (string) $address->getKey();
+            }
+        }
+
+        return $addresses;
+    }
+
 }
