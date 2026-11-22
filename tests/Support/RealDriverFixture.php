@@ -728,9 +728,18 @@ final class RealDriverFixture
             return self::$binaries;
         }
 
+        $dbnginDirectories = glob('/Users/Shared/DBngin/postgresql/18.*/bin', GLOB_ONLYDIR) ?: [];
+        usort(
+            $dbnginDirectories,
+            static fn (string $left, string $right): int => version_compare(
+                basename(dirname($right)),
+                basename(dirname($left)),
+            ),
+        );
+
         $directories = [
             '/usr/lib/postgresql/18/bin',
-            '/Users/Shared/DBngin/postgresql/18.0/bin',
+            ...$dbnginDirectories,
             '/opt/homebrew/opt/postgresql@18/bin',
             '/usr/local/opt/postgresql@18/bin',
             '/opt/homebrew/opt/postgresql/bin',

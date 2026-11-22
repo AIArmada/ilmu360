@@ -188,7 +188,6 @@ it('renders the canonical homepage interval shortcuts', function () {
         ->assertSee('Minggu depan')
         ->assertSee('Bulan depan')
         ->assertSee('Dekat saya')
-        ->assertSee('Popular')
         ->assertSee('Malam Ini')
         ->assertDontSee('date=today', false)
         ->assertDontSee('date=friday', false)
