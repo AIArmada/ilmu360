@@ -72,6 +72,7 @@ use App\Features\Events\Api\EventMediaExtraction;
 use App\Features\Events\Api\EventMemberInvitationEligibility;
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventPageSchedule;
+use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Events\Api\EventProjections;
 use App\Features\Events\Api\EventRegistrationNotifications;
 use App\Features\Events\Api\EventReportSubjectProvider;
@@ -91,7 +92,6 @@ use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\OrganizerLookup;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
-use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
 use App\Features\Events\Api\ProductSignalsInsights;
 use App\Features\Events\Api\PublicScheduleVisibility;
@@ -310,6 +310,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventEngagementEligibility::class, EventEngagementEligibilityService::class);
         $this->app->bind(EventSchedulePageData::class, EventSchedulePageDataService::class);
         $this->app->bind(EventPageSchedule::class, EventPageScheduleService::class);
+        $this->app->bind(PublicScheduleOrmPort::class, \App\Features\Events\Services\PublicScheduleDiscoveryService::class);
         $this->app->bind(InstitutionEventTable::class, \App\Features\Events\EntryPoints\Filament\Support\InstitutionEventTableBuilder::class);
         $this->app->bind(EventCollections::class, EloquentEventCollections::class);
         $this->app->bind(AdminEventSearch::class, McpEventSearchService::class);
@@ -331,7 +332,6 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventScheduleReads::class, PostgresEventDiscovery::class);
         $this->app->bind(EventRegistrationNotifications::class, EventNotificationService::class);
         $this->app->bind(EventDirectoryProjectionProvider::class, PostgresEventDiscovery::class);
-        $this->app->bind(PublicScheduleEventReads::class, PostgresEventDiscovery::class);
 
         $this->app->bind(SubmissionTimingContract::class, SubmissionTimingPolicy::class);
 

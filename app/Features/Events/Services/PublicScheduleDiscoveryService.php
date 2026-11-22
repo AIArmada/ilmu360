@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Discovery\Services;
+namespace App\Features\Events\Services;
 
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
@@ -12,14 +12,15 @@ use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
-use App\Features\Discovery\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
+use App\Features\Events\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
+use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
+use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventScheduleFact;
 use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\EventScheduleTimeFact;
-use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Prayer\Api\EventPrayerTime;
@@ -34,7 +35,7 @@ use Illuminate\Support\Collection;
 final readonly class PublicScheduleDiscoveryService implements PublicScheduleOrmPort
 {
     public function __construct(
-        private PublicScheduleEventReads $scheduleEvents,
+        private PostgresEventDiscovery $scheduleEvents,
         private EventScheduleReads $scheduleFacts,
         private EventSearchReader $eventSearch,
         private SubjectFollows $subjectFollows,

@@ -8,12 +8,12 @@ use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
 use App\Features\Discovery\Services\EventSearchService;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventScheduleFact;
 use App\Features\Events\Api\EventScheduleReads;
-use App\Features\Events\Api\Orm\PublicScheduleEventReads;
+use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
@@ -648,7 +648,7 @@ it('drops current non-public ids at final schedule hydration', function (): void
     ]);
     $unpublished->updateQuietly(['published_at' => null]);
 
-    $hydrated = app(PublicScheduleEventReads::class)->hydrateScheduleEvents([
+    $hydrated = app(PostgresEventDiscovery::class)->hydrateScheduleEvents([
         (string) $private->getKey(),
         (string) $unpublished->getKey(),
         (string) $public->getKey(),
@@ -672,5 +672,5 @@ it('revalidates public state between fact selection and final hydration', functi
 
     $event->updateQuietly(['visibility' => 'private']);
 
-    expect(app(PublicScheduleEventReads::class)->hydrateScheduleEvents($facts->eventIds))->toBeEmpty();
+    expect(app(PostgresEventDiscovery::class)->hydrateScheduleEvents($facts->eventIds))->toBeEmpty();
 });

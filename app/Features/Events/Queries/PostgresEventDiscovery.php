@@ -33,7 +33,6 @@ use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Api\EventScheduleTimeFact;
-use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
@@ -67,7 +66,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
-final readonly class PostgresEventDiscovery implements EventDirectoryProjectionProvider, EventDiscoveryReader, EventScheduleReads, PublicScheduleEventReads
+final readonly class PostgresEventDiscovery implements EventDirectoryProjectionProvider, EventDiscoveryReader, EventScheduleReads
 {
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
