@@ -11,6 +11,7 @@ use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionVenue;
+use App\Features\Places\Actions\Venues\StampVenueStatusTransitionAction;
 use App\Features\Places\Api\Enums\VenueType;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
@@ -107,21 +108,8 @@ class Venue extends PackageVenue implements AuditableContract
     {
         parent::booted();
 
-        static::saving(function (self $venue): void {
-            if ($venue->isDirty('status')) {
-                $now = now();
-                $venue->last_state_change_at = $now;
-
-                match ((string) $venue->status) {
-                    'verified' => $venue->verified_at ??= $now,
-                    'rejected' => $venue->rejected_at ??= $now,
-                    default => null,
-                };
-
-                if ((string) $venue->status === 'verified') {
-                    $venue->verified_by ??= auth()->id();
-                }
-            }
+        static::saving(static function (self $venue): void {
+            app(StampVenueStatusTransitionAction::class)->handle($venue);
         });
 
     }
