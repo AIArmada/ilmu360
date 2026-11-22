@@ -69,7 +69,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         $referenceMorphType = (new $referenceClass)->getMorphClass();
 
         return $leaves
-            ->map(static function (PublicScheduleModelLeaf $leaf) use ($referenceIds, $referenceMorphType): ?PublicScheduleModelLeaf {
+            ->map(static function (PublicScheduleModelLeaf $leaf) use ($referenceIds, $matchingReference): ?PublicScheduleModelLeaf {
                 $event = $leaf->event();
                 $occurrence = $leaf->occurrence();
 
