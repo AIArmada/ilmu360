@@ -8,7 +8,8 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
 use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf;
 use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
-use App\Features\Events\Api\Orm\EventSchedulePageData;
+use App\Features\Events\Api\EventSchedulePageData;
+use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
@@ -40,6 +41,8 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         int $pastLimit,
         ?CarbonInterface $rangeFrom = null,
         ?CarbonInterface $rangeTo = null,
+        array $savedEventIds = [],
+        array $goingEventIds = [],
     ): array {
         $query = $this->events->institutionScheduleQuery($institutionId, [
             'venue.media',
@@ -48,7 +51,11 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             'venue.addresses.areaAssignments' => $this->joinAreaName(...),
         ]);
 
-        return $this->forQuery($query, $upcomingLimit, $pastLimit, $rangeFrom, $rangeTo);
+        return $this->renderSchedulePage(
+            $this->forQuery($query, $upcomingLimit, $pastLimit, $rangeFrom, $rangeTo),
+            $savedEventIds, $goingEventIds, true, false,
+            'institution_detail_upcoming_events', 'institution-detail-card',
+        );
     }
 
     public function forReferenceFamily(
@@ -57,6 +64,8 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         int $pastLimit,
         ?CarbonInterface $rangeFrom = null,
         ?CarbonInterface $rangeTo = null,
+        array $savedEventIds = [],
+        array $goingEventIds = [],
     ): array {
         $query = $this->events->referenceEventsQuery($referenceIds, [
             'venue.media',
@@ -65,13 +74,13 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             'venue.addresses.areaAssignments' => $this->joinAreaName(...),
         ]);
 
-        return $this->forQuery(
-            $query,
-            $upcomingLimit,
-            $pastLimit,
-            $rangeFrom,
-            $rangeTo,
-            fn (Collection $leaves): Collection => $this->filterReferenceLeaves($leaves, $referenceIds),
+        return $this->renderSchedulePage(
+            $this->forQuery(
+                $query, $upcomingLimit, $pastLimit, $rangeFrom, $rangeTo,
+                fn (Collection $leaves): Collection => $this->filterReferenceLeaves($leaves, $referenceIds),
+            ),
+            $savedEventIds, $goingEventIds, false, true,
+            'reference_detail_upcoming_events', 'reference-detail-card',
         );
     }
 
@@ -80,6 +89,53 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
      * @param  list<string>  $referenceIds
      * @return Collection<int, PublicScheduleModelLeaf>
      */
+    /**
+     * Server-render inside Events so no mutable models cross feature boundaries.
+     *
+     * @param array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $page
+     * @param list<string> $savedEventIds
+     * @param list<string> $goingEventIds
+     * @return array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     */
+    private function renderSchedulePage(
+        array $page,
+        array $savedEventIds,
+        array $goingEventIds,
+        bool $hideLocation,
+        bool $hideReference,
+        string $signalComponent,
+        string $testIdPrefix,
+    ): array {
+        $render = static function (PublicScheduleModelLeaf $leaf, string $section) use (
+            $savedEventIds, $goingEventIds, $hideLocation, $hideReference, $signalComponent, $testIdPrefix,
+        ): PublicScheduleRenderedCard {
+            $eventId = $leaf->eventId();
+
+            return new PublicScheduleRenderedCard(
+                id: $leaf->id(),
+                eventId: $eventId,
+                eventStatus: $leaf->eventStatus(),
+                entityType: $leaf->entityType(),
+                html: view('components.events.render-schedule-card', [
+                    'scheduleLeaf' => $leaf,
+                    'savedEventIds' => $savedEventIds,
+                    'isGoing' => in_array($eventId, $goingEventIds, true),
+                    'hideLocation' => $hideLocation,
+                    'hideReference' => $hideReference,
+                    'signalComponent' => $signalComponent,
+                    'testidPrefix' => $testIdPrefix,
+                    'wireKey' => $section.'-'.$leaf->entityType().'-'.$leaf->id(),
+                ])->render(),
+            );
+        };
+
+        return [
+            ...$page,
+            'upcoming' => $page['upcoming']->map(static fn (PublicScheduleModelLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'upcoming')),
+            'past' => $page['past']->map(static fn (PublicScheduleModelLeaf $leaf): PublicScheduleRenderedCard => $render($leaf, 'past')),
+        ];
+    }
+
     private function filterReferenceLeaves(Collection $leaves, array $referenceIds): Collection
     {
         $referenceClass = MorphModelResolver::resolve('reference');

@@ -50,7 +50,7 @@
     ];
     $institutionRouteSegment = \App\Features\Contributions\Api\Enums\ContributionSubjectType::Institution->publicRouteSegment();
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
-        fn (\App\Features\Discovery\Api\PublicScheduleLeaf $leaf): bool => $leaf->eventStatus() === 'cancelled'
+        fn (\App\Features\Events\Api\Data\PublicScheduleRenderedCard $card): bool => $card->eventStatus === 'cancelled'
     );
     $mapQuery = implode(', ', array_filter([
         $institution->name,
@@ -474,16 +474,8 @@
                     >
                         @if($upcomingEvents->isNotEmpty())
                             <div class="flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)]">
-                                @foreach($upcomingEvents as $scheduleLeaf)
-                                    <x-events.schedule-card
-                                        :schedule-leaf="$scheduleLeaf"
-                                        :saved-event-ids="$savedEventIds"
-                                        :is-going="in_array($scheduleLeaf->eventId(), $goingEventIds, true)"
-                                        :hide-location="true"
-                                        signal-component="institution_detail_upcoming_events"
-                                        testid-prefix="institution-detail-card"
-                                        :wire-key="'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"
-                                    />
+                                @foreach($upcomingEvents as $scheduleCard)
+                                    {!! $scheduleCard->html !!}
                                 @endforeach
                             </div>
                         @else

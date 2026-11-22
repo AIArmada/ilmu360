@@ -91,7 +91,7 @@ use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\InstitutionEventTable;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\OrganizerLookup;
-use App\Features\Events\Api\Orm\EventSchedulePageData;
+use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
 use App\Features\Events\Api\ProductSignalsInsights;
 use App\Features\Events\Api\PublicScheduleVisibility;

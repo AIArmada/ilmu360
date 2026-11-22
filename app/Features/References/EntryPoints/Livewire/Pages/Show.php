@@ -3,7 +3,7 @@
 namespace App\Features\References\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf as PublicScheduleLeafContract;
+use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
@@ -41,7 +41,7 @@ class Show extends Component
     public bool $showCustomDateRange = false;
 
     /**
-     * @var array{upcoming: Collection<int, PublicScheduleLeafContract>, past: Collection<int, PublicScheduleLeafContract>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}|null
+     * @var array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}|null
      */
     private ?array $schedulePageData = null;
 
@@ -207,7 +207,7 @@ class Show extends Component
     }
 
     /**
-     * @return Collection<int, PublicScheduleLeafContract>
+     * @return Collection<int, PublicScheduleRenderedCard>
      */
     public function getUpcomingEventsProperty(): Collection
     {
@@ -220,7 +220,7 @@ class Show extends Component
     }
 
     /**
-     * @return Collection<int, PublicScheduleLeafContract>
+     * @return Collection<int, PublicScheduleRenderedCard>
      */
     public function getPastEventsProperty(): Collection
     {
@@ -243,7 +243,7 @@ class Show extends Component
     }
 
     /**
-     * @return array{upcoming: Collection<int, PublicScheduleLeafContract>, past: Collection<int, PublicScheduleLeafContract>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     * @return array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function schedulePageData(): array
     {
@@ -253,7 +253,7 @@ class Show extends Component
 
         $range = $this->upcomingDateRange();
 
-        /** @var array{upcoming: Collection<int, PublicScheduleLeafContract>, past: Collection<int, PublicScheduleLeafContract>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
+        /** @var array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
         $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
         $data = app(EventSchedulePageData::class)->forReferenceFamily(
             referenceIds: $referenceIds,
@@ -261,6 +261,8 @@ class Show extends Component
             pastLimit: $this->pastPerPage,
             rangeFrom: $range['from'] ?? null,
             rangeTo: $range['to'] ?? null,
+            savedEventIds: $this->savedEventIds,
+            goingEventIds: $this->goingEventIds,
         );
 
         return $this->schedulePageData = $data;

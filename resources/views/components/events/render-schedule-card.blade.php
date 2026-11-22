@@ -1,0 +1,10 @@
+<x-events.schedule-card
+    :schedule-leaf="$scheduleLeaf"
+    :saved-event-ids="$savedEventIds"
+    :is-going="$isGoing"
+    :hide-location="$hideLocation"
+    :hide-reference="$hideReference"
+    :signal-component="$signalComponent"
+    :testid-prefix="$testidPrefix"
+    :wire-key="$wireKey"
+/>

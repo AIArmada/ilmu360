@@ -49,7 +49,7 @@
     $upcomingOverallTotal = $this->upcomingOverallTotal;
     $pastOverallTotal = $this->pastOverallTotal;
     $showCancelledEventStatusNotice = $upcomingEvents->contains(
-        fn (\App\Features\Discovery\Api\PublicScheduleLeaf $leaf): bool => $leaf->eventStatus() === 'cancelled'
+        fn (\App\Features\Events\Api\Data\PublicScheduleRenderedCard $card): bool => $card->eventStatus === 'cancelled'
     );
 
 @endphp
@@ -330,16 +330,8 @@
                     >
                         @if($upcomingEvents->isNotEmpty())
                             <div class="flex flex-wrap justify-center gap-4 *:w-full md:*:w-[calc(50%_-_0.5rem)]">
-                                @foreach($upcomingEvents as $scheduleLeaf)
-                                    <x-events.schedule-card
-                                        :schedule-leaf="$scheduleLeaf"
-                                        :saved-event-ids="$savedEventIds"
-                                        :is-going="in_array($scheduleLeaf->eventId(), $goingEventIds, true)"
-                                        :hide-reference="true"
-                                        signal-component="reference_detail_upcoming_events"
-                                        testid-prefix="reference-detail-card"
-                                        :wire-key="'upcoming-'.$scheduleLeaf->entityType().'-'.$scheduleLeaf->id()"
-                                    />
+                                @foreach($upcomingEvents as $scheduleCard)
+                                    {!! $scheduleCard->html !!}
                                 @endforeach
                             </div>
                         @else
