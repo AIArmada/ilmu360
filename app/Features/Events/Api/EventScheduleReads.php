@@ -71,11 +71,6 @@ interface EventScheduleReads
     /** @return array{id: string, title: string}|null */
     public function shareIdentityById(string $eventId): ?array;
 
-    /**
-     * Counts for a person's event workspace, including private and draft rows.
-     *
-     * @return array{total: int, upcoming: int, needs_attention: int}
-     */
     /** @return list<OrganizationWorkspaceEvent> */
     public function organizationWorkspaceEvents(string $ownerType, string $ownerId, int $limit): array;
 
@@ -87,6 +82,11 @@ interface EventScheduleReads
         int $page,
     ): PersonDashboardEventPage;
 
+    /**
+     * Counts for a person's event workspace, including private and draft rows.
+     *
+     * @return array{total: int, upcoming: int, needs_attention: int}
+     */
     public function personDashboardEventStats(string $personId): array;
 
     /**

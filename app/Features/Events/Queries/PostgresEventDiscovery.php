@@ -2331,6 +2331,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         return Event::query()->whereRaw('1 = 0');
     }
 
+    /** @return array{total: int, upcoming: int, needs_attention: int} */
     public function personDashboardEventStats(string $personId): array
     {
         $eventsTable = $this->eventTable();
