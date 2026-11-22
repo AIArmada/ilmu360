@@ -969,6 +969,36 @@ it('filters and sorts institution events on the dedicated event list page', func
         ->assertCanNotSeeTableRecords([$outsideEvent]);
 });
 
+it('switches the institution event table scope without retaining prior records', function () {
+    $user = User::factory()->create();
+    $first = Institution::factory()->create();
+    $second = Institution::factory()->create();
+
+    $first->members()->attach($user->id);
+    $second->members()->attach($user->id);
+
+    $firstEvent = Event::factory()->for($first)->create([
+        'title' => 'First Institution Only',
+        'status' => 'approved',
+        'visibility' => 'public',
+    ]);
+    $secondEvent = Event::factory()->for($second)->create([
+        'title' => 'Second Institution Only',
+        'status' => 'approved',
+        'visibility' => 'public',
+    ]);
+
+    Livewire::withQueryParams(['institution' => (string) $first->getKey()])
+        ->actingAs($user)
+        ->test(InstitutionDashboard::class)
+        ->set('eventListPage', true)
+        ->assertCanSeeTableRecords([$firstEvent])
+        ->assertCanNotSeeTableRecords([$secondEvent])
+        ->set('institutionId', (string) $second->getKey())
+        ->assertCanSeeTableRecords([$secondEvent])
+        ->assertCanNotSeeTableRecords([$firstEvent]);
+});
+
 it('paginates institution events on the dedicated event list page', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjid Paginate']);
