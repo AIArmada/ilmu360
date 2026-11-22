@@ -2,32 +2,11 @@
 
 namespace App\Providers;
 
-use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Checkout\Models\CheckoutSession;
-use AIArmada\Contacting\Models\ContactMethod;
-use AIArmada\Contacting\Models\SocialProfile;
-use AIArmada\Customers\Models\Customer;
 use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventAccessPolicy;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventRegistrationParticipant;
-use AIArmada\Events\Models\EventSession;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
-use AIArmada\Inventory\Models\InventoryAllocation;
-use AIArmada\Inventory\Models\InventoryLevel;
-use AIArmada\Inventory\Models\InventoryLocation;
-use AIArmada\Inventory\Models\InventoryMovement;
-use AIArmada\Orders\Models\Order;
-use AIArmada\Orders\Models\OrderItem;
-use AIArmada\Orders\Models\OrderNote;
-use AIArmada\Orders\Models\OrderPayment;
-use AIArmada\Orders\Models\OrderRefund;
-use AIArmada\Organizations\Models\Organization;
 use AIArmada\Signals\Models\TrackedProperty;
-use AIArmada\Ticketing\Models\TicketType;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Host\Affiliates\EloquentAffiliateSnapshotPersistence;
 use App\Host\Pango\ShareCards\PangoShareCardRenderer;
@@ -86,7 +65,6 @@ use Filament\Tables\Table;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -255,34 +233,6 @@ class AppServiceProvider extends ServiceProvider
                 self::$publicSlugBindingsRegistered = true;
             }
         }
-
-        // Merged map, not enforced: polymorphic writes use configured aliases.
-        Relation::morphMap([
-            'address' => Address::class,
-
-            'contact' => ContactMethod::class,
-            'customer' => Customer::class,
-            'user' => User::class,
-            'package_event' => PackageEvent::class,
-            'event_access_policy' => EventAccessPolicy::class,
-            'event_location' => EventLocation::class,
-            'event_occurrence' => EventOccurrence::class,
-            'event_session' => EventSession::class,
-            'checkout_session' => CheckoutSession::class,
-            'order' => Order::class,
-            'order_item' => OrderItem::class,
-            'order_note' => OrderNote::class,
-            'order_payment' => OrderPayment::class,
-            'order_refund' => OrderRefund::class,
-            'event_registration_participant' => EventRegistrationParticipant::class,
-            'social_media' => SocialProfile::class,
-            'organization' => Organization::class,
-            'inventory_location' => InventoryLocation::class,
-            'inventory_level' => InventoryLevel::class,
-            'inventory_allocation' => InventoryAllocation::class,
-            'inventory_movement' => InventoryMovement::class,
-            'ticket_type' => TicketType::class,
-        ]);
 
         Gate::policy(FilamentAudit::class, FilamentAuditPolicy::class);
         Gate::policy(AddressArea::class, AddressAreaPolicy::class);

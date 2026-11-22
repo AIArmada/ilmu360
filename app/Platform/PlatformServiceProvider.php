@@ -11,7 +11,29 @@ use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
+use AIArmada\Contacting\Models\ContactMethod;
+use AIArmada\Contacting\Models\SocialProfile;
+use AIArmada\Customers\Models\Customer;
+use AIArmada\Events\Models\Event;
+use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Models\EventLocation;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Models\EventSession;
+use AIArmada\Inventory\Models\InventoryAllocation;
+use AIArmada\Inventory\Models\InventoryLevel;
+use AIArmada\Inventory\Models\InventoryLocation;
+use AIArmada\Inventory\Models\InventoryMovement;
+use AIArmada\Orders\Models\Order;
+use AIArmada\Orders\Models\OrderItem;
+use AIArmada\Orders\Models\OrderNote;
+use AIArmada\Orders\Models\OrderPayment;
+use AIArmada\Orders\Models\OrderRefund;
+use AIArmada\Organizations\Models\Organization;
+use AIArmada\Ticketing\Models\TicketType;
+use App\Models\User;
 use App\Platform\Addressing\Observers\AddressableObserver;
 use App\Platform\Addressing\Observers\AddressAreaObserver;
 use App\Platform\Addressing\Observers\AddressAreaRelationshipObserver;
@@ -56,6 +78,33 @@ final class PlatformServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Canonical package and root morph types are infrastructure-owned.
+        Relation::morphMap([
+            'address' => Address::class,
+            'contact' => ContactMethod::class,
+            'customer' => Customer::class,
+            'user' => User::class,
+            'package_event' => PackageEvent::class,
+            'event_access_policy' => EventAccessPolicy::class,
+            'event_location' => EventLocation::class,
+            'event_occurrence' => EventOccurrence::class,
+            'event_session' => EventSession::class,
+            'checkout_session' => CheckoutSession::class,
+            'order' => Order::class,
+            'order_item' => OrderItem::class,
+            'order_note' => OrderNote::class,
+            'order_payment' => OrderPayment::class,
+            'order_refund' => OrderRefund::class,
+            'event_registration_participant' => EventRegistrationParticipant::class,
+            'social_media' => SocialProfile::class,
+            'organization' => Organization::class,
+            'inventory_location' => InventoryLocation::class,
+            'inventory_level' => InventoryLevel::class,
+            'inventory_allocation' => InventoryAllocation::class,
+            'inventory_movement' => InventoryMovement::class,
+            'ticket_type' => TicketType::class,
+        ]);
+
         Relation::morphMap([
             'language' => Language::class,
         ]);
