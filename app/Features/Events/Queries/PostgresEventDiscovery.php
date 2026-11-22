@@ -2263,18 +2263,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         return (new Series)->getTable();
     }
 
-    public function institutionTableQuery(string $institutionId): EventBuilder
-    {
-        return Event::query()
-            ->where('institution_id', $institutionId)
-            ->with([
-                'primaryLocation.venueSpace:id,name',
-                'persons:id,name',
-                'references.parentReference.parentReference',
-            ])
-            ->withCount(['registrations as dashboard_registrations_count']);
-    }
-
     /** @return list<InstitutionDashboardEventCard> */
     public function recentInstitutionEventCards(string $institutionId, int $limit): array
     {
@@ -2421,11 +2409,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->withCount('registrations')
             ->get()
             ->sum(fn (Event $event): int => (int) ($event->registrations_count ?? 0));
-    }
-
-    public function emptyEventsQuery(): EventBuilder
-    {
-        return Event::query()->whereRaw('1 = 0');
     }
 
     /** @return array{total: int, upcoming: int, needs_attention: int} */

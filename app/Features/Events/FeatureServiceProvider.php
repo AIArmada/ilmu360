@@ -63,6 +63,7 @@ use App\Features\Events\Api\EventDiscoveryReaders;
 use App\Features\Events\Api\EventEngagementEligibility;
 use App\Features\Events\Api\EventHomepageStats;
 use App\Features\Events\Api\EventImageUploads;
+use App\Features\Events\Api\InstitutionEventTable;
 use App\Features\Events\Api\EventInstitutionQuickAddMapsProofStore;
 use App\Features\Events\Api\EventInvolvementFingerprint;
 use App\Features\Events\Api\EventLocations;
@@ -310,6 +311,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventEngagementEligibility::class, EventEngagementEligibilityService::class);
         $this->app->bind(EventSchedulePageData::class, EventSchedulePageDataService::class);
         $this->app->bind(EventPageSchedule::class, EventPageScheduleService::class);
+        $this->app->bind(InstitutionEventTable::class, \App\Features\Events\EntryPoints\Filament\Support\InstitutionEventTableBuilder::class);
         $this->app->bind(EventCollections::class, EloquentEventCollections::class);
         $this->app->bind(AdminEventSearch::class, McpEventSearchService::class);
         $this->app->bind(EventScheduleSql::class, PrimaryOccurrenceScheduleSql::class);

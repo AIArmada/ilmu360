@@ -23,17 +23,6 @@ use App\Features\Events\Models\Builders\EventBuilder;
 interface EventOrmPort
 {
     /**
-     * Institution dashboard table query with the table relation set and
-     * dashboard registration count.
-     */
-    public function institutionTableQuery(string $institutionId): EventBuilder;
-
-    /**
-     * A guaranteed-empty event query.
-     */
-    public function emptyEventsQuery(): EventBuilder;
-
-    /**
      * Public schedule query for a reference family.
      *
      * @param  list<string>  $referenceIds

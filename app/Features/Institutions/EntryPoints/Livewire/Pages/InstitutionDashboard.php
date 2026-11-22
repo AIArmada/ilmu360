@@ -8,33 +8,24 @@ use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Data\InstitutionDashboardEventCard;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventScheduleReads;
-use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\InstitutionEventTable;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Features\Places\Api\SpaceLocation;
 use App\Models\User;
-use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
-use BackedEnum;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Support\Enums\Width;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Enums\PaginationMode;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -553,139 +544,18 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
     public function table(Table $table): Table
     {
-        $canUseSelectedInstitutionForScopedSubmission = $this->canUseSelectedInstitutionForScopedSubmission();
+        $institution = $this->selectedInstitution();
 
-        return $table
-            ->query(function (): Builder {
-                $institution = $this->selectedInstitution();
-
-                if (! $institution instanceof Institution) {
-                    return app(EventOrmPort::class)->emptyEventsQuery();
-                }
-
-                return app(EventOrmPort::class)->institutionTableQuery((string) $institution->id);
-            })
-            ->columns([
-                TextColumn::make('title')
-                    ->label(__('Title'))
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        $search = '%'.trim($search).'%';
-
-                        return $query->where(function (Builder $builder) use ($search): void {
-                            $builder
-                                ->whereLike('title', $search)
-                                ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereLike('name', $search));
-                        });
-                    })
-                    ->sortable()
-                    ->html()
-                    ->wrap()
-                    ->formatStateUsing(fn (Event $record): HtmlString => new HtmlString(view(
-                        'livewire.pages.dashboard.partials.institution-event-title-cell',
-                        [
-                            'event' => $record,
-                            'canUseSelectedInstitutionForScopedSubmission' => $canUseSelectedInstitutionForScopedSubmission,
-                            'selectedInstitutionId' => $this->institutionId,
-                        ],
-                    )->render())),
-                TextColumn::make('starts_at')
-                    ->label(__('Date'))
-                    ->state(fn (Event $record): string => $this->formatEventSchedule($record))
-                    ->sortable()
-                    ->wrap(),
-                TextColumn::make('status')
-                    ->label(__('Status'))
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => $this->translateStatusLabel($state))
-                    ->color(fn (string $state): string => match ($state) {
-                        'approved' => 'success',
-                        'pending' => 'warning',
-                        'needs_changes' => 'info',
-                        'rejected', 'cancelled' => 'danger',
-                        default => 'gray',
-                    }),
-                TextColumn::make('person_names')
-                    ->label(__('Speakers'))
-                    ->state(fn (Event $record): array => $record->persons
-                        ->pluck('name')
-                        ->filter(fn (mixed $name): bool => is_string($name) && trim($name) !== '')
-                        ->map(fn (string $name): string => trim($name))
-                        ->values()
-                        ->all())
-                    ->listWithLineBreaks()
-                    ->limitList(2)
-                    ->expandableLimitedList()
-                    ->placeholder('-')
-                    ->wrap()
-                    ->tooltip(fn (Event $record): ?string => $record->persons
-                        ->pluck('name')
-                        ->filter(fn (mixed $name): bool => is_string($name) && trim($name) !== '')
-                        ->map(fn (string $name): string => trim($name))
-                        ->implode(', ') ?: null),
-                TextColumn::make('reference_titles')
-                    ->label(__('References'))
-                    ->state(fn (Event $record): array => $record->references
-                        ->pluck('title')
-                        ->filter(fn (mixed $title): bool => is_string($title) && trim($title) !== '')
-                        ->map(fn (string $title): string => trim($title))
-                        ->values()
-                        ->all())
-                    ->listWithLineBreaks()
-                    ->limitList(2)
-                    ->expandableLimitedList()
-                    ->placeholder('-')
-                    ->wrap()
-                    ->tooltip(fn (Event $record): ?string => $record->references
-                        ->pluck('title')
-                        ->filter(fn (mixed $title): bool => is_string($title) && trim($title) !== '')
-                        ->map(fn (string $title): string => trim($title))
-                        ->implode(', ') ?: null),
-                TextColumn::make('primaryLocation.venueSpace.name')
-                    ->label(__('Location'))
-                    ->state(fn (Event $record): ?string => app(SpaceLocation::class)->name(
-                        (string) ($record->primaryLocation->space_name_snapshot ?? ''),
-                        $record->primaryLocation?->venueSpace?->name,
-                    ))
-                    ->placeholder('-')
-                    ->wrap(),
-                TextColumn::make('dashboard_registrations_count')
-                    ->label(__('Registrations'))
-                    ->numeric()
-                    ->sortable()
-                    ->alignEnd()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('visibility')
-                    ->label(__('Visibility'))
-                    ->badge()
-                    ->formatStateUsing(fn (mixed $state): string => $this->translateStatusLabel($state))
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('published_at')
-                    ->label(__('Published At'))
-                    ->dateTime()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->defaultSort(fn (Builder $query): string|Builder|null => $this->applyDashboardEventSort($query), fn (): string => $this->dashboardEventSortDirection())
-            ->searchPlaceholder(__('Search by event title or venue'))
-            ->filters([
-                SelectFilter::make('status')
-                    ->label(__('Status'))
-                    ->options(collect($this->eventStatusOptions())->except('all')->all()),
-                SelectFilter::make('visibility')
-                    ->label(__('Visibility'))
-                    ->options(collect($this->eventVisibilityOptions())->except('all')->all()),
-            ])
-            ->deferFilters(false)
-            ->filtersFormColumns(2)
-            ->filtersFormWidth(Width::Medium)
-            ->paginated([8, 15, 25])
-            ->paginationMode(PaginationMode::Default)
-            ->defaultPaginationPageOption(8)
-            ->extremePaginationLinks()
-            ->recordClasses(fn (Event $record): ?string => (string) $record->status === 'pending' ? 'bg-amber-50/80' : null)
-            ->stackedOnMobile()
-            ->scrollToTopOnPageChange()
-            ->emptyStateHeading(__('No events match the current filters.'))
-            ->emptyStateDescription(__('Try adjusting the search or filters.'));
+        return app(InstitutionEventTable::class)->configure(
+            table: $table,
+            institutionId: $institution instanceof Institution ? (string) $institution->getKey() : null,
+            selectedInstitutionId: $this->institutionId,
+            canUseSelectedInstitutionForScopedSubmission: $this->canUseSelectedInstitutionForScopedSubmission(),
+            sort: $this->eventSort,
+            hasExplicitTableSort: filled($this->tableSort),
+            statusOptions: collect($this->eventStatusOptions())->except('all')->all(),
+            visibilityOptions: collect($this->eventVisibilityOptions())->except('all')->all(),
+        );
     }
 
     /**
@@ -803,81 +673,6 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         $user = auth()->user();
 
         abort_unless($user instanceof User && $this->userHasInstitutionManagementRole($user, $institution), 403);
-    }
-
-    protected function translateStatusLabel(mixed $status): string
-    {
-        if ($status instanceof BackedEnum) {
-            if (method_exists($status, 'getLabel')) {
-                return (string) $status->getLabel();
-            }
-
-            if (method_exists($status, 'label')) {
-                return (string) $status->label();
-            }
-
-            $status = $status->value;
-        }
-
-        if (! is_scalar($status)) {
-            return '';
-        }
-
-        $status = (string) $status;
-        $translated = __($status);
-
-        if ($translated !== $status) {
-            return $translated;
-        }
-
-        return str($status)->replace('_', ' ')->headline()->toString();
-    }
-
-    protected function formatEventSchedule(Event $event): string
-    {
-        if (! $event->starts_at) {
-            return __('TBC');
-        }
-
-        $date =
-            UserDateTimeFormatter::translatedFormat($event->starts_at, 'd M Y');
-        $time = $event->isPrayerRelative()
-            ? (string) $event->timing_display
-            : UserDateTimeFormatter::translatedFormat($event->starts_at, 'h:i A');
-
-        return $date.', '.$time;
-    }
-
-    /**
-     * Apply dashboard event sort when Filament column sort is not active.
-     *
-     * @param  Builder<Event>  $query
-     * @return Builder<Event>|string|null
-     */
-    protected function applyDashboardEventSort(Builder $query): Builder|string|null
-    {
-        if (filled($this->tableSort)) {
-            return null;
-        }
-
-        return match ($this->eventSort) {
-            'starts_asc', 'starts_desc' => 'starts_at',
-            'title_asc', 'title_desc' => 'title',
-            'registrations_desc' => 'dashboard_registrations_count',
-            'pending_first' => $query
-                ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
-                ->orderBy('starts_at')
-                ->orderBy('title'),
-            default => 'starts_at',
-        };
-    }
-
-    protected function dashboardEventSortDirection(): string
-    {
-        return match ($this->eventSort) {
-            'starts_asc', 'title_asc', 'pending_first' => 'asc',
-            default => 'desc',
-        };
     }
 
     /**
