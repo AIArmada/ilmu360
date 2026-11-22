@@ -40,9 +40,9 @@ final readonly class RegistrationSnapshotProjector
         return new RegistrationSnapshot(
             id: (string) $registration->getKey(),
             eventId: (string) $registration->getAttribute('event_id'),
-            eventTitle: $event !== null ? $this->scalar($event->getAttribute('title')) : null,
-            eventStartsAt: $event !== null ? $this->date($event->getAttribute('starts_at')) : null,
-            eventStatus: $event !== null ? $this->scalar($event->getAttribute('status')) : null,
+            eventTitle: $event instanceof Model ? $this->scalar($event->getAttribute('title')) : null,
+            eventStartsAt: $event instanceof Model ? $this->date($event->getAttribute('starts_at')) : null,
+            eventStatus: $event instanceof Model ? $this->scalar($event->getAttribute('status')) : null,
             createdAt: $this->date($registration->getAttribute('created_at')),
             registeredAt: $this->date($registration->getAttribute('registered_at')),
             registrantType: $this->scalar($registration->getAttribute('registrant_type')),
@@ -73,8 +73,8 @@ final readonly class RegistrationSnapshotProjector
         return new CheckInSnapshot(
             id: (string) $checkIn->getKey(),
             eventId: (string) $checkIn->getAttribute('event_id'),
-            eventTitle: $event !== null ? $this->scalar($event->getAttribute('title')) : null,
-            eventStartsAt: $event !== null ? $this->date($event->getAttribute('starts_at')) : null,
+            eventTitle: $event instanceof Model ? $this->scalar($event->getAttribute('title')) : null,
+            eventStartsAt: $event instanceof Model ? $this->date($event->getAttribute('starts_at')) : null,
             createdAt: $this->date($checkIn->getAttribute('created_at')),
             checkedInAt: $this->date($checkIn->getAttribute('checked_in_at')),
             checkInSource: $this->scalar($checkIn->getAttribute('check_in_source')),

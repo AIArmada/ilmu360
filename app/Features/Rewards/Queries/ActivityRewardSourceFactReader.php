@@ -25,7 +25,6 @@ use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use LogicException;
 use Throwable;
 
 /**
@@ -72,26 +71,30 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
                 : null;
         }
 
-        $source = $this->resolveSourceRecord($parsed['source_transition_id']);
-
-        if (! $source instanceof Model) {
+        if ($outcome !== ShareOutcomeType::Signup) {
             return null;
         }
 
-        $actor = $this->actorFor($outcome, $source);
+        $sourceId = $this->prefixedSourceId($parsed['source_transition_id'], 'user:');
+        $actor = $sourceId !== null ? User::query()->find($sourceId) : null;
 
         if (! $actor instanceof User) {
             return null;
         }
 
-        $occurredAt = $this->occurredAtFor($outcome, $source);
+        $createdAt = $actor->getAttribute('created_at');
 
-        if (! $occurredAt instanceof CarbonImmutable) {
+        if (! $createdAt instanceof DateTimeInterface && ! is_string($createdAt)) {
             return null;
         }
 
-        $invalidates = $this->sourceInvalidates($outcome, $source);
-        $metadata = $this->attribute($source, 'metadata');
+        try {
+            $occurredAt = CarbonImmutable::parse($createdAt)->setTimezone('UTC');
+        } catch (Throwable) {
+            return null;
+        }
+
+        $metadata = $this->attribute($actor, 'metadata');
         $metadata = is_array($metadata) ? $metadata : [];
 
         return new RewardSourceFact(
@@ -99,18 +102,18 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             outcome: $outcome->value,
             category: null,
             occurredAt: $occurredAt,
-            verification: $this->verificationFor($outcome, $source),
-            isFirstTime: $this->isFirstTime($outcome, (string) $source->getKey(), $actor, $occurredAt),
+            verification: RewardVerificationLevel::Accepted,
+            isFirstTime: true,
             actorId: (string) $actor->getKey(),
             sharerId: null,
-            actorRole: $this->actorRoleFor($outcome, $source, $actor),
+            actorRole: RewardBeneficiaryRole::Participant,
             isClaimedIdentity: true,
             isAttributed: false,
-            isAmbiguousDevice: $this->booleanSignal($source, $metadata, 'is_ambiguous_device'),
-            isBot: $this->booleanSignal($source, $metadata, 'is_bot'),
-            isCancelled: $invalidates['cancelled'],
-            isValid: ! $invalidates['invalid'],
-            fraudStatus: $this->fraudStatusFor($source, $metadata),
+            isAmbiguousDevice: $this->booleanSignal($actor, $metadata, 'is_ambiguous_device'),
+            isBot: $this->booleanSignal($actor, $metadata, 'is_bot'),
+            isCancelled: false,
+            isValid: true,
+            fraudStatus: $this->fraudStatusFor($actor, $metadata),
             correctionStatus: RewardSourceCorrectionStatus::Current,
         );
     }
@@ -210,7 +213,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             $verification = $source->verifiedByUserId !== null
                 ? RewardVerificationLevel::StaffVerified
                 : RewardVerificationLevel::Unverified;
-            $role = $attendee === null && $source->verifiedByUserId === (string) $actor?->getKey()
+            $role = ! $attendee instanceof User && $source->verifiedByUserId === (string) $actor?->getKey()
                 ? RewardBeneficiaryRole::Staff
                 : RewardBeneficiaryRole::Participant;
             $previous = static fn (User $actor, CarbonImmutable $occurredAt): bool => $registrationLookup->hasEarlierCheckInActivity(
@@ -274,7 +277,12 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             category: null,
             occurredAt: $occurredAt,
             verification: RewardVerificationLevel::Accepted,
-            isFirstTime: $this->isFirstTime(ShareOutcomeType::SavedSearchCreated, $source->id, $actor, $occurredAt),
+            isFirstTime: ! app(SavedSearchReader::class)->hasEarlierForOwner(
+                $actor->getMorphClass(),
+                (string) $actor->getKey(),
+                $source->id,
+                $occurredAt,
+            ),
             actorId: (string) $actor->getKey(),
             sharerId: null,
             actorRole: RewardBeneficiaryRole::Participant,
@@ -425,59 +433,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         return $sourceId !== '' ? $sourceId : null;
     }
 
-    private function resolveSourceRecord(string $sourceTransitionId): ?Model
-    {
-        /** @var array<string, callable(string): mixed> $sources */
-        $sources = [
-            'user:' => static fn (string $id): mixed => User::query()->find($id),
-        ];
-
-        foreach ($sources as $prefix => $resolve) {
-            if (! str_starts_with($sourceTransitionId, $prefix)) {
-                continue;
-            }
-
-            $sourceId = substr($sourceTransitionId, strlen($prefix));
-
-            if ($sourceId === '') {
-                return null;
-            }
-
-            $source = $resolve($sourceId);
-
-            return $source instanceof Model ? $source : null;
-        }
-
-        return null;
-    }
-
-    private function actorFor(ShareOutcomeType $outcome, Model $source): ?User
-    {
-        if ($outcome === ShareOutcomeType::Signup && $source instanceof User) {
-            return $source;
-        }
-
-        $actorColumns = match ($outcome) {
-            ShareOutcomeType::EventSave => ['bookmarker_type', 'bookmarker_id'],
-            ShareOutcomeType::EventGoing => ['responder_type', 'responder_id'],
-            ShareOutcomeType::InstitutionFollow,
-            ShareOutcomeType::PersonFollow,
-            ShareOutcomeType::SeriesFollow,
-            ShareOutcomeType::ReferenceFollow => ['follower_type', 'follower_id'],
-            ShareOutcomeType::SavedSearchCreated => ['user_type', 'user_id'],
-            default => null,
-        };
-
-        if ($actorColumns === null) {
-            return null;
-        }
-
-        return $this->userForMorph(
-            $this->stringAttribute($source, $actorColumns[0]),
-            $this->stringAttribute($source, $actorColumns[1]),
-        );
-    }
-
     private function userForMorph(?string $type, ?string $id): ?User
     {
         if ($type === null || $id === null) {
@@ -491,93 +446,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         }
 
         return User::query()->whereKey($id)->first();
-    }
-
-    private function occurredAtFor(ShareOutcomeType $outcome, Model $source): ?CarbonImmutable
-    {
-        $column = match ($outcome) {
-            ShareOutcomeType::Signup => 'created_at',
-            ShareOutcomeType::EventSubmission => 'submitted_at',
-            ShareOutcomeType::EventSave => 'bookmarked_at',
-            ShareOutcomeType::EventGoing => 'responded_at',
-            ShareOutcomeType::InstitutionFollow,
-            ShareOutcomeType::PersonFollow,
-            ShareOutcomeType::SeriesFollow,
-            ShareOutcomeType::ReferenceFollow => 'followed_at',
-            ShareOutcomeType::SavedSearchCreated => 'created_at',
-        };
-
-        $value = $this->attribute($source, $column) ?? $this->attribute($source, 'created_at');
-
-        if (! $value instanceof DateTimeInterface && ! is_string($value)) {
-            return null;
-        }
-
-        try {
-            return CarbonImmutable::parse($value)->setTimezone('UTC');
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    /**
-     * @return array{cancelled: bool, invalid: bool}
-     */
-    private function sourceInvalidates(ShareOutcomeType $outcome, Model $source): array
-    {
-        $status = $this->stringAttribute($source, 'status');
-        $cancelled = $this->attribute($source, 'cancelled_at') !== null;
-
-        $invalid = match ($outcome) {
-            ShareOutcomeType::EventSave => ! in_array($status, [null, 'active'], true),
-            ShareOutcomeType::EventGoing => in_array($status, ['cancelled', 'expired'], true),
-            ShareOutcomeType::InstitutionFollow,
-            ShareOutcomeType::PersonFollow,
-            ShareOutcomeType::SeriesFollow,
-            ShareOutcomeType::ReferenceFollow => in_array($status, ['unfollowed', 'blocked'], true),
-            default => false,
-        };
-
-        return [
-            'cancelled' => $invalid,
-            'invalid' => $invalid,
-        ];
-    }
-
-    private function verificationFor(ShareOutcomeType $outcome, Model $source): RewardVerificationLevel
-    {
-        return RewardVerificationLevel::Accepted;
-    }
-
-    private function actorRoleFor(ShareOutcomeType $outcome, Model $source, User $actor): RewardBeneficiaryRole
-    {
-        return RewardBeneficiaryRole::Participant;
-    }
-
-    private function isFirstTime(
-        ShareOutcomeType $outcome,
-        string $sourceId,
-        User $actor,
-        CarbonImmutable $occurredAt,
-    ): bool {
-        if ($outcome === ShareOutcomeType::Signup) {
-            return true;
-        }
-
-        if ($outcome === ShareOutcomeType::SavedSearchCreated) {
-            return ! app(SavedSearchReader::class)->hasEarlierForOwner(
-                $actor->getMorphClass(),
-                (string) $actor->getKey(),
-                $sourceId,
-                $occurredAt,
-            );
-        }
-
-        $before = $occurredAt->setTimezone(config('app.timezone', 'UTC'));
-
-        return match ($outcome) {
-            default => throw new LogicException('Engagement outcomes are resolved through the engagement reader.'),
-        };
     }
 
     /**
