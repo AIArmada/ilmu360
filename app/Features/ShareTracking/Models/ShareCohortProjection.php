@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Models;
 
+use App\Features\ShareTracking\Actions\AssertShareCohortProjectionLifecycleAction;
 use App\Features\ShareTracking\Support\CommittedShareSignal;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use LogicException;
 
 /**
  * Cohort projection for one committed outbound share.
@@ -51,22 +51,12 @@ class ShareCohortProjection extends Model
 
     protected static function booted(): void
     {
-        static::updating(static function (ShareCohortProjection $projection): void {
-            foreach (['business_key', 'outcome', 'cohort_week', 'occurred_at'] as $field) {
-                if ($projection->isDirty($field)) {
-                    throw new LogicException("Share cohort projection [{$field}] is frozen.");
-                }
-            }
-
-            if ($projection->isDirty('stage')
-                && ($projection->getOriginal('stage') !== self::STAGE_OBSERVED || $projection->stage !== self::STAGE_PARTICIPATED)
-            ) {
-                throw new LogicException('Share cohort projection stages move observed -> participated only.');
-            }
+        static::updating(static function (ShareCohortProjection $record): void {
+            app(AssertShareCohortProjectionLifecycleAction::class)->updating($record);
         });
 
         static::deleting(static function (): void {
-            throw new LogicException('Share cohort projections cannot be deleted.');
+            app(AssertShareCohortProjectionLifecycleAction::class)->deleting();
         });
     }
 }

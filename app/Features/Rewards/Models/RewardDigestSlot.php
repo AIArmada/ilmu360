@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Rewards\Models;
 
+use App\Features\Rewards\Actions\AssertRewardDigestSlotLifecycleAction;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use LogicException;
 
 /**
  * Atomic recipient-local-day gratitude digest slot.
@@ -76,35 +76,12 @@ class RewardDigestSlot extends Model
 
     protected static function booted(): void
     {
-        static::updating(static function (RewardDigestSlot $slot): void {
-            foreach (['recipient_type', 'recipient_id', 'local_day', 'plan_key', 'timezone', 'due_at'] as $field) {
-                if ($slot->isDirty($field)) {
-                    throw new LogicException("Reward digest slot [{$field}] is frozen at plan time.");
-                }
-            }
-
-            foreach (['sent_at', 'cancelled_at'] as $field) {
-                if ($slot->getOriginal($field) !== null && $slot->isDirty($field)) {
-                    throw new LogicException("Reward digest slot [{$field}] is an immutable transition timestamp.");
-                }
-            }
-
-            if ($slot->isDirty('status')) {
-                $from = (string) $slot->getOriginal('status');
-                $allowed = match ($from) {
-                    self::STATUS_PLANNED => [self::STATUS_SENDING, self::STATUS_CANCELLED],
-                    self::STATUS_SENDING => [self::STATUS_SENT, self::STATUS_CANCELLED, self::STATUS_PLANNED],
-                    default => [],
-                };
-
-                if (! in_array((string) $slot->status, $allowed, true)) {
-                    throw new LogicException('Invalid reward digest slot status transition.');
-                }
-            }
+        static::updating(static function (RewardDigestSlot $record): void {
+            app(AssertRewardDigestSlotLifecycleAction::class)->updating($record);
         });
 
         static::deleting(static function (): void {
-            throw new LogicException('Reward digest slots cannot be deleted; cancel them instead.');
+            app(AssertRewardDigestSlotLifecycleAction::class)->deleting();
         });
     }
 }
