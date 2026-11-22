@@ -62,9 +62,9 @@ final readonly class PrepareInstitutionPersistenceAction
 
                 match ($status) {
                     InstitutionStatus::Pending => null,
-                    InstitutionStatus::Verified => $institution->verified_at = $now,
-                    InstitutionStatus::Rejected => $institution->rejected_at = $now,
-                    InstitutionStatus::Inactive => $institution->inactive_at = $now,
+                    InstitutionStatus::Verified => $institution->setAttribute('verified_at', $now),
+                    InstitutionStatus::Rejected => $institution->setAttribute('rejected_at', $now),
+                    InstitutionStatus::Inactive => $institution->setAttribute('inactive_at', $now),
                 };
             } else {
                 // Creation preserves explicitly provided fixture timestamps.
@@ -74,9 +74,9 @@ final readonly class PrepareInstitutionPersistenceAction
 
                 match ($status) {
                     InstitutionStatus::Pending => null,
-                    InstitutionStatus::Verified => $institution->verified_at ??= $now,
-                    InstitutionStatus::Rejected => $institution->rejected_at ??= $now,
-                    InstitutionStatus::Inactive => $institution->inactive_at ??= $now,
+                    InstitutionStatus::Verified => $institution->getAttribute('verified_at') ?? $institution->setAttribute('verified_at', $now),
+                    InstitutionStatus::Rejected => $institution->getAttribute('rejected_at') ?? $institution->setAttribute('rejected_at', $now),
+                    InstitutionStatus::Inactive => $institution->getAttribute('inactive_at') ?? $institution->setAttribute('inactive_at', $now),
                 };
             }
 
