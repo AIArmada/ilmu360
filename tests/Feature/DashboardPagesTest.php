@@ -996,7 +996,10 @@ it('switches the institution event table scope without retaining prior records',
         ->assertCanNotSeeTableRecords([$secondEvent])
         ->set('institutionId', (string) $second->getKey())
         ->assertCanSeeTableRecords([$secondEvent])
-        ->assertCanNotSeeTableRecords([$firstEvent]);
+        ->assertCanNotSeeTableRecords([$firstEvent])
+        ->set('institutionId', (string) $first->getKey())
+        ->assertCanSeeTableRecords([$firstEvent])
+        ->assertCanNotSeeTableRecords([$secondEvent]);
 });
 
 it('paginates institution events on the dedicated event list page', function () {
