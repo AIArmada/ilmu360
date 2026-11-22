@@ -11,6 +11,10 @@ use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
 use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Events\Models\Builders\EventBuilder;
+use App\Features\Events\Models\Event;
+use App\Features\Events\Api\Enums\EventKeyPersonRole;
+use App\Features\Events\Api\Enums\EventVisibility;
+use Illuminate\Database\Eloquent\Builder;
 use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
 use App\Platform\Models\MorphModelResolver;
@@ -56,6 +60,73 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             $savedEventIds, $goingEventIds, true, false,
             'institution_detail_upcoming_events', 'institution-detail-card',
         );
+    }
+
+    /**
+     * @param list<string> $savedEventIds
+     * @param list<string> $goingEventIds
+     */
+    public function forPerson(
+        string $personId,
+        int $upcomingLimit,
+        int $pastLimit,
+        ?CarbonInterface $rangeFrom = null,
+        ?CarbonInterface $rangeTo = null,
+        array $savedEventIds = [],
+        array $goingEventIds = [],
+    ): array {
+        $eventIds = Event::query()
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereNotNull('events.published_at')
+            ->whereHas('occurrences')
+            ->whereHas('keyPeople', static fn (Builder $query): Builder => $query
+                ->where('involveable_type', 'person')
+                ->where('involveable_id', $personId)
+                ->where('role_code', EventKeyPersonRole::Speaker->value))
+            ->reorder()
+            ->pluck('events.id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()->all();
+
+        $leaves = $this->schedule->leavesForEventIds($eventIds)
+            ->map(fn (PublicScheduleModelLeaf $leaf): ?PublicScheduleModelLeaf => $this->speakerLeafFor($leaf, $personId))
+            ->filter()
+            ->values();
+
+        return $this->renderSchedulePage(
+            $this->splitLeaves($leaves, $upcomingLimit, $pastLimit, $rangeFrom, $rangeTo),
+            $savedEventIds, $goingEventIds, false, false,
+            'person_detail_upcoming_events', 'person-detail-card',
+        );
+    }
+
+    private function speakerLeafFor(PublicScheduleModelLeaf $leaf, string $personId): ?PublicScheduleModelLeaf
+    {
+        $event = $leaf->event();
+        $event->loadMissing('involvements');
+        $involvements = $event->involvements
+            ->filter(static fn ($involvement): bool => $involvement->role_code === EventKeyPersonRole::Speaker->value
+                && in_array($involvement->status, [null, 'active'], true)
+                && $involvement->visibility === 'public');
+        $matchesPerson = static fn ($involvement): bool => $involvement->involveable_type === 'person'
+            && (string) $involvement->involveable_id === $personId;
+        $sessions = collect($leaf->sessions())
+            ->filter(static fn ($session): bool => $involvements
+                ->where('event_session_id', $session->getKey())
+                ->contains($matchesPerson))
+            ->values();
+
+        if ($sessions->isNotEmpty()) {
+            return $leaf->withSessions($sessions->map(static fn ($session): string => (string) $session->getKey())->all());
+        }
+
+        $occurrence = $involvements->where('event_occurrence_id', $leaf->id())->whereNull('event_session_id');
+        $eventInvolvements = $involvements->whereNull('event_occurrence_id')->whereNull('event_session_id');
+
+        return $occurrence->contains($matchesPerson) || $eventInvolvements->contains($matchesPerson)
+            ? $leaf
+            : null;
     }
 
     public function forReferenceFamily(
@@ -201,8 +272,23 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             ->all();
         $leaves = $this->schedule->leavesForEventIds($eventIds);
 
+        return $this->splitLeaves($leaves, $upcomingLimit, $pastLimit, $rangeFrom, $rangeTo, $filterLeaves);
+    }
+
+    /**
+     * @param Collection<int, PublicScheduleModelLeaf> $leaves
+     * @param (callable(Collection<int, PublicScheduleModelLeaf>): Collection<int, PublicScheduleModelLeaf>)|null $filterLeaves
+     * @return array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
+     */
+    private function splitLeaves(
+        Collection $leaves,
+        int $upcomingLimit,
+        int $pastLimit,
+        ?CarbonInterface $rangeFrom = null,
+        ?CarbonInterface $rangeTo = null,
+        ?callable $filterLeaves = null,
+    ): array {
         if ($filterLeaves !== null) {
-            /** @var Collection<int, PublicScheduleModelLeaf> $leaves */
             $leaves = $filterLeaves($leaves);
         }
 
