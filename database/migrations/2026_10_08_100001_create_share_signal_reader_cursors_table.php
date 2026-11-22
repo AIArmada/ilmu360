@@ -19,7 +19,7 @@ return new class extends Migration
 
         Schema::create('share_signal_reader_skips', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->string('reader_name', 64)->index();
+            $table->string('reader_name', 64);
             $table->foreignUuid('signal_event_id')->index();
             $table->unique(['reader_name', 'signal_event_id']);
             $table->timestampsTz();

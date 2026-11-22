@@ -16,7 +16,9 @@ final readonly class ReferenceHomepageStatsCacheStore implements ReferenceHomepa
 
     public function rootReferenceCount(): int
     {
-        return Cache::remember(self::COUNT_KEY, self::CACHE_TTL_SECONDS, fn (): int => Reference::active()->root()->count('id'));
+        $count = Cache::remember(self::COUNT_KEY, self::CACHE_TTL_SECONDS, fn (): int => Reference::active()->root()->count('id'));
+
+        return is_numeric($count) ? (int) $count : 0;
     }
 
     public function forgetCachedCount(): void

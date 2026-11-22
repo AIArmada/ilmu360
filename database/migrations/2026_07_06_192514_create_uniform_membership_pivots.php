@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('institution_members', function (Blueprint $table) {
-            $table->foreignUuid('institution_id')->index();
+            $table->foreignUuid('institution_id');
             $table->foreignUuid('user_id')->index();
             $table->string('role')->default('viewer');
             $table->timestamp('joined_at')->nullable();
@@ -20,7 +20,7 @@ return new class extends Migration
         });
 
         Schema::create('person_members', function (Blueprint $table) {
-            $table->foreignUuid('person_id')->index();
+            $table->foreignUuid('person_id');
             $table->foreignUuid('user_id')->index();
             $table->string('role')->default('viewer');
             $table->timestamp('joined_at')->nullable();
@@ -31,7 +31,7 @@ return new class extends Migration
         });
 
         Schema::create('reference_members', function (Blueprint $table) {
-            $table->foreignUuid('reference_id')->index();
+            $table->foreignUuid('reference_id');
             $table->foreignUuid('user_id')->index();
             $table->string('role')->default('viewer');
             $table->timestamp('joined_at')->nullable();
@@ -42,7 +42,7 @@ return new class extends Migration
         });
 
         Schema::create('event_members', function (Blueprint $table) {
-            $table->foreignUuid('event_id')->index();
+            $table->foreignUuid('event_id');
             $table->foreignUuid('user_id')->index();
             $table->string('role')->default('viewer');
             $table->timestamp('joined_at')->nullable();

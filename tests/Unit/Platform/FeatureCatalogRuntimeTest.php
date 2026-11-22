@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Platform\FeatureCatalog;
-use JsonException;
 use Tests\Fixtures\Architecture\FixtureProject;
 use Tests\TestCase;
 

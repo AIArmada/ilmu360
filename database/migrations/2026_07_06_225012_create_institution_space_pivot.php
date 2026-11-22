@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('institution_space', function (Blueprint $table) {
-            $table->foreignUuid('institution_id')->index();
+            $table->foreignUuid('institution_id');
             $table->foreignUuid('space_id')->index();
             $table->unsignedInteger('capacity')->nullable();
             $table->timestamps();
@@ -19,7 +19,7 @@ return new class extends Migration
 
         Schema::create('institution_venue', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('institution_id')->index();
+            $table->foreignUuid('institution_id');
             $table->foreignUuid('venue_id')->index();
             $table->string('role');
             $table->boolean('is_primary')->default(false);

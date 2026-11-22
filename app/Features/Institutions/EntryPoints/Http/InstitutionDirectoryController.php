@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Institutions\EntryPoints\Http;
 
 use AIArmada\Addressing\Data\AddressLocationData;
+use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Addressing\Support\AddressLocationScope;
+use AIArmada\Addressing\Support\GeoDistance;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
@@ -34,6 +36,7 @@ use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
 use Dedoc\Scramble\Attributes\Response;
 use Filament\Support\Contracts\HasLabel;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -372,9 +375,13 @@ final class InstitutionDirectoryController extends FrontendController
     private function applyInstitutionNearbyScope(Builder $query, float $lat, float $lng, int $radiusKm): void
     {
         $addressMorphType = (new Institution)->getMorphClass();
-        $addressablesTable = \AIArmada\Addressing\Support\AddressingTableResolver::resolve('addressables');
-        $addressesTable = \AIArmada\Addressing\Support\AddressingTableResolver::resolve('addresses');
-        $distanceSql = '(6371 * acos(cos(radians(?)) * cos(radians(institution_addresses.latitude)) * cos(radians(institution_addresses.longitude) - radians(?)) + sin(radians(?)) * sin(radians(institution_addresses.latitude))))';
+        $addressablesTable = AddressingTableResolver::resolve('addressables');
+        $addressesTable = AddressingTableResolver::resolve('addresses');
+        $connection = $query->getConnection();
+        $driver = $connection instanceof Connection ? $connection->getDriverName() : null;
+        $box = GeoDistance::boundingBox($lat, $lng, (float) $radiusKm);
+        $distanceSql = GeoDistance::haversineSql('institution_addresses.latitude', 'institution_addresses.longitude', $driver);
+        $distanceBindings = GeoDistance::haversineBindings($lat, $lng);
 
         if ($query->getQuery()->columns === null) {
             $query->select('institutions.*');
@@ -389,8 +396,10 @@ final class InstitutionDirectoryController extends FrontendController
             ->join($addressesTable.' as institution_addresses', 'institution_addresses.id', '=', 'institution_addressables.address_id')
             ->whereRaw('institution_addresses.latitude is not null')
             ->whereRaw('institution_addresses.longitude is not null')
-            ->selectRaw("{$distanceSql} as distance_km", [$lat, $lng, $lat])
-            ->whereRaw("{$distanceSql} <= ?", [$lat, $lng, $lat, $radiusKm])
+            ->whereBetween('institution_addresses.latitude', [$box['min_lat'], $box['max_lat']])
+            ->whereBetween('institution_addresses.longitude', [$box['min_lng'], $box['max_lng']])
+            ->selectRaw("{$distanceSql} as distance_km", $distanceBindings)
+            ->whereRaw("{$distanceSql} <= ?", [...$distanceBindings, $radiusKm])
             ->orderBy('distance_km')
             ->orderBy('institutions.name')
             ->orderBy('institutions.id');

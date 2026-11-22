@@ -59,9 +59,11 @@ final readonly class PersonSearchCacheStore implements PersonSearchCache
      */
     private function remember(string $keyPrefix, string $normalizedSearch, Closure $resolve): array
     {
+        $boundedSearch = mb_substr($normalizedSearch, 0, 200);
+
         /** @var list<string> $ids */
         $ids = Cache::remember(
-            sprintf('%s:%d:%s', $keyPrefix, $this->version(), md5($normalizedSearch)),
+            sprintf('%s:%d:%s', $keyPrefix, $this->version(), md5($boundedSearch)),
             self::PUBLIC_SEARCH_CACHE_TTL_SECONDS,
             $resolve,
         );

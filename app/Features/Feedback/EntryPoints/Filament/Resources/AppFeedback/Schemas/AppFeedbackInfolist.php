@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Schemas;
 
 use App\Features\Feedback\Models\AppFeedback;
+use App\Platform\Http\UrlSanitizer;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -39,7 +40,7 @@ class AppFeedbackInfolist
                             ->columnSpanFull(),
                         TextEntry::make('page_url')
                             ->label(__('app-feedback.form.page_url'))
-                            ->url(fn (AppFeedback $record): ?string => $record->page_url, shouldOpenInNewTab: true)
+                            ->url(fn (AppFeedback $record): ?string => UrlSanitizer::sanitize($record->page_url), shouldOpenInNewTab: true)
                             ->placeholder('—'),
                         TextEntry::make('created_at')
                             ->label(__('app-feedback.history.submitted'))
@@ -118,7 +119,7 @@ class AppFeedbackInfolist
                             ->placeholder('—'),
                         TextEntry::make('github_issue_url')
                             ->label('Issue URL')
-                            ->url(fn (AppFeedback $record): ?string => $record->github_issue_url, shouldOpenInNewTab: true)
+                            ->url(fn (AppFeedback $record): ?string => UrlSanitizer::sanitize($record->github_issue_url), shouldOpenInNewTab: true)
                             ->placeholder('—')
                             ->columnSpanFull(),
                         TextEntry::make('github_requested_at')

@@ -258,13 +258,13 @@ class PersonInfolist
                                             ->label('Pautan Google Maps')
                                             ->state(fn (?Person $record): ?string => $record?->primaryAddress()?->google_maps_url)
                                             ->placeholder('-')
-                                            ->url(fn (?string $state): ?string => filled($state) ? $state : null)
+                                            ->url(fn (?string $state): ?string => \App\Platform\Http\UrlSanitizer::sanitize($state))
                                             ->openUrlInNewTab(),
                                         TextEntry::make('address.waze_url')
                                             ->label('Pautan Waze')
                                             ->state(fn (?Person $record): ?string => $record?->primaryAddress()?->waze_url)
                                             ->placeholder('-')
-                                            ->url(fn (?string $state): ?string => filled($state) ? $state : null)
+                                            ->url(fn (?string $state): ?string => \App\Platform\Http\UrlSanitizer::sanitize($state))
                                             ->openUrlInNewTab(),
                                     ])
                                     ->columns(2),
@@ -319,7 +319,7 @@ class PersonInfolist
                                                     ->label('Handle'),
                                                 TextEntry::make('url')
                                                     ->label('URL')
-                                                    ->url(fn (?string $state): ?string => filled($state) ? $state : null)
+                                                    ->url(fn (?string $state): ?string => \App\Platform\Http\UrlSanitizer::sanitize($state))
                                                     ->openUrlInNewTab(),
                                             ])
                                             ->columns(3)

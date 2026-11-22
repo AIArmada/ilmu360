@@ -50,7 +50,17 @@ class DonationChannelPolicy
         return $user->hasRole('super_admin');
     }
 
+    public function restoreAny(AccountActor $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     public function forceDelete(AccountActor $user, DonationChannel $donationChannel): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
+    public function forceDeleteAny(AccountActor $user): bool
     {
         return $user->hasRole('super_admin');
     }

@@ -52,6 +52,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -77,19 +78,24 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     use InteractsWithForms;
     use InteractsWithLocationPickerSelection;
     use InteractsWithToasts;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithFileUploads;
 
+    #[Locked]
     public Event|Institution|Reference|Person $entity;
 
+    #[Locked]
     public string $subjectType;
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];
 
     /** @var array<string, mixed> */
+    #[Locked]
     public array $originalData = [];
 
     /** @var list<string> */
+    #[Locked]
     public array $directEditMediaFields = [];
 
     /**
@@ -111,6 +117,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     private ?bool $directEditPermission = null;
 
     /** @var array{subject_label: string, redirect_url: string} */
+    #[Locked]
     public array $subjectPresentation = [
         'subject_label' => '',
         'redirect_url' => '',

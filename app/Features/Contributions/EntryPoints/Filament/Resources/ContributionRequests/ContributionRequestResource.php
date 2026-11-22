@@ -9,6 +9,7 @@ use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionReques
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Tables\ContributionRequestsTable;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Platform\Auditing\AuditsRelationManager;
+use App\Platform\Cache\VersionedCache;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -97,9 +98,14 @@ class ContributionRequestResource extends Resource
 
         if (self::$navigationBadgeScope !== $scope) {
             self::$navigationBadgeScope = $scope;
-            self::$pendingNavigationCount = ContributionRequest::query()
-                ->where('status', 'pending')
-                ->count();
+            self::$pendingNavigationCount = app(VersionedCache::class)->rememberInt(
+                ContributionRequest::PENDING_COUNT_VERSION_KEY,
+                'nav_badge:contribution_requests:pending:count',
+                30,
+                static fn (): int => ContributionRequest::query()
+                    ->where('status', 'pending')
+                    ->count(),
+            );
         }
 
         $count = self::$pendingNavigationCount ?? 0;

@@ -15,6 +15,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -27,6 +28,7 @@ class Create extends Component implements HasForms
 {
     use InteractsWithForms;
     use InteractsWithToasts;
+    use RestrictsFileUploadsToSchemaComponents;
 
     #[Locked]
     public string $subjectType;

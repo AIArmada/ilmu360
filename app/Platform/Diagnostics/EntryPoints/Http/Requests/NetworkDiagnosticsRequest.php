@@ -18,12 +18,12 @@ class NetworkDiagnosticsRequest extends FormRequest
         $configuredToken = trim((string) $this->envString('NETWORK_DIAGNOSTICS_TOKEN', ''));
 
         if ($configuredToken === '') {
-            return true;
+            return false;
         }
 
-        $providedToken = $this->query('token');
+        $providedToken = $this->header('X-Diagnostics-Token') ?? $this->query('token');
 
-        return is_string($providedToken) && hash_equals($configuredToken, $providedToken);
+        return is_string($providedToken) && $providedToken !== '' && hash_equals($configuredToken, $providedToken);
     }
 
     /**
@@ -45,12 +45,16 @@ class NetworkDiagnosticsRequest extends FormRequest
             throw new AuthorizationException('Network diagnostics are disabled for this environment.');
         }
 
+        if (trim((string) $this->envString('NETWORK_DIAGNOSTICS_TOKEN', '')) === '') {
+            throw new AuthorizationException('A diagnostics token must be configured to access this route.');
+        }
+
         throw new AuthorizationException('A valid diagnostics token is required to access this route.');
     }
 
     protected function diagnosticsEnabled(): bool
     {
-        return $this->envBoolean('NETWORK_DIAGNOSTICS_ENABLED', true);
+        return $this->envBoolean('NETWORK_DIAGNOSTICS_ENABLED', false);
     }
 
     protected function envBoolean(string $key, bool $default = false): bool

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Platform\Mcp;
 
+use App\Platform\Http\PublicUrlGuard;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Throwable;
 
 final class McpFilePayloadNormalizer
@@ -209,6 +211,7 @@ final class McpFilePayloadNormalizer
             ]);
         }
 
+        $maxSizeBytes = $this->maxFileSizeKb($contract) * 1024;
         $decoded = null;
 
         if ($base64 !== null) {
@@ -238,13 +241,21 @@ final class McpFilePayloadNormalizer
                 'resolved_mime_type' => $mimeType,
             ]);
         } elseif ($contentUrl !== null) {
-            $this->assertSafeContentUrl($field, $contentUrl);
+            $target = $this->assertSafeContentUrl($field, $contentUrl);
 
             Log::debug('mcp.image_upload: fetching content_url', [
                 'field' => $field,
                 'filename' => $fileName,
-                'url_host' => parse_url($contentUrl, PHP_URL_HOST),
+                'url_host' => $target['host'],
             ]);
+
+            $curlOptions = [
+                CURLOPT_MAXFILESIZE => $maxSizeBytes + 1,
+            ];
+
+            if (extension_loaded('curl') && defined('CURLOPT_RESOLVE')) {
+                $curlOptions[CURLOPT_RESOLVE] = [$target['curl_resolve']];
+            }
 
             try {
                 $response = Http::accept('*/*')
@@ -252,8 +263,10 @@ final class McpFilePayloadNormalizer
                     ->timeout(20)
                     ->withOptions([
                         'allow_redirects' => false,
+                        'stream' => true,
+                        'curl' => $curlOptions,
                     ])
-                    ->get($contentUrl);
+                    ->get($target['url']);
             } catch (Throwable $exception) {
                 Log::debug('mcp.image_upload: content_url fetch threw exception', [
                     'field' => $field,
@@ -266,34 +279,58 @@ final class McpFilePayloadNormalizer
                 ]);
             }
 
-            if ($response->redirect()) {
-                Log::debug('mcp.image_upload: content_url returned a redirect', [
-                    'field' => $field,
-                    'filename' => $fileName,
-                    'status' => $response->status(),
-                    'location' => $response->header('Location'),
-                ]);
+            $stream = $response->toPsrResponse()->getBody();
 
-                throw ValidationException::withMessages([
-                    $field => ['The MCP file descriptor content_url must not redirect.'],
-                ]);
+            try {
+                if ($response->redirect()) {
+                    Log::debug('mcp.image_upload: content_url returned a redirect', [
+                        'field' => $field,
+                        'filename' => $fileName,
+                        'status' => $response->status(),
+                        'location' => $response->header('Location'),
+                    ]);
+
+                    throw ValidationException::withMessages([
+                        $field => ['The MCP file descriptor content_url must not redirect.'],
+                    ]);
+                }
+
+                if (! $response->successful()) {
+                    Log::debug('mcp.image_upload: content_url returned non-2xx status', [
+                        'field' => $field,
+                        'filename' => $fileName,
+                        'status' => $response->status(),
+                    ]);
+
+                    throw ValidationException::withMessages([
+                        $field => ['The MCP file descriptor content_url did not return a successful response.'],
+                    ]);
+                }
+
+                $contentLength = $response->header('Content-Length');
+
+                if (is_numeric($contentLength) && (int) $contentLength > $maxSizeBytes) {
+                    throw ValidationException::withMessages([
+                        $field => ['The MCP file descriptor exceeds the maximum upload size.'],
+                    ]);
+                }
+
+                $decoded = '';
+
+                while (! $stream->eof() && strlen($decoded) <= $maxSizeBytes) {
+                    $chunk = $stream->read(min(8192, ($maxSizeBytes + 1) - strlen($decoded)));
+
+                    if ($chunk === '') {
+                        break;
+                    }
+
+                    $decoded .= $chunk;
+                }
+            } finally {
+                $stream->close();
             }
 
-            if (! $response->successful()) {
-                Log::debug('mcp.image_upload: content_url returned non-2xx status', [
-                    'field' => $field,
-                    'filename' => $fileName,
-                    'status' => $response->status(),
-                ]);
-
-                throw ValidationException::withMessages([
-                    $field => ['The MCP file descriptor content_url did not return a successful response.'],
-                ]);
-            }
-
-            $decoded = $response->body();
-
-            if (! is_string($decoded) || $decoded === '') {
+            if ($decoded === '') {
                 Log::debug('mcp.image_upload: content_url returned empty body', [
                     'field' => $field,
                     'filename' => $fileName,
@@ -302,6 +339,12 @@ final class McpFilePayloadNormalizer
 
                 throw ValidationException::withMessages([
                     $field => ['The MCP file descriptor content_url returned an empty body.'],
+                ]);
+            }
+
+            if (strlen($decoded) > $maxSizeBytes) {
+                throw ValidationException::withMessages([
+                    $field => ['The MCP file descriptor exceeds the maximum upload size.'],
                 ]);
             }
 
@@ -327,8 +370,6 @@ final class McpFilePayloadNormalizer
                 $field => ['The MCP file descriptor could not be decoded.'],
             ]);
         }
-
-        $maxSizeBytes = $this->maxFileSizeKb($contract) * 1024;
 
         if (strlen($decoded) > $maxSizeBytes) {
             Log::debug('mcp.image_upload: decoded file exceeds maximum size', [
@@ -461,7 +502,10 @@ final class McpFilePayloadNormalizer
         }, $mimeTypes), static fn (mixed $mimeType): bool => is_string($mimeType) && $mimeType !== ''));
     }
 
-    private function assertSafeContentUrl(string $field, string $contentUrl): void
+    /**
+     * @return array{url: string, host: string, port: int, ip: string, curl_resolve: string}
+     */
+    private function assertSafeContentUrl(string $field, string $contentUrl): array
     {
         $parts = parse_url($contentUrl);
 
@@ -488,83 +532,19 @@ final class McpFilePayloadNormalizer
             ]);
         }
 
-        if ($host === 'localhost' || str_ends_with($host, '.localhost')) {
+        if (filter_var($host, FILTER_VALIDATE_IP) === false && filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
             throw ValidationException::withMessages([
                 $field => ['The MCP file descriptor content_url host is not allowed.'],
             ]);
         }
 
-        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
-            if (! $this->isPublicIpAddress($host)) {
-                throw ValidationException::withMessages([
-                    $field => ['The MCP file descriptor content_url host is not allowed.'],
-                ]);
-            }
-
-            return;
-        }
-
-        if (filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
+        try {
+            return PublicUrlGuard::resolvePinnedTarget($contentUrl);
+        } catch (InvalidArgumentException) {
             throw ValidationException::withMessages([
                 $field => ['The MCP file descriptor content_url host is not allowed.'],
             ]);
         }
-
-        foreach ($this->resolvedHostIpAddresses($host) as $ipAddress) {
-            if (! $this->isPublicIpAddress($ipAddress)) {
-                throw ValidationException::withMessages([
-                    $field => ['The MCP file descriptor content_url host is not allowed.'],
-                ]);
-            }
-        }
-    }
-
-    private function isPublicIpAddress(string $ipAddress): bool
-    {
-        return filter_var(
-            $ipAddress,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
-        ) !== false;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function resolvedHostIpAddresses(string $host): array
-    {
-        $ipAddresses = [];
-
-        $ipv4Addresses = gethostbynamel($host);
-
-        if (is_array($ipv4Addresses)) {
-            foreach ($ipv4Addresses as $ipAddress) {
-                if (filter_var($ipAddress, FILTER_VALIDATE_IP) !== false) {
-                    $ipAddresses[] = $ipAddress;
-                }
-            }
-        }
-
-        if (function_exists('dns_get_record')) {
-            $records = @dns_get_record($host, DNS_A + DNS_AAAA);
-
-            if (is_array($records)) {
-                foreach ($records as $record) {
-                    $ipv4 = $record['ip'] ?? null;
-                    $ipv6 = $record['ipv6'] ?? null;
-
-                    if (is_string($ipv4) && filter_var($ipv4, FILTER_VALIDATE_IP) !== false) {
-                        $ipAddresses[] = $ipv4;
-                    }
-
-                    if (is_string($ipv6) && filter_var($ipv6, FILTER_VALIDATE_IP) !== false) {
-                        $ipAddresses[] = $ipv6;
-                    }
-                }
-            }
-        }
-
-        return array_values(array_unique($ipAddresses));
     }
 
     /**

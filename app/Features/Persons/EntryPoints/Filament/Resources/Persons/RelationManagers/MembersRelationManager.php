@@ -47,8 +47,33 @@ class MembersRelationManager extends RelationManager
                     ->form([
                         Select::make('user_id')
                             ->label('User')
-                            ->options(User::query()->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
+                            ->getSearchResultsUsing(function (string $search): array {
+                                $trimmed = trim($search);
+                                $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($trimmed));
+
+                                return User::query()
+                                    ->when($escaped !== '', function ($query) use ($escaped): void {
+                                        $query->where(function ($nested) use ($escaped): void {
+                                            $nested->whereRaw('LOWER(name) LIKE ?', ["%{$escaped}%"])
+                                                ->orWhereRaw('LOWER(email) LIKE ?', ["%{$escaped}%"]);
+                                        });
+                                    })
+                                    ->orderBy('name')
+                                    ->limit(50)
+                                    ->get(['id', 'name', 'email'])
+                                    ->mapWithKeys(static fn (User $user): array => [(string) $user->getKey() => "{$user->name} ({$user->email})"])
+                                    ->all();
+                            })
+                            ->getOptionLabelUsing(function (mixed $value): ?string {
+                                if (! is_string($value) || $value === '') {
+                                    return null;
+                                }
+
+                                $user = User::query()->find($value, ['id', 'name', 'email']);
+
+                                return $user instanceof User ? "{$user->name} ({$user->email})" : null;
+                            })
                             ->required(),
                         $this->makeRoleSelect(),
                     ])

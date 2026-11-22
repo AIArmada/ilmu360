@@ -6,6 +6,7 @@ namespace App\Features\Events\Queries;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
+use AIArmada\Addressing\Support\GeoDistance;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
@@ -1247,7 +1248,11 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         $venueExists = "exists (select 1 from {$venueTable} where {$venueTable}.id = ({$effectiveVenue}))";
         $latitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.latitude when {$venueExists} then venue_addresses.latitude end";
         $longitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.longitude when {$venueExists} then venue_addresses.longitude end";
-        $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
+        $connection = $queryBuilder->getConnection();
+        $driver = $connection instanceof Connection ? $connection->getDriverName() : null;
+        $box = GeoDistance::boundingBox($lat, $lng, (float) $radiusKm);
+        $distanceSql = GeoDistance::haversineSql($latitudeExpression, $longitudeExpression, $driver);
+        $distanceBindings = GeoDistance::haversineBindings($lat, $lng);
         $venueMorphType = $this->placeCatalog->venueMorphType();
         $institutionMorphType = $this->institutionLookup->institutionMorphType();
 
@@ -1266,9 +1271,11 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->leftJoin("{$addressesTable} as institution_addresses", 'institution_addresses.id', '=', 'institution_addressables.address_id')
             ->whereRaw("{$latitudeExpression} is not null")
             ->whereRaw("{$longitudeExpression} is not null")
+            ->whereRaw("({$latitudeExpression}) between ? and ?", [$box['min_lat'], $box['max_lat']])
+            ->whereRaw("({$longitudeExpression}) between ? and ?", [$box['min_lng'], $box['max_lng']])
             ->select("{$eventsTable}.*")
-            ->selectRaw("{$distanceSql} as distance_km", [$lat, $lng, $lat])
-            ->whereRaw("{$distanceSql} <= ?", [$lat, $lng, $lat, $radiusKm])
+            ->selectRaw("{$distanceSql} as distance_km", $distanceBindings)
+            ->whereRaw("{$distanceSql} <= ?", [...$distanceBindings, $radiusKm])
             ->orderBy('distance_km', 'asc')
             ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc')
             ->paginate($perPage);

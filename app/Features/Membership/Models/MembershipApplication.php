@@ -5,6 +5,7 @@ namespace App\Features\Membership\Models;
 use AIArmada\Membership\Models\MembershipApplication as BaseMembershipApplication;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Cache\CacheVersionStore;
 use Database\Factories\MembershipApplicationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class MembershipApplication extends BaseMembershipApplication implements AuditableContract, HasMedia
 {
+    public const string PENDING_COUNT_VERSION_KEY = 'nav_badge:membership_applications:pending:version:v1';
+
     #[\Override]
     protected $table = 'membership_applications';
 
@@ -55,6 +58,15 @@ class MembershipApplication extends BaseMembershipApplication implements Auditab
             ->height(200)
             ->fit(Fit::Crop, 200, 200)
             ->format('webp');
+    }
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::saved(static fn () => app(CacheVersionStore::class)->bump(self::PENDING_COUNT_VERSION_KEY));
+        static::deleted(static fn () => app(CacheVersionStore::class)->bump(self::PENDING_COUNT_VERSION_KEY));
     }
 
     protected static function newFactory(): MembershipApplicationFactory

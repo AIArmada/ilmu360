@@ -55,6 +55,9 @@ return [
             'roles' => true,
             'permissions' => true,
         ],
+        'relation_managers' => [
+            App\Platform\Auditing\AuditsRelationManager::class,
+        ],
     ],
 
     'impersonate' => [

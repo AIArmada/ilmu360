@@ -44,7 +44,18 @@ Route::prefix('v1')->group(function () {
             Route::get('/{documentId}', [DocumentationController::class, 'show'])->name('show');
         });
 
-        Route::get('/search', [SearchController::class, 'search'])->name('search.index');
+        Route::middleware('throttle:search')->group(function (): void {
+            Route::get('/search', [SearchController::class, 'search'])->name('search.index');
+            Route::get('/institutions', [InstitutionDirectoryController::class, 'institutions'])->name('institutions.index');
+            Route::get('/institutions/near', [InstitutionDirectoryController::class, 'institutionsNear'])->name('institutions.near');
+            Route::get('/institutions/{institutionKey}', [InstitutionDirectoryController::class, 'showInstitution'])->name('institutions.show');
+            Route::get('/persons', [PersonDirectoryController::class, 'persons'])->name('persons.index');
+            Route::get('/persons/{personKey}', [PersonDirectoryController::class, 'showPerson'])->name('persons.show');
+            Route::get('/venues/{venueKey}', [VenueDirectoryController::class, 'showVenue'])->name('venues.show');
+            Route::get('/references', [ReferenceDirectoryController::class, 'references'])->name('references.index');
+            Route::get('/references/{referenceKey}', [ReferenceDirectoryController::class, 'showReference'])->name('references.show');
+            Route::get('/series/{series}', [SeriesDirectoryController::class, 'showSeries'])->name('series.show');
+        });
         Route::get('/share/payload', [ShareController::class, 'payload'])
             ->middleware('throttle:share-tracking')
             ->name('share.payload');
@@ -60,23 +71,16 @@ Route::prefix('v1')->group(function () {
         Route::post('/mobile/telemetry/events', [MobileTelemetryController::class, 'store'])
             ->middleware('throttle:mobile-telemetry')
             ->name('mobile-telemetry.store');
-        Route::get('/institutions', [InstitutionDirectoryController::class, 'institutions'])->name('institutions.index');
-        Route::get('/institutions/near', [InstitutionDirectoryController::class, 'institutionsNear'])->name('institutions.near');
-        Route::get('/institutions/{institutionKey}', [InstitutionDirectoryController::class, 'showInstitution'])->name('institutions.show');
-        Route::get('/persons', [PersonDirectoryController::class, 'persons'])->name('persons.index');
-        Route::get('/persons/{personKey}', [PersonDirectoryController::class, 'showPerson'])->name('persons.show');
-        Route::get('/venues/{venueKey}', [VenueDirectoryController::class, 'showVenue'])->name('venues.show');
-        Route::get('/references', [ReferenceDirectoryController::class, 'references'])->name('references.index');
-        Route::get('/references/{referenceKey}', [ReferenceDirectoryController::class, 'showReference'])->name('references.show');
-        Route::get('/series/{series}', [SeriesDirectoryController::class, 'showSeries'])->name('series.show');
         Route::post('/submit-event', [EventSubmissionController::class, 'store'])
             ->middleware('throttle:event-submission')
             ->name('submit-event.store');
     });
 
     // Events API with query builder
-    Route::get('/events', [EventController::class, 'index'])->name('api.events.index');
-    Route::get('/events/{event}', [EventController::class, 'show'])->name('api.events.show');
+    Route::middleware('throttle:search')->group(function (): void {
+        Route::get('/events', [EventController::class, 'index'])->name('api.events.index');
+        Route::get('/events/{event}', [EventController::class, 'show'])->name('api.events.show');
+    });
     Route::post('/events/{event}/registrations', [EventRegistrationController::class, 'store'])
         ->middleware('throttle:registration')
         ->name('api.events.registrations.store');

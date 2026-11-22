@@ -12,7 +12,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('business_key', 191)->unique();
             $table->string('outcome', 64)->index();
-            $table->string('cohort_week', 10)->index();
+            $table->string('cohort_week', 10);
             $table->string('stage', 32)->index();
             $table->timestampTz('occurred_at');
             $table->timestampTz('projected_at');
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('recipient_id', 191);
             $table->string('local_day', 10);
             $table->string('plan_key', 191)->unique();
-            $table->string('status', 16)->index();
+            $table->string('status', 16);
             $table->jsonb('categories');
             $table->jsonb('payload');
             $table->string('timezone', 64);

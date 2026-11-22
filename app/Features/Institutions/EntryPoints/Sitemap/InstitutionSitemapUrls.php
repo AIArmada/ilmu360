@@ -17,9 +17,11 @@ final readonly class InstitutionSitemapUrls implements SitemapUrlProvider
     public function urls(): iterable
     {
         $institutions = Institution::query()
+            ->active()
             ->orderBy('updated_at', 'desc')
-            ->take(50000)
-            ->get(['slug', 'updated_at']);
+            ->select(['slug', 'updated_at'])
+            ->limit(50000)
+            ->cursor();
 
         foreach ($institutions as $institution) {
             yield [

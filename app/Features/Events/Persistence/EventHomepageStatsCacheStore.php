@@ -16,11 +16,13 @@ final readonly class EventHomepageStatsCacheStore implements EventHomepageStats
 
     public function activeEventCount(): int
     {
-        return Cache::remember(
+        $count = Cache::remember(
             self::ACTIVE_COUNT_KEY,
             self::CACHE_TTL_SECONDS,
             fn (): int => Event::active()->count('id'),
         );
+
+        return is_numeric($count) ? (int) $count : 0;
     }
 
     public function forgetCachedCount(): void

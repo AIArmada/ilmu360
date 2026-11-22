@@ -23,6 +23,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -41,6 +42,7 @@ class Index extends Component implements HasForms
 {
     use InteractsWithForms;
     use InteractsWithToasts;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithPagination;
 
     #[Url(as: 'section', except: 'events')]

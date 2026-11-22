@@ -49,7 +49,17 @@ class InspirationPolicy
         return $user->hasAnyRole(['super_admin']);
     }
 
+    public function restoreAny(AccountActor $user): bool
+    {
+        return $user->hasAnyRole(['super_admin']);
+    }
+
     public function forceDelete(AccountActor $user, Inspiration $inspiration): bool
+    {
+        return $user->hasAnyRole(['super_admin']);
+    }
+
+    public function forceDeleteAny(AccountActor $user): bool
     {
         return $user->hasAnyRole(['super_admin']);
     }

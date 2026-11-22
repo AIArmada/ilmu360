@@ -25,6 +25,7 @@ use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Services\PersonSearchService;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Cache\CacheVersionStore;
 use App\Platform\Models\Concerns\HasLanguages;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auditing\RecordsCustomAuditDifferences;
@@ -70,6 +71,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, Followable, HasMedia, MembershipMutationGuard, RecordsCustomAuditDifferences, RecordsCustomAuditEvents
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
+
+    public const string FEATURED_IDS_CACHE_KEY = 'home:featured_person_ids:v1';
 
     #[\Override]
     protected $table = 'persons';
@@ -392,7 +395,11 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
      * App-owned lifecycle Actions replace those package model hooks.
      */
     #[\Override]
-    protected static function booted(): void {}
+    protected static function booted(): void
+    {
+        static::saved(static fn () => app(CacheVersionStore::class)->bump(self::FEATURED_IDS_CACHE_KEY));
+        static::deleted(static fn () => app(CacheVersionStore::class)->bump(self::FEATURED_IDS_CACHE_KEY));
+    }
 
     public function getAvatarUrlAttribute(): ?string
     {
@@ -645,7 +652,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->whereIn('status', ['verified', 'pending']);
+        $query->whereIn('persons.status', ['verified', 'pending']);
     }
 
     /**
@@ -654,7 +661,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     #[Scope]
     protected function speakers(Builder $query): void
     {
-        $query->where('speaker_status', SpeakerStatus::Active->value);
+        $query->where('persons.speaker_status', SpeakerStatus::Active->value);
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Features\Inspirations\Models;
 
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Cache\CacheVersionStore;
 use Database\Factories\InspirationFactory;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -21,6 +22,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Inspiration extends Model implements AuditableContract, HasMedia
 {
+    public const string ACTIVE_CACHE_VERSION_KEY = 'inspirations:active:version:v1';
+
     /** @property array<string, mixed> $content */
     /** @use HasFactory<InspirationFactory> */
     use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
@@ -55,6 +58,20 @@ class Inspiration extends Model implements AuditableContract, HasMedia
             'category' => InspirationCategory::class,
             'last_state_change_at' => 'immutable_datetime',
         ];
+    }
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::saved(static function (): void {
+            app(CacheVersionStore::class)->bump(self::ACTIVE_CACHE_VERSION_KEY);
+        });
+
+        static::deleted(static function (): void {
+            app(CacheVersionStore::class)->bump(self::ACTIVE_CACHE_VERSION_KEY);
+        });
     }
 
     /**

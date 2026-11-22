@@ -22,7 +22,7 @@ return new class extends Migration
             $table->jsonb('details')->nullable();
 
             $table->string('status', 24)->default('new');
-            $table->foreignUuid('handled_by')->nullable();
+            $table->foreignUuid('handled_by')->nullable()->index();
             $table->text('internal_notes')->nullable();
             $table->text('resolution_note')->nullable();
 
@@ -49,7 +49,7 @@ return new class extends Migration
         Schema::create('app_feedback_messages', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('feedback_id');
-            $table->foreignUuid('author_id')->nullable();
+            $table->foreignUuid('author_id')->nullable()->index();
             $table->string('author_role', 16);
             $table->string('visibility', 16)->default('reporter');
             $table->text('body');

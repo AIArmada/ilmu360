@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Models\Report as BaseReport;
 use App\Features\Reports\Actions\InitializeReportDefaultsAction;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Cache\CacheVersionStore;
 use App\Platform\Media\MediaEvidence;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Appends;
@@ -36,6 +37,8 @@ class Report extends BaseReport implements AuditableContract, HasMedia
 
     #[\Override]
     protected $table = 'reports';
+
+    public const string OPEN_COUNT_VERSION_KEY = 'nav_badge:reports:open:version:v1';
 
     public const string STATUS_OPEN = 'open';
 
@@ -204,5 +207,8 @@ class Report extends BaseReport implements AuditableContract, HasMedia
         static::creating(static function (self $report): void {
             app(InitializeReportDefaultsAction::class)->handle($report);
         });
+
+        static::saved(static fn () => app(CacheVersionStore::class)->bump(self::OPEN_COUNT_VERSION_KEY));
+        static::deleted(static fn () => app(CacheVersionStore::class)->bump(self::OPEN_COUNT_VERSION_KEY));
     }
 }

@@ -21,10 +21,10 @@ return new class extends Migration
             $table->string('source_type', 32);
             $table->string('status', 16);
             $table->foreignUuid('affiliate_id')->nullable();
-            $table->foreignUuid('affiliate_link_id')->nullable();
-            $table->foreignUuid('affiliate_attribution_id')->nullable();
-            $table->foreignUuid('referral_invite_id')->nullable();
-            $table->string('invitee_contact_hash', 64)->nullable();
+            $table->foreignUuid('affiliate_link_id')->nullable()->index();
+            $table->foreignUuid('affiliate_attribution_id')->nullable()->index();
+            $table->foreignUuid('referral_invite_id')->nullable()->index();
+            $table->string('invitee_contact_hash', 64)->nullable()->index();
             $table->timestampTz('signed_up_at');
             $table->timestampTz('confirmed_at')->nullable();
             $table->timestampsTz();

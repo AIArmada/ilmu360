@@ -9,7 +9,6 @@ use App\Features\References\Api\ReferenceQueries;
 use Illuminate\Support\Str;
 use Laravel\Scout\EngineManager;
 use Laravel\Scout\Engines\TypesenseEngine;
-use Mockery;
 
 /**
  * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog, 2: ReferenceQueries}

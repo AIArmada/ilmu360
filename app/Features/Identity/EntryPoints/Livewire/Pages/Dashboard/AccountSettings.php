@@ -26,6 +26,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
@@ -43,6 +44,7 @@ class AccountSettings extends Component implements HasForms
 {
     use InteractsWithForms;
     use InteractsWithToasts;
+    use RestrictsFileUploadsToSchemaComponents;
 
     /**
      * @var list<string>

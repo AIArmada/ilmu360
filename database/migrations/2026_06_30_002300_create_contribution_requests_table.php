@@ -35,6 +35,7 @@ return new class extends Migration
 
             $table->index(['entity_type', 'entity_id', 'status'], 'contribution_requests_entity_status_idx');
             $table->index(['proposer_id', 'status'], 'contribution_requests_proposer_status_idx');
+            $table->index(['subject_type', 'type', 'status'], 'contribution_requests_pending_claim_idx');
         });
     }
 };

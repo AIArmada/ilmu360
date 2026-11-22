@@ -13,6 +13,7 @@ use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
+use App\Platform\Http\UrlSanitizer;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
 use Carbon\Carbon;
@@ -64,7 +65,7 @@ class PendingApprovalEventsWidget extends TableWidget
                 TextColumn::make('submission_submitter')
                     ->label('Submitter')
                     ->getStateUsing(fn (Event $record): string => SubmitterContactPresenter::labelForEvent($record))
-                    ->url(fn (Event $record): ?string => SubmitterContactPresenter::whatsappUrlForEvent($record))
+                    ->url(fn (Event $record): ?string => UrlSanitizer::sanitize(SubmitterContactPresenter::whatsappUrlForEvent($record)))
                     ->openUrlInNewTab()
                     ->wrap(),
                 TextColumn::make('submission_recorded_at')

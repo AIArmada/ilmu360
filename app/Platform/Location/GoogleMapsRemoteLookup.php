@@ -2,6 +2,7 @@
 
 namespace App\Platform\Location;
 
+use App\Platform\Http\PublicUrlGuard;
 use Illuminate\Support\Facades\Http;
 
 final readonly class GoogleMapsRemoteLookup
@@ -20,12 +21,24 @@ final readonly class GoogleMapsRemoteLookup
             $currentUrl = $this->urls->unwrapConsent($currentUrl);
 
             try {
+                $target = PublicUrlGuard::resolvePinnedTarget($currentUrl);
+            } catch (\Throwable) {
+                return $currentUrl;
+            }
+
+            try {
+                $options = ['allow_redirects' => false];
+
+                if (extension_loaded('curl') && defined('CURLOPT_RESOLVE')) {
+                    $options['curl'] = [CURLOPT_RESOLVE => [$target['curl_resolve']]];
+                }
+
                 $response = Http::withHeaders([
                     'User-Agent' => 'ilmu360/1.0 (+'.config('app.url', 'https://ilmu360.test').')',
                 ])
-                    ->withOptions(['allow_redirects' => false])
+                    ->withOptions($options)
                     ->timeout(10)
-                    ->get($currentUrl);
+                    ->get($target['url']);
             } catch (\Throwable) {
                 return $currentUrl;
             }
@@ -40,7 +53,15 @@ final readonly class GoogleMapsRemoteLookup
                 return $currentUrl;
             }
 
-            $currentUrl = $this->urls->resolveRelative($currentUrl, $location);
+            $nextUrl = $this->urls->resolveRelative($currentUrl, $location);
+
+            try {
+                PublicUrlGuard::assertSafeUrl($this->urls->unwrapConsent($nextUrl));
+            } catch (\Throwable) {
+                return $currentUrl;
+            }
+
+            $currentUrl = $nextUrl;
 
             if (! ($this->urls->parse($currentUrl)['needs_redirect_resolution'] ?? false)) {
                 return $currentUrl;

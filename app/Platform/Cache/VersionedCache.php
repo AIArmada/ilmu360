@@ -35,6 +35,20 @@ final readonly class VersionedCache
         return $value;
     }
 
+    /**
+     * @param  Closure(): int  $resolver
+     */
+    public function rememberInt(
+        string $versionKey,
+        string $key,
+        DateInterval|DateTimeInterface|int|null $ttl,
+        Closure $resolver,
+    ): int {
+        $value = Cache::remember($this->key($versionKey, $key), $ttl, $resolver);
+
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
     private function key(string $versionKey, string $key): string
     {
         return $key.':'.$this->versions->version($versionKey);

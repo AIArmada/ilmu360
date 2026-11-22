@@ -17,9 +17,12 @@ final readonly class PersonSitemapUrls implements SitemapUrlProvider
     public function urls(): iterable
     {
         $persons = Person::query()
+            ->active()
+            ->speakers()
             ->orderBy('updated_at', 'desc')
-            ->take(50000)
-            ->get(['slug', 'updated_at']);
+            ->select(['slug', 'updated_at'])
+            ->limit(50000)
+            ->cursor();
 
         foreach ($persons as $person) {
             yield [

@@ -14,6 +14,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Throwable;
 
@@ -50,6 +51,7 @@ class DonationChannelsTable
         }
 
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['media', 'donatable']))
             ->columns([
                 ...$columns,
                 TextColumn::make('recipient')

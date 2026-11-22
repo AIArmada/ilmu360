@@ -51,6 +51,8 @@ use App\Shared\Media\ShareCards\ShareCardRenderer;
 use App\Shared\Signals\SignalRecorder;
 use App\Shared\Time\UserDateTimeFormatting;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Support\Assets\Js;
@@ -246,6 +248,16 @@ class AppServiceProvider extends ServiceProvider
         $componentManager = ComponentManager::resolve();
 
         if (self::$mediaUploadConfiguredFor !== $componentManager) {
+            FileUpload::configureUsing(function (FileUpload $upload): void {
+                if (! $upload instanceof SpatieMediaLibraryFileUpload) {
+                    $upload->preventFilePathTampering();
+                }
+            });
+
+            RichEditor::configureUsing(
+                static fn (RichEditor $editor): RichEditor => $editor->preventFileAttachmentPathTampering(),
+            );
+
             // Configure SpatieMediaLibraryFileUpload to use slug-based filenames globally.
             // This runs after the model is saved so $record always has a slug/name.
             SpatieMediaLibraryFileUpload::configureUsing(function (SpatieMediaLibraryFileUpload $upload): void {

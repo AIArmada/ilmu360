@@ -9,6 +9,7 @@ use App\Features\Reports\EntryPoints\Filament\Resources\Reports\Schemas\ReportFo
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\Tables\ReportsTable;
 use App\Features\Reports\Models\Report;
 use App\Platform\Auditing\AuditsRelationManager;
+use App\Platform\Cache\VersionedCache;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -41,7 +42,12 @@ class ReportResource extends Resource
 
         if (self::$navigationBadgeScope !== $scope) {
             self::$navigationBadgeScope = $scope;
-            self::$openNavigationCount = static::getModel()::query()->where('status', 'open')->count();
+            self::$openNavigationCount = app(VersionedCache::class)->rememberInt(
+                Report::OPEN_COUNT_VERSION_KEY,
+                'nav_badge:reports:open:count',
+                30,
+                static fn (): int => static::getModel()::query()->where('status', 'open')->count(),
+            );
         }
 
         $count = self::$openNavigationCount ?? 0;

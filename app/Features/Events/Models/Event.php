@@ -423,13 +423,15 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
      */
     public function displayOccurrence(): HasOne
     {
+        $occurrenceTable = (new EventOccurrence)->getTable();
+
         return $this->hasOne(EventOccurrence::class)
-            ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
-            ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES)
-            ->where('starts_at', '>=', now())
-            ->orderBy('starts_at')
-            ->orderBy('created_at')
-            ->orderBy('id');
+            ->whereIn("{$occurrenceTable}.status", self::UPCOMING_SCHEDULE_STATUSES)
+            ->whereIn("{$occurrenceTable}.visibility", self::PUBLIC_SCHEDULE_VISIBILITIES)
+            ->where("{$occurrenceTable}.starts_at", '>=', now())
+            ->orderBy("{$occurrenceTable}.starts_at")
+            ->orderBy("{$occurrenceTable}.created_at")
+            ->orderBy("{$occurrenceTable}.id");
     }
 
     /**
@@ -845,19 +847,21 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
                 }
             }
 
+            $occurrenceTable = (new EventOccurrence)->getTable();
+
             $upcomingQuery = $this->occurrences()
                 ->withoutGlobalScopes()
-                ->where('starts_at', '>=', now())
-                ->orderBy('starts_at')
-                ->orderBy('created_at')
-                ->orderBy('id');
+                ->where("{$occurrenceTable}.starts_at", '>=', now())
+                ->orderBy("{$occurrenceTable}.starts_at")
+                ->orderBy("{$occurrenceTable}.created_at")
+                ->orderBy("{$occurrenceTable}.id");
 
             if ($publicParent) {
                 $upcomingQuery
-                    ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
-                    ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+                    ->whereIn("{$occurrenceTable}.status", self::UPCOMING_SCHEDULE_STATUSES)
+                    ->whereIn("{$occurrenceTable}.visibility", self::PUBLIC_SCHEDULE_VISIBILITIES);
             } else {
-                $upcomingQuery->whereNotIn('status', [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']);
+                $upcomingQuery->whereNotIn("{$occurrenceTable}.status", [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']);
             }
 
             $occurrence = $upcomingQuery->first();
@@ -879,19 +883,21 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             return $this->primaryOccurrence->{$key};
         }
 
+        $occurrenceTable = (new EventOccurrence)->getTable();
+
         $upcomingQuery = $this->occurrences()
             ->withoutGlobalScopes()
-            ->where('starts_at', '>=', now())
-            ->orderBy('starts_at')
-            ->orderBy('created_at')
-            ->orderBy('id');
+            ->where("{$occurrenceTable}.starts_at", '>=', now())
+            ->orderBy("{$occurrenceTable}.starts_at")
+            ->orderBy("{$occurrenceTable}.created_at")
+            ->orderBy("{$occurrenceTable}.id");
 
         if ($publicParent) {
             $upcomingQuery
-                ->whereIn('status', self::UPCOMING_SCHEDULE_STATUSES)
-                ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+                ->whereIn("{$occurrenceTable}.status", self::UPCOMING_SCHEDULE_STATUSES)
+                ->whereIn("{$occurrenceTable}.visibility", self::PUBLIC_SCHEDULE_VISIBILITIES);
         } else {
-            $upcomingQuery->whereNotIn('status', [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']);
+            $upcomingQuery->whereNotIn("{$occurrenceTable}.status", [EventOccurrence::DRAFT, EventOccurrence::ARCHIVED, 'cancelled', 'completed']);
         }
 
         $occurrence = $upcomingQuery->first([$key]);
@@ -903,8 +909,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         if ($publicParent) {
             $fallbackQuery = $this->occurrences()
                 ->withoutGlobalScopes()
-                ->whereIn('status', self::PUBLIC_SCHEDULE_STATUSES)
-                ->whereIn('visibility', self::PUBLIC_SCHEDULE_VISIBILITIES);
+                ->whereIn("{$occurrenceTable}.status", self::PUBLIC_SCHEDULE_STATUSES)
+                ->whereIn("{$occurrenceTable}.visibility", self::PUBLIC_SCHEDULE_VISIBILITIES);
         } else {
             $fallbackQuery = $this->occurrences()->withoutGlobalScopes();
         }

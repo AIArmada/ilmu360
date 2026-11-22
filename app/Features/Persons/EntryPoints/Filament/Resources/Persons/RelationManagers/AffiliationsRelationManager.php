@@ -18,6 +18,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class AffiliationsRelationManager extends PackageAffiliationsRelationManager
@@ -26,15 +27,24 @@ class AffiliationsRelationManager extends PackageAffiliationsRelationManager
      * @return array<string, string>
      */
     #[\Override]
-    public static function getInstitutionOptions(): array
+    public static function getInstitutionOptions(?string $search = null, int $limit = 50): array
     {
-        return app(InstitutionLookup::class)->allNameOptions();
+        return app(InstitutionLookup::class)->nameOptions($search ?? '', $limit);
+    }
+
+    #[\Override]
+    public static function getInstitutionLabel(string $id): ?string
+    {
+        return $id !== ''
+            ? (app(InstitutionLookup::class)->namesByIds([$id])[$id] ?? null)
+            : null;
     }
 
     #[\Override]
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('institution'))
             ->columns([
                 Tables\Columns\TextColumn::make('affiliation_type')
                     ->badge()
@@ -69,9 +79,9 @@ class AffiliationsRelationManager extends PackageAffiliationsRelationManager
                             ->required(),
                         Select::make('institution_id')
                             ->label('Institution')
-                            ->options(static::getInstitutionOptions())
                             ->searchable()
-                            ->preload()
+                            ->getSearchResultsUsing(fn (string $search): array => static::getInstitutionOptions($search))
+                            ->getOptionLabelUsing(fn (mixed $value): ?string => is_string($value) && $value !== '' ? static::getInstitutionLabel($value) : null)
                             ->required(),
                         TextInput::make('position')
                             ->maxLength(50),

@@ -31,13 +31,13 @@ use App\Features\References\Api\ReferenceLookup;
 use App\Models\User;
 use App\Platform\Addressing\AddressFormState;
 use App\Platform\Language\MalaysiaLanguageCatalog;
-use App\Platform\Language\Models\Language;
 use App\Platform\Location\LocationLevelLabels;
 use App\Platform\Location\LocationSlugResolver;
 use App\Platform\Location\PublicGeolocationPermission;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Shared\Auth\IntendedRedirect;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Shared\Location\VisitorCountryResolving;
 use Carbon\CarbonInterface;
 use Filament\Forms\Components\DatePicker;
@@ -48,6 +48,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
@@ -74,6 +75,7 @@ use Livewire\WithPagination;
 class Index extends Component implements HasForms
 {
     use InteractsWithForms;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithPagination;
 
     /**
@@ -1789,22 +1791,20 @@ class Index extends Component implements HasForms
      */
     public function languageOptions(): array
     {
-        return cache()->remember('event_filter_languages_v4', 3600, function (): array {
-            $preferredOrder = MalaysiaLanguageCatalog::codes();
-            $preferredLabels = MalaysiaLanguageCatalog::labels();
+        $preferredOrder = MalaysiaLanguageCatalog::codes();
+        $preferredLabels = MalaysiaLanguageCatalog::labels();
+        $catalogOptions = app(SelectionCatalogCache::class)->languageOptions('code', $preferredLabels);
+        $options = [];
 
-            return Language::query()
-                ->whereIn('code', $preferredOrder)
-                ->get(['code', 'name'])
-                ->sortBy(fn (Language $language): int|false => array_search((string) $language->code, $preferredOrder, true))
-                ->mapWithKeys(function (Language $language) use ($preferredLabels): array {
-                    $code = (string) $language->code;
-                    $label = $preferredLabels[$code] ?? (string) ($language->name ?? strtoupper($code));
+        foreach ($preferredOrder as $code) {
+            if (! array_key_exists($code, $catalogOptions)) {
+                continue;
+            }
 
-                    return [$code => $label.' ('.($code === 'ms' ? 'BM' : strtoupper($code)).')'];
-                })
-                ->all();
-        });
+            $options[$code] = $catalogOptions[$code].' ('.($code === 'ms' ? 'BM' : strtoupper($code)).')';
+        }
+
+        return $options;
     }
 
     public function render(): View

@@ -23,21 +23,14 @@ use Illuminate\Database\Eloquent\Builder;
 class SpaceResource extends VenueSpaceResource
 {
     #[\Override]
-    protected static ?string $model = Space::class;
-
-    #[\Override]
     protected static ?string $recordTitleAttribute = 'name';
-
-    public static function getNavigationGroup(): string
-    {
-        return 'Directory';
-    }
 
     /**
      * The standalone resource is the shared catalog; venue-owned spaces are managed from a venue.
      *
      * @return Builder<Space>
      */
+    #[\Override]
     public static function getEloquentQuery(): Builder
     {
         return Space::query()->whereNull('venue_id');

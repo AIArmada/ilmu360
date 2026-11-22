@@ -94,6 +94,6 @@ class ReferencesTable
      */
     private static function applyEffectiveAuthors(Builder $query): void
     {
-        $query->withEffectiveAuthors();
+        $query->withEffectiveAuthors()->with('media');
     }
 }

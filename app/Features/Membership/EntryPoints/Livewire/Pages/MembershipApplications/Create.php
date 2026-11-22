@@ -28,6 +28,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
@@ -46,6 +47,7 @@ class Create extends Component implements HasForms
 {
     use InteractsWithForms;
     use InteractsWithToasts;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithFileUploads;
 
     public function boot(): void

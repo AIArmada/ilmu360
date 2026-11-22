@@ -23,8 +23,10 @@ use Throwable;
 #[Title('Request a refund')]
 final class Refund extends Component
 {
+    #[Locked]
     public Event $event;
 
+    #[Locked]
     public Registration $registration;
 
     #[Locked]
@@ -37,8 +39,10 @@ final class Refund extends Component
 
     public bool $processing = false;
 
+    #[Locked]
     public bool $submitted = false;
 
+    #[Locked]
     public string $refundStatus = '';
 
     public function mount(Event $event, Registration $registration): void
@@ -61,6 +65,14 @@ final class Refund extends Component
 
     public function submit(AdmissionRefunds $refunds): void
     {
+        $user = $this->currentUserOrAbort();
+
+        if ((string) $this->registration->event_id !== (string) $this->event->getKey()) {
+            abort(404);
+        }
+
+        abort_unless($user->can('requestRefund', $this->registration), 404);
+
         $this->validate([
             'confirmation' => ['accepted'],
         ], [
@@ -73,7 +85,7 @@ final class Refund extends Component
             $result = $refunds->process(
                 eventId: (string) $this->event->getKey(),
                 registrationId: (string) $this->registration->getKey(),
-                actorId: (string) $this->currentUserOrAbort()->getKey(),
+                actorId: (string) $user->getKey(),
             );
 
             $this->refundStatus = $result['status'];

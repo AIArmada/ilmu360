@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('institution_names', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->foreignUuid('institution_id')->index();
+            $table->foreignUuid('institution_id');
             $table->string('name_type', 50);
             $table->string('full_name');
             $table->string('language_code', 10);

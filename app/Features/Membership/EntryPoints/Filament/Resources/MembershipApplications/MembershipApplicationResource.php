@@ -8,6 +8,7 @@ use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplication
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Tables\MembershipApplicationsTable;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Platform\Auditing\AuditsRelationManager;
+use App\Platform\Cache\VersionedCache;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -95,9 +96,14 @@ class MembershipApplicationResource extends Resource
 
         if (self::$navigationBadgeScope !== $scope) {
             self::$navigationBadgeScope = $scope;
-            self::$pendingNavigationCount = MembershipApplication::query()
-                ->where('status', 'pending')
-                ->count();
+            self::$pendingNavigationCount = app(VersionedCache::class)->rememberInt(
+                MembershipApplication::PENDING_COUNT_VERSION_KEY,
+                'nav_badge:membership_applications:pending:count',
+                30,
+                static fn (): int => MembershipApplication::query()
+                    ->where('status', 'pending')
+                    ->count(),
+            );
         }
 
         $count = self::$pendingNavigationCount ?? 0;

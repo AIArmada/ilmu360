@@ -83,24 +83,15 @@ class Venue extends PackageVenue implements AuditableContract
     #[\Override]
     protected function casts(): array
     {
-        return [
+        return array_merge(parent::casts(), [
             'venue_type' => VenueType::class,
-            'verified_at' => 'immutable_datetime',
-            'rejected_at' => 'immutable_datetime',
-            'last_state_change_at' => 'immutable_datetime',
-        ];
+        ]);
     }
 
     #[\Override]
     protected static function newFactory(): VenueFactory
     {
         return VenueFactory::new();
-    }
-
-    #[\Override]
-    public function getTable(): string
-    {
-        return $this->table;
     }
 
     #[\Override]
@@ -120,14 +111,6 @@ class Venue extends PackageVenue implements AuditableContract
     public function events(): HasMany
     {
         return $this->hasMany(MorphModelResolver::resolve('event'), 'default_venue_id');
-    }
-
-    /**
-     * @return HasMany<Space, $this>
-     */
-    public function spaces(): HasMany
-    {
-        return $this->hasMany(Space::class, 'venue_id');
     }
 
     /**

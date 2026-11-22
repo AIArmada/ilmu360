@@ -715,7 +715,7 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/engagement",
-                "reference": "e99a8998beb96c36020a6adc2a40dfab1b5f297e"
+                "reference": "db9651e12332bb705061b32e39808bbed4dd5045"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -740,7 +740,8 @@
             },
             "autoload": {
                 "psr-4": {
-                    "AIArmada\\Engagement\\": "src/"
+                    "AIArmada\\Engagement\\": "src/",
+                    "AIArmada\\Engagement\\Database\\Factories\\": "database/factories/"
                 }
             },
             "license": [

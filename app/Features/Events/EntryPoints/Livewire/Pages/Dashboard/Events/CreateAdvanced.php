@@ -53,6 +53,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -74,6 +75,7 @@ use Throwable;
 class CreateAdvanced extends Component implements HasForms
 {
     use InteractsWithForms;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithFileUploads;
 
     /**
@@ -99,10 +101,6 @@ class CreateAdvanced extends Component implements HasForms
 
     #[Locked]
     public string $contextPersonId = '';
-
-    public ?TemporaryUploadedFile $cover = null;
-
-    public ?TemporaryUploadedFile $poster = null;
 
     /** @var array<int, TemporaryUploadedFile> */
     public array $gallery = [];

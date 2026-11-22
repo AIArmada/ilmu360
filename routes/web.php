@@ -36,7 +36,6 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Laravel\Fortify\Features;
 
 Route::livewire('/', 'pages.⚡home')->name('home');
 Route::livewire('/tentang-kami', AboutPage::class)->name('about');
@@ -109,6 +108,7 @@ Route::livewire('/tambah-majlis', Create::class)
 Route::livewire('/tambah-majlis/berjaya', 'pages.submit-event.success')->name('submit-event.success');
 
 Route::get('/ops/network-diagnostics', NetworkDiagnosticsController::class)
+    ->middleware('throttle:10,1')
     ->withoutMiddleware([
         PreventRequestForgery::class,
         SetLocale::class,
@@ -202,14 +202,9 @@ Route::livewire('/rujukan/{reference:slug}', 'pages.references.show')
     ->name('references.show');
 
 // Sitemap
-Route::get('/peta-laman.xml', [SitemapController::class, 'index'])->name('sitemap.index');
-Route::get('/peta-laman-majlis.xml', [SitemapController::class, 'events'])->name('sitemap.events');
-Route::get('/peta-laman-institusi.xml', [SitemapController::class, 'institutions'])->name('sitemap.institutions');
-Route::get('/peta-laman-penceramah.xml', [SitemapController::class, 'persons'])->name('sitemap.persons');
-
-Route::view('/welcome', 'welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('welcome');
-
-// Temporary DESIGN.md v2 preview for fonts and icons. Safe to delete.
-Route::view('/design-preview', 'design-preview')->name('design-preview');
+Route::middleware('throttle:search')->group(function (): void {
+    Route::get('/peta-laman.xml', [SitemapController::class, 'index'])->name('sitemap.index');
+    Route::get('/peta-laman-majlis.xml', [SitemapController::class, 'events'])->name('sitemap.events');
+    Route::get('/peta-laman-institusi.xml', [SitemapController::class, 'institutions'])->name('sitemap.institutions');
+    Route::get('/peta-laman-penceramah.xml', [SitemapController::class, 'persons'])->name('sitemap.persons');
+});

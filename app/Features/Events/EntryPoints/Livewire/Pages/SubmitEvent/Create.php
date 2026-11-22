@@ -50,7 +50,9 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
+use Filament\Support\Components\Attributes\Unexposed;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -74,8 +76,11 @@ use Throwable;
 class Create extends Component implements HasActions, HasForms
 {
     use InteractsWithActions;
-    use InteractsWithForms;
+    use InteractsWithForms {
+        isFileUploadForSchemaComponent as protected isSchemaComponentFileUpload;
+    }
     use InteractsWithLocationPickerSelection;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithFileUploads;
 
     public function render(): View
@@ -167,6 +172,12 @@ class Create extends Component implements HasActions, HasForms
     public ?string $scopedInstitutionId = null;
 
     public ?TemporaryUploadedFile $event_source_attachment = null;
+
+    #[Unexposed]
+    public function isFileUploadForSchemaComponent(string $name): bool
+    {
+        return $name === 'event_source_attachment' || $this->isSchemaComponentFileUpload($name);
+    }
 
     protected ?string $resolvedScopedInstitutionId = null;
 

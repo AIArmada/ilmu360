@@ -25,6 +25,10 @@ return [
             'change_log' => true,
             'event_template' => true,
         ],
+        'navigation_group' => [
+            'venue' => 'Directory',
+            'venue_space' => 'Directory',
+        ],
         'event_form_extensions' => [
             EventAdminContextFormExtension::class,
             DefaultEventMediaExtension::class,
@@ -43,6 +47,9 @@ return [
         'session_relation_managers' => [
             TicketTypesRelationManager::class,
             SeatMapsRelationManager::class,
+        ],
+        'venue_relation_managers' => [
+            App\Features\Places\EntryPoints\Filament\Resources\Venues\RelationManagers\SpacesRelationManager::class,
         ],
     ],
 ];

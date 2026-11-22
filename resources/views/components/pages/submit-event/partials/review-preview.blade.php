@@ -370,7 +370,7 @@
             </div>
             <div class="md:col-span-2">
                 <dt class="{{ $dtClass }}">{{ __('Keterangan') }}</dt>
-                <dd class="mt-1 max-w-3xl space-y-2 break-words text-sm leading-7 {{ filled($get('description')) ? 'font-medium text-slate-900' : 'text-slate-400' }}">{!! filled($get('description')) ? $get('description') : $dash !!}</dd>
+                <dd class="mt-1 max-w-3xl space-y-2 break-words text-sm leading-7 {{ filled($get('description')) ? 'font-medium text-slate-900' : 'text-slate-400' }}">{!! filled($get('description')) ? str((string) $get('description'))->sanitizeHtml() : e($dash) !!}</dd>
             </div>
         </dl>
     </section>

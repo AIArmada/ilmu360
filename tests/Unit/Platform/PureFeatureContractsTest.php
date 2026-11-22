@@ -9,8 +9,6 @@ use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
 use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\ShareTracking\Api\ActiveGuestClaimants;
 use App\Features\ShareTracking\Api\ShareTrackingAnalytics;
-use ReflectionClass;
-use ReflectionNamedType;
 
 it('keeps corrected cross-feature contracts pure and free of mutable Eloquent types', function (): void {
     $interfaces = [

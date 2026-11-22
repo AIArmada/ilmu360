@@ -36,6 +36,7 @@ afterEach(function (): void {
 it('renders a database-to-database diagnostics report directly on the page', function (): void {
     setNetworkDiagnosticsEnv([
         'NETWORK_DIAGNOSTICS_ENABLED' => 'true',
+        'NETWORK_DIAGNOSTICS_TOKEN' => 'secret-network-token',
     ]);
 
     $this->mock(NetworkDiagnosticsService::class, function (MockInterface $mock): void {
@@ -45,7 +46,8 @@ it('renders a database-to-database diagnostics report directly on the page', fun
             ->andReturn(fakeDatabaseDiagnosticsReport());
     });
 
-    $this->get(route('network-diagnostics'))
+    $this->withHeader('X-Diagnostics-Token', 'secret-network-token')
+        ->get(route('network-diagnostics'))
         ->assertSuccessful()
         ->assertSee('Current environment database')
         ->assertSee('Target database')
@@ -55,18 +57,25 @@ it('renders a database-to-database diagnostics report directly on the page', fun
         ->assertSee('Query round-trip');
 });
 
-it('is accessible when diagnostics token is not configured', function (): void {
-    $this->mock(NetworkDiagnosticsService::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('run')
-            ->once()
-            ->withNoArgs()
-            ->andReturn(fakeDatabaseDiagnosticsReport());
-    });
+it('denies access when diagnostics are not explicitly enabled or when token is unconfigured', function (): void {
+    $this->get(route('network-diagnostics'))->assertForbidden();
 
-    $this->get(route('network-diagnostics'))
-        ->assertSuccessful()
-        ->assertSee('Current environment database')
-        ->assertSee('Target database');
+    setNetworkDiagnosticsEnv([
+        'NETWORK_DIAGNOSTICS_ENABLED' => 'true',
+    ]);
+
+    $this->get(route('network-diagnostics'))->assertForbidden();
+});
+
+it('denies access when disabled even if a matching token is supplied', function (): void {
+    setNetworkDiagnosticsEnv([
+        'NETWORK_DIAGNOSTICS_ENABLED' => 'false',
+        'NETWORK_DIAGNOSTICS_TOKEN' => 'secret-network-token',
+    ]);
+
+    $this->withHeader('X-Diagnostics-Token', 'secret-network-token')
+        ->get(route('network-diagnostics', ['token' => 'secret-network-token']))
+        ->assertForbidden();
 });
 
 it('reads target database credentials from the raw env file when runtime env values are unavailable', function (): void {
@@ -83,6 +92,7 @@ it('reads target database credentials from the raw env file when runtime env val
 
     $environmentFilePath = bindNetworkDiagnosticsEnvironmentFile(<<<'ENV'
 NETWORK_DIAGNOSTICS_ENABLED=true
+NETWORK_DIAGNOSTICS_TOKEN=secret-network-token
 NETWORK_DIAGNOSTICS_TARGET_DB_LABEL="Production candidate database"
 NETWORK_DIAGNOSTICS_TARGET_DB_DRIVER=sqlite
 NETWORK_DIAGNOSTICS_TARGET_DB_DATABASE=:memory:
@@ -90,7 +100,8 @@ ENV
     );
 
     try {
-        $this->get(route('network-diagnostics'))
+        $this->withHeader('X-Diagnostics-Token', 'secret-network-token')
+            ->get(route('network-diagnostics'))
             ->assertSuccessful()
             ->assertSee('Production candidate database')
             ->assertDontSee('Target database credentials are not configured yet.');
@@ -104,6 +115,7 @@ ENV
 it('shows env-based setup guidance when the target database is not configured yet', function (): void {
     setNetworkDiagnosticsEnv([
         'NETWORK_DIAGNOSTICS_ENABLED' => 'true',
+        'NETWORK_DIAGNOSTICS_TOKEN' => 'secret-network-token',
     ]);
 
     $this->mock(NetworkDiagnosticsService::class, function (MockInterface $mock): void {
@@ -113,7 +125,7 @@ it('shows env-based setup guidance when the target database is not configured ye
             ->andReturn(fakeDatabaseDiagnosticsReport(targetConfigured: false));
     });
 
-    $this->get(route('network-diagnostics'))
+    $this->get(route('network-diagnostics', ['token' => 'secret-network-token']))
         ->assertSuccessful()
         ->assertSee('Target database credentials are not configured yet.')
         ->assertSee('NETWORK_DIAGNOSTICS_TARGET_DB_DRIVER')
@@ -128,6 +140,9 @@ it('requires the configured token when diagnostics are protected', function (): 
     ]);
 
     $this->get(route('network-diagnostics'))->assertForbidden();
+    $this->withHeader('X-Diagnostics-Token', 'wrong-token')
+        ->get(route('network-diagnostics'))
+        ->assertForbidden();
 });
 
 it('reads token protection from the raw env file when runtime env values are unavailable', function (): void {

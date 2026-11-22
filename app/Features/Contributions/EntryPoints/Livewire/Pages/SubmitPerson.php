@@ -17,6 +17,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Livewire\Attributes\Layout;
@@ -32,6 +33,7 @@ class SubmitPerson extends Component implements HasActions, HasForms
     use InteractsWithActions;
     use InteractsWithForms;
     use InteractsWithLocationPickerSelection;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithFileUploads;
 
     /** @var array<string, mixed>|null */

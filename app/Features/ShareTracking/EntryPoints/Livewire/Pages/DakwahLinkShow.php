@@ -15,11 +15,13 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
 class DakwahLinkShow extends Component
 {
+    #[Locked]
     public string $linkId;
 
     public function mount(string $link): void

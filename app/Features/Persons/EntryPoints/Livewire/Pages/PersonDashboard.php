@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -37,6 +38,7 @@ final class PersonDashboard extends Component
     use InteractsWithToasts;
     use WithPagination;
 
+    #[Locked]
     public string $personId = '';
 
     #[Url(as: 'event_search', except: '')]

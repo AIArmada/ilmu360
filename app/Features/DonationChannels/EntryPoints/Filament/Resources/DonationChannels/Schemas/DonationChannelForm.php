@@ -14,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Model;
 
@@ -33,19 +34,58 @@ class DonationChannelForm
                             Event::class => 'Event',
                         ])
                         ->required()
-                        ->live(),
+                        ->live()
+                        ->afterStateUpdated(fn (Set $set): mixed => $set('donatable_id', null)),
                     Select::make('donatable_id')
                         ->label('Recipient Entity')
                         ->searchable()
-                        ->preload()
                         ->required()
-                        ->options(function (Get $get) {
+                        ->getSearchResultsUsing(function (string $search, Get $get): array {
                             $type = $get('donatable_type');
-                            if (! $type) {
+                            $column = match ($type) {
+                                Event::class => 'title',
+                                Institution::class, Person::class => 'name',
+                                default => null,
+                            };
+
+                            if ($column === null) {
                                 return [];
                             }
 
-                            return $type::query()->pluck('name', 'id');
+                            $query = $type::query();
+                            $trimmed = trim($search);
+
+                            if ($trimmed !== '') {
+                                $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($trimmed));
+                                $query->whereRaw("LOWER({$column}) LIKE ?", ["%{$escaped}%"]);
+                            }
+
+                            /** @var array<string, string> */
+                            return $query
+                                ->orderBy($column)
+                                ->limit(50)
+                                ->pluck($column, 'id')
+                                ->all();
+                        })
+                        ->getOptionLabelUsing(function (mixed $value, Get $get): ?string {
+                            if (! is_string($value) || $value === '') {
+                                return null;
+                            }
+
+                            $type = $get('donatable_type');
+                            $column = match ($type) {
+                                Event::class => 'title',
+                                Institution::class, Person::class => 'name',
+                                default => null,
+                            };
+
+                            if ($column === null) {
+                                return null;
+                            }
+
+                            $label = $type::query()->whereKey($value)->value($column);
+
+                            return is_string($label) && $label !== '' ? $label : null;
                         }),
                 ])->columns(2);
         }

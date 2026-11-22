@@ -5,6 +5,8 @@ declare(strict_types=1);
 use AIArmada\Events\Models\EventRegistrationQuestion;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventCardRelationshipProvider;
+use App\Features\Places\Models\Space;
+use App\Features\Places\Models\Venue;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 
@@ -13,6 +15,8 @@ $appName = env('APP_NAME', 'Laravel');
 return [
     'models' => [
         'event' => Event::class,
+        'venue' => Venue::class,
+        'venue_space' => Space::class,
         'registration' => Registration::class,
         'attendance' => EventCheckin::class,
         'registration_question' => EventRegistrationQuestion::class,

@@ -80,6 +80,11 @@ class AppFeedbackPolicy
         return false;
     }
 
+    public function restoreAny(AccountActor $user): bool
+    {
+        return false;
+    }
+
     public function forceDelete(AccountActor $user, AppFeedback $feedback): bool
     {
         return false;

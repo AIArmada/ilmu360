@@ -24,6 +24,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Arr;
@@ -42,6 +43,7 @@ class SubmitInstitution extends Component implements HasActions, HasForms
     use InteractsWithActions;
     use InteractsWithForms;
     use InteractsWithLocationPickerSelection;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithFileUploads;
 
     /** @var array<string, mixed>|null */

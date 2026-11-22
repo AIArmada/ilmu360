@@ -20,6 +20,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -43,6 +44,7 @@ class AppFeedbackIndex extends Component implements HasForms
 {
     use InteractsWithForms;
     use InteractsWithToasts;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithFileUploads;
     use WithPagination;
 

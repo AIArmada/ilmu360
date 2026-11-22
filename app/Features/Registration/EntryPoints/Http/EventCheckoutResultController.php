@@ -68,11 +68,8 @@ final class EventCheckoutResultController extends Controller
                 ->where('event_id', $selectedRegistration->event_id)
                 ->where('registrant_type', $user->getMorphClass())
                 ->where('registrant_id', (string) $user->getKey())
+                ->where('metadata->event_checkout->batch_id', $batchId)
                 ->get()
-                ->filter(fn (Registration $registration): bool => data_get(
-                    $registration->metadata ?? [],
-                    'event_checkout.batch_id',
-                ) === $batchId)
                 ->values();
 
             abort_unless($registrations->isNotEmpty(), 404);

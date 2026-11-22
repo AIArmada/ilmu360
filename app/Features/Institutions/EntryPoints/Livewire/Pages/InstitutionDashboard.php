@@ -19,6 +19,7 @@ use App\Platform\Ui\InteractsWithToasts;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
@@ -41,6 +42,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         bootedInteractsWithTable as protected filamentBootedInteractsWithTable;
     }
     use InteractsWithToasts;
+    use RestrictsFileUploadsToSchemaComponents;
 
     public function boot(): void
     {

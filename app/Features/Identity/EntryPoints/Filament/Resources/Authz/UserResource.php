@@ -12,19 +12,16 @@ use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource\Page
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource\Pages\ListUsers;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource\Pages\ViewUser;
 use App\Models\User;
-use App\Platform\Auditing\AuditsRelationManager;
-use DateTimeZone;
 use Filament\Actions;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Field;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Hash;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 use Ysfkaya\FilamentPhoneInput\Tables\PhoneColumn;
@@ -79,6 +76,7 @@ class UserResource extends BaseUserResource
     public static function table(Table $table): Table
     {
         return parent::table($table)
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['roles', 'globalRoles']))
             ->columns([
                 TextColumn::make('name')
                     ->searchable()
@@ -115,14 +113,6 @@ class UserResource extends BaseUserResource
     }
 
     #[\Override]
-    public static function getRelations(): array
-    {
-        return [
-            AuditsRelationManager::class,
-        ];
-    }
-
-    #[\Override]
     public static function getPages(): array
     {
         return [
@@ -134,68 +124,23 @@ class UserResource extends BaseUserResource
     }
 
     /**
-     * @return list<DateTimePicker|PhoneInput|Select|TextInput>
+     * @return list<Field|PhoneInput>
      */
     protected static function getConfiguredFormFields(): array
     {
-        $fields = (array) config('filament-authz.user_resource.form.fields', ['name', 'email', 'password']);
-
-        /** @var list<DateTimePicker|TextInput> $components */
-        $components = [];
-
-        foreach ($fields as $field) {
-            $components[] = match ($field) {
-                'name' => TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                'email' => TextInput::make('email')
-                    ->email()
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(255),
-                'phone' => PhoneInput::make('phone')
-                    ->initialCountry('MY'),
-                'timezone' => Select::make('timezone')
-                    ->label('Timezone')
-                    ->options(static::getTimezoneOptions())
-                    ->searchable()
-                    ->native(false)
-                    ->helperText('Leave empty to use the application default timezone.'),
-                'email_verified_at' => DateTimePicker::make('email_verified_at')
-                    ->label('Email Verified At')
-                    ->native(false)
-                    ->seconds(false),
-                'phone_verified_at' => DateTimePicker::make('phone_verified_at')
-                    ->label('Phone Verified At')
-                    ->native(false)
-                    ->seconds(false),
-                'password' => TextInput::make('password')
-                    ->password()
-                    ->dehydrateStateUsing(function (?string $state): ?string {
-                        if ($state === null || $state === '') {
-                            return null;
-                        }
-
-                        return Hash::make($state);
-                    })
-                    ->dehydrated(fn (?string $state): bool => filled($state))
-                    ->required(fn (string $operation): bool => $operation === 'create')
-                    ->maxLength(255),
-                default => TextInput::make((string) $field)
-                    ->maxLength(255),
-            };
-        }
-
-        return $components;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected static function getTimezoneOptions(): array
-    {
-        return collect(DateTimeZone::listIdentifiers())
-            ->mapWithKeys(fn (string $timezone): array => [$timezone => $timezone])
-            ->all();
+        return array_map(
+            static fn (Field $component): Field|PhoneInput => match ($component->getName()) {
+                'phone' => PhoneInput::make('phone')->initialCountry('MY'),
+                'timezone' => $component->helperText('Leave empty to use the application default timezone.'),
+                'email_verified_at' => $component instanceof DateTimePicker
+                    ? $component->label('Email Verified At')->native(false)->seconds(false)
+                    : $component->label('Email Verified At'),
+                'phone_verified_at' => $component instanceof DateTimePicker
+                    ? $component->label('Phone Verified At')->native(false)->seconds(false)
+                    : $component->label('Phone Verified At'),
+                default => $component,
+            },
+            parent::getDefaultFormFields(),
+        );
     }
 }

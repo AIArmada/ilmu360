@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignUuid('reporter_id')->nullable()->index();
             $table->string('reporter_fingerprint', 128)->nullable()->index();
 
-            $table->string('entity_type')->index();
+            $table->string('entity_type');
             $table->uuid('entity_id')->index();
             $table->index(['entity_type', 'entity_id']);
 

@@ -6,6 +6,7 @@ namespace App\Platform\Location;
 
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
+use App\Platform\Http\PublicUrlGuard;
 use DOMDocument;
 use DOMElement;
 use Illuminate\Support\Facades\Http;
@@ -47,32 +48,34 @@ class DiscoverWebsiteSocialProfilesAction
     private function fetchPublicHtml(string $url): ?string
     {
         for ($redirectCount = 0; $redirectCount <= 3; $redirectCount++) {
-            $target = $this->publicTarget($url);
-
-            if ($target === null) {
+            try {
+                $target = PublicUrlGuard::resolvePinnedTarget($url);
+            } catch (\Throwable) {
                 return null;
             }
 
-            [$host, $port, $ip] = $target;
-            $resolveAddress = str_contains($ip, ':') ? '['.$ip.']' : $ip;
-
             try {
+                $curlOptions = [
+                    CURLOPT_TIMEOUT_MS => 5000,
+                    CURLOPT_CONNECTTIMEOUT_MS => 2000,
+                    CURLOPT_LOW_SPEED_LIMIT => 1024,
+                    CURLOPT_LOW_SPEED_TIME => 5,
+                    CURLOPT_MAXFILESIZE => self::MaxHtmlBytes + 1,
+                ];
+
+                if (extension_loaded('curl') && defined('CURLOPT_RESOLVE')) {
+                    $curlOptions[CURLOPT_RESOLVE] = [$target['curl_resolve']];
+                }
+
                 $response = Http::accept('text/html')
                     ->withOptions([
                         'allow_redirects' => false,
                         'stream' => true,
-                        'curl' => [
-                            CURLOPT_RESOLVE => ["{$host}:{$port}:{$resolveAddress}"],
-                            CURLOPT_TIMEOUT_MS => 5000,
-                            CURLOPT_CONNECTTIMEOUT_MS => 2000,
-                            CURLOPT_LOW_SPEED_LIMIT => 1024,
-                            CURLOPT_LOW_SPEED_TIME => 5,
-                            CURLOPT_MAXFILESIZE => self::MaxHtmlBytes + 1,
-                        ],
+                        'curl' => $curlOptions,
                     ])
                     ->connectTimeout(2)
                     ->timeout(5)
-                    ->get($url);
+                    ->get($target['url']);
                 $stream = $response->toPsrResponse()->getBody();
 
                 try {
@@ -267,65 +270,6 @@ class DiscoverWebsiteSocialProfilesAction
             ->unique(fn (array $profile): string => $profile['platform'].'|'.$profile['handle'])
             ->values()
             ->all();
-    }
-
-    /**
-     * @return array{string, int, string}|null
-     */
-    private function publicTarget(string $url): ?array
-    {
-        $parts = parse_url($url);
-        $scheme = is_array($parts) && is_string($parts['scheme'] ?? null) ? strtolower($parts['scheme']) : null;
-        $host = is_array($parts) && is_string($parts['host'] ?? null) ? strtolower(rtrim($parts['host'], '.')) : null;
-        $port = is_array($parts) && is_int($parts['port'] ?? null) ? $parts['port'] : ($scheme === 'https' ? 443 : 80);
-
-        if (
-            ! in_array($scheme, ['http', 'https'], true)
-            || ! is_string($host)
-            || $host === ''
-            || isset($parts['user'])
-            || isset($parts['pass'])
-            || ! in_array($port, [80, 443], true)
-            || ! $this->isAbsoluteHttpUrl($url)
-        ) {
-            return null;
-        }
-
-        $addresses = filter_var($host, FILTER_VALIDATE_IP) !== false
-            ? [$host]
-            : $this->resolveAddresses($host);
-
-        if ($addresses === [] || collect($addresses)->contains(fn (string $ip): bool => filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false)) {
-            return null;
-        }
-
-        $ip = $addresses[0];
-
-        return is_string($ip) && extension_loaded('curl') && defined('CURLOPT_RESOLVE')
-            ? [$host, $port, $ip]
-            : null;
-    }
-
-    /** @return list<string> */
-    private function resolveAddresses(string $host): array
-    {
-        $records = dns_get_record($host, DNS_A | DNS_AAAA);
-
-        if (! is_array($records)) {
-            return [];
-        }
-
-        $addresses = [];
-
-        foreach ($records as $record) {
-            $ip = $record['ip'] ?? $record['ipv6'] ?? null;
-
-            if (is_string($ip)) {
-                $addresses[] = $ip;
-            }
-        }
-
-        return array_values(array_unique($addresses));
     }
 
     private function isAbsoluteHttpUrl(string $url): bool

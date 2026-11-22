@@ -13,6 +13,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -26,6 +27,7 @@ class SubmitReference extends Component implements HasActions, HasForms
 {
     use InteractsWithActions;
     use InteractsWithForms;
+    use RestrictsFileUploadsToSchemaComponents;
     use WithFileUploads;
 
     /** @var array<string, mixed>|null */

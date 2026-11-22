@@ -184,15 +184,39 @@ new
         #[Computed]
         public function featuredPersons(): Collection
         {
-            return Person::query()
-                ->active()
-                ->speakers()
-                ->featured()
-                ->ordered()
-                ->orderBy('persons.id')
-                ->with('media')
-                ->take(5)
-                ->get();
+            /** @var list<string> $ids */
+            $ids = app(\App\Platform\Cache\VersionedCache::class)->remember(
+                Person::FEATURED_IDS_CACHE_KEY,
+                'home:featured_person_ids',
+                300,
+                static fn (): array => Person::query()
+                    ->active()
+                    ->speakers()
+                    ->featured()
+                    ->ordered()
+                    ->orderBy('persons.id')
+                    ->take(5)
+                    ->pluck('persons.id')
+                    ->map(static fn (mixed $id): string => (string) $id)
+                    ->values()
+                    ->all(),
+            );
+
+            if ($ids === []) {
+                return new Collection;
+            }
+
+            $positions = array_flip($ids);
+
+            return new Collection(
+                Person::query()
+                    ->whereIn('persons.id', $ids)
+                    ->with('media')
+                    ->get()
+                    ->sortBy(static fn (Person $person): int => $positions[(string) $person->getKey()] ?? PHP_INT_MAX)
+                    ->values()
+                    ->all(),
+            );
         }
 
         #[Computed]

@@ -7,6 +7,7 @@ use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Platform\Cache\CacheVersionStore;
 use Database\Factories\ContributionRequestFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +22,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ContributionRequest extends Model implements AuditableContract, HasMedia
 {
+    public const string PENDING_COUNT_VERSION_KEY = 'nav_badge:contribution_requests:pending:version:v1';
+
     /** @use HasFactory<ContributionRequestFactory> */
     use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
 
@@ -117,6 +120,15 @@ class ContributionRequest extends Model implements AuditableContract, HasMedia
     public function getPendingMedia(): MediaCollection
     {
         return $this->getMedia('pending_media');
+    }
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::saved(static fn () => app(CacheVersionStore::class)->bump(self::PENDING_COUNT_VERSION_KEY));
+        static::deleted(static fn () => app(CacheVersionStore::class)->bump(self::PENDING_COUNT_VERSION_KEY));
     }
 
     protected static function newFactory(): ContributionRequestFactory
