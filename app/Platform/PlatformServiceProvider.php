@@ -16,7 +16,7 @@ use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Customers\Models\Customer;
-use AIArmada\Events\Models\Event;
+use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
