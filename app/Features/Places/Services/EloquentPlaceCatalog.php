@@ -45,6 +45,7 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
             ->values()
             ->all();
     }
+
     public function resolvedPrimaryAddressId(string $venueId): ?string
     {
         $venue = Venue::query()->find($venueId);
