@@ -23,11 +23,13 @@ use App\Features\Persons\Models\Person;
 use App\Features\Persons\Queries\EloquentPersonLookup;
 use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Features\Places\Queries\EloquentPlaceLookup;
+use App\Features\Places\Services\EloquentPlaceCatalog;
 use App\Features\Places\Services\InstitutionSpaceLinkService;
 use App\Features\Places\Services\SpaceWorkflowService;
 use App\Features\Places\Services\VenueWorkflowService;
@@ -44,6 +46,7 @@ it('binds the directory seams to their owning implementations', function (): voi
         ->and(app(PersonLookup::class))->toBeInstanceOf(EloquentPersonLookup::class)
         ->and(app(ReferenceLookup::class))->toBeInstanceOf(EloquentReferenceLookup::class)
         ->and(app(PlaceLookup::class))->toBeInstanceOf(EloquentPlaceLookup::class)
+        ->and(app(PlaceCatalog::class))->toBeInstanceOf(EloquentPlaceCatalog::class)
         ->and(app(DonationChannelLookup::class))->toBeInstanceOf(EloquentDonationChannelLookup::class)
         ->and(app(VenueWorkflow::class))->toBeInstanceOf(VenueWorkflowService::class)
         ->and(app(SpaceWorkflow::class))->toBeInstanceOf(SpaceWorkflowService::class)
@@ -51,6 +54,26 @@ it('binds the directory seams to their owning implementations', function (): voi
         ->and(app(InstitutionSpaceLinks::class))->toBeInstanceOf(InstitutionSpaceLinkService::class)
         ->and(app(ReportSubjectResolver::class))->toBeInstanceOf(CompositeReportSubjectResolver::class)
         ->and(app(AccountSubmissionEligibility::class))->toBeInstanceOf(AccountSubmissionEligibilityService::class);
+});
+
+it('returns venue and space identity and labels through the immutable Places catalog', function (): void {
+    $venue = Venue::factory()->create(['name' => 'Venue Catalog Boundary', 'status' => 'verified']);
+    $space = Space::factory()->create(['name' => 'Space Catalog Boundary']);
+    $catalog = app(PlaceCatalog::class);
+
+    $venueId = (string) $venue->getKey();
+    $spaceId = (string) $space->getKey();
+
+    expect($catalog->resolveVenueIdentifier((string) $venue->slug))->toBe($venueId)
+        ->and($catalog->resolveSpaceIdentifier((string) $space->slug))->toBe($spaceId)
+        ->and($catalog->resolveVenueIdentifier('not-a-venue'))->toBeNull()
+        ->and($catalog->venueName($venueId))->toBe('Venue Catalog Boundary')
+        ->and($catalog->venueNamesByIds([$venueId]))->toBe([$venueId => 'Venue Catalog Boundary'])
+        ->and($catalog->venueNameOptions('Venue Catalog Boundary'))->toHaveKey($venueId)
+        ->and($catalog->venueOptionsForStatuses(['verified']))->toHaveKey($venueId)
+        ->and($catalog->venueTable())->toBe($venue->getTable())
+        ->and($catalog->venueMorphType())->toBe($venue->getMorphClass())
+        ->and($catalog->resolvedPrimaryAddressId($venueId))->not->toBeNull();
 });
 
 it('resolves registered morph aliases and rejects unknown ones', function (): void {
