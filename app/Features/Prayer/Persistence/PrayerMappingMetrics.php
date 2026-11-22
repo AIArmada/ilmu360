@@ -55,7 +55,17 @@ final class PrayerMappingMetrics
             $storeInstance = $repository->getStore();
 
             if ($storeInstance instanceof LockProvider) {
-                $storeInstance->lock("{$key}:lock", 10)->block(3, $append);
+                $lock = $storeInstance->lock("{$key}:lock", 10);
+
+                if (! $lock->get()) {
+                    return;
+                }
+
+                try {
+                    $append();
+                } finally {
+                    $lock->release();
+                }
             } else {
                 $append();
             }
