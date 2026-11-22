@@ -9,6 +9,7 @@ use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Platform\Models\SlugOrUuidResolver;
+use Illuminate\Support\Str;
 
 final readonly class EloquentPlaceCatalog implements PlaceCatalog
 {
@@ -155,7 +156,7 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
      */
     public function primaryAddressIdsFor(array $venueIds): array
     {
-        $ids = array_values(array_unique(array_filter($venueIds, static fn (string $id): bool => $id !== '')));
+        $ids = array_values(array_unique(array_filter($venueIds, static fn (string $id): bool => Str::isUuid($id))));
 
         if ($ids === []) {
             return [];
