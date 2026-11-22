@@ -20,6 +20,6 @@ final readonly class TitleCategoryObserver implements ShouldHandleEventsAfterCom
 
     public function deleted(TitleCategory $category): void
     {
-        $this->effects->deleted($category);
+        $this->effects->deleted();
     }
 }

@@ -20,6 +20,6 @@ final readonly class EventTermObserver implements ShouldHandleEventsAfterCommit
 
     public function deleted(EventTerm $record): void
     {
-        $this->effects->deleted($record);
+        $this->effects->deleted();
     }
 }
