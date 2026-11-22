@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Api;
 
 use App\Features\Events\Api\Data\AdminEventCard;
+use App\Features\Events\Api\Data\InstitutionDashboardEventCard;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
 use App\Features\Events\Api\Data\PlannerEventCard;
@@ -72,6 +73,26 @@ interface EventScheduleReads
 
     /** @return array{id: string, title: string}|null */
     public function shareIdentityById(string $eventId): ?array;
+
+    /**
+     * Upcoming first, falling back to the institution's most recent events.
+     *
+     * @return list<InstitutionDashboardEventCard>
+     */
+    public function recentInstitutionEventCards(string $institutionId, int $limit): array;
+
+    /**
+     * Pending institution events matching dashboard filters.
+     *
+     * @return list<InstitutionDashboardEventCard>
+     */
+    public function pendingInstitutionEventCards(
+        string $institutionId,
+        string $search,
+        string $status,
+        string $visibility,
+        int $limit,
+    ): array;
 
     /** @return list<OrganizationWorkspaceEvent> */
     public function organizationWorkspaceEvents(string $ownerType, string $ownerId, int $limit): array;

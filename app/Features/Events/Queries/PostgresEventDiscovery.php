@@ -15,6 +15,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Data\AdminEventCard;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
+use App\Features\Events\Api\Data\InstitutionDashboardEventCard;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\Data\PersonDashboardEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
@@ -37,12 +38,14 @@ use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Series;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
@@ -2280,7 +2283,8 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->withCount(['registrations as dashboard_registrations_count']);
     }
 
-    public function recentInstitutionEventCards(string $institutionId, int $limit): EloquentCollection
+    /** @return list<InstitutionDashboardEventCard> */
+    public function recentInstitutionEventCards(string $institutionId, int $limit): array
     {
         $query = $this->institutionEventCardQuery($institutionId);
         $upcoming = (clone $query)
@@ -2290,24 +2294,28 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->limit($limit)
             ->get();
 
-        if ($upcoming->isNotEmpty()) {
-            return $upcoming;
-        }
+        $events = $upcoming->isNotEmpty()
+            ? $upcoming
+            : $query
+                ->orderByDesc('starts_at')
+                ->orderBy('title')
+                ->limit($limit)
+                ->get();
 
-        return $query
-            ->orderByDesc('starts_at')
-            ->orderBy('title')
-            ->limit($limit)
-            ->get();
+        return $events
+            ->map(fn (Event $event): InstitutionDashboardEventCard => $this->institutionDashboardCard($event))
+            ->values()
+            ->all();
     }
 
+    /** @return list<InstitutionDashboardEventCard> */
     public function pendingInstitutionEventCards(
         string $institutionId,
         string $search,
         string $status,
         string $visibility,
         int $limit,
-    ): EloquentCollection {
+    ): array {
         return $this->applyInstitutionEventCardFilters(
             $this->institutionEventCardQuery($institutionId),
             $search,
@@ -2319,7 +2327,58 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->orderBy('starts_at')
             ->orderBy('title')
             ->limit($limit)
-            ->get();
+            ->get()
+            ->map(fn (Event $event): InstitutionDashboardEventCard => $this->institutionDashboardCard($event))
+            ->values()
+            ->all();
+    }
+
+    private function institutionDashboardCard(Event $event): InstitutionDashboardEventCard
+    {
+        $start = $event->starts_at;
+        $end = $event->ends_at;
+
+        $dateDay = '--';
+        $dateMonth = (string) __('TBC');
+        $dateWeekday = '';
+        $timeLabel = (string) __('Time to be confirmed');
+
+        if ($start instanceof CarbonInterface) {
+            $dateDay = UserDateTimeFormatter::format($start, 'd');
+            $dateMonth = UserDateTimeFormatter::translatedFormat($start, 'M');
+            $dateWeekday = UserDateTimeFormatter::translatedFormat($start, 'D');
+            $timeLabel = $event->isPrayerRelative()
+                ? (string) $event->timing_display
+                : UserDateTimeFormatter::format($start, 'h:i A');
+
+            if (! $event->isPrayerRelative() && $end instanceof CarbonInterface) {
+                $timeLabel .= ' - '.UserDateTimeFormatter::format($end, 'h:i A');
+            }
+        }
+
+        $location = app(SpaceLocation::class)->name(
+            (string) ($event->primaryLocation?->space_name_snapshot ?? ''),
+            $event->primaryLocation?->venueSpace?->name,
+        ) ?? $event->venue?->name
+            ?? $event->institution?->display_name
+            ?? (string) __('Location to be confirmed');
+
+        $actor = auth()->user();
+        $canEdit = $actor instanceof User && $actor->can('update', $event);
+
+        return new InstitutionDashboardEventCard(
+            id: (string) $event->getKey(),
+            title: (string) $event->title,
+            status: (string) $event->status,
+            publicUrl: route('events.show', $event),
+            cardImageUrl: (string) $event->card_image_url,
+            dateDay: $dateDay,
+            dateMonth: $dateMonth,
+            dateWeekday: $dateWeekday,
+            timeLabel: $timeLabel,
+            locationLabel: (string) $location,
+            editUrl: $canEdit ? EventResource::getUrl('edit', ['record' => $event], panel: 'ahli') : null,
+        );
     }
 
     private function institutionEventCardQuery(string $institutionId): EventBuilder
@@ -2331,8 +2390,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
                 'media',
                 'primaryLocation.venueSpace:id,name',
                 'venue:id,name',
-            ])
-            ->withCount(['registrations as dashboard_registrations_count']);
+            ]);
     }
 
     private function applyInstitutionEventCardFilters(

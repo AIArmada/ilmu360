@@ -49,45 +49,6 @@
         'draft' => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
         default => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
     };
-    $eventDateParts = static function (\App\Features\Events\Models\Event $event): array {
-        if (! $event->starts_at instanceof \Carbon\CarbonInterface) {
-            return [
-                'day' => '--',
-                'month' => __('TBC'),
-                'weekday' => '',
-            ];
-        }
-
-        return [
-            'day' => \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd'),
-            'month' => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M'),
-            'weekday' => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->starts_at, 'D'),
-        ];
-    };
-    $eventTimeLabel = static function (\App\Features\Events\Models\Event $event): string {
-        if (! $event->starts_at instanceof \Carbon\CarbonInterface) {
-            return __('Time to be confirmed');
-        }
-
-        if ($event->isPrayerRelative()) {
-            return (string) $event->timing_display;
-        }
-
-        $start = \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'h:i A');
-
-        if (! $event->ends_at instanceof \Carbon\CarbonInterface) {
-            return $start;
-        }
-
-        return $start.' - '.\App\Platform\Time\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
-    };
-    $eventLocationLabel = static fn (\App\Features\Events\Models\Event $event): string => app(\App\Features\Places\Api\SpaceLocation::class)->name(
-        (string) ($event->primaryLocation?->space_name_snapshot ?? ''),
-        $event->primaryLocation?->venueSpace?->name,
-    )
-        ?? $event->venue?->name
-        ?? $event->institution?->display_name
-        ?? __('Location to be confirmed');
     $canEditInstitution = $selectedInstitution !== null && (auth()->user()?->can('update', $selectedInstitution) ?? false);
     $institutionEditUrl = $canEditInstitution
         ? route('contributions.suggest-update', [
@@ -365,45 +326,41 @@
                             <div class="space-y-3">
                                 @foreach($recentEvents as $event)
                                     @php
-                                        $statusValue = (string) $event->status;
-                                        $dateParts = $eventDateParts($event);
-                                        $canEditEvent = auth()->user()?->can('update', $event) ?? false;
-                                        $ahliEventEditUrl = $canEditEvent
-                                            ? \App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
-                                            : null;
-                                        $duplicateEventUrl = $canEditEvent && $canUseSelectedInstitutionForScopedSubmission
+                                        $statusValue = $event->status;
+                                        $ahliEventEditUrl = $event->editUrl;
+                                        $duplicateEventUrl = $ahliEventEditUrl !== null && $canUseSelectedInstitutionForScopedSubmission
                                             ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitution->id, 'duplicate' => $event->id])
                                             : null;
                                     @endphp
 
                                     <article class="grid gap-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-[7.5rem_4.5rem_minmax(0,1fr)] sm:items-center" wire:key="institution-recent-event-{{ $event->id }}">
-                                        <a href="{{ route('events.show', $event) }}" wire:navigate class="block overflow-hidden rounded-lg bg-slate-100">
-                                            <img src="{{ $event->card_image_url }}" alt="{{ $event->title }}" loading="lazy" class="aspect-[16/10] h-full w-full object-cover transition duration-500 hover:scale-105 sm:aspect-square">
+                                        <a href="{{ $event->publicUrl }}" wire:navigate class="block overflow-hidden rounded-lg bg-slate-100">
+                                            <img src="{{ $event->cardImageUrl }}" alt="{{ $event->title }}" loading="lazy" class="aspect-[16/10] h-full w-full object-cover transition duration-500 hover:scale-105 sm:aspect-square">
                                         </a>
 
                                         <div class="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-3 text-emerald-950 sm:block sm:text-center">
-                                            <span class="font-heading text-3xl font-bold leading-none">{{ $dateParts['day'] }}</span>
-                                            <span class="text-sm font-semibold">{{ $dateParts['month'] }}</span>
-                                            @if($dateParts['weekday'] !== '')
-                                                <span class="text-sm text-emerald-800 sm:block">{{ $dateParts['weekday'] }}</span>
+                                            <span class="font-heading text-3xl font-bold leading-none">{{ $event->dateDay }}</span>
+                                            <span class="text-sm font-semibold">{{ $event->dateMonth }}</span>
+                                            @if($event->dateWeekday !== '')
+                                                <span class="text-sm text-emerald-800 sm:block">{{ $event->dateWeekday }}</span>
                                             @endif
                                         </div>
 
                                         <div class="min-w-0">
                                             <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                                 <div class="min-w-0">
-                                                    <a href="{{ route('events.show', $event) }}" wire:navigate class="font-heading text-xl font-bold leading-tight text-emerald-950 hover:text-emerald-800">
+                                                    <a href="{{ $event->publicUrl }}" wire:navigate class="font-heading text-xl font-bold leading-tight text-emerald-950 hover:text-emerald-800">
                                                         {{ $event->title }}
                                                     </a>
 
                                                     <div class="mt-3 flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:flex-wrap sm:items-center">
                                                         <span class="inline-flex items-center gap-1.5">
                                                             <x-filament::icon icon="heroicon-o-map-pin" class="h-4 w-4 text-emerald-800" />
-                                                            {{ $eventLocationLabel($event) }}
+                                                            {{ $event->locationLabel }}
                                                         </span>
                                                         <span class="inline-flex items-center gap-1.5">
                                                             <x-filament::icon icon="heroicon-o-clock" class="h-4 w-4 text-emerald-800" />
-                                                            {{ $eventTimeLabel($event) }}
+                                                            {{ $event->timeLabel }}
                                                         </span>
                                                     </div>
 
@@ -471,11 +428,8 @@
                             <div class="grid gap-4 lg:grid-cols-2">
                                 @foreach($pendingEvents as $event)
                                     @php
-                                        $statusValue = (string) $event->status;
-                                        $canEditEvent = auth()->user()?->can('update', $event) ?? false;
-                                        $ahliEventEditUrl = $canEditEvent
-                                            ? \App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
-                                            : null;
+                                        $statusValue = $event->status;
+                                        $ahliEventEditUrl = $event->editUrl;
                                     @endphp
 
                                     <article class="rounded-lg border border-amber-200 bg-white p-4 shadow-sm" wire:key="institution-pending-event-{{ $event->id }}">
@@ -486,7 +440,7 @@
                                                 </span>
                                                 <div class="min-w-0">
                                                     <h3 class="font-heading text-lg font-bold leading-tight text-emerald-950">{{ $event->title }}</h3>
-                                                    <p class="mt-1 text-sm text-slate-600">{{ $eventLocationLabel($event) }}</p>
+                                                    <p class="mt-1 text-sm text-slate-600">{{ $event->locationLabel }}</p>
                                                     <span class="mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass($statusValue) }}">
                                                         {{ $translateStatusLabel($statusValue) }}
                                                     </span>
@@ -502,7 +456,7 @@
                                                 </a>
                                             @endif
 
-                                            <a href="{{ route('events.show', $event) }}" wire:navigate class="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">
+                                            <a href="{{ $event->publicUrl }}" wire:navigate class="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">
                                                 <x-filament::icon icon="heroicon-o-eye" class="h-4 w-4" />
                                                 {{ __('View Event') }}
                                             </a>

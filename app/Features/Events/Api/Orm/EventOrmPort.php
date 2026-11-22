@@ -6,7 +6,6 @@ namespace App\Features\Events\Api\Orm;
 
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Explicit Eloquent integration port for event schedule composition.
@@ -35,28 +34,6 @@ interface EventOrmPort
      * dashboard registration count.
      */
     public function institutionTableQuery(string $institutionId): EventBuilder;
-
-    /**
-     * Recent institution dashboard cards. Events chooses upcoming cards first,
-     * then falls back to the most recent events when no upcoming rows exist.
-     *
-     * @return EloquentCollection<int, Event>
-     */
-    public function recentInstitutionEventCards(string $institutionId, int $limit): EloquentCollection;
-
-    /**
-     * Pending institution dashboard cards filtered by the current dashboard
-     * search, status, and visibility state.
-     *
-     * @return EloquentCollection<int, Event>
-     */
-    public function pendingInstitutionEventCards(
-        string $institutionId,
-        string $search,
-        string $status,
-        string $visibility,
-        int $limit,
-    ): EloquentCollection;
 
     /**
      * A guaranteed-empty event query.

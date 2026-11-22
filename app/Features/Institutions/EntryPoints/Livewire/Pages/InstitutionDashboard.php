@@ -5,6 +5,7 @@ namespace App\Features\Institutions\EntryPoints\Livewire\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
+use App\Features\Events\Api\Data\InstitutionDashboardEventCard;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\Orm\EventOrmPort;
@@ -410,9 +411,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         ];
     }
 
-    /**
-     * @return Collection<int, Event>
-     */
+    /** @return Collection<int, InstitutionDashboardEventCard> */
     #[Computed]
     public function recentInstitutionEvents(): Collection
     {
@@ -422,12 +421,10 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return collect();
         }
 
-        return app(EventOrmPort::class)->recentInstitutionEventCards((string) $institution->getKey(), 7);
+        return collect(app(EventScheduleReads::class)->recentInstitutionEventCards((string) $institution->getKey(), 7));
     }
 
-    /**
-     * @return Collection<int, Event>
-     */
+    /** @return Collection<int, InstitutionDashboardEventCard> */
     #[Computed]
     public function pendingInstitutionEvents(): Collection
     {
@@ -437,13 +434,13 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return collect();
         }
 
-        return app(EventOrmPort::class)->pendingInstitutionEventCards(
+        return collect(app(EventScheduleReads::class)->pendingInstitutionEventCards(
             institutionId: (string) $institution->getKey(),
             search: $this->eventSearch,
             status: $this->eventStatus,
             visibility: $this->eventVisibility,
             limit: 2,
-        );
+        ));
     }
 
     /**
