@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-use AIArmada\Organizations\Models\Organization;
+use AIArmada\Organizations\Actions\CreateOrganizationAction;
+use App\Models\User;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Models\Event;
 
 it('returns immutable organization workspace cards without exporting event models', function (): void {
-    $organization = Organization::factory()->create();
+    $owner = User::factory()->create();
+    $organization = CreateOrganizationAction::make()->handle($owner, ['name' => 'Projection Organization']);
     $event = Event::factory()->create([
         'owner_type' => $organization->getMorphClass(),
         'owner_id' => $organization->getKey(),

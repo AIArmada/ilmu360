@@ -45,6 +45,6 @@ it('projects speaker workspace events through an immutable owner boundary', func
         page: 1,
     );
 
-    expect($excluded->items)->toBe([])
+    expect($excluded->items)->toBeEmpty()
         ->and($excluded->total)->toBe(0);
 });
