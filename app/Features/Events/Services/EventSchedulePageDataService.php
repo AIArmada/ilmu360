@@ -80,7 +80,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             ->where('events.visibility', EventVisibility::Public)
             ->whereNotNull('events.published_at')
             ->whereHas('occurrences')
-            ->whereHas('keyPeople', static fn (Builder $query): Builder => $query
+            ->whereHas('involvements', static fn (Builder $query): Builder => $query
                 ->where('involveable_type', 'person')
                 ->where('involveable_id', $personId)
                 ->where('role_code', EventKeyPersonRole::Speaker->value))
