@@ -31,14 +31,6 @@ interface EventOrmPort
     public function findEvent(string $eventId): ?Event;
 
     /**
-     * Events with the admin account relation set.
-     *
-     * @param  list<string>  $eventIds
-     * @return EloquentCollection<int, Event>
-     */
-    public function eventsWithAdminRelations(array $eventIds): EloquentCollection;
-
-    /**
      * Institution dashboard table query with the table relation set and
      * dashboard registration count.
      */

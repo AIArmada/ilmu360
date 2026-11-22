@@ -11,8 +11,8 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\Data\EventSubmissionCard;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventScheduleReads;
+use App\Features\Events\Api\Data\AdminEventCard;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountToken;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
@@ -230,7 +230,7 @@ class ViewUser extends ViewRecord
     }
 
     /**
-     * @return Collection<int, Event>
+     * @return Collection<int, AdminEventCard>
      */
     #[Computed]
     public function savedEvents(): Collection
@@ -240,17 +240,17 @@ class ViewUser extends ViewRecord
         return OwnerContext::withOwner(null, function () use ($user): Collection {
             $ids = app(EventEngagement::class)->savedEventIds((string) $user->getKey());
 
-            /** @var Collection<int, Event> $events */
+            /** @var Collection<int, AdminEventCard> $events */
             $events = $ids === []
                 ? new Collection
-                : app(EventOrmPort::class)->eventsWithAdminRelations($ids);
+                : collect(app(EventScheduleReads::class)->adminEventCardsForIds($ids));
 
             return $events;
         });
     }
 
     /**
-     * @return Collection<int, Event>
+     * @return Collection<int, AdminEventCard>
      */
     #[Computed]
     public function goingEvents(): Collection
@@ -264,8 +264,8 @@ class ViewUser extends ViewRecord
                 return new Collection;
             }
 
-            /** @var Collection<int, Event> $events */
-            $events = app(EventOrmPort::class)->eventsWithAdminRelations($ids);
+            /** @var Collection<int, AdminEventCard> $events */
+            $events = collect(app(EventScheduleReads::class)->adminEventCardsForIds($ids));
 
             return $events;
         });
@@ -334,11 +334,6 @@ class ViewUser extends ViewRecord
             EngagementSubjectType::Reference,
             fn (array $ids): \Illuminate\Support\Collection => collect(app(ReferenceLookup::class)->referencesByIds($ids)),
         );
-    }
-
-    public function eventUrl(?Event $event): ?string
-    {
-        return $event instanceof Event ? AdminResourceLink::to('event', 'view', (string) $event->getKey()) : null;
     }
 
     public function institutionUrl(?InstitutionDirectoryRecord $institution): ?string

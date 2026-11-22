@@ -15,6 +15,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
+use App\Features\Events\Api\Data\AdminEventCard;
 use App\Features\Events\Api\Data\PlannerEventCard;
 use App\Features\Events\Api\Data\PersonDashboardEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
@@ -2225,12 +2226,31 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         );
     }
 
-    public function eventsWithAdminRelations(array $eventIds): EloquentCollection
+    /** @return list<AdminEventCard> */
+    public function adminEventCardsForIds(array $eventIds): array
     {
+        if ($eventIds === []) {
+            return [];
+        }
+
         return Event::query()
             ->whereKey($eventIds)
             ->with(['institution:id,name', 'venue:id,name'])
-            ->get();
+            ->get()
+            ->map(static function (Event $event): AdminEventCard {
+                $start = $event->starts_at;
+
+                return new AdminEventCard(
+                    id: (string) $event->getKey(),
+                    title: (string) $event->title,
+                    status: (string) $event->status,
+                    startsAt: $start instanceof CarbonInterface ? CarbonImmutable::instance($start) : null,
+                    institutionName: $event->institution?->name,
+                    venueName: $event->venue?->name,
+                );
+            })
+            ->values()
+            ->all();
     }
 
     public function eventTable(): string

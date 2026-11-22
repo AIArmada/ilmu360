@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
+use App\Features\Events\Api\Data\AdminEventCard;
 use App\Features\Events\Api\Data\PlannerEventCard;
 
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
@@ -98,6 +99,11 @@ interface EventScheduleReads
 
     /** @param list<string> $excludedEventIds */
     public function recommendedPlannerEventCard(array $excludedEventIds, string $fromUtc): ?PlannerEventCard;
+
+    /** @param list<string> $eventIds
+     *  @return list<AdminEventCard>
+     */
+    public function adminEventCardsForIds(array $eventIds): array;
 
     /**
      * Active events for the supplied ids, in starts_at order.

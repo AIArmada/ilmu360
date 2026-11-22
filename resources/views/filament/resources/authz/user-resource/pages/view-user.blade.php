@@ -172,19 +172,19 @@
                     @forelse ($this->goingEvents as $event)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
-                                <a href="{{ $this->eventUrl($event) }}" class="font-medium text-primary-600 hover:underline">
+                                <a href="{{ \App\Platform\Admin\AdminResourceLink::to('event', 'view', $event->id) }}" class="font-medium text-primary-600 hover:underline">
                                     {{ $event->title }}
                                 </a>
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($event->status)">{{ $this->humanLabel($event->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd M Y H:i') ?: '-' }}
+                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Institution: {{ $event->institution?->name ?: '-' }}
+                                Institution: {{ $event->institutionName ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Venue: {{ $event->venue?->name ?: '-' }}
+                                Venue: {{ $event->venueName ?: '-' }}
                             </div>
                         </div>
                     @empty
@@ -198,19 +198,19 @@
                     @forelse ($this->savedEvents as $event)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
-                                <a href="{{ $this->eventUrl($event) }}" class="font-medium text-primary-600 hover:underline">
+                                <a href="{{ \App\Platform\Admin\AdminResourceLink::to('event', 'view', $event->id) }}" class="font-medium text-primary-600 hover:underline">
                                     {{ $event->title }}
                                 </a>
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($event->status)">{{ $this->humanLabel($event->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->starts_at, 'd M Y H:i') ?: '-' }}
+                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Institution: {{ $event->institution?->name ?: '-' }}
+                                Institution: {{ $event->institutionName ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Venue: {{ $event->venue?->name ?: '-' }}
+                                Venue: {{ $event->venueName ?: '-' }}
                             </div>
                         </div>
                     @empty
