@@ -12,7 +12,7 @@ use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Api\ReferenceLookup;
 use App\Platform\Api\Admin\AdminResourceService;
@@ -52,7 +52,7 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
         private readonly AdminResourceService $resourceService,
         private readonly InstitutionLookup $institutionLookup,
         private readonly PersonLookup $personLookup,
-        private readonly PlaceLookup $placeLookup,
+        private readonly PlaceCatalog $placeCatalog,
         private readonly ReferenceLookup $referenceLookup,
     ) {}
 
@@ -215,7 +215,7 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
         if ($venueKey !== null) {
             $payload['venue_id'] = $this->resolveRecordIdentifier(
                 field: 'venue_key',
-                lookup: $this->placeLookup->resolveVenueIdentifier(...),
+                lookup: $this->placeCatalog->resolveVenueIdentifier(...),
                 key: $venueKey,
             );
         }
@@ -225,7 +225,7 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
         if ($spaceKey !== null) {
             $payload['space_id'] = $this->resolveRecordIdentifier(
                 field: 'space_key',
-                lookup: $this->placeLookup->resolveSpaceIdentifier(...),
+                lookup: $this->placeCatalog->resolveSpaceIdentifier(...),
                 key: $spaceKey,
             );
         }

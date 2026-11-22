@@ -14,7 +14,7 @@ use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Events\Queries\TypesenseEventDiscovery;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\References\Api\ReferenceQueries;
 use Tests\Support\RecordingEventSearchRelationProvider;
 
@@ -35,7 +35,7 @@ it('returns immutable PostgreSQL search hits without importing event models into
         filterSet: new EventDiscoveryFilterSet,
         personLookup: app(PersonLookup::class),
         institutionLookup: app(InstitutionLookup::class),
-        placeLookup: app(PlaceLookup::class),
+        placeCatalog: app(PlaceCatalog::class),
         categoryCatalog: app(EventCategoryCatalog::class),
         relationProvider: $provider,
         referenceQueries: app(ReferenceQueries::class),

@@ -12,7 +12,7 @@ use AIArmada\Events\Models\EventTerm;
 use App\Features\Discovery\Api\SearchFilterLabels;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\References\Api\ReferenceLookup;
 use Illuminate\Support\Str;
 
@@ -21,7 +21,7 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
     public function __construct(
         private readonly InstitutionLookup $institutions,
         private readonly PersonLookup $persons,
-        private readonly PlaceLookup $places,
+        private readonly PlaceCatalog $places,
         private readonly ReferenceLookup $references,
     ) {}
 
