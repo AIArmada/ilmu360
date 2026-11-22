@@ -21,7 +21,7 @@
 
         <div class="grid gap-4 sm:grid-cols-3">
             <div class="rounded-3xl border border-[#eadfca] bg-white p-5"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Members') }}</p><p class="mt-2 text-3xl font-bold text-[#0b2a42]">{{ $members->count() }}</p></div>
-            <div class="rounded-3xl border border-[#eadfca] bg-white p-5"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Events') }}</p><p class="mt-2 text-3xl font-bold text-[#0b2a42]">{{ $events->count() }}</p></div>
+            <div class="rounded-3xl border border-[#eadfca] bg-white p-5"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Events') }}</p><p class="mt-2 text-3xl font-bold text-[#0b2a42]">{{ count($events) }}</p></div>
             <div class="rounded-3xl border border-[#eadfca] bg-white p-5"><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Status') }}</p><p class="mt-2 text-3xl font-bold capitalize text-[#0b2a42]">{{ $organization->status->value }}</p></div>
         </div>
 
