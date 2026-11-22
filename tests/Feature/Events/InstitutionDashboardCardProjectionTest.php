@@ -29,7 +29,7 @@ it('projects recent and pending institution events into immutable owner cards', 
         ->and($recent[0])->toBeInstanceOf(InstitutionDashboardEventCard::class)
         ->and($recent[0]->id)->toBe((string) $event->getKey())
         ->and($recent[0]->title)->toBe('Institution Workspace Card')
-        ->and($recent[0]->editUrl)->toBeNull()
+        ->and($recent[0]->canEdit)->toBeFalse()
         ->and($recent[0]->publicUrl)->toBeString()->not->toBeEmpty()
         ->and($pending)->toHaveCount(1)
         ->and($pending[0])->toBeInstanceOf(InstitutionDashboardEventCard::class)

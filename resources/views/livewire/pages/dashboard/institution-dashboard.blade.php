@@ -327,7 +327,9 @@
                                 @foreach($recentEvents as $event)
                                     @php
                                         $statusValue = $event->status;
-                                        $ahliEventEditUrl = $event->editUrl;
+                                        $ahliEventEditUrl = $event->canEdit
+                                            ? \App\Platform\Admin\AdminResourceLink::to('event', 'edit', $event->id, panel: 'ahli')
+                                            : null;
                                         $duplicateEventUrl = $ahliEventEditUrl !== null && $canUseSelectedInstitutionForScopedSubmission
                                             ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitution->id, 'duplicate' => $event->id])
                                             : null;
@@ -429,7 +431,9 @@
                                 @foreach($pendingEvents as $event)
                                     @php
                                         $statusValue = $event->status;
-                                        $ahliEventEditUrl = $event->editUrl;
+                                        $ahliEventEditUrl = $event->canEdit
+                                            ? \App\Platform\Admin\AdminResourceLink::to('event', 'edit', $event->id, panel: 'ahli')
+                                            : null;
                                     @endphp
 
                                     <article class="rounded-lg border border-amber-200 bg-white p-4 shadow-sm" wire:key="institution-pending-event-{{ $event->id }}">

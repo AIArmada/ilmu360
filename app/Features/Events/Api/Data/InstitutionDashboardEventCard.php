@@ -17,6 +17,6 @@ final readonly class InstitutionDashboardEventCard
         public string $dateWeekday,
         public string $timeLabel,
         public string $locationLabel,
-        public ?string $editUrl,
+        public bool $canEdit,
     ) {}
 }

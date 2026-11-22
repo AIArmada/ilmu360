@@ -38,7 +38,6 @@ use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
-use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Series;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Institutions\Api\InstitutionLookup;
@@ -2377,7 +2376,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             dateWeekday: $dateWeekday,
             timeLabel: $timeLabel,
             locationLabel: (string) $location,
-            editUrl: $canEdit ? EventResource::getUrl('edit', ['record' => $event], panel: 'ahli') : null,
+            canEdit: $canEdit,
         );
     }
 
