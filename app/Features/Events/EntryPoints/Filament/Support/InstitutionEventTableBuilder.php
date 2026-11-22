@@ -8,6 +8,7 @@ use App\Features\Events\Api\InstitutionEventTable;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Api\SpaceLocation;
 use App\Platform\Time\UserDateTimeFormatter;
+use Closure;
 use BackedEnum;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\TextColumn;
@@ -30,8 +31,7 @@ final readonly class InstitutionEventTableBuilder implements InstitutionEventTab
         ?string $institutionId,
         ?string $selectedInstitutionId,
         bool $canUseSelectedInstitutionForScopedSubmission,
-        string $sort,
-        bool $hasExplicitTableSort,
+        Closure $sortState,
         array $statusOptions,
         array $visibilityOptions,
     ): Table {
@@ -149,7 +149,14 @@ final readonly class InstitutionEventTableBuilder implements InstitutionEventTab
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort(fn (Builder $query): string|Builder|null => $this->applyDashboardEventSort($query, $sort, $hasExplicitTableSort), fn (): string => $this->dashboardEventSortDirection($sort))
+            ->defaultSort(
+                function (Builder $query) use ($sortState): string|Builder|null {
+                    $state = $sortState();
+
+                    return $this->applyDashboardEventSort($query, $state['sort'], $state['hasExplicitTableSort']);
+                },
+                fn (): string => $this->dashboardEventSortDirection($sortState()['sort']),
+            )
             ->searchPlaceholder(__('Search by event title or venue'))
             ->filters([
                 SelectFilter::make('status')

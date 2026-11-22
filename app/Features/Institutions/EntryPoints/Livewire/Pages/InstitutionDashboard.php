@@ -551,8 +551,10 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             institutionId: $institution instanceof Institution ? (string) $institution->getKey() : null,
             selectedInstitutionId: $this->institutionId,
             canUseSelectedInstitutionForScopedSubmission: $this->canUseSelectedInstitutionForScopedSubmission(),
-            sort: $this->eventSort,
-            hasExplicitTableSort: filled($this->tableSort),
+            sortState: fn (): array => [
+                'sort' => $this->eventSort,
+                'hasExplicitTableSort' => filled($this->tableSort),
+            ],
             statusOptions: collect($this->eventStatusOptions())->except('all')->all(),
             visibilityOptions: collect($this->eventVisibilityOptions())->except('all')->all(),
         );

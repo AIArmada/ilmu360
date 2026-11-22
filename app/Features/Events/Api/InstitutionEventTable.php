@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
+use Closure;
 use Filament\Tables\Table;
 
 /**
@@ -13,6 +14,7 @@ use Filament\Tables\Table;
 interface InstitutionEventTable
 {
     /**
+     * @param  Closure(): array{sort: string, hasExplicitTableSort: bool}  $sortState
      * @param  array<string, string>  $statusOptions
      * @param  array<string, string>  $visibilityOptions
      */
@@ -21,8 +23,7 @@ interface InstitutionEventTable
         ?string $institutionId,
         ?string $selectedInstitutionId,
         bool $canUseSelectedInstitutionForScopedSubmission,
-        string $sort,
-        bool $hasExplicitTableSort,
+        Closure $sortState,
         array $statusOptions,
         array $visibilityOptions,
     ): Table;
