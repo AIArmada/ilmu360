@@ -21,7 +21,7 @@ use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\Filament\PersonQuickAdd;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\Filament\VenueQuickAdd;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\RamadanGate;
@@ -709,7 +709,7 @@ class EventContributionFormSchema
      */
     private static function venueOptions(): array
     {
-        return app(PlaceLookup::class)->venueOptionsForStatuses(['verified', 'pending']);
+        return app(PlaceCatalog::class)->venueOptionsForStatuses(['verified', 'pending']);
     }
 
     private static function requiresPersonsForCategories(mixed $categoryIds): bool

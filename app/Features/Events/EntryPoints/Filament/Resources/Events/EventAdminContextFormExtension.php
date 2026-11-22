@@ -12,7 +12,7 @@ use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Api\ReferenceLookup;
 use Filament\Forms\Components\DatePicker;
@@ -183,7 +183,7 @@ final class EventAdminContextFormExtension implements EventFormExtension
 
     private function venueName(string $id): ?string
     {
-        return app(PlaceLookup::class)->venueNamesByIds([$id])[$id] ?? null;
+        return app(PlaceCatalog::class)->venueNamesByIds([$id])[$id] ?? null;
     }
 
     /**
@@ -191,7 +191,7 @@ final class EventAdminContextFormExtension implements EventFormExtension
      */
     private function venueNameOptions(string $search): array
     {
-        return app(PlaceLookup::class)->venueNameOptions($search);
+        return app(PlaceCatalog::class)->venueNameOptions($search);
     }
 
     /**

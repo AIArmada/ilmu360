@@ -22,7 +22,7 @@ use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Api\RegistrationScope;
 use App\Features\Events\Enums\Terms\DomainTermCode;
 use App\Features\Events\Support\SubmissionTimingPolicy;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
@@ -1368,7 +1368,7 @@ class CreateAdvanced extends Component implements HasForms
     /** @return array<string, string> */
     protected function venueOptions(): array
     {
-        return app(PlaceLookup::class)->venueOptionsForStatuses(['verified', 'pending']);
+        return app(PlaceCatalog::class)->venueOptionsForStatuses(['verified', 'pending']);
     }
 
     /** @return array<string, string> */
