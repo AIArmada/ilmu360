@@ -10,8 +10,8 @@ use AIArmada\Events\Models\EventSession;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
-use App\Features\Events\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder;
+use App\Features\Events\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventScheduleFact;
@@ -31,7 +31,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 
-final readonly class PublicScheduleDiscoveryService 
+final readonly class PublicScheduleDiscoveryService
 {
     public function __construct(
         private PostgresEventDiscovery $scheduleEvents,
