@@ -35,8 +35,8 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     /**
      * Institution schedule composition stays inside the Events owner.
      *
-     * @param list<string> $savedEventIds
-     * @param list<string> $goingEventIds
+     * @param  list<string>  $savedEventIds
+     * @param  list<string>  $goingEventIds
      */
     public function forInstitution(
         string $institutionId,
@@ -258,7 +258,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     }
 
     /**
-     * @param (callable(Collection<int, PublicScheduleLeaf>): Collection<int, PublicScheduleLeaf>)|null $filterLeaves
+     * @param  (callable(Collection<int, PublicScheduleLeaf>): Collection<int, PublicScheduleLeaf>)|null  $filterLeaves
      * @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function forQuery(
