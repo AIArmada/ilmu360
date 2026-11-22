@@ -6,7 +6,6 @@ namespace App\Features\Events\Api\Orm;
 
 use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Models\Event;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
@@ -19,8 +18,8 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
  *           and must not import Event internals directly.
  *
  * Consumers: Registration dashboard/checkout, Identity user dashboard,
- * Organizations workspace, Institution dashboard, Person dashboard,
- * References pages, ShareTracking and the Institutions/References lookup
+ * Organizations workspace, Institution dashboard, References pages,
+ * ShareTracking and the Institutions/References lookup
  * queries. Discovery schedule reads use {@see PublicScheduleEventReads}.
  */
 interface EventOrmPort
