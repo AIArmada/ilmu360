@@ -16,7 +16,6 @@ use App\Features\Engagement\Api\FollowState;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
-use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\References\Api\ReferenceLookup;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
@@ -36,7 +35,6 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
         private InstitutionLookup $institutions,
         private PersonLookup $persons,
         private ReferenceLookup $references,
-        private PlaceLookup $places,
     ) {}
 
     public function followedSubjectIds(string $accountId, EngagementSubjectType $subjectType): array
@@ -443,7 +441,7 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
     private function subjectMorphClass(EngagementSubjectType $subjectType): string
     {
         return match ($subjectType) {
-            EngagementSubjectType::Venue => $this->places->venueMorphType(),
+            EngagementSubjectType::Venue => $this->morphType('venue'),
             EngagementSubjectType::Person => $this->persons->personMorphType(),
             EngagementSubjectType::Institution => $this->institutions->institutionMorphType(),
             EngagementSubjectType::Reference => $this->references->referenceMorphType(),
