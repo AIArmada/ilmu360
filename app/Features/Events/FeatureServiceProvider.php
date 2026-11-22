@@ -90,7 +90,6 @@ use App\Features\Events\Api\GuestEventSubmissionClaims;
 use App\Features\Events\Api\GuestSubmissionClaims;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\OrganizerLookup;
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
@@ -331,7 +330,6 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventDiscoveryReader::class, PostgresEventDiscovery::class);
         $this->app->bind(EventScheduleReads::class, PostgresEventDiscovery::class);
         $this->app->bind(EventRegistrationNotifications::class, EventNotificationService::class);
-        $this->app->bind(EventOrmPort::class, PostgresEventDiscovery::class);
         $this->app->bind(EventDirectoryProjectionProvider::class, PostgresEventDiscovery::class);
         $this->app->bind(PublicScheduleEventReads::class, PostgresEventDiscovery::class);
 

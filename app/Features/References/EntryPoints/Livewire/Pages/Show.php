@@ -2,27 +2,19 @@
 
 namespace App\Features\References\EntryPoints\Livewire\Pages;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf as PublicScheduleLeafContract;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
-use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
 use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\IntendedRedirect;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
@@ -32,8 +24,6 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class Show extends Component
 {
-    use JoinsHierarchyAreaName;
-
     public Reference $reference;
 
     public int $upcomingPerPage = 6;
@@ -252,68 +242,6 @@ class Show extends Component
         return $this->schedulePageData()['past_overall_total'];
     }
 
-    private function eventQuery(): EventBuilder
-    {
-        /** @var array<string, string|\Closure> $addressRelations */
-        $addressRelations = [
-            'venue.media',
-            'venue.addresses' => $this->joinAddressStateName(...),
-            'venue.addresses.city',
-            'venue.addresses.areaAssignments' => $this->joinAreaName(...),
-        ];
-
-        $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
-
-        /** @var EventBuilder $query */
-        $query = app(EventOrmPort::class)->referenceEventsQuery($referenceIds, $addressRelations);
-
-        return $query;
-    }
-
-    /**
-     * @param  Collection<int, PublicScheduleLeafContract>  $leaves
-     * @return Collection<int, PublicScheduleLeafContract>
-     */
-    protected function filterScheduleLeaves(Collection $leaves): Collection
-    {
-        $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
-
-        return $leaves
-            ->map(function (PublicScheduleLeafContract $leaf) use ($referenceIds): ?PublicScheduleLeafContract {
-                $event = $leaf->event();
-                $occurrence = $leaf->occurrence();
-
-                if ($event->references->contains(fn (Reference $reference): bool => in_array((string) $reference->getKey(), $referenceIds, true))) {
-                    return $leaf;
-                }
-
-                $occurrenceMatches = $occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
-                    && $reference->referenceable_type === $this->reference->getMorphClass()
-                    && in_array((string) $reference->referenceable_id, $referenceIds, true)
-                    && $reference->event_session_id === null);
-
-                if ($occurrenceMatches) {
-                    return $leaf;
-                }
-
-                $sessions = collect($leaf->sessions())->filter(fn ($session): bool => $occurrence->references->contains(fn ($reference): bool => $reference->visibility === 'public'
-                    && $reference->referenceable_type === $this->reference->getMorphClass()
-                    && in_array((string) $reference->referenceable_id, $referenceIds, true)
-                    && $reference->event_session_id === $session->getKey()))->values();
-
-                return $sessions->isEmpty()
-                    ? null
-                    : $leaf->withSessions($sessions->map(static fn ($session): string => (string) $session->getKey())->all());
-            })
-            ->filter()
-            ->values();
-    }
-
-    protected function eventPageBaseQuery(): EventBuilder
-    {
-        return $this->eventQuery();
-    }
-
     /**
      * @return array{upcoming: Collection<int, PublicScheduleLeafContract>, past: Collection<int, PublicScheduleLeafContract>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
@@ -326,13 +254,13 @@ class Show extends Component
         $range = $this->upcomingDateRange();
 
         /** @var array{upcoming: Collection<int, PublicScheduleLeafContract>, past: Collection<int, PublicScheduleLeafContract>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $data */
-        $data = app(EventSchedulePageData::class)->forQuery(
-            $this->eventPageBaseQuery(),
-            $this->upcomingPerPage,
-            $this->pastPerPage,
-            $range['from'] ?? null,
-            $range['to'] ?? null,
-            $this->filterScheduleLeaves(...),
+        $referenceIds = app(ReferenceQueries::class)->defaultEventReferenceIds((string) $this->reference->getKey());
+        $data = app(EventSchedulePageData::class)->forReferenceFamily(
+            referenceIds: $referenceIds,
+            upcomingLimit: $this->upcomingPerPage,
+            pastLimit: $this->pastPerPage,
+            rangeFrom: $range['from'] ?? null,
+            rangeTo: $range['to'] ?? null,
         );
 
         return $this->schedulePageData = $data;
@@ -422,18 +350,4 @@ class Show extends Component
         });
     }
 
-    /**
-     * @param  MorphToMany<Address, Model, Pivot, 'pivot'>  $relation
-     * @return MorphToMany<Address, Model, Pivot, 'pivot'>
-     */
-    private function joinAddressStateName(MorphToMany $relation): MorphToMany
-    {
-        $addressesTable = (new Address)->getTable();
-        $statesTable = (new State)->getTable();
-
-        return $relation
-            ->addSelect("{$addressesTable}.*")
-            ->leftJoin($statesTable, "{$addressesTable}.state_id", '=', "{$statesTable}.id")
-            ->addSelect("{$statesTable}.name as hierarchy_state_name");
-    }
 }
