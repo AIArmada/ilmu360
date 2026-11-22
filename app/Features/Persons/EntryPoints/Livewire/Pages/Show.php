@@ -382,7 +382,7 @@ class Show extends Component
                 'venue.addresses.areaAssignments' => $this->joinAreaName(...),
             ];
 
-            $speakerEvents->load($addressRelations);
+            $roleEvents->load($addressRelations);
         }
 
         return $this->eventPageData = [
