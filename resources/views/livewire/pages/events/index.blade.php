@@ -711,10 +711,7 @@
                                             (string) ($scheduleLocation?->space_name_snapshot ?? ''),
                                             $scheduleLocation?->venueSpace?->name,
                                         );
-                                        $scheduleVenue = $scheduleLocation?->venue;
-                                        $addressModel = $scheduleVenue instanceof \App\Features\Places\Models\Venue
-                                            ? $scheduleVenue->primaryAddress()
-                                            : null;
+                                        $addressModel = app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($scheduleLocation?->venue_id);
                                         $addressModel ??= $event->resolvedLocationAddress();
                                         if (is_string($locationSpaceName) && trim($locationSpaceName) !== '') {
                                             $primaryLocationName = collect([$primaryLocationName, $locationSpaceName])

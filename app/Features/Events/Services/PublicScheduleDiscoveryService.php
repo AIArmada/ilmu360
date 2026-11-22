@@ -21,7 +21,7 @@ use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Events\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Events\Support\VenueAddressResolver;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Platform\Time\UserDateTimeFormatter;
@@ -38,7 +38,7 @@ final readonly class PublicScheduleDiscoveryService
         private EventScheduleReads $scheduleFacts,
         private EventSearchReader $eventSearch,
         private SubjectFollows $subjectFollows,
-        private PlaceLookup $placeLookup,
+        private VenueAddressResolver $venueAddresses,
         private EventDiscoveryCriteriaBuilder $criteriaFactory,
     ) {}
 
@@ -188,26 +188,14 @@ final readonly class PublicScheduleDiscoveryService
         return $this->hydrateLeaves($leaves, withOccurrenceReferences: true);
     }
 
-    /**
-     * Overwrite package location venues with application Venue models for
-     * one occurrence/session detail page.
-     */
-    public function hydrateOccurrencePageVenues(Event $event): void
+    /** Prime scoped venue address projections; do not mutate Eloquent relations. */
+    public function primeOccurrencePageVenueAddresses(Event $event): void
     {
-        $this->hydrateApplicationVenues(new EloquentCollection([$event]));
+        $this->primeVenueAddresses(new EloquentCollection([$event]));
     }
 
-    /**
-     * Package event-location relations hydrate the package Venue class directly.
-     * Public cards use the application Venue subclass because it owns address behavior.
-     *
-     * Only loaded relations are visited, so hydration never issues lazy
-     * loads of its own; every visited location gets its venue relation set
-     * (null included) so readers never lazy-load afterwards.
-     *
-     * @param  EloquentCollection<int, Event>  $events
-     */
-    private function hydrateApplicationVenues(EloquentCollection $events): void
+    /** @param EloquentCollection<int, Event> $events */
+    private function primeVenueAddresses(EloquentCollection $events): void
     {
         /** @var Collection<int, EventLocation> $locations */
         $locations = collect();
@@ -258,7 +246,7 @@ final readonly class PublicScheduleDiscoveryService
             return;
         }
 
-        $this->placeLookup->hydrateCardVenues($locations);
+        $this->venueAddresses->prime($venueIds->all());
     }
 
     /**
@@ -503,7 +491,7 @@ final readonly class PublicScheduleDiscoveryService
             withOccurrenceReferences: $withOccurrenceReferences,
             distanceByEventId: $distanceByEventId->all(),
         );
-        $this->hydrateApplicationVenues($events);
+        $this->primeVenueAddresses($events);
         $eventsById = $events->keyBy(static fn (Event $event): string => (string) $event->getKey());
         $leaves = collect();
 

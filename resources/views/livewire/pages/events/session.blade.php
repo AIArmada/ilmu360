@@ -32,7 +32,7 @@
     $locationVenue = $location?->relationLoaded('venue') ? $location->venue : null;
     $locationSpace = $location?->relationLoaded('venueSpace') ? $location->venueSpace : null;
     $locationInstitution = $location?->relationLoaded('locationable') && $location->locationable instanceof \App\Features\Institutions\Models\Institution ? $location->locationable : null;
-    $locationAddress = $location?->primaryAddress() ?? $locationInstitution?->primaryAddress() ?? $locationVenue?->primaryAddress();
+    $locationAddress = $location?->primaryAddress() ?? $locationInstitution?->primaryAddress() ?? app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($location?->venue_id);
     $primaryAddress = $locationAddress
         ?? (($ownLocation ?? $occurrenceLocation)?->venue_id !== null
             ? null

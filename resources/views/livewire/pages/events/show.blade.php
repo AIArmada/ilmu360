@@ -38,7 +38,7 @@
     $locationVenue = $eventLocation?->relationLoaded('venue') ? $eventLocation->venue : null;
     $locationSpace = $eventLocation?->relationLoaded('venueSpace') ? $eventLocation->venueSpace : null;
     $primaryAddress = $eventLocation?->primaryAddress()
-        ?? $locationVenue?->primaryAddress()
+        ?? app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($eventLocation?->venue_id)
         ?? $event->resolvedLocationAddress();
     $addressDisplayLines = \App\Platform\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $locationVenue?->name ?? $detail->locationLabel($eventLocation) ?? $event->resolvedLocationName();

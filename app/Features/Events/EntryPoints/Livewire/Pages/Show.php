@@ -30,7 +30,7 @@ use App\Features\Events\States\EventStatus\EventStatus;
 use App\Features\Events\States\EventStatus\Pending;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Events\Support\VenueAddressResolver;
 use App\Features\Places\Models\Venue;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
@@ -285,7 +285,10 @@ class Show extends Component
                 ->concat($occurrence->sessions->flatMap(fn ($session) => $session->locations)))
                 ->concat($event->sessions->flatMap(fn ($session) => $session->locations));
 
-            app(PlaceLookup::class)->hydrateDetailVenues($locations);
+            app(VenueAddressResolver::class)->prime($locations
+                ->pluck('venue_id')
+                ->filter(static fn (mixed $id): bool => is_string($id) && $id !== '')
+                ->unique()->values()->all());
 
             if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
                 if ($involveable instanceof Institution) {

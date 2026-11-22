@@ -60,7 +60,7 @@
     $location = $ownLocation ?? $detail->primaryLocationFor($event);
     $locationVenue = $location?->relationLoaded('venue') ? $location->venue : null;
     $locationSpace = $location?->relationLoaded('venueSpace') ? $location->venueSpace : null;
-    $locationAddress = $location?->primaryAddress() ?? $locationVenue?->primaryAddress();
+    $locationAddress = $location?->primaryAddress() ?? app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($location?->venue_id);
     $primaryAddress = $locationAddress
         ?? ($ownLocation?->venue_id !== null ? null : $event->resolvedLocationAddress());
     $addressDisplayLines = \App\Platform\Location\AddressHierarchyFormatter::displayLines($primaryAddress);

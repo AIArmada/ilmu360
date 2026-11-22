@@ -67,7 +67,7 @@ class Session extends Occurrence
             // The selected session's own locations load after the first
             // hydration pass, so their venues need the same application-side
             // hydration as the rest of the schedule graph.
-            app(PublicScheduleDiscoveryService::class)->hydrateOccurrencePageVenues($this->event);
+            app(PublicScheduleDiscoveryService::class)->primeOccurrencePageVenueAddresses($this->event);
         });
 
         $this->session = $session;

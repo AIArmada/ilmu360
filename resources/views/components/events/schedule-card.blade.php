@@ -17,9 +17,7 @@
         ?? $scheduleLeaf->sessions->first()?->locations->first();
     $sessions = $sessions ?? $scheduleLeaf->sessions;
     $locationPrimary = $location?->venue?->name ?? $location?->label ?? $event->resolvedLocationName();
-    $address = $location?->venue instanceof \App\Features\Places\Models\Venue
-        ? $location->venue->primaryAddress()
-        : null;
+    $address = app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($location?->venue_id);
     $address ??= $event->resolvedLocationAddress();
     $locationSecondary = \App\Platform\Location\AddressHierarchyFormatter::formatShort($address) ?: null;
     $statusLabel = $event->public_change_badge_label;

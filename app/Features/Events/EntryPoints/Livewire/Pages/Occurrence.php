@@ -69,7 +69,7 @@ class Occurrence extends Show
             $event->loadCount(['registrations' => $this->capacityRegistrationScope()]);
             $event->loadSum(['registrations' => $this->capacityRegistrationScope()], 'total_participants');
             $event->loadMissing($this->occurrenceBaseRelations($event));
-            $discovery->hydrateOccurrencePageVenues($event);
+            $discovery->primeOccurrencePageVenueAddresses($event);
         });
 
         /** @var EventOccurrence|null $loadedOccurrence */
