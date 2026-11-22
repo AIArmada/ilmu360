@@ -12,8 +12,8 @@ use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\AccountEventFacts;
 use App\Features\Events\Api\Data\EventSubmissionCard;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\EventScheduleReads;
+use App\Features\Events\Api\Data\PlannerEventCard;
 use App\Features\Institutions\Api\InstitutionDirectoryRecord;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonDirectoryRecord;
@@ -161,33 +161,33 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return Collection<int, Event>
+     * @return Collection<int, PlannerEventCard>
      */
     #[Computed]
     public function savedEvents(): Collection
     {
         $ids = app(EventEngagement::class)->savedEventIds((string) $this->user()->getKey());
 
-        /** @var Collection<int, Event> $events */
+        /** @var Collection<int, PlannerEventCard> $events */
         $events = $ids === []
             ? new Collection
-            : app(EventOrmPort::class)->plannerEventsForIds($ids, true);
+            : collect(app(EventScheduleReads::class)->plannerEventCardsForIds($ids, true));
 
         return $this->sortEventsForPlanner($events);
     }
 
     /**
-     * @return Collection<int, Event>
+     * @return Collection<int, PlannerEventCard>
      */
     #[Computed]
     public function goingEvents(): Collection
     {
         $ids = app(EventEngagement::class)->goingEventIds((string) $this->user()->getKey());
 
-        /** @var Collection<int, Event> $events */
+        /** @var Collection<int, PlannerEventCard> $events */
         $events = $ids === []
             ? new Collection
-            : app(EventOrmPort::class)->plannerEventsForIds($ids, false);
+            : collect(app(EventScheduleReads::class)->plannerEventCardsForIds($ids, false));
 
         return $this->sortEventsForPlanner($events);
     }
@@ -258,7 +258,7 @@ class UserDashboard extends Component
     }
 
     #[Computed]
-    public function recommendedEvent(): ?Event
+    public function recommendedEvent(): ?PlannerEventCard
     {
         /** @var list<string> $excludedEventIds */
         $excludedEventIds = $this->savedEvents()
@@ -269,8 +269,8 @@ class UserDashboard extends Component
             ->values()
             ->all();
 
-        /** @var ?Event $event */
-        $event = app(EventOrmPort::class)->recommendedPlannerEvent(
+        /** @var ?PlannerEventCard $event */
+        $event = app(EventScheduleReads::class)->recommendedPlannerEventCard(
             $excludedEventIds,
             now('UTC')->toIso8601String(),
         );
@@ -279,12 +279,12 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return Collection<int, array{event: Event, roles: list<string>}>
+     * @return Collection<int, array{event: PlannerEventCard, roles: list<string>}>
      */
     #[Computed]
     public function majlisCards(): Collection
     {
-        /** @var Collection<string, array{event: Event, roles: list<string>}> $cards */
+        /** @var Collection<string, array{event: PlannerEventCard, roles: list<string>}> $cards */
         $cards = collect();
 
         foreach ($this->savedEvents() as $event) {
@@ -308,17 +308,17 @@ class UserDashboard extends Component
             $cards->put($event->id, $card);
         }
 
-        /** @var Collection<int, array{event: Event, roles: list<string>}> $sorted */
+        /** @var Collection<int, array{event: PlannerEventCard, roles: list<string>}> $sorted */
         $sorted = $cards
             ->values()
-            ->sortBy(fn (array $card): int => $card['event']->starts_at?->getTimestamp() ?? PHP_INT_MAX)
+            ->sortBy(fn (array $card): int => $card['event']->startsAt?->getTimestamp() ?? PHP_INT_MAX)
             ->values();
 
         return $sorted;
     }
 
     /**
-     * @return LengthAwarePaginator<int, array{event: Event, roles: list<string>}>
+     * @return LengthAwarePaginator<int, array{event: PlannerEventCard, roles: list<string>}>
      */
     #[Computed]
     public function paginatedMajlisCards(): LengthAwarePaginator
@@ -346,7 +346,7 @@ class UserDashboard extends Component
         $entries = collect();
 
         foreach ($submissions as $submission) {
-            if (! $submission instanceof EventSubmissionCard || $submission->eventId === '') {
+            if (! $submission instanceof PlannerEventCardSubmissionCard || $submission->eventId === '') {
                 continue;
             }
 
@@ -510,7 +510,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return LengthAwarePaginator<int, Event>
+     * @return LengthAwarePaginator<int, PlannerEventCard>
      */
     #[Computed]
     public function paginatedGoingEvents(): LengthAwarePaginator
@@ -555,7 +555,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return LengthAwarePaginator<int, Event>
+     * @return LengthAwarePaginator<int, PlannerEventCard>
      */
     #[Computed]
     public function paginatedSavedEvents(): LengthAwarePaginator
@@ -589,14 +589,6 @@ class UserDashboard extends Component
         return view('livewire.pages.dashboard.user-dashboard');
     }
 
-    public function canManageSubmittedEvent(Event $event): bool
-    {
-        $user = $this->user();
-
-        return $event->userCanManage($user)
-            || app(EventSubmissions::class)->existsForSubmitter((string) $event->id, (string) $user->getKey());
-    }
-
     protected function user(): User
     {
         $user = auth()->user();
@@ -607,13 +599,13 @@ class UserDashboard extends Component
     }
 
     /**
-     * @param  Collection<int, Event>  $events
-     * @return Collection<int, Event>
+     * @param  Collection<int, PlannerEventCard>  $events
+     * @return Collection<int, PlannerEventCard>
      */
     protected function sortEventsForPlanner(Collection $events): Collection
     {
         return $events
-            ->sort(fn (Event $left, Event $right): int => $this->comparePlannerDates($left->starts_at, $right->starts_at))
+            ->sort(fn (PlannerEventCard $left, PlannerEventCard $right): int => $this->comparePlannerDates($left->startsAt, $right->startsAt))
             ->values();
     }
 
@@ -681,9 +673,9 @@ class UserDashboard extends Component
     /**
      * @param  array<string, array<string, mixed>>  $entries
      */
-    protected function mergeEventIntoCalendarEntries(array &$entries, Event $event, string $role): void
+    protected function mergeEventIntoCalendarEntries(array &$entries, PlannerEventCard $event, string $role): void
     {
-        $startsAt = $event->starts_at;
+        $startsAt = $event->startsAt;
         $dateKey = $this->dateKey($startsAt);
 
         if ($dateKey === null) {
@@ -749,14 +741,14 @@ class UserDashboard extends Component
      */
     protected function makeCalendarEntry(
         string $key,
-        ?Event $event,
+        ?PlannerEventCard $event,
         string $dateKey,
         ?CarbonInterface $startsAt,
         string $timeLabel,
         string $secondaryLabel,
         bool $isCheckin
     ): array {
-        $status = $event instanceof Event ? (string) $event->status : 'approved';
+        $status = $event instanceof PlannerEventCard ? (string) $event->status : 'approved';
         $primaryRole = $isCheckin ? 'checkin' : 'saved';
         $timestamp = $startsAt instanceof CarbonInterface
             ? $startsAt->copy()->timezone(UserDateTimeFormatter::resolveTimezone())->getTimestamp()
@@ -764,13 +756,13 @@ class UserDashboard extends Component
 
         return [
             'key' => $key,
-            'id' => $event instanceof Event ? $event->id : $key,
-            'title' => $event instanceof Event ? $event->title : __('Checked-in event'),
-            'url' => $event instanceof Event ? route('events.show', $event) : null,
+            'id' => $event instanceof PlannerEventCard ? $event->id : $key,
+            'title' => $event instanceof PlannerEventCard ? $event->title : __('Checked-in event'),
+            'url' => $event instanceof PlannerEventCard ? $event->url : null,
             'date_key' => $dateKey,
             'time_label' => $timeLabel,
             'secondary_label' => $secondaryLabel,
-            'image_url' => $event instanceof Event ? $event->card_image_url : asset('images/placeholders/event-wide-v1.jpg'),
+            'image_url' => $event instanceof PlannerEventCard ? $event->imageUrl : asset('images/placeholders/event-wide-v1.jpg'),
             'status' => $status,
             'status_label' => $this->translatedEventWorkflowStatusLabel($status),
             'status_class' => $this->eventStatusClass($status),
@@ -816,24 +808,19 @@ class UserDashboard extends Component
         return $key !== '' ? $key : null;
     }
 
-    protected function eventTimeLabel(Event $event): string
+    protected function eventTimeLabel(PlannerEventCard $event): string
     {
-        if (! $event->starts_at instanceof CarbonInterface) {
+        if (! $event->startsAt instanceof CarbonInterface) {
             return __('Time to be confirmed');
         }
 
-        return UserDateTimeFormatter::translatedFormat($event->starts_at, 'd M')
-            .', '.UserDateTimeFormatter::format($event->starts_at, 'h:i A');
+        return UserDateTimeFormatter::translatedFormat($event->startsAt, 'd M')
+            .', '.UserDateTimeFormatter::format($event->startsAt, 'h:i A');
     }
 
-    protected function eventLocationLabel(Event $event): string
+    protected function eventLocationLabel(PlannerEventCard $event): string
     {
-        $venue = $event->venue;
-        $institution = $event->institution;
-
-        return ($venue ? $venue->name : null)
-            ?? ($institution ? $institution->name : null)
-            ?? __('Online / TBD');
+        return $event->locationName ?? __('Online / TBD');
     }
 
     /**

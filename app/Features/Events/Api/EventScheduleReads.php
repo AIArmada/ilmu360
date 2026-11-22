@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
+use App\Features\Events\Api\Data\PlannerEventCard;
+
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
 
@@ -88,6 +90,14 @@ interface EventScheduleReads
      * @return array{total: int, upcoming: int, needs_attention: int}
      */
     public function personDashboardEventStats(string $personId): array;
+
+    /** @param list<string> $eventIds
+     *  @return list<PlannerEventCard>
+     */
+    public function plannerEventCardsForIds(array $eventIds, bool $activeOnly): array;
+
+    /** @param list<string> $excludedEventIds */
+    public function recommendedPlannerEventCard(array $excludedEventIds, string $fromUtc): ?PlannerEventCard;
 
     /**
      * Active events for the supplied ids, in starts_at order.

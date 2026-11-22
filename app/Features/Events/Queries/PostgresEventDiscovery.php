@@ -15,6 +15,7 @@ use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
+use App\Features\Events\Api\Data\PlannerEventCard;
 use App\Features\Events\Api\Data\PersonDashboardEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -2177,25 +2178,51 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         return $items;
     }
 
-    public function plannerEventsForIds(array $eventIds, bool $activeOnly): EloquentCollection
+    /** @return list<PlannerEventCard> */
+    public function plannerEventCardsForIds(array $eventIds, bool $activeOnly): array
     {
+        if ($eventIds === []) {
+            return [];
+        }
+
         return Event::query()
             ->whereKey($eventIds)
             ->when($activeOnly, fn (EventBuilder $query): EventBuilder => $query->active())
             ->with(['media', 'institution', 'institution.media', 'venue'])
             ->orderBy('starts_at')
-            ->get();
+            ->get()
+            ->map(fn (Event $event): PlannerEventCard => $this->plannerCard($event))
+            ->values()
+            ->all();
     }
 
-    public function recommendedPlannerEvent(array $excludedEventIds, string $fromUtc): ?Event
+    /** @param list<string> $excludedEventIds */
+    public function recommendedPlannerEventCard(array $excludedEventIds, string $fromUtc): ?PlannerEventCard
     {
-        return Event::query()
+        $event = Event::query()
             ->active()
             ->with(['media', 'institution', 'institution.media', 'venue'])
             ->when($excludedEventIds !== [], fn (EventBuilder $query): EventBuilder => $query->whereNotIn('id', $excludedEventIds))
             ->where('starts_at', '>=', CarbonImmutable::parse($fromUtc))
             ->orderBy('starts_at')
             ->first();
+
+        return $event instanceof Event ? $this->plannerCard($event) : null;
+    }
+
+    private function plannerCard(Event $event): PlannerEventCard
+    {
+        $start = $event->starts_at;
+
+        return new PlannerEventCard(
+            id: (string) $event->getKey(),
+            title: (string) $event->title,
+            status: (string) $event->status,
+            startsAt: $start instanceof CarbonInterface ? CarbonImmutable::instance($start) : null,
+            url: route('events.show', $event),
+            imageUrl: (string) $event->card_image_url,
+            locationName: $event->venue?->name ?? $event->institution?->name,
+        );
     }
 
     public function eventsWithAdminRelations(array $eventIds): EloquentCollection

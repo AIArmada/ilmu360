@@ -31,22 +31,6 @@ interface EventOrmPort
     public function findEvent(string $eventId): ?Event;
 
     /**
-     * Planner cards for the supplied ids, in starts_at order, with the planner
-     * relation set eager loaded.
-     *
-     * @param  list<string>  $eventIds
-     * @return EloquentCollection<int, Event>
-     */
-    public function plannerEventsForIds(array $eventIds, bool $activeOnly): EloquentCollection;
-
-    /**
-     * The next recommended planner card, excluding the supplied ids.
-     *
-     * @param  list<string>  $excludedEventIds
-     */
-    public function recommendedPlannerEvent(array $excludedEventIds, string $fromUtc): ?Event;
-
-    /**
      * Events with the admin account relation set.
      *
      * @param  list<string>  $eventIds
