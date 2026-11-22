@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\SavedSearches\Models;
 
 use AIArmada\CommerceSupport\Models\SavedSearch as BaseSavedSearch;
-use App\Shared\Auth\UserMorphType;
+use App\Features\SavedSearches\Actions\AssignSavedSearchUserMorphTypeAction;
 use Database\Factories\SavedSearchFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -37,8 +37,8 @@ class SavedSearch extends BaseSavedSearch
     #[\Override]
     protected static function booted(): void
     {
-        static::creating(function (self $savedSearch) {
-            $savedSearch->user_type ??= app(UserMorphType::class)->morphClass();
+        static::creating(static function (self $savedSearch): void {
+            app(AssignSavedSearchUserMorphTypeAction::class)->handle($savedSearch);
         });
     }
 

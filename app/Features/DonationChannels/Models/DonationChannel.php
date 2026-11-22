@@ -2,6 +2,7 @@
 
 namespace App\Features\DonationChannels\Models;
 
+use App\Features\DonationChannels\Actions\InitializeDonationChannelStatusAction;
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Models\User;
@@ -15,7 +16,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use InvalidArgumentException;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
@@ -130,55 +130,9 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     #[\Override]
     protected static function booted(): void
     {
-        static::creating(function (self $channel): void {
-            if (($channel->getAttributes()['status'] ?? null) === null) {
-                $channel->setAttribute('status', DonationChannelStatus::Pending);
-            }
-
-            $status = $channel->resolveStatus($channel->getAttributes()['status'] ?? null);
-
-            $now = CarbonImmutable::now();
-            $channel->applyStatusTimestamp($status, $now);
-            $channel->last_state_change_at ??= $now;
-
-            if ($status === DonationChannelStatus::Verified) {
-                $channel->verified_by ??= auth()->id();
-            }
+        static::creating(static function (self $channel): void {
+            app(InitializeDonationChannelStatusAction::class)->handle($channel);
         });
-
-    }
-
-    private function applyStatusTimestamp(DonationChannelStatus $status, CarbonImmutable $at, bool $overwrite = false): void
-    {
-        $attribute = match ($status) {
-            DonationChannelStatus::Verified => 'verified_at',
-            DonationChannelStatus::Rejected => 'rejected_at',
-            DonationChannelStatus::Inactive => 'inactive_at',
-            default => null,
-        };
-
-        if ($attribute === null) {
-            return;
-        }
-
-        if ($overwrite || $this->getAttribute($attribute) === null) {
-            $this->setAttribute($attribute, $at);
-        }
-    }
-
-    private function resolveStatus(mixed $status): DonationChannelStatus
-    {
-        if ($status instanceof DonationChannelStatus) {
-            return $status;
-        }
-
-        $resolved = is_string($status) ? DonationChannelStatus::tryFrom($status) : null;
-
-        if (! $resolved instanceof DonationChannelStatus) {
-            throw new InvalidArgumentException(sprintf('The donation channel status [%s] is invalid.', is_scalar($status) ? (string) $status : gettype($status)));
-        }
-
-        return $resolved;
     }
 
     /**
