@@ -433,6 +433,7 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             ShareOutcomeType::Signup => 'created_at',
             ShareOutcomeType::EventRegistration => 'registered_at',
             ShareOutcomeType::EventCheckin => 'checked_in_at',
+            ShareOutcomeType::EventSubmission => 'submitted_at',
             ShareOutcomeType::EventSave => 'bookmarked_at',
             ShareOutcomeType::EventGoing => 'responded_at',
             ShareOutcomeType::InstitutionFollow,

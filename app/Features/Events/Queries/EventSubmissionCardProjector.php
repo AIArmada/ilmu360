@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use App\Features\Events\Api\Data\EventSubmissionCard;
+use Carbon\CarbonImmutable;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Api\PublicScheduleVisibility;
@@ -98,8 +99,8 @@ final readonly class EventSubmissionCardProjector
             eventStatus: $event instanceof Event ? (string) $event->status : null,
             eventUrl: $url,
             occurrenceId: $occurrence instanceof EventOccurrence ? (string) $occurrence->getKey() : null,
-            createdAt: $createdAt?->toIso8601String(),
-            createdAtHuman: $createdAt?->diffForHumans(),
+            createdAt: $createdAt !== null ? CarbonImmutable::parse($createdAt)->toIso8601String() : null,
+            createdAtHuman: $createdAt !== null ? CarbonImmutable::parse($createdAt)->diffForHumans() : null,
             notes: is_array($rawSubmissionData) && is_string($rawSubmissionData['notes'] ?? null) ? $rawSubmissionData['notes'] : null,
             presentation: [
                 'title' => $title,
