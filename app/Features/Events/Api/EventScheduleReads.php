@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
+use App\Features\Events\Api\Data\PersonDashboardEventPage;
+
 /**
  * Scalar event-schedule reads owned by the Events feature.
  *
@@ -73,6 +75,14 @@ interface EventScheduleReads
      *
      * @return array{total: int, upcoming: int, needs_attention: int}
      */
+    public function personDashboardEventsPage(
+        string $personId,
+        string $search,
+        string $status,
+        int $perPage,
+        int $page,
+    ): PersonDashboardEventPage;
+
     public function personDashboardEventStats(string $personId): array;
 
     /**

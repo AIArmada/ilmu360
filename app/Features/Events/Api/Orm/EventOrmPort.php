@@ -96,20 +96,6 @@ interface EventOrmPort
     public function emptyEventsQuery(): EventBuilder;
 
     /**
-     * Paginated person workspace rows, filtered and ordered by Events before
-     * hydrating the Livewire table models.
-     *
-     * @return LengthAwarePaginator<int, Event>
-     */
-    public function personDashboardEventsPage(
-        string $personId,
-        string $search,
-        string $status,
-        int $perPage,
-        int $page,
-    ): LengthAwarePaginator;
-
-    /**
      * Public schedule query for a reference family.
      *
      * @param  list<string>  $referenceIds

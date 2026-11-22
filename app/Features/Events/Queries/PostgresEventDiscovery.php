@@ -14,6 +14,8 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
+use App\Features\Events\Api\Data\PersonDashboardEvent;
+use App\Features\Events\Api\Data\PersonDashboardEventPage;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
@@ -44,6 +46,7 @@ use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\ReferenceQueries;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Time\UserDateTimeFormatter;
+use App\Models\User;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -2330,13 +2333,10 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         string $status,
         int $perPage,
         int $page,
-    ): LengthAwarePaginator {
+    ): PersonDashboardEventPage {
         $eventsTable = $this->eventTable();
         $query = $this->personDashboardEventQuery($personId)
-            ->with([
-                'institution:id,name',
-                'primaryLocation.venueSpace:id,name',
-            ])
+            ->with('institution:id,name')
             ->withCount(['registrations as dashboard_registrations_count']);
         $search = trim($search);
 
@@ -2354,7 +2354,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             $query->where("{$eventsTable}.status", $status);
         }
 
-        return $query
+        $paginator = $query
             ->orderByRaw("CASE WHEN {$eventsTable}.status IN ('draft', 'pending', 'needs_changes') THEN 0 ELSE 1 END")
             ->orderByDesc("{$eventsTable}.starts_at")
             ->orderByDesc("{$eventsTable}.updated_at")
@@ -2363,6 +2363,65 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
                 pageName: 'person_events_page',
                 page: $page,
             );
+
+        $actor = auth()->user();
+        $items = [];
+
+        foreach ($paginator->items() as $event) {
+            $startsAt = $event->getAttribute('starts_at');
+            $scheduleText = __('TBC');
+
+            if ($startsAt instanceof CarbonInterface) {
+                $scheduleText = UserDateTimeFormatter::translatedFormat($startsAt, 'd M Y').', '.(
+                    $event->isPrayerRelative()
+                        ? (string) $event->timing_display
+                        : UserDateTimeFormatter::translatedFormat($startsAt, 'h:i A')
+                );
+            }
+
+            $publiclyReachable = $event->isPubliclyReachable();
+
+            $items[] = new PersonDashboardEvent(
+                id: (string) $event->getKey(),
+                title: (string) $event->title,
+                statusLabel: $this->personDashboardStatusLabel($event->status),
+                scheduleText: $scheduleText,
+                institutionName: $event->institution?->name,
+                registrationCount: (int) ($event->dashboard_registrations_count ?? 0),
+                publiclyReachable: $publiclyReachable,
+                publicUrl: $publiclyReachable ? route('events.show', $event) : null,
+                canEdit: $actor instanceof User && $actor->can('update', $event),
+            );
+        }
+
+        return new PersonDashboardEventPage(
+            items: $items,
+            total: $paginator->total(),
+            perPage: $paginator->perPage(),
+            currentPage: $paginator->currentPage(),
+        );
+    }
+
+    private function personDashboardStatusLabel(mixed $status): string
+    {
+        if ($status instanceof \Filament\Support\Contracts\HasLabel) {
+            return $status->getLabel();
+        }
+
+        if ($status instanceof BackedEnum) {
+            $status = $status->value;
+        }
+
+        if (! is_scalar($status)) {
+            return '';
+        }
+
+        $value = (string) $status;
+        $translated = __($value);
+
+        return $translated !== $value
+            ? $translated
+            : str($value)->replace('_', ' ')->headline()->toString();
     }
 
     private function personDashboardEventQuery(string $personId): EventBuilder

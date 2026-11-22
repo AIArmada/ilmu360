@@ -7,8 +7,6 @@ namespace App\Features\Persons\EntryPoints\Livewire\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Api\EventScheduleReads;
-use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Models\Event;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
@@ -17,10 +15,7 @@ use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Platform\Admin\AdminResourceLink;
-use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
-use BackedEnum;
-use Filament\Support\Contracts\HasLabel;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\Paginator;
@@ -324,15 +319,23 @@ final class PersonDashboard extends Component
         return app(EventScheduleReads::class)->personDashboardEventStats((string) $this->selectedPerson()->getKey());
     }
 
-    /** @return LengthAwarePaginator<int, Event> */
+    /** @return LengthAwarePaginator<int, \App\Features\Events\Api\Data\PersonDashboardEvent> */
     public function events(): LengthAwarePaginator
     {
-        return app(EventOrmPort::class)->personDashboardEventsPage(
+        $page = app(EventScheduleReads::class)->personDashboardEventsPage(
             personId: (string) $this->selectedPerson()->getKey(),
             search: $this->eventSearch,
             status: $this->eventStatus,
             perPage: $this->normalizeEventPerPage($this->eventPerPage),
             page: max(1, Paginator::resolveCurrentPage('person_events_page')),
+        );
+
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $page->items,
+            $page->total,
+            $page->perPage,
+            $page->currentPage,
+            ['path' => Paginator::resolveCurrentPath(), 'pageName' => 'person_events_page'],
         );
     }
 
@@ -346,47 +349,6 @@ final class PersonDashboard extends Component
         return app(MemberPermissions::class)->canSubject($this->currentUser(), 'event.create', MemberSubjectType::Person, (string) $this->selectedPerson()->getKey());
     }
 
-    public function canEditEvent(Event $event): bool
-    {
-        return $this->currentUser()->can('update', $event);
-    }
-
-    public function eventStatusLabel(mixed $status): string
-    {
-        if ($status instanceof HasLabel) {
-            return $status->getLabel();
-        }
-
-        if ($status instanceof BackedEnum) {
-            $status = $status->value;
-        }
-
-        if (! is_scalar($status)) {
-            return '';
-        }
-
-        $value = (string) $status;
-        $translated = __($value);
-
-        return $translated !== $value
-            ? $translated
-            : str($value)->replace('_', ' ')->headline()->toString();
-    }
-
-    public function formatEventSchedule(Event $event): string
-    {
-        if (! $event->starts_at) {
-            return __('TBC');
-        }
-
-        $date = UserDateTimeFormatter::translatedFormat($event->starts_at, 'd M Y');
-        $time = $event->isPrayerRelative()
-            ? (string) $event->timing_display
-            : UserDateTimeFormatter::translatedFormat($event->starts_at, 'h:i A');
-
-        return $date.', '.$time;
-    }
-
     public function render(): View
     {
         $person = $this->selectedPerson();
@@ -394,19 +356,19 @@ final class PersonDashboard extends Component
         $eventEditUrls = [];
 
         foreach ($events->items() as $event) {
-            if (! $event instanceof Event || ! $this->canEditEvent($event)) {
+            if (! $event->canEdit) {
                 continue;
             }
 
             $eventEditUrl = AdminResourceLink::to(
                 'event',
                 'edit',
-                (string) $event->getKey(),
+                $event->id,
                 panel: 'ahli',
             );
 
             if ($eventEditUrl !== null) {
-                $eventEditUrls[(string) $event->getKey()] = $eventEditUrl;
+                $eventEditUrls[$event->id] = $eventEditUrl;
             }
         }
 
