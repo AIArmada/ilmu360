@@ -13,6 +13,7 @@ use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Features\Engagement\Api\EngagementActivity;
 use App\Features\Engagement\Api\EngagementActivityReader;
 use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
@@ -53,6 +54,12 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         if ($outcome === ShareOutcomeType::SavedSearchCreated) {
             return $this->savedSearchFact($sourceBusinessKey, $parsed['source_transition_id']);
         }
+        if ($outcome === ShareOutcomeType::EventSubmission) {
+            $submissionId = $this->prefixedSourceId($parsed['source_transition_id'], 'submission:');
+
+            return $submissionId !== null ? $this->submissionFact($sourceBusinessKey, $submissionId) : null;
+        }
+
 
         if ($this->isEngagementOutcome($outcome)) {
             $activity = $this->resolveEngagementActivity($outcome, $parsed['source_transition_id']);
@@ -101,6 +108,57 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             isCancelled: $invalidates['cancelled'],
             isValid: ! $invalidates['invalid'],
             fraudStatus: $this->fraudStatusFor($source, $metadata),
+            correctionStatus: RewardSourceCorrectionStatus::Current,
+        );
+    }
+
+    private function submissionFact(string $sourceBusinessKey, string $submissionId): ?RewardSourceFact
+    {
+        $reader = app(EventSubmissions::class);
+        $source = $reader->findSubmission($submissionId);
+
+        if (! $source instanceof EventSubmissionRewardFact || $source->occurredAt === null) {
+            return null;
+        }
+
+        $actor = $this->userForMorph($source->submitterType, $source->submitterId);
+
+        if (! $actor instanceof User) {
+            return null;
+        }
+
+        try {
+            $occurredAt = CarbonImmutable::parse($source->occurredAt)->setTimezone('UTC');
+        } catch (Throwable) {
+            return null;
+        }
+
+        $invalid = $source->status === 'rejected';
+
+        return new RewardSourceFact(
+            sourceBusinessKey: $sourceBusinessKey,
+            outcome: ShareOutcomeType::EventSubmission->value,
+            category: null,
+            occurredAt: $occurredAt,
+            verification: $source->status === 'approved'
+                ? RewardVerificationLevel::ModeratedApproved
+                : RewardVerificationLevel::Unverified,
+            isFirstTime: ! $reader->hasEarlierSubmissionActivity(
+                (string) $actor->getKey(),
+                $actor->getMorphClass(),
+                $occurredAt->setTimezone(config('app.timezone', 'UTC')),
+                $source->id,
+            ),
+            actorId: (string) $actor->getKey(),
+            sharerId: null,
+            actorRole: RewardBeneficiaryRole::Participant,
+            isClaimedIdentity: true,
+            isAttributed: false,
+            isAmbiguousDevice: $source->isAmbiguousDevice,
+            isBot: $source->isBot,
+            isCancelled: $invalid,
+            isValid: ! $invalid,
+            fraudStatus: $this->fraudStatus($source->fraudStatus ?? $this->scalarString($source->metadata['fraud_status'] ?? null)),
             correctionStatus: RewardSourceCorrectionStatus::Current,
         );
     }
@@ -285,7 +343,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             'user:' => static fn (string $id): mixed => User::query()->find($id),
             'registration:' => static fn (string $id): mixed => app(RegistrationLookup::class)->findRegistration($id),
             'checkin:' => static fn (string $id): mixed => app(RegistrationLookup::class)->findCheckIn($id),
-            'submission:' => static fn (string $id): mixed => app(EventSubmissions::class)->findSubmission($id),
         ];
 
         foreach ($sources as $prefix => $resolve) {
@@ -336,7 +393,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         }
 
         $actorColumns = match ($outcome) {
-            ShareOutcomeType::EventSubmission => ['submitter_type', 'submitter_id'],
             ShareOutcomeType::EventSave => ['bookmarker_type', 'bookmarker_id'],
             ShareOutcomeType::EventGoing => ['responder_type', 'responder_id'],
             ShareOutcomeType::InstitutionFollow,
@@ -378,7 +434,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             ShareOutcomeType::Signup => 'created_at',
             ShareOutcomeType::EventRegistration => 'registered_at',
             ShareOutcomeType::EventCheckin => 'checked_in_at',
-            ShareOutcomeType::EventSubmission => 'submitted_at',
             ShareOutcomeType::EventSave => 'bookmarked_at',
             ShareOutcomeType::EventGoing => 'responded_at',
             ShareOutcomeType::InstitutionFollow,
@@ -414,7 +469,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             ShareOutcomeType::EventCheckin => $cancelled
                 || in_array($status, ['cancelled', 'rejected', 'voided'], true)
                 || $this->stringAttribute($source, 'attendance_type') === 'did_not_attend',
-            ShareOutcomeType::EventSubmission => $status === 'rejected',
             ShareOutcomeType::EventSave => ! in_array($status, [null, 'active'], true),
             ShareOutcomeType::EventGoing => in_array($status, ['cancelled', 'expired'], true),
             ShareOutcomeType::InstitutionFollow,
@@ -441,12 +495,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         if ($outcome === ShareOutcomeType::EventRegistration) {
             return in_array($this->stringAttribute($source, 'status'), ['confirmed', 'checked_in', 'completed'], true)
                 ? RewardVerificationLevel::Accepted
-                : RewardVerificationLevel::Unverified;
-        }
-
-        if ($outcome === ShareOutcomeType::EventSubmission) {
-            return $this->stringAttribute($source, 'status') === 'approved'
-                ? RewardVerificationLevel::ModeratedApproved
                 : RewardVerificationLevel::Unverified;
         }
 
@@ -505,12 +553,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
                 $sourceId,
             ),
             ShareOutcomeType::EventCheckin => ! app(RegistrationLookup::class)->hasEarlierCheckInActivity(
-                (string) $actor->getKey(),
-                $actor->getMorphClass(),
-                $before,
-                $sourceId,
-            ),
-            ShareOutcomeType::EventSubmission => ! app(EventSubmissions::class)->hasEarlierSubmissionActivity(
                 (string) $actor->getKey(),
                 $actor->getMorphClass(),
                 $before,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
+use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Models\EventSubmission;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -152,11 +153,8 @@ interface EventSubmissions
      */
     public function moderationStatus(string $submissionId): ?string;
 
-    /**
-     * Documented transport: a hydrated submission model for framework read
-     * adapters that need its recorded attributes.
-     */
-    public function findSubmission(string $submissionId): ?EventSubmission;
+    /** Immutable source evidence for reward qualification. */
+    public function findSubmission(string $submissionId): ?EventSubmissionRewardFact;
 
     /**
      * Whether an earlier submission exists for the actor.

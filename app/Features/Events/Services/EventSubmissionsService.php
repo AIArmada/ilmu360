@@ -16,6 +16,7 @@ use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionCategoriesAction;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
+use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\Orm\EventSubmissions;
 use App\Features\Events\Models\EventSubmission;
@@ -330,9 +331,48 @@ final readonly class EventSubmissionsService implements EventSubmissions
         return (string) $status;
     }
 
-    public function findSubmission(string $submissionId): ?EventSubmission
+    public function findSubmission(string $submissionId): ?EventSubmissionRewardFact
     {
-        return EventSubmission::query()->find($submissionId);
+        $submission = EventSubmission::query()->find($submissionId);
+
+        if (! $submission instanceof EventSubmission) {
+            return null;
+        }
+
+        $metadata = $submission->getAttribute('metadata');
+        $metadata = is_array($metadata) ? $metadata : [];
+        $occurredAt = $submission->getAttribute('submitted_at') ?? $submission->getAttribute('created_at');
+        $ambiguous = $submission->getAttribute('is_ambiguous_device') ?? ($metadata['is_ambiguous_device'] ?? false);
+        $bot = $submission->getAttribute('is_bot') ?? ($metadata['is_bot'] ?? false);
+
+        return new EventSubmissionRewardFact(
+            id: (string) $submission->getKey(),
+            submitterType: $this->rewardScalar($submission->getAttribute('submitter_type')),
+            submitterId: $this->rewardScalar($submission->getAttribute('submitter_id')),
+            status: $this->rewardScalar($submission->getAttribute('status')),
+            occurredAt: $occurredAt instanceof \DateTimeInterface
+                ? \Carbon\CarbonImmutable::parse($occurredAt)->toIso8601String()
+                : (is_string($occurredAt) ? $occurredAt : null),
+            metadata: $metadata,
+            fraudStatus: $this->rewardScalar($submission->getAttribute('fraud_status')),
+            isAmbiguousDevice: in_array($ambiguous, [true, 1, '1'], true),
+            isBot: in_array($bot, [true, 1, '1'], true),
+        );
+    }
+
+    private function rewardScalar(mixed $value): ?string
+    {
+        if ($value instanceof \BackedEnum) {
+            return (string) $value->value;
+        }
+
+        if (is_string($value) || is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        return is_object($value) && method_exists($value, 'getValue')
+            ? (string) $value->getValue()
+            : null;
     }
 
     public function hasEarlierSubmissionActivity(
