@@ -31,13 +31,6 @@ interface EventOrmPort
     public function findEvent(string $eventId): ?Event;
 
     /**
-     * Events owned by an organization, newest first.
-     *
-     * @return EloquentCollection<int, Event>
-     */
-    public function eventsForOwner(string $ownerType, string $ownerId, int $limit): EloquentCollection;
-
-    /**
      * Planner cards for the supplied ids, in starts_at order, with the planner
      * relation set eager loaded.
      *

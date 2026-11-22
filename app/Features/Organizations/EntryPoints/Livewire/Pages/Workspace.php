@@ -7,8 +7,8 @@ namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
-use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Models\Event;
+use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MembershipInvitationDetail;
 use App\Features\Membership\Api\MembershipInvitations;
@@ -266,19 +266,16 @@ final class Workspace extends Component
         );
     }
 
-    /** @return Collection<int, Event> */
-    public function events(): Collection
+    /** @return list<OrganizationWorkspaceEvent> */
+    public function events(): array
     {
         $organization = $this->selectedOrganization();
 
-        /** @var Collection<int, Event> $events */
-        $events = OwnerContext::withOwner($organization, fn (): object => app(EventOrmPort::class)->eventsForOwner(
+        return OwnerContext::withOwner($organization, fn (): array => app(EventScheduleReads::class)->organizationWorkspaceEvents(
             $organization->getMorphClass(),
             (string) $organization->getKey(),
             20,
         ));
-
-        return $events;
     }
 
     /** @return array<string, string> */
@@ -315,37 +312,38 @@ final class Workspace extends Component
     {
         $organization = $this->selectedOrganization();
         $events = $this->events();
-        $publicEventIds = OwnerContext::withOwner($organization, fn (): array => $events
-            ->filter(fn (Event $event): bool => $event->isPubliclyReachable())
-            ->mapWithKeys(fn (Event $event): array => [(string) $event->getKey() => true])
-            ->all());
+        $publicEventIds = [];
         $eventEditUrls = [];
         $eventScheduleUrls = [];
         $eventOfflineAdmissionsUrls = [];
 
         foreach ($events as $event) {
-            if ($this->currentUser()->can('update', $event)) {
+            if ($event->publiclyReachable) {
+                $publicEventIds[$event->id] = true;
+            }
+
+            if ($event->canEdit) {
                 $eventEditUrl = AdminResourceLink::to(
                     'event',
                     'edit',
-                    (string) $event->getKey(),
+                    $event->id,
                     panel: 'ahli',
                 );
 
                 if ($eventEditUrl !== null) {
-                    $eventEditUrls[(string) $event->getKey()] = $eventEditUrl;
+                    $eventEditUrls[$event->id] = $eventEditUrl;
                 }
 
-                $eventScheduleUrls[(string) $event->getKey()] = route(
+                $eventScheduleUrls[$event->id] = route(
                     'dashboard.events.schedule',
-                    ['event' => $event->getKey()],
+                    ['event' => $event->id],
                 );
             }
 
-            if ($this->currentUser()->can('manageAdmissions', $event)) {
-                $eventOfflineAdmissionsUrls[(string) $event->getKey()] = route(
+            if ($event->canManageAdmissions) {
+                $eventOfflineAdmissionsUrls[$event->id] = route(
                     'dashboard.events.offline-admissions',
-                    ['event' => $event->getKey()],
+                    ['event' => $event->id],
                 );
             }
         }

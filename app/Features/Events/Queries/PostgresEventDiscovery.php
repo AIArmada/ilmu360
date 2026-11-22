@@ -14,6 +14,7 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
+use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\Data\PersonDashboardEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -2146,14 +2147,34 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         return $event instanceof Event && $event->isPubliclyReachable();
     }
 
-    public function eventsForOwner(string $ownerType, string $ownerId, int $limit): EloquentCollection
+    public function organizationWorkspaceEvents(string $ownerType, string $ownerId, int $limit): array
     {
-        return Event::query()
+        $events = Event::query()
             ->where('owner_type', $ownerType)
             ->where('owner_id', $ownerId)
             ->latest('created_at')
             ->limit($limit)
             ->get();
+        $actor = auth()->user();
+        $items = [];
+
+        foreach ($events as $event) {
+            $publiclyReachable = $event->isPubliclyReachable();
+            $visibility = $event->visibility;
+
+            $items[] = new OrganizationWorkspaceEvent(
+                id: (string) $event->getKey(),
+                title: (string) $event->title,
+                status: (string) $event->status,
+                visibility: $visibility instanceof BackedEnum ? (string) $visibility->value : (string) $visibility,
+                publiclyReachable: $publiclyReachable,
+                publicUrl: $publiclyReachable ? route('events.show', $event) : null,
+                canEdit: $actor instanceof User && $actor->can('update', $event),
+                canManageAdmissions: $actor instanceof User && $actor->can('manageAdmissions', $event),
+            );
+        }
+
+        return $items;
     }
 
     public function plannerEventsForIds(array $eventIds, bool $activeOnly): EloquentCollection

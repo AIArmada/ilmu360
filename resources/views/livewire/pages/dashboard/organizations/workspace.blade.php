@@ -70,14 +70,14 @@
                     <h2 class="mt-2 font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Your organization events') }}</h2>
                     <div class="mt-5 space-y-3">
                         @forelse($events as $event)
-                            @php($eventEditUrl = $eventEditUrls[(string) $event->getKey()] ?? null)
-                            @php($eventScheduleUrl = $eventScheduleUrls[(string) $event->getKey()] ?? null)
-                            @php($eventOfflineAdmissionsUrl = $eventOfflineAdmissionsUrls[(string) $event->getKey()] ?? null)
-                            <div wire:key="organization-event-{{ $event->id }}" class="rounded-2xl border border-slate-100 p-4 {{ isset($publicEventIds[(string) $event->getKey()]) ? 'hover:border-emerald-200 hover:bg-emerald-50/40' : 'bg-slate-50' }}">
+                            @php($eventEditUrl = $eventEditUrls[(string) $event->id] ?? null)
+                            @php($eventScheduleUrl = $eventScheduleUrls[(string) $event->id] ?? null)
+                            @php($eventOfflineAdmissionsUrl = $eventOfflineAdmissionsUrls[(string) $event->id] ?? null)
+                            <div wire:key="organization-event-{{ $event->id }}" class="rounded-2xl border border-slate-100 p-4 {{ isset($publicEventIds[(string) $event->id]) ? 'hover:border-emerald-200 hover:bg-emerald-50/40' : 'bg-slate-50' }}">
                                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div class="min-w-0">
-                                        @if(isset($publicEventIds[(string) $event->getKey()]))
-                                            <a href="{{ route('events.show', $event) }}" class="font-semibold text-slate-900 hover:text-emerald-700">{{ $event->title }}</a>
+                                        @if(isset($publicEventIds[(string) $event->id]))
+                                            <a href="{{ $event->publicUrl }}" class="font-semibold text-slate-900 hover:text-emerald-700">{{ $event->title }}</a>
                                         @else
                                             <p class="font-semibold text-slate-900">{{ $event->title }}</p>
                                         @endif

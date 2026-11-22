@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
+use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
 
 /**
@@ -75,6 +76,9 @@ interface EventScheduleReads
      *
      * @return array{total: int, upcoming: int, needs_attention: int}
      */
+    /** @return list<OrganizationWorkspaceEvent> */
+    public function organizationWorkspaceEvents(string $ownerType, string $ownerId, int $limit): array;
+
     public function personDashboardEventsPage(
         string $personId,
         string $search,
