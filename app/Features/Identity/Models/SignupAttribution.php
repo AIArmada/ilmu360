@@ -11,7 +11,6 @@ use Database\Factories\SignupAttributionFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use LogicException;
 
 /**
  * Immutable acquisition source for an account.

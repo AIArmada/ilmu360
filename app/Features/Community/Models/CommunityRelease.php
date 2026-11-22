@@ -8,7 +8,6 @@ use App\Features\Community\Actions\AssertCommunityReleaseImmutabilityAction;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use LogicException;
 
 /**
  * Immutable delayed coarse community release for one fixed month.
