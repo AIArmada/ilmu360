@@ -86,7 +86,7 @@ final class VenueAddressResolver
         $owner = OwnerContext::resolve();
 
         return $owner instanceof Model
-            ? $owner->getMorphClass().':'.(string) $owner->getKey()
+            ? $owner->getMorphClass().':'.$owner->getKey()
             : 'global';
     }
 }
