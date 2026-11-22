@@ -12,8 +12,8 @@ use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Features\Engagement\Api\EngagementActivity;
 use App\Features\Engagement\Api\EngagementActivityReader;
-use App\Features\Events\Api\Orm\EventSubmissions;
 use App\Features\Events\Api\Data\EventSubmissionRewardFact;
+use App\Features\Events\Api\Orm\EventSubmissions;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
@@ -59,7 +59,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
 
             return $submissionId !== null ? $this->submissionFact($sourceBusinessKey, $submissionId) : null;
         }
-
 
         if ($this->isEngagementOutcome($outcome)) {
             $activity = $this->resolveEngagementActivity($outcome, $parsed['source_transition_id']);
