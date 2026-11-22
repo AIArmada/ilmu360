@@ -346,7 +346,7 @@ class UserDashboard extends Component
         $entries = collect();
 
         foreach ($submissions as $submission) {
-            if (! $submission instanceof PlannerEventCardSubmissionCard || $submission->eventId === '') {
+            if (! $submission instanceof EventSubmissionCard || $submission->eventId === '') {
                 continue;
             }
 
@@ -748,7 +748,7 @@ class UserDashboard extends Component
         string $secondaryLabel,
         bool $isCheckin
     ): array {
-        $status = $event instanceof PlannerEventCard ? (string) $event->status : 'approved';
+        $status = $event instanceof PlannerEventCard ? $event->status : 'approved';
         $primaryRole = $isCheckin ? 'checkin' : 'saved';
         $timestamp = $startsAt instanceof CarbonInterface
             ? $startsAt->copy()->timezone(UserDateTimeFormatter::resolveTimezone())->getTimestamp()

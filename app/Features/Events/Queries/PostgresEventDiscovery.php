@@ -2222,7 +2222,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             startsAt: $start instanceof CarbonInterface ? CarbonImmutable::instance($start) : null,
             url: route('events.show', $event),
             imageUrl: (string) $event->card_image_url,
-            locationName: $event->venue?->name ?? $event->institution?->name,
+            locationName: $event->venue->name ?? $event->institution?->name,
         );
     }
 
