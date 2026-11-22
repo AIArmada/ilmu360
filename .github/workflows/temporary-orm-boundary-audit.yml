@@ -16,10 +16,10 @@ jobs:
           echo '=== API ORM FILES ==='
           find app/Features -path '*/Api/Orm/*.php' -type f | sort
           echo '=== IMPORTS AND REFERENCES ==='
-          rg -n -F 'Api\Orm\' app tests resources || true
+          grep -R -nF --include='*.php' 'Api\Orm\' app tests resources || true
           echo '=== PLACE LOOKUP METHOD USES ==='
-          rg -n --glob '*.php' '(resolveVenueIdentifier|resolveSpaceIdentifier|venueTable|venueMorphType|venueNameOptions|venueOptionsForStatuses|venueNamesByIds|hydrateCardVenues|hydrateDetailVenues)\(' app || true
+          grep -R -nE --include='*.php' '(resolveVenueIdentifier|resolveSpaceIdentifier|venueTable|venueMorphType|venueNameOptions|venueOptionsForStatuses|venueNamesByIds|hydrateCardVenues|hydrateDetailVenues)\(' app || true
           echo '=== EVENT ORM METHOD USES ==='
-          rg -n --glob '*.php' '(findEvent|institutionTableQuery|emptyEventsQuery|referenceEventsQuery|institutionScheduleQuery|hydrateScheduleEvents|leafFor|leavesForEventIds)\(' app || true
+          grep -R -nE --include='*.php' '(findEvent|institutionTableQuery|emptyEventsQuery|referenceEventsQuery|institutionScheduleQuery|hydrateScheduleEvents|leafFor|leavesForEventIds)\(' app || true
           echo '=== PUBLIC API LEAK TYPE DECLARATIONS ==='
-          rg -n --glob '*.php' 'Illuminate\\Database\\Eloquent|Models\\|EventBuilder|LengthAwarePaginator|Illuminate\\Support\\Collection' app/Features/*/Api app/Shared/Contracts || true
+          grep -R -nE --include='*.php' 'Illuminate\\Database\\Eloquent|Models\\|EventBuilder|LengthAwarePaginator|Illuminate\\Support\\Collection' app/Features/*/Api app/Shared/Contracts || true
