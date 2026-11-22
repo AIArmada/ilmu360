@@ -31,7 +31,7 @@ use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Api\Data\EventCheckInStateData;
 use App\Features\Registration\Api\Data\EventRegistrationData;
 use App\Features\Registration\Api\Data\EventRegistrationStatusData;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;

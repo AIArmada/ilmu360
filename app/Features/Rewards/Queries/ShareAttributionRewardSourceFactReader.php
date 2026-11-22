@@ -19,9 +19,9 @@ use AIArmada\Rewards\Enums\RewardSourceFraudStatus;
 use AIArmada\Rewards\Enums\RewardVerificationLevel;
 use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
+use App\Features\Registration\Api\Data\CheckInSnapshot;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\ShareTracking\Api\ActiveGuestClaimants;
 use App\Features\ShareTracking\Api\OutcomeCorrections;
@@ -208,7 +208,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         return [$outcome, $parts[2]];
     }
 
-    private function resolveSourceRecord(string $transitionId): ?Model
+    private function resolveSourceRecord(string $transitionId): Model|RegistrationSnapshot|CheckInSnapshot|null
     {
         /** @var array<string, callable(string): mixed> $map */
         $map = [
@@ -233,16 +233,16 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
 
             $source = $resolve($id);
 
-            return $source instanceof Model ? $source : null;
+            return $source instanceof Model || $source instanceof RegistrationSnapshot || $source instanceof CheckInSnapshot ? $source : null;
         }
 
         return null;
     }
 
-    private function verificationFor(string $outcome, ?Model $source): RewardVerificationLevel
+    private function verificationFor(string $outcome, Model|RegistrationSnapshot|CheckInSnapshot|null $source): RewardVerificationLevel
     {
         if ($outcome === 'event_checkin') {
-            if ($source instanceof EventCheckin && $this->nullableString($source->getAttribute('verified_by_user_id')) !== null) {
+            if ($source instanceof CheckInSnapshot && $source->verifiedByUserId !== null) {
                 return RewardVerificationLevel::StaffVerified;
             }
 
@@ -250,7 +250,7 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
         }
 
         if ($outcome === 'event_registration') {
-            if ($source instanceof Registration && in_array($source->statusValue(), ['confirmed', 'checked_in', 'completed'], true)) {
+            if ($source instanceof RegistrationSnapshot && in_array($source->status, ['confirmed', 'checked_in', 'completed'], true)) {
                 return RewardVerificationLevel::Accepted;
             }
 
@@ -267,9 +267,9 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
     /**
      * @return array{cancelled: bool, invalid: bool}
      */
-    private function sourceInvalidates(string $outcome, ?Model $source): array
+    private function sourceInvalidates(string $outcome, Model|RegistrationSnapshot|CheckInSnapshot|null $source): array
     {
-        if (! $source instanceof Model) {
+        if ($source === null) {
             // Connection facts (save/going/follow) live and die with their
             // source row: an unsave/unfollow deletes it, which must stop new
             // qualification even before a correction row lands.
@@ -288,19 +288,19 @@ final class ShareAttributionRewardSourceFactReader implements RewardSourceFactRe
             return ['cancelled' => false, 'invalid' => false];
         }
 
-        if ($source instanceof Registration && in_array($source->statusValue(), ['cancelled', 'rejected', 'expired', 'refunded'], true)) {
+        if ($source instanceof RegistrationSnapshot && in_array($source->status, ['cancelled', 'rejected', 'expired', 'refunded'], true)) {
             return ['cancelled' => true, 'invalid' => true];
         }
 
         return ['cancelled' => false, 'invalid' => false];
     }
 
-    private function actorRoleFor(string $outcome, ?Model $source): RewardBeneficiaryRole
+    private function actorRoleFor(string $outcome, Model|RegistrationSnapshot|CheckInSnapshot|null $source): RewardBeneficiaryRole
     {
         if ($outcome === 'event_registration'
-            && $source instanceof Registration
-            && (int) $source->getAttribute('total_amount') > 0
-            && (string) $source->getAttribute('payment_status') === 'paid'
+            && $source instanceof RegistrationSnapshot
+            && $source->totalAmount > 0
+            && $source->paymentStatus === 'paid'
         ) {
             return RewardBeneficiaryRole::Purchaser;
         }

@@ -20,7 +20,7 @@ use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
 use App\Features\Registration\Api\CheckInNotifier;
 use App\Features\Registration\Api\EventRegistrationDeletion;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Api\PaidRegistrationFacts;
 use App\Features\Registration\Api\ParticipationSourceIds;
 use App\Features\Registration\Api\RegistrationConfirmationFactsReader;

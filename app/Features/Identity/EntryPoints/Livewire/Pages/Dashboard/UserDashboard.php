@@ -20,9 +20,9 @@ use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
+use App\Features\Registration\Api\Data\CheckInSnapshot;
 use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\Rewards\Api\PublishedProgramVersions;
 use App\Features\SavedSearches\Api\SavedSearchReader;
@@ -326,24 +326,16 @@ class UserDashboard extends Component
         return $this->paginateCollection($this->majlisCards(), self::MAJLIS_CARD_PER_PAGE, 'majlis_page');
     }
 
-    /**
-     * @return Collection<int, Registration>
-     */
+    /** @return Collection<int, RegistrationSnapshot> */
     #[Computed]
     public function registeredEvents(): Collection
     {
-        $registrationIds = app(AccountEventFacts::class)->registrationIds((string) $this->user()->getKey());
+        $ids = app(AccountEventFacts::class)->registrationIds((string) $this->user()->getKey());
+        $registrations = $ids === [] ? collect() : collect(app(RegistrationLookup::class)->plannerRegistrationsForIds($ids));
 
-        /** @var Collection<int, Registration> $registrations */
-        $registrations = $registrationIds === []
-            ? new Collection
-            : app(RegistrationLookup::class)->plannerRegistrationsForIds($registrationIds);
-
-        $registrations = $registrations
-            ->filter(fn (Registration $registration): bool => $registration->event instanceof Event)
-            ->values();
-
-        return $this->sortRegistrationsForPlanner($registrations);
+        return $this->sortRegistrationsForPlanner($registrations->filter(
+            static fn (RegistrationSnapshot $registration): bool => $registration->eventTitle !== null,
+        )->values());
     }
 
     /** @return Collection<int, array<string, mixed>> */
@@ -372,16 +364,11 @@ class UserDashboard extends Component
         return $entries->sortByDesc(static fn (array $entry): int => is_string($entry['created_at']) ? (strtotime($entry['created_at']) ?: 0) : 0)->values();
     }
 
-    /**
-     * @return Collection<int, EventCheckin>
-     */
+    /** @return Collection<int, CheckInSnapshot> */
     #[Computed]
     public function recentCheckins(): Collection
     {
-        /** @var Collection<int, EventCheckin> $checkins */
-        $checkins = app(RegistrationLookup::class)->plannerCheckInsForAccount((string) $this->user()->getKey());
-
-        return $checkins;
+        return collect(app(RegistrationLookup::class)->plannerCheckInsForAccount((string) $this->user()->getKey()));
     }
 
     /**
@@ -559,7 +546,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return LengthAwarePaginator<int, Registration>
+     * @return LengthAwarePaginator<int, RegistrationSnapshot>
      */
     #[Computed]
     public function paginatedRegisteredEvents(): LengthAwarePaginator
@@ -589,7 +576,7 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return LengthAwarePaginator<int, EventCheckin>
+     * @return LengthAwarePaginator<int, CheckInSnapshot>
      */
     #[Computed]
     public function paginatedRecentCheckins(): LengthAwarePaginator
@@ -631,21 +618,17 @@ class UserDashboard extends Component
     }
 
     /**
-     * @param  Collection<int, Registration>  $registrations
-     * @return Collection<int, Registration>
+     * @param Collection<int, RegistrationSnapshot> $registrations
+     * @return Collection<int, RegistrationSnapshot>
      */
     protected function sortRegistrationsForPlanner(Collection $registrations): Collection
     {
-        return $registrations
-            ->sort(function (Registration $left, Registration $right): int {
-                $leftEvent = $left->event;
-                $rightEvent = $right->event;
-                $leftDate = $leftEvent instanceof Event ? $leftEvent->starts_at : null;
-                $rightDate = $rightEvent instanceof Event ? $rightEvent->starts_at : null;
+        return $registrations->sort(function (RegistrationSnapshot $left, RegistrationSnapshot $right): int {
+            $leftDate = $left->eventStartsAt !== null ? \Carbon\CarbonImmutable::parse($left->eventStartsAt) : null;
+            $rightDate = $right->eventStartsAt !== null ? \Carbon\CarbonImmutable::parse($right->eventStartsAt) : null;
 
-                return $this->comparePlannerDates($leftDate, $rightDate);
-            })
-            ->values();
+            return $this->comparePlannerDates($leftDate, $rightDate);
+        })->values();
     }
 
     protected function comparePlannerDates(?CarbonInterface $left, ?CarbonInterface $right): int
@@ -722,42 +705,6 @@ class UserDashboard extends Component
         }
 
         $this->appendRoleToCalendarEntry($entries[$key], $role);
-    }
-
-    /**
-     * @param  array<string, array<string, mixed>>  $entries
-     */
-    protected function mergeCheckinIntoCalendarEntries(array &$entries, EventCheckin $checkin): void
-    {
-        $event = $checkin->event;
-        $eventModel = $event instanceof Event ? $event : null;
-        $baseDate = $event instanceof Event
-            ? $event->starts_at
-            : $checkin->checked_in_at;
-        $dateKey = $this->dateKey($baseDate);
-
-        if ($dateKey === null) {
-            return;
-        }
-
-        $key = $event instanceof Event
-            ? 'event:'.$event->id.':'.$dateKey
-            : 'checkin:'.$checkin->id.':'.$dateKey;
-
-        if (! array_key_exists($key, $entries)) {
-            $entries[$key] = $this->makeCalendarEntry(
-                key: $key,
-                event: $eventModel,
-                dateKey: $dateKey,
-                startsAt: $baseDate,
-                timeLabel: $this->checkinTimeLabel($checkin),
-                secondaryLabel: $eventModel instanceof Event ? $this->eventLocationLabel($eventModel) : __('Attendance history'),
-                isCheckin: true,
-            );
-        }
-
-        $entries[$key]['is_checkin'] = true;
-        $this->appendRoleToCalendarEntry($entries[$key], 'checkin');
     }
 
     /**
@@ -877,22 +824,6 @@ class UserDashboard extends Component
 
         return UserDateTimeFormatter::translatedFormat($event->starts_at, 'd M')
             .', '.UserDateTimeFormatter::format($event->starts_at, 'h:i A');
-    }
-
-    protected function checkinTimeLabel(EventCheckin $checkin): string
-    {
-        if ($checkin->checked_in_at instanceof CarbonInterface) {
-            return __('Checked in :time', ['time' => UserDateTimeFormatter::format($checkin->checked_in_at, 'h:i A')]);
-        }
-
-        $event = $checkin->event;
-
-        if ($event instanceof Event && $event->starts_at instanceof CarbonInterface) {
-            return UserDateTimeFormatter::translatedFormat($event->starts_at, 'd M')
-                .', '.UserDateTimeFormatter::format($event->starts_at, 'h:i A');
-        }
-
-        return __('Attendance recorded');
     }
 
     protected function eventLocationLabel(Event $event): string

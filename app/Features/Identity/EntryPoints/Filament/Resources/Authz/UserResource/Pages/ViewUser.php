@@ -25,9 +25,9 @@ use App\Features\Persons\Api\PersonDirectoryRecord;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceSummary;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
+use App\Features\Registration\Api\Data\CheckInSnapshot;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Models\User;
@@ -271,36 +271,22 @@ class ViewUser extends ViewRecord
         });
     }
 
-    /**
-     * @return Collection<int, EventCheckin>
-     */
+    /** @return \Illuminate\Support\Collection<int, CheckInSnapshot> */
     #[Computed]
-    public function eventCheckins(): Collection
+    public function eventCheckins(): \Illuminate\Support\Collection
     {
-        $user = $this->userRecord();
-
-        return OwnerContext::withOwner(null, function () use ($user): Collection {
-            /** @var Collection<int, EventCheckin> $checkins */
-            $checkins = app(RegistrationLookup::class)->checkInsForAccount((string) $user->getKey());
-
-            return $checkins;
-        });
+        return OwnerContext::withOwner(null, fn (): \Illuminate\Support\Collection => collect(
+            app(RegistrationLookup::class)->checkInsForAccount((string) $this->userRecord()->getKey()),
+        ));
     }
 
-    /**
-     * @return Collection<int, Registration>
-     */
+    /** @return \Illuminate\Support\Collection<int, RegistrationSnapshot> */
     #[Computed]
-    public function registrations(): Collection
+    public function registrations(): \Illuminate\Support\Collection
     {
-        $user = $this->userRecord();
-
-        return OwnerContext::withOwner(null, function () use ($user): Collection {
-            /** @var Collection<int, Registration> $registrations */
-            $registrations = app(RegistrationLookup::class)->registrationsForAccount((string) $user->getKey());
-
-            return $registrations;
-        });
+        return OwnerContext::withOwner(null, fn (): \Illuminate\Support\Collection => collect(
+            app(RegistrationLookup::class)->registrationsForAccount((string) $this->userRecord()->getKey()),
+        ));
     }
 
     /** @return \Illuminate\Support\Collection<int, EventSubmissionCard> */

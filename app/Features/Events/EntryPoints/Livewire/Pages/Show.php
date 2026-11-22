@@ -34,7 +34,7 @@ use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Models\Venue;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\AttendanceState;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use App\Models\User;
 use App\Platform\Language\Models\Language;

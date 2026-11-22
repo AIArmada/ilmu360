@@ -224,18 +224,18 @@
                     @forelse ($this->eventCheckins as $checkin)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="font-medium text-gray-950 dark:text-white">
-                                <a href="{{ $this->eventUrl($checkin->event) }}" class="text-primary-600 hover:underline">
-                                    {{ $checkin->event?->title ?: '-' }}
+                                <a href="{{ \App\Platform\Admin\AdminResourceLink::to('event', 'view', $checkin->eventId) }}" class="text-primary-600 hover:underline">
+                                    {{ $checkin->eventTitle ?: '-' }}
                                 </a>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Checked In At: {{ \App\Platform\Time\UserDateTimeFormatter::format($checkin->checked_in_at, 'd M Y H:i') ?: '-' }}
+                                Checked In At: {{ ($checkin->checkedInAt !== null ? \App\Platform\Time\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($checkin->checkedInAt), 'd M Y H:i') : '') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Source: {{ $this->humanLabel($checkin->check_in_source) }}
+                                Source: {{ $this->humanLabel($checkin->checkInSource) }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Verified By: {{ $checkin->verifiedBy?->name ?: '-' }}
+                                Verified By: {{ $checkin->verifiedByName ?: '-' }}
                             </div>
                         </div>
                     @empty
@@ -251,16 +251,16 @@
                     @forelse ($this->registrations as $registration)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
-                                <a href="{{ $this->eventUrl($registration->event) }}" class="font-medium text-primary-600 hover:underline">
-                                    {{ $registration->event?->title ?: '-' }}
+                                <a href="{{ \App\Platform\Admin\AdminResourceLink::to('event', 'view', $registration->eventId) }}" class="font-medium text-primary-600 hover:underline">
+                                    {{ $registration->eventTitle ?: '-' }}
                                 </a>
                                 <x-filament::badge :color="$this->registrationStatusBadgeColor($registration->status)">{{ $this->humanLabel($registration->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Event: {{ $registration->event?->title ?: '-' }}
+                                Event: {{ $registration->eventTitle ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Registered At: {{ \App\Platform\Time\UserDateTimeFormatter::format($registration->created_at, 'd M Y H:i') ?: '-' }}
+                                Registered At: {{ ($registration->createdAt !== null ? \App\Platform\Time\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($registration->createdAt), 'd M Y H:i') : '') ?: '-' }}
                             </div>
                         </div>
                     @empty

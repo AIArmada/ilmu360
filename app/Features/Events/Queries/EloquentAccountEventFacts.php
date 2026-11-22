@@ -8,7 +8,7 @@ use App\Features\Events\Api\AccountEventFacts;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Moderation\Api\ModerationActionHistory;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
+use App\Features\Registration\Api\RegistrationLookup;
 use App\Models\User;
 
 /**

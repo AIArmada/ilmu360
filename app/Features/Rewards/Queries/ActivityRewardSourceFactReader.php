@@ -14,9 +14,9 @@ use App\Features\Engagement\Api\EngagementActivity;
 use App\Features\Engagement\Api\EngagementActivityReader;
 use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Registration\Api\Orm\RegistrationLookup;
-use App\Features\Registration\Models\EventCheckin;
-use App\Features\Registration\Models\Registration;
+use App\Features\Registration\Api\RegistrationLookup;
+use App\Features\Registration\Api\Data\RegistrationSnapshot;
+use App\Features\Registration\Api\Data\CheckInSnapshot;
 use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\ShareTracking\Api\ActivityRewardBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeType;
@@ -59,6 +59,10 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
 
             return $submissionId !== null ? $this->submissionFact($sourceBusinessKey, $submissionId) : null;
         }
+        if (in_array($outcome, [ShareOutcomeType::EventRegistration, ShareOutcomeType::EventCheckin], true)) {
+            return $this->admissionFact($sourceBusinessKey, $outcome, $parsed['source_transition_id']);
+        }
+
 
         if ($this->isEngagementOutcome($outcome)) {
             $activity = $this->resolveEngagementActivity($outcome, $parsed['source_transition_id']);
@@ -151,6 +155,92 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
             actorId: (string) $actor->getKey(),
             sharerId: null,
             actorRole: RewardBeneficiaryRole::Participant,
+            isClaimedIdentity: true,
+            isAttributed: false,
+            isAmbiguousDevice: $source->isAmbiguousDevice,
+            isBot: $source->isBot,
+            isCancelled: $invalid,
+            isValid: ! $invalid,
+            fraudStatus: $this->fraudStatus($source->fraudStatus ?? $this->scalarString($source->metadata['fraud_status'] ?? null)),
+            correctionStatus: RewardSourceCorrectionStatus::Current,
+        );
+    }
+
+    private function admissionFact(string $sourceBusinessKey, ShareOutcomeType $outcome, string $transitionId): ?RewardSourceFact
+    {
+        $registrationLookup = app(RegistrationLookup::class);
+        $isRegistration = $outcome === ShareOutcomeType::EventRegistration;
+        $id = $this->prefixedSourceId($transitionId, $isRegistration ? 'registration:' : 'checkin:');
+
+        if ($id === null) {
+            return null;
+        }
+
+        $source = $isRegistration
+            ? $registrationLookup->findRegistration($id)
+            : $registrationLookup->findCheckIn($id);
+
+        if (! $source instanceof RegistrationSnapshot && ! $source instanceof CheckInSnapshot) {
+            return null;
+        }
+
+        if ($source instanceof RegistrationSnapshot) {
+            $actor = $this->userForMorph($source->registrantType, $source->registrantId);
+            $timestamp = $source->registeredAt ?? $source->createdAt;
+            $invalid = in_array($source->status, ['cancelled', 'rejected', 'expired', 'refunded'], true);
+            $verification = in_array($source->status, ['confirmed', 'checked_in', 'completed'], true)
+                ? RewardVerificationLevel::Accepted
+                : RewardVerificationLevel::Unverified;
+            $role = $source->totalAmount > 0 && $source->paymentStatus === 'paid'
+                ? RewardBeneficiaryRole::Purchaser
+                : RewardBeneficiaryRole::Participant;
+            $previous = static fn (User $actor, CarbonImmutable $occurredAt): bool => $registrationLookup->hasEarlierRegistrationActivity(
+                (string) $actor->getKey(),
+                $actor->getMorphClass(),
+                $occurredAt,
+                $source->id,
+            );
+        } else {
+            $attendee = $this->userForMorph($source->attendeeType, $source->attendeeId);
+            $actor = $attendee ?? ($source->verifiedByUserId !== null ? User::query()->whereKey($source->verifiedByUserId)->first() : null);
+            $timestamp = $source->checkedInAt ?? $source->createdAt;
+            $invalid = $source->cancelledAt !== null
+                || in_array($source->status, ['cancelled', 'rejected', 'voided'], true)
+                || $source->attendanceType === 'did_not_attend';
+            $verification = $source->verifiedByUserId !== null
+                ? RewardVerificationLevel::StaffVerified
+                : RewardVerificationLevel::Unverified;
+            $role = $attendee === null && $source->verifiedByUserId === (string) $actor?->getKey()
+                ? RewardBeneficiaryRole::Staff
+                : RewardBeneficiaryRole::Participant;
+            $previous = static fn (User $actor, CarbonImmutable $occurredAt): bool => $registrationLookup->hasEarlierCheckInActivity(
+                (string) $actor->getKey(),
+                $actor->getMorphClass(),
+                $occurredAt,
+                $source->id,
+            );
+        }
+
+        if (! $actor instanceof User || $timestamp === null) {
+            return null;
+        }
+
+        try {
+            $occurredAt = CarbonImmutable::parse($timestamp)->setTimezone('UTC');
+        } catch (Throwable) {
+            return null;
+        }
+
+        return new RewardSourceFact(
+            sourceBusinessKey: $sourceBusinessKey,
+            outcome: $outcome->value,
+            category: null,
+            occurredAt: $occurredAt,
+            verification: $verification,
+            isFirstTime: ! $previous($actor, $occurredAt->setTimezone(config('app.timezone', 'UTC'))),
+            actorId: (string) $actor->getKey(),
+            sharerId: null,
+            actorRole: $role,
             isClaimedIdentity: true,
             isAttributed: false,
             isAmbiguousDevice: $source->isAmbiguousDevice,
@@ -340,8 +430,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         /** @var array<string, callable(string): mixed> $sources */
         $sources = [
             'user:' => static fn (string $id): mixed => User::query()->find($id),
-            'registration:' => static fn (string $id): mixed => app(RegistrationLookup::class)->findRegistration($id),
-            'checkin:' => static fn (string $id): mixed => app(RegistrationLookup::class)->findCheckIn($id),
         ];
 
         foreach ($sources as $prefix => $resolve) {
@@ -367,28 +455,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
     {
         if ($outcome === ShareOutcomeType::Signup && $source instanceof User) {
             return $source;
-        }
-
-        if ($outcome === ShareOutcomeType::EventRegistration && $source instanceof Registration) {
-            return $this->userForMorph(
-                $this->stringAttribute($source, 'registrant_type'),
-                $this->stringAttribute($source, 'registrant_id'),
-            );
-        }
-
-        if ($outcome === ShareOutcomeType::EventCheckin && $source instanceof EventCheckin) {
-            $attendee = $this->userForMorph(
-                $this->stringAttribute($source, 'attendee_type'),
-                $this->stringAttribute($source, 'attendee_id'),
-            );
-
-            if ($attendee instanceof User) {
-                return $attendee;
-            }
-
-            $verifierId = $this->stringAttribute($source, 'verified_by_user_id');
-
-            return $verifierId !== null ? User::query()->whereKey($verifierId)->first() : null;
         }
 
         $actorColumns = match ($outcome) {
@@ -431,8 +497,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
     {
         $column = match ($outcome) {
             ShareOutcomeType::Signup => 'created_at',
-            ShareOutcomeType::EventRegistration => 'registered_at',
-            ShareOutcomeType::EventCheckin => 'checked_in_at',
             ShareOutcomeType::EventSubmission => 'submitted_at',
             ShareOutcomeType::EventSave => 'bookmarked_at',
             ShareOutcomeType::EventGoing => 'responded_at',
@@ -465,10 +529,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         $cancelled = $this->attribute($source, 'cancelled_at') !== null;
 
         $invalid = match ($outcome) {
-            ShareOutcomeType::EventRegistration => in_array($status, ['cancelled', 'rejected', 'expired', 'refunded'], true),
-            ShareOutcomeType::EventCheckin => $cancelled
-                || in_array($status, ['cancelled', 'rejected', 'voided'], true)
-                || $this->stringAttribute($source, 'attendance_type') === 'did_not_attend',
             ShareOutcomeType::EventSave => ! in_array($status, [null, 'active'], true),
             ShareOutcomeType::EventGoing => in_array($status, ['cancelled', 'expired'], true),
             ShareOutcomeType::InstitutionFollow,
@@ -486,41 +546,11 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
 
     private function verificationFor(ShareOutcomeType $outcome, Model $source): RewardVerificationLevel
     {
-        if ($outcome === ShareOutcomeType::EventCheckin) {
-            return $this->stringAttribute($source, 'verified_by_user_id') !== null
-                ? RewardVerificationLevel::StaffVerified
-                : RewardVerificationLevel::Unverified;
-        }
-
-        if ($outcome === ShareOutcomeType::EventRegistration) {
-            return in_array($this->stringAttribute($source, 'status'), ['confirmed', 'checked_in', 'completed'], true)
-                ? RewardVerificationLevel::Accepted
-                : RewardVerificationLevel::Unverified;
-        }
-
         return RewardVerificationLevel::Accepted;
     }
 
     private function actorRoleFor(ShareOutcomeType $outcome, Model $source, User $actor): RewardBeneficiaryRole
     {
-        if ($outcome === ShareOutcomeType::EventRegistration
-            && (float) $source->getAttribute('total_amount') > 0
-            && $this->stringAttribute($source, 'payment_status') === 'paid'
-        ) {
-            return RewardBeneficiaryRole::Purchaser;
-        }
-
-        if ($outcome === ShareOutcomeType::EventCheckin
-            && $source instanceof EventCheckin
-            && ! $this->userForMorph(
-                $this->stringAttribute($source, 'attendee_type'),
-                $this->stringAttribute($source, 'attendee_id'),
-            ) instanceof User
-            && $this->stringAttribute($source, 'verified_by_user_id') === (string) $actor->getKey()
-        ) {
-            return RewardBeneficiaryRole::Staff;
-        }
-
         return RewardBeneficiaryRole::Participant;
     }
 
@@ -546,18 +576,6 @@ final class ActivityRewardSourceFactReader implements RewardSourceFactReader
         $before = $occurredAt->setTimezone(config('app.timezone', 'UTC'));
 
         return match ($outcome) {
-            ShareOutcomeType::EventRegistration => ! app(RegistrationLookup::class)->hasEarlierRegistrationActivity(
-                (string) $actor->getKey(),
-                $actor->getMorphClass(),
-                $before,
-                $sourceId,
-            ),
-            ShareOutcomeType::EventCheckin => ! app(RegistrationLookup::class)->hasEarlierCheckInActivity(
-                (string) $actor->getKey(),
-                $actor->getMorphClass(),
-                $before,
-                $sourceId,
-            ),
             default => throw new LogicException('Engagement outcomes are resolved through the engagement reader.'),
         };
     }
