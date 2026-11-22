@@ -13,12 +13,17 @@ use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Features\DonationChannels\Concerns\HasDonationChannels;
+use App\Features\Events\Models\Event;
 use App\Features\Institutions\Actions\PrepareInstitutionPersistenceAction;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 use App\Features\Institutions\Support\InstitutionFacilities;
+use App\Features\Membership\Models\MemberInvitation;
 use App\Features\Persons\Api\PersonLookup;
+use App\Features\Persons\Models\Person;
+use App\Features\Places\Models\Space;
+use App\Features\Places\Models\Venue;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;
@@ -313,28 +318,28 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     }
 
     /**
-     * @return BelongsToMany<Model, $this>
+     * @return BelongsToMany<Space, $this>
      */
     public function spaces(): BelongsToMany
     {
-        return $this->belongsToMany(MorphModelResolver::resolve('space'), 'institution_space')
+        return $this->belongsToMany(Space::class, 'institution_space')
             ->withPivot('capacity')
             ->withTimestamps();
     }
 
     /**
-     * @return BelongsToMany<Model, $this, InstitutionVenue, 'pivot'>
+     * @return BelongsToMany<Venue, $this, InstitutionVenue, 'pivot'>
      */
     public function venues(): BelongsToMany
     {
-        return $this->belongsToMany(MorphModelResolver::resolve('venue'), 'institution_venue')
+        return $this->belongsToMany(Venue::class, 'institution_venue')
             ->using(InstitutionVenue::class)
             ->withPivot(['id', 'role', 'is_primary'])
             ->withTimestamps();
     }
 
     /**
-     * @return BelongsToMany<Model, $this, InstitutionVenue, 'pivot'>
+     * @return BelongsToMany<Venue, $this, InstitutionVenue, 'pivot'>
      */
     public function operatedVenues(): BelongsToMany
     {
@@ -342,7 +347,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     }
 
     /**
-     * @return BelongsToMany<Model, $this, InstitutionVenue, 'pivot'>
+     * @return BelongsToMany<Venue, $this, InstitutionVenue, 'pivot'>
      */
     public function preferredVenues(): BelongsToMany
     {
@@ -450,7 +455,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     }
 
     /**
-     * @return HasMany<Model, $this>
+     * @return HasMany<Event, $this>
      */
     public function events(): HasMany
     {
@@ -466,11 +471,11 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     }
 
     /**
-     * @return BelongsToMany<Model, $this>
+     * @return BelongsToMany<Person, $this>
      */
     public function persons(): BelongsToMany
     {
-        return $this->belongsToMany(MorphModelResolver::resolve('person'), 'affiliations', 'institution_id', 'affiliatable_id')
+        return $this->belongsToMany(Person::class, 'affiliations', 'institution_id', 'affiliatable_id')
             ->wherePivot('affiliatable_type', app(PersonLookup::class)->personMorphType())
             ->withPivot(['position', 'is_primary'])
             ->withTimestamps();
@@ -485,7 +490,7 @@ class Institution extends Model implements AuditableContract, Followable, HasMed
     }
 
     /**
-     * @return HasMany<Model, $this>
+     * @return HasMany<MemberInvitation, $this>
      */
     public function memberInvitations(): HasMany
     {

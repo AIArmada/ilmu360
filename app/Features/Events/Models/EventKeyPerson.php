@@ -3,7 +3,7 @@
 namespace App\Features\Events\Models;
 
 use AIArmada\Events\Models\EventInvolvement;
-use Illuminate\Database\Eloquent\Model;
+use App\Features\Persons\Models\Person;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -41,7 +41,7 @@ class EventKeyPerson extends EventInvolvement
     ];
 
     /**
-     * @return BelongsTo<Model, $this>
+     * @return BelongsTo<Person, $this>
      */
     public function person(): BelongsTo
     {
@@ -52,8 +52,8 @@ class EventKeyPerson extends EventInvolvement
     {
         $person = $this->getRelationValue('person');
 
-        if ($person instanceof Model && $person->getMorphClass() === 'person') {
-            return (string) $person->getAttribute('formatted_name');
+        if ($person instanceof Person) {
+            return (string) $person->formatted_name;
         }
 
         return $this->getAttribute('display_name') ?? 'Key Person';

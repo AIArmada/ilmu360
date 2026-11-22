@@ -4,8 +4,7 @@ namespace App\Features\Places\Models;
 
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Events\Models\VenueSpace;
-use App\Platform\Models\MorphModelResolver;
-use Illuminate\Database\Eloquent\Model;
+use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Actions\Spaces\GuardSpaceDeletionAction;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\SpaceFactory;
@@ -77,11 +76,11 @@ class Space extends VenueSpace implements AuditableContract
     }
 
     /**
-     * @return BelongsToMany<Model, $this, Pivot, 'pivot'>
+     * @return BelongsToMany<Institution, $this, Pivot, 'pivot'>
      */
     public function institutions(): BelongsToMany
     {
-        return $this->belongsToMany(MorphModelResolver::resolve('institution'), 'institution_space')
+        return $this->belongsToMany(Institution::class, 'institution_space')
             ->withPivot('capacity')
             ->withTimestamps();
     }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Platform\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use RuntimeException;
 
@@ -28,23 +27,6 @@ final class MorphModelResolver
             throw new RuntimeException("The [{$alias}] morph alias must resolve to an Eloquent model.");
         }
 
-        return $model;
-    }
-
-    /**
-     * Resolve an owner-registered pivot without importing its private class.
-     *
-     * @return class-string<Pivot>
-     */
-    public static function resolvePivot(string $alias): string
-    {
-        $model = self::resolve($alias);
-
-        if (! is_a($model, Pivot::class, true)) {
-            throw new RuntimeException("The [{$alias}] morph alias must resolve to an Eloquent pivot.");
-        }
-
-        /** @var class-string<Pivot> $model */
         return $model;
     }
 

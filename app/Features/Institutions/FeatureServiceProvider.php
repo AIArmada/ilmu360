@@ -39,7 +39,6 @@ use App\Features\Institutions\Listeners\InstitutionMediaCacheListener;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionImportExclusion;
 use App\Features\Institutions\Models\InstitutionName;
-use App\Features\Institutions\Models\InstitutionVenue;
 use App\Features\Institutions\Observers\InstitutionImportExclusionObserver;
 use App\Features\Institutions\Observers\InstitutionNameObserver;
 use App\Features\Institutions\Observers\InstitutionObserver;
@@ -114,7 +113,6 @@ class FeatureServiceProvider extends FeatureModule
     {
         Relation::morphMap([
             'institution' => Institution::class,
-            'institution_venue' => InstitutionVenue::class,
             'institution_name' => InstitutionName::class,
             'institution_import_exclusion' => InstitutionImportExclusion::class,
         ]);
