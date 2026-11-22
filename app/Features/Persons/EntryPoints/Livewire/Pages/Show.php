@@ -9,13 +9,13 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
-use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
+use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
+use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Persons\Api\SpeakerStatus;
@@ -487,5 +487,4 @@ class Show extends Component
 
         return [$weekendStart, $weekendStart->copy()->addDays(2)->startOfDay()];
     }
-
 }

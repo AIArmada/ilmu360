@@ -6,12 +6,12 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
-use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Events\Queries\PublicScheduleDetailResolver;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\ShareTracking\Api\ShareTrackingContract;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Livewire\Attributes\Computed;

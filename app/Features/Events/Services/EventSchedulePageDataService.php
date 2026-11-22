@@ -6,19 +6,18 @@ namespace App\Features\Events\Services;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\State;
-use App\Features\Events\Support\PublicScheduleLeaf;
-use App\Features\Events\Services\PublicScheduleDiscoveryService;
-use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
-use App\Features\Events\Models\Builders\EventBuilder;
-use App\Features\Events\Models\Event;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
-use Illuminate\Database\Eloquent\Builder;
+use App\Features\Events\Api\EventSchedulePageData;
+use App\Features\Events\Models\Builders\EventBuilder;
+use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\PostgresEventDiscovery;
+use App\Features\Events\Support\PublicScheduleLeaf;
 use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
 use App\Platform\Models\MorphModelResolver;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -63,8 +62,8 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     }
 
     /**
-     * @param list<string> $savedEventIds
-     * @param list<string> $goingEventIds
+     * @param  list<string>  $savedEventIds
+     * @param  list<string>  $goingEventIds
      */
     public function forPerson(
         string $personId,
@@ -158,9 +157,9 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     /**
      * Server-render inside Events so no mutable models cross feature boundaries.
      *
-     * @param array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $page
-     * @param list<string> $savedEventIds
-     * @param list<string> $goingEventIds
+     * @param  array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}  $page
+     * @param  list<string>  $savedEventIds
+     * @param  list<string>  $goingEventIds
      * @return array{upcoming: list<PublicScheduleRenderedCard>, past: list<PublicScheduleRenderedCard>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function renderSchedulePage(
@@ -203,8 +202,8 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     }
 
     /**
-     * @param Collection<int, PublicScheduleLeaf> $leaves
-     * @param list<string> $referenceIds
+     * @param  Collection<int, PublicScheduleLeaf>  $leaves
+     * @param  list<string>  $referenceIds
      * @return Collection<int, PublicScheduleLeaf>
      */
     private function filterReferenceLeaves(Collection $leaves, array $referenceIds): Collection
@@ -276,8 +275,8 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     }
 
     /**
-     * @param Collection<int, PublicScheduleLeaf> $leaves
-     * @param (callable(Collection<int, PublicScheduleLeaf>): Collection<int, PublicScheduleLeaf>)|null $filterLeaves
+     * @param  Collection<int, PublicScheduleLeaf>  $leaves
+     * @param  (callable(Collection<int, PublicScheduleLeaf>): Collection<int, PublicScheduleLeaf>)|null  $filterLeaves
      * @return array{upcoming: Collection<int, PublicScheduleLeaf>, past: Collection<int, PublicScheduleLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int}
      */
     private function splitLeaves(

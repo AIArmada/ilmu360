@@ -80,7 +80,7 @@ it('reads venue primary addresses through scalar Places projection and scoped Ev
     expect($address)->not->toBeNull();
 
     $addresses = app(PlaceCatalog::class)->primaryAddressIdsFor([$venueId, 'missing']);
-    $resolver = app(\App\Features\Events\Support\VenueAddressResolver::class);
+    $resolver = app(App\Features\Events\Support\VenueAddressResolver::class);
     $first = $resolver->forVenueId($venueId);
 
     expect($addresses[$venueId] ?? null)->toBe((string) $address->getKey())

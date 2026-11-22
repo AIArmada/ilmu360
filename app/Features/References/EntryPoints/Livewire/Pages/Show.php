@@ -3,10 +3,10 @@
 namespace App\Features\References\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
+use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Models\Reference;

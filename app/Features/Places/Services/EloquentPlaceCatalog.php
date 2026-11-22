@@ -151,7 +151,7 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
     }
 
     /**
-     * @param list<string> $venueIds
+     * @param  list<string>  $venueIds
      * @return array<string, string>
      */
     public function primaryAddressIdsFor(array $venueIds): array
@@ -184,5 +184,4 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
 
         return $addresses;
     }
-
 }

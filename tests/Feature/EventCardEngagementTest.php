@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
-use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Engagement\EntryPoints\Livewire\Components\EventCardEngagement;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Models\User;
 use Livewire\Livewire;
 

@@ -1,10 +1,10 @@
 <?php
 
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
-use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\PostgresEventDiscovery;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
