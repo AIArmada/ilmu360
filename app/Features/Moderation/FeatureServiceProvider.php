@@ -27,6 +27,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(ModerationActionHistory::class, ModerationActionStore::class);
         $this->app->bind(RecordModerationAction::class, ModerationActionStore::class);
     }
+
     public function boot(): void
     {
         parent::boot();
