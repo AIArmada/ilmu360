@@ -9,17 +9,15 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
-use App\Features\Discovery\Api\Orm\PublicScheduleModelLeaf as PublicScheduleLeafContract;
-use App\Features\Discovery\Api\Orm\PublicScheduleOrmPort;
+use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
+use App\Features\Events\Api\EventSchedulePageData;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
-use App\Features\Events\Models\EventKeyPersonPivot;
 use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
@@ -31,7 +29,6 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
@@ -65,7 +62,7 @@ class Show extends Component
     public bool $isFollowing = false;
 
     /**
-     * @var array{upcoming: Collection<int, PublicScheduleLeafContract>, past: Collection<int, PublicScheduleLeafContract>, other: Collection<int, EventKeyPerson>}|null
+     * @var array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, other: Collection<int, EventKeyPerson>}|null
      */
     private ?array $eventPageData = null;
 
@@ -240,7 +237,7 @@ class Show extends Component
     }
 
     /**
-     * @return Collection<int, PublicScheduleLeafContract>
+     * @return Collection<int, PublicScheduleRenderedCard>
      */
     public function getUpcomingEventsProperty(): Collection
     {
@@ -258,7 +255,7 @@ class Show extends Component
     }
 
     /**
-     * @return Collection<int, PublicScheduleLeafContract>
+     * @return Collection<int, PublicScheduleRenderedCard>
      */
     public function getPastEventsProperty(): Collection
     {
@@ -301,7 +298,7 @@ class Show extends Component
     }
 
     /**
-     * @return array{upcoming: Collection<int, PublicScheduleLeafContract>, past: Collection<int, PublicScheduleLeafContract>, other: Collection<int, EventKeyPerson>}
+     * @return array{upcoming: Collection<int, PublicScheduleRenderedCard>, past: Collection<int, PublicScheduleRenderedCard>, other: Collection<int, EventKeyPerson>}
      */
     private function eventPageData(): array
     {
@@ -309,26 +306,25 @@ class Show extends Component
             return $this->eventPageData;
         }
 
-        $events = $this->personEventQuery()->reorder()->with('involvements')->get()->unique('id');
-        $leaves = app(PublicScheduleOrmPort::class)->leavesForEventIds($events->modelKeys())
-            ->map(fn (PublicScheduleLeafContract $leaf): ?PublicScheduleLeafContract => $this->speakerLeafFor($leaf))
-            ->filter()
-            ->values();
-        $now = now();
         $range = $this->upcomingDateRange();
-        $endInstant = static fn (PublicScheduleLeafContract $leaf): ?CarbonInterface => $leaf->endsAt() ?? $leaf->startsAt();
-        $upcomingOverall = $leaves->filter(fn (PublicScheduleLeafContract $leaf): bool => ($endInstant($leaf)?->greaterThanOrEqualTo($now)) ?? false)->values();
-        $upcoming = $upcomingOverall->filter(fn (PublicScheduleLeafContract $leaf): bool => $range === null
-            || ($leaf->startsAt() >= $range['from'] && $leaf->startsAt() < $range['to']))->values();
-        $past = $leaves->filter(fn (PublicScheduleLeafContract $leaf): bool => ($endInstant($leaf)?->lessThan($now)) ?? false)->reverse()->values();
+        $schedule = app(EventSchedulePageData::class)->forPerson(
+            personId: (string) $this->person->getKey(),
+            upcomingLimit: $this->upcomingPerPage,
+            pastLimit: $this->pastPerPage,
+            rangeFrom: $range['from'] ?? null,
+            rangeTo: $range['to'] ?? null,
+            savedEventIds: $this->savedEventIds,
+            goingEventIds: $this->goingEventIds,
+        );
+
         $this->eventTotals = [
-            'upcoming' => $upcoming->count(),
-            'past' => $past->count(),
-            'upcoming_overall' => $upcomingOverall->count(),
-            'past_overall' => $past->count(),
+            'upcoming' => $schedule['upcoming_total'],
+            'past' => $schedule['past_total'],
+            'upcoming_overall' => $schedule['upcoming_overall_total'],
+            'past_overall' => $schedule['past_overall_total'],
         ];
-        $upcoming = $upcoming->take($this->upcomingPerPage);
-        $past = $past->take($this->pastPerPage);
+        $upcoming = collect($schedule['upcoming']);
+        $past = collect($schedule['past']);
 
         $occurrencesTable = (new EventOccurrence)->getTable();
         $involvementsTable = app(EventAuthoring::class)->eventKeyPersonTable();
@@ -360,16 +356,10 @@ class Show extends Component
             ->unique(fn (Event $event): string => (string) $event->getKey())
             ->values();
 
-        $speakerEvents = new EloquentCollection($upcoming
-            ->concat($past)
-            ->map(fn (PublicScheduleLeafContract $leaf): Event => $leaf->event())
-            ->concat($otherEvents)
-            ->filter(fn (mixed $event): bool => $event instanceof Event)
-            ->unique(fn (Event $event): string => (string) $event->getKey())
-            ->values()->all());
+        $roleEvents = new EloquentCollection($otherEvents->all());
 
-        if ($speakerEvents->isNotEmpty()) {
-            $speakerEvents->load([
+        if ($roleEvents->isNotEmpty()) {
+            $roleEvents->load([
                 'references' => fn ($query) => $query->active(),
                 'media',
                 'institution.media',
@@ -437,51 +427,6 @@ class Show extends Component
     }
 
     /**
-     * @return array{upcoming: int, past: int, upcoming_overall: int, past_overall: int}
-     */
-    private function eventTotals(): array
-    {
-        $this->eventPageData();
-
-        return $this->eventTotals ?? [
-            'upcoming' => 0,
-            'past' => 0,
-            'upcoming_overall' => 0,
-            'past_overall' => 0,
-        ];
-    }
-
-    private function speakerLeafFor(PublicScheduleLeafContract $leaf): ?PublicScheduleLeafContract
-    {
-        $event = $leaf->event();
-
-        $involvements = $event->involvements
-            ->filter(fn ($involvement): bool => $involvement->role_code === EventKeyPersonRole::Speaker->value
-                && in_array($involvement->status, [null, 'active'], true)
-                && $involvement->visibility === 'public');
-
-        $matchesPerson = fn ($involvement): bool => $involvement->involveable_type === $this->person->getMorphClass()
-            && (string) $involvement->involveable_id === (string) $this->person->getKey();
-
-        $sessions = collect($leaf->sessions())
-            ->filter(fn ($session): bool => $involvements
-                ->where('event_session_id', $session->getKey())
-                ->contains($matchesPerson))
-            ->values();
-
-        if ($sessions->isNotEmpty()) {
-            return $leaf->withSessions($sessions->map(static fn ($session): string => (string) $session->getKey())->all());
-        }
-
-        $occurrence = $involvements->where('event_occurrence_id', $leaf->id())->whereNull('event_session_id');
-        $eventInvolvements = $involvements->whereNull('event_occurrence_id')->whereNull('event_session_id');
-
-        return $occurrence->contains($matchesPerson) || $eventInvolvements->contains($matchesPerson)
-            ? $leaf
-            : null;
-    }
-
-    /**
      * @return array{from: CarbonInterface, to: CarbonInterface}|null
      */
     private function upcomingDateRange(): ?array
@@ -543,17 +488,4 @@ class Show extends Component
         return [$weekendStart, $weekendStart->copy()->addDays(2)->startOfDay()];
     }
 
-    /**
-     * @return BelongsToMany<Event, Person, EventKeyPersonPivot, 'pivot'>
-     */
-    private function personEventQuery(): BelongsToMany
-    {
-        $eventsTable = app(EventAuthoring::class)->eventTable();
-
-        return $this->person->personEvents()
-            ->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
-            ->where("{$eventsTable}.visibility", EventVisibility::Public)
-            ->whereNotNull("{$eventsTable}.published_at")
-            ->whereHas('occurrences');
-    }
 }
