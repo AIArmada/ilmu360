@@ -2,11 +2,11 @@
 
 namespace App\Features\Reports\Models;
 
+use App\Features\Reports\Actions\InitializeReportDefaultsAction;
 use AIArmada\CommerceSupport\Models\Report as BaseReport;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Media\MediaEvidence;
-use App\Shared\Auth\UserMorphType;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -201,16 +201,8 @@ class Report extends BaseReport implements AuditableContract, HasMedia
     #[\Override]
     protected static function booted(): void
     {
-        static::creating(function (self $report): void {
-            $report->reporter_type ??= app(UserMorphType::class)->morphClass();
-
-            if ($report->getAttribute('status') === null) {
-                $report->initializeStatus(self::STATUS_OPEN);
-
-                return;
-            }
-
-            app(ReportLifecycle::class)->preparePersistedStatus($report, (string) $report->getAttribute('status'));
+        static::creating(static function (self $report): void {
+            app(InitializeReportDefaultsAction::class)->handle($report);
         });
     }
 }

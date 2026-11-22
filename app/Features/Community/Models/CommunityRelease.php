@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Community\Models;
 
+use App\Features\Community\Actions\AssertCommunityReleaseImmutabilityAction;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -57,11 +58,11 @@ final class CommunityRelease extends Model
     protected static function booted(): void
     {
         self::updating(static function (): void {
-            throw new LogicException('Published community releases are immutable.');
+            app(AssertCommunityReleaseImmutabilityAction::class)->updating();
         });
 
         self::deleting(static function (): void {
-            throw new LogicException('Community releases cannot be deleted.');
+            app(AssertCommunityReleaseImmutabilityAction::class)->deleting();
         });
     }
 }

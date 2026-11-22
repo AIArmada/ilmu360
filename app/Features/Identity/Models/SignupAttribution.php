@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Models;
 
+use App\Features\Identity\Actions\AssertSignupAttributionImmutabilityAction;
 use App\Features\Identity\Api\SignupAttributionSourceType;
 use App\Features\Identity\Api\SignupAttributionStatus;
 use Database\Factories\SignupAttributionFactory;
@@ -46,8 +47,8 @@ class SignupAttribution extends Model
 
     protected static function booted(): void
     {
-        static::updating(static function (): never {
-            throw new LogicException('Signup sources are immutable. Use the signup confirmation or guest linking action.');
+        static::updating(static function (): void {
+            app(AssertSignupAttributionImmutabilityAction::class)->updating();
         });
     }
 

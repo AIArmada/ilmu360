@@ -2,6 +2,7 @@
 
 namespace App\Features\Events\Models;
 
+use App\Features\Events\Actions\Changes\InitializeEventChangeAnnouncementAction;
 use AIArmada\Events\Models\EventUpdate;
 use AIArmada\Events\Models\EventUpdateItem;
 use App\Features\Events\Api\Enums\EventChangeType;
@@ -92,14 +93,8 @@ class EventChangeAnnouncement extends EventUpdate
     {
         parent::boot();
 
-        static::creating(function (self $model): void {
-            if (empty($model->title)) {
-                $model->title = $model->message ?? 'Pengumuman perubahan';
-            }
-
-            if (empty($model->visibility)) {
-                $model->visibility = 'public';
-            }
+        static::creating(static function (self $model): void {
+            app(InitializeEventChangeAnnouncementAction::class)->handle($model);
         });
     }
 

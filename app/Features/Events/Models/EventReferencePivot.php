@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Models;
 
+use App\Features\Events\Actions\Authoring\InitializeEventReferencePivotAction;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 
@@ -46,11 +47,8 @@ class EventReferencePivot extends MorphPivot
     #[\Override]
     protected static function booted(): void
     {
-        static::creating(function (self $pivot): void {
-            $pivot->referenceable_type ??= 'reference';
-            $pivot->reference_type ??= 'book';
-            $pivot->visibility ??= 'public';
-            $pivot->sort_order ??= 0;
+        static::creating(static function (self $pivot): void {
+            app(InitializeEventReferencePivotAction::class)->handle($pivot);
         });
     }
 }
