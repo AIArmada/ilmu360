@@ -43,10 +43,8 @@ final readonly class PrepareReferencePersistenceAction
                 $reference->setAttribute('published_at', $now);
             }
 
-            if ($status === 'verified') {
-                if ($reference->getAttribute('verified_by') === null) {
-            $reference->setAttribute('verified_by', auth()->id());
-        }
+            if ($status === 'verified' && $reference->getAttribute('verified_by') === null) {
+                $reference->setAttribute('verified_by', auth()->id());
             }
         }
     }
@@ -118,5 +116,4 @@ final readonly class PrepareReferencePersistenceAction
 
         unset($reference['part_type'], $reference['part_number'], $reference['part_label']);
     }
-
 }
