@@ -4,33 +4,26 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
-use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
-use App\Features\Events\Models\EventKeyPerson;
-use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\Events\Actions\Projection\InvalidateEventKeyPersonCardsAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class EventKeyPersonObserver implements ShouldHandleEventsAfterCommit
+/** Eloquent notification adapter; the feature Action owns cache effects. */
+final readonly class EventKeyPersonObserver implements ShouldHandleEventsAfterCommit
 {
-    public function __construct(
-        protected PersonListingCacheVersion $personCacheVersion,
-        protected PublicListingsCacheInvalidator $publicListingsCache,
-    ) {}
+    public function __construct(private InvalidateEventKeyPersonCardsAction $effects) {}
 
-    public function created(EventKeyPerson $eventKeyPerson): void
+    public function created(): void
     {
-        $this->publicListingsCache->bustHomepageStats();
-        $this->personCacheVersion->bump();
+        $this->effects->handle();
     }
 
-    public function updated(EventKeyPerson $eventKeyPerson): void
+    public function updated(): void
     {
-        $this->publicListingsCache->bustHomepageStats();
-        $this->personCacheVersion->bump();
+        $this->effects->handle();
     }
 
-    public function deleted(EventKeyPerson $eventKeyPerson): void
+    public function deleted(): void
     {
-        $this->publicListingsCache->bustHomepageStats();
-        $this->personCacheVersion->bump();
+        $this->effects->handle();
     }
 }

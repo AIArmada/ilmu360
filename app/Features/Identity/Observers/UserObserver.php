@@ -4,33 +4,16 @@ declare(strict_types=1);
 
 namespace App\Features\Identity\Observers;
 
-use App\Features\Identity\Api\AccountSubmissionEligibility;
-use App\Features\Identity\Api\SignupAttributionWorkflow;
+use App\Features\Identity\Actions\SyncAccountVerificationEffectsAction;
 use App\Models\User;
 
-/**
- * Conventional model-event entry point for identity-owned account side effects.
- *
- * Kept outside the User model so authentication scaffolding stays conventional
- * and feature workflows remain discoverable in their owning capability.
- */
+/** Eloquent notification adapter; the Identity Action owns verification effects. */
 final readonly class UserObserver
 {
-    public function __construct(
-        private AccountSubmissionEligibility $submissionEligibilitySync,
-        private SignupAttributionWorkflow $signupAttribution,
-    ) {}
+    public function __construct(private SyncAccountVerificationEffectsAction $effects) {}
 
     public function updated(User $user): void
     {
-        if ($user->wasChanged(['email_verified_at', 'phone_verified_at'])) {
-            $this->signupAttribution->confirmForAccount((string) $user->getKey());
-        }
-
-        if (! $user->wasChanged('phone_verified_at')) {
-            return;
-        }
-
-        $this->submissionEligibilitySync->syncForAccount((string) $user->getKey());
+        $this->effects->handle($user);
     }
 }
