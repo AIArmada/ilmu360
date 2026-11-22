@@ -42,7 +42,6 @@ use App\Features\Events\Models\Series;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
-use App\Features\Persons\Models\Person;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceLocation;
 use App\Features\Prayer\Api\EventPrayerTime;
@@ -77,7 +76,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         private PersonLookup $personLookup,
         private InstitutionLookup $institutionLookup,
         private PlaceCatalog $placeCatalog,
-
         private EventCategoryCatalog $categoryCatalog,
         private EventSearchRelationProvider $relationProvider,
         private ReferenceQueries $referenceQueries,
@@ -575,7 +573,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
                 // Cards render formatted_name per involveable; preload the full
                 // title graph so the accessor never falls back to per-person queries.
                 $relation->morphWith([
-                    Person::class => [
+                    MorphModelResolver::resolve('person') => [
                         'titleAssignments' => fn (Relation $query) => $query
                             ->where('status', AssignmentStatus::Active)
                             ->with('title.category'),
