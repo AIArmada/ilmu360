@@ -30,6 +30,7 @@ use App\Features\Events\Actions\Changes\PublishEventChangeAnnouncementAction;
 use App\Features\Events\Actions\Commerce\RecordTicketAffiliateCommissionsAction;
 use App\Features\Events\Actions\Commerce\ReverseTicketAffiliateCommissionAction;
 use App\Features\Events\Actions\Delete\CleanupEventAction;
+use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\Events\Actions\ResolveRegistrationExportContextAction;
 use App\Features\Events\Actions\ScheduleShareCardWarmAction;
 use App\Features\Events\Actions\Submission\ClaimGuestSubmissionsAction;
@@ -227,6 +228,7 @@ use App\Platform\Telemetry\SignalSchemaRegistry;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schedule;
 
@@ -297,6 +299,10 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
+        // Register before the vendor EventOccurrence model boots so the
+        // deletion preflight precedes its cascading deletion hook.
+        EventFacade::listen('eloquent.deleting: '.EventOccurrence::class, [GuardEventOccurrenceDeletionAction::class, 'handle']);
+
         $this->app->bind(EventMemberInvitationEligibility::class, EventMemberInvitationEligibilityQuery::class);
         $this->app->bind(EventContributionStateMapper::class, EventContributionStateMapperService::class);
         $this->app->bind(OrganizerLookup::class, OrganizerLookupService::class);

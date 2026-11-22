@@ -28,7 +28,6 @@ use AIArmada\Orders\Models\OrderRefund;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Host\Affiliates\EloquentAffiliateSnapshotPersistence;
 use App\Host\Pango\ShareCards\PangoShareCardRenderer;
@@ -91,7 +90,6 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\RateLimiter;
@@ -142,9 +140,6 @@ class AppServiceProvider extends ServiceProvider
         );
         $this->app->bind(LanguageOptions::class, EloquentLanguageOptions::class);
         $this->app->bind(AddressCatalog::class, EloquentAddressCatalog::class);
-        // Register before the final vendor EventOccurrence model boots so
-        // integrity preflight precedes the vendor's cascading deleting hook.
-        EventFacade::listen('eloquent.deleting: '.EventOccurrence::class, [GuardEventOccurrenceDeletionAction::class, 'handle']);
 
         $this->app->bind(AuditRecorder::class, EloquentAuditRecorder::class);
         $this->app->bind(LanguageCatalog::class, DatabaseLanguageCatalog::class);
