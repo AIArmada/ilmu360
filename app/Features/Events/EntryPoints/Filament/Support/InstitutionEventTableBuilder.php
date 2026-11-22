@@ -171,6 +171,7 @@ final readonly class InstitutionEventTableBuilder implements InstitutionEventTab
             ->scrollToTopOnPageChange()
             ->emptyStateHeading(__('No events match the current filters.'))
             ->emptyStateDescription(__('Try adjusting the search or filters.'));
+    }
 
     private function translateStatusLabel(mixed $status): string
     {
@@ -223,7 +224,7 @@ final readonly class InstitutionEventTableBuilder implements InstitutionEventTab
      */
     private function applyDashboardEventSort(Builder $query, string $sort, bool $hasExplicitTableSort): Builder|string|null
     {
-        if (filled($hasExplicitTableSort)) {
+        if ($hasExplicitTableSort) {
             return null;
         }
 
