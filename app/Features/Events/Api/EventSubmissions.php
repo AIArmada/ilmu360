@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api;
 
-use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 use App\Features\Events\Api\Data\EventSubmissionCard;
 use App\Features\Events\Api\Data\EventSubmissionPage;
-use App\Features\Events\Api\EventSubmissionInput;
+use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 
 /**
  * Public event-submission boundary.

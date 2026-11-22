@@ -8,7 +8,7 @@ namespace App\Features\Events\Api\Data;
 final readonly class EventSubmissionCard
 {
     /** @param array<string, string|null> $presentation
-     *  @param list<string> $details
+     * @param  list<string>  $details
      */
     public function __construct(
         public string $id,

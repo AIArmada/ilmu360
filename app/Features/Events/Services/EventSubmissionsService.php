@@ -16,21 +16,19 @@ use App\Features\Events\Actions\Submission\SubmissionRelationSync;
 use App\Features\Events\Actions\Submission\ValidatedEventSubmission;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionCategoriesAction;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
+use App\Features\Events\Api\Data\EventSubmissionCard;
+use App\Features\Events\Api\Data\EventSubmissionPage;
 use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissions;
-use App\Features\Events\Api\Data\EventSubmissionCard;
-use App\Features\Events\Api\Data\EventSubmissionPage;
-use App\Features\Events\Queries\EventSubmissionCardProjector;
 use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Queries\EventSubmissionCardProjector;
 use App\Features\Events\Support\EventModel;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
 use Carbon\Carbon;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
