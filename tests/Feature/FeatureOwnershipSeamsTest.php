@@ -22,13 +22,11 @@ use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Queries\EloquentPersonLookup;
 use App\Features\Places\Api\InstitutionSpaceLinks;
-use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceWorkflow;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
-use App\Features\Places\Queries\EloquentPlaceLookup;
 use App\Features\Places\Services\EloquentPlaceCatalog;
 use App\Features\Places\Services\InstitutionSpaceLinkService;
 use App\Features\Places\Services\SpaceWorkflowService;
@@ -45,7 +43,6 @@ it('binds the directory seams to their owning implementations', function (): voi
     expect(app(InstitutionLookup::class))->toBeInstanceOf(EloquentInstitutionLookup::class)
         ->and(app(PersonLookup::class))->toBeInstanceOf(EloquentPersonLookup::class)
         ->and(app(ReferenceLookup::class))->toBeInstanceOf(EloquentReferenceLookup::class)
-        ->and(app(PlaceLookup::class))->toBeInstanceOf(EloquentPlaceLookup::class)
         ->and(app(PlaceCatalog::class))->toBeInstanceOf(EloquentPlaceCatalog::class)
         ->and(app(DonationChannelLookup::class))->toBeInstanceOf(EloquentDonationChannelLookup::class)
         ->and(app(VenueWorkflow::class))->toBeInstanceOf(VenueWorkflowService::class)
@@ -74,6 +71,22 @@ it('returns venue and space identity and labels through the immutable Places cat
         ->and($catalog->venueTable())->toBe($venue->getTable())
         ->and($catalog->venueMorphType())->toBe($venue->getMorphClass())
         ->and($catalog->resolvedPrimaryAddressId($venueId))->not->toBeNull();
+});
+
+it('reads venue primary addresses through scalar Places projection and scoped Events cache', function (): void {
+    $venue = Venue::factory()->create(['name' => 'Catalog Venue With Address']);
+    $venueId = (string) $venue->getKey();
+    $address = $venue->primaryAddress();
+    expect($address)->not->toBeNull();
+
+    $addresses = app(PlaceCatalog::class)->primaryAddressIdsFor([$venueId, 'missing']);
+    $resolver = app(\App\Features\Events\Support\VenueAddressResolver::class);
+    $first = $resolver->forVenueId($venueId);
+
+    expect($addresses[$venueId] ?? null)->toBe((string) $address->getKey())
+        ->and($first?->getKey())->toBe($address->getKey())
+        ->and($resolver->forVenueId($venueId))->toBe($first)
+        ->and($resolver->forVenueId('missing'))->toBeNull();
 });
 
 it('resolves registered morph aliases and rejects unknown ones', function (): void {

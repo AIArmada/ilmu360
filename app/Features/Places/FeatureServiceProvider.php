@@ -7,7 +7,6 @@ namespace App\Features\Places;
 use App\Features\Places\Actions\PruneOrphanedVenuesAction;
 use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\InstitutionSpaceLinks;
-use App\Features\Places\Api\Orm\PlaceLookup;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\PruneOrphanedVenues;
 use App\Features\Places\Api\SpaceEligibility;
@@ -27,7 +26,6 @@ use App\Features\Places\Models\Venue;
 use App\Features\Places\Observers\SpaceInstitutionLinkCleanupObserver;
 use App\Features\Places\Observers\VenueInstitutionLinkCleanupObserver;
 use App\Features\Places\Observers\VenueObserver;
-use App\Features\Places\Queries\EloquentPlaceLookup;
 use App\Features\Places\Queries\EloquentVenueAuthoringCandidates;
 use App\Features\Places\Services\EloquentPlaceCatalog;
 use App\Features\Places\Services\InstitutionSpaceLinkService;
@@ -59,7 +57,6 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(SpaceSelectionEligibility::class, SpaceEligibilityService::class);
         $this->app->bind(VenueWorkflow::class, VenueWorkflowService::class);
         $this->app->bind(SpaceWorkflow::class, SpaceWorkflowService::class);
-        $this->app->bind(PlaceLookup::class, EloquentPlaceLookup::class);
         $this->app->bind(VenueAuthoringCandidates::class, EloquentVenueAuthoringCandidates::class);
 
         $resources = $this->app->make(FilamentResourceRegistry::class);

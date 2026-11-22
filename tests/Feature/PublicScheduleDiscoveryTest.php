@@ -343,9 +343,8 @@ it('renders occurrence and session pages from their own scoped location venues',
         'sort_order' => 0,
     ]);
 
-    // Scoped locations resolve through application venues: the pages read
-    // names and primary addresses without touching the unmapped base
-    // package Venue polymorphic relations.
+    // Scoped location names use package venue identity; primary addresses
+    // resolve through the Places scalar catalog, never an ORM transport port.
     $this->get(route('events.occurrence', [
         'event' => $event,
         'occurrenceSlug' => 'scoped-venue-day',
