@@ -3,7 +3,8 @@
 namespace App\Features\Institutions\Models;
 
 use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
-use App\Features\Places\Models\Venue;
+use App\Platform\Models\MorphModelResolver;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -12,7 +13,7 @@ use LogicException;
 /**
  * Read model for an institution↔venue bridge row.
  *
- * Directory owns bridge mutations. Direct pivot model saves are rejected;
+ * Institutions owns bridge mutations. Direct pivot model saves are rejected;
  * read relations remain available to callers.
  */
 class InstitutionVenue extends Pivot
@@ -54,7 +55,7 @@ class InstitutionVenue extends Pivot
     #[\Override]
     public function save(array $options = []): bool
     {
-        throw new LogicException('Institution venue links must be persisted through the Directory InstitutionVenueLinks API.');
+        throw new LogicException('Institution venue links must be persisted through the Institutions InstitutionVenueLinks API.');
     }
 
     /**
@@ -66,10 +67,10 @@ class InstitutionVenue extends Pivot
     }
 
     /**
-     * @return BelongsTo<Venue, $this>
+     * @return BelongsTo<Model, $this>
      */
     public function venue(): BelongsTo
     {
-        return $this->belongsTo(Venue::class);
+        return $this->belongsTo(MorphModelResolver::resolve('venue'));
     }
 }

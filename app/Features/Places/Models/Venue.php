@@ -7,10 +7,9 @@ use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
-use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
-use App\Features\Institutions\Models\Institution;
-use App\Features\Institutions\Models\InstitutionVenue;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use App\Features\Places\Actions\Venues\StampVenueStatusTransitionAction;
 use App\Features\Places\Api\Enums\VenueType;
 use App\Models\User;
@@ -115,7 +114,7 @@ class Venue extends PackageVenue implements AuditableContract
     }
 
     /**
-     * @return HasMany<Event, $this>
+     * @return HasMany<Model, $this>
      */
     public function events(): HasMany
     {
@@ -131,18 +130,18 @@ class Venue extends PackageVenue implements AuditableContract
     }
 
     /**
-     * @return BelongsToMany<Institution, $this, InstitutionVenue, 'pivot'>
+     * @return BelongsToMany<Model, $this, Pivot, 'pivot'>
      */
     public function institutions(): BelongsToMany
     {
-        return $this->belongsToMany(Institution::class, 'institution_venue')
-            ->using(InstitutionVenue::class)
+        return $this->belongsToMany(MorphModelResolver::resolve('institution'), 'institution_venue')
+            ->using(MorphModelResolver::resolvePivot('institution_venue'))
             ->withPivot(['id', 'role', 'is_primary'])
             ->withTimestamps();
     }
 
     /**
-     * @return BelongsToMany<Institution, $this, InstitutionVenue, 'pivot'>
+     * @return BelongsToMany<Model, $this, Pivot, 'pivot'>
      */
     public function operatedByInstitutions(): BelongsToMany
     {
@@ -150,7 +149,7 @@ class Venue extends PackageVenue implements AuditableContract
     }
 
     /**
-     * @return BelongsToMany<Institution, $this, InstitutionVenue, 'pivot'>
+     * @return BelongsToMany<Model, $this, Pivot, 'pivot'>
      */
     public function preferredByInstitutions(): BelongsToMany
     {

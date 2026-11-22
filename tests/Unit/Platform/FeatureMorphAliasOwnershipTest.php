@@ -18,6 +18,7 @@ it('registers owned morph aliases from their feature and platform providers', fu
         'media_link' => App\Features\Events\Models\MediaLink::class,
         'series' => App\Features\Events\Models\Series::class,
         'institution' => App\Features\Institutions\Models\Institution::class,
+        'institution_venue' => App\Features\Institutions\Models\InstitutionVenue::class,
         'institution_name' => App\Features\Institutions\Models\InstitutionName::class,
         'institution_import_exclusion' => App\Features\Institutions\Models\InstitutionImportExclusion::class,
         'member_invitation' => App\Features\Membership\Models\MemberInvitation::class,
