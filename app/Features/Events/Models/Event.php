@@ -30,6 +30,7 @@ use AIArmada\Organizations\Models\Organization;
 use App\Features\DonationChannels\Concerns\HasDonationChannels;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Engagement\Api\GoingWindow;
+use App\Features\Events\Actions\Authoring\AssignEventCreatorAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\Enums\EventFormat;
@@ -259,13 +260,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     #[\Override]
     protected static function booted(): void
     {
-        static::creating(function (Event $event): void {
-            $creator = auth()->user();
-
-            if ($creator instanceof Model) {
-                $event->created_by_type ??= $creator->getMorphClass();
-                $event->created_by_id ??= $creator->getKey();
-            }
+        static::creating(static function (Event $event): void {
+            app(AssignEventCreatorAction::class)->handle($event);
         });
 
     }
