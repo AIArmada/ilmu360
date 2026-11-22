@@ -80,5 +80,5 @@ it('renders active speaker titles on person event cards without per-speaker titl
         $response->assertSeeText("Prof. {$speaker->name}, PhD");
     }
 
-    expect($titleQueries)->toHaveCount(3);
+    expect($titleQueries)->toHaveCount(2);
 });

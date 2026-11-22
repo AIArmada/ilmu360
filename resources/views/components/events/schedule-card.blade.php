@@ -16,7 +16,7 @@
     $location = $scheduleLeaf->occurrence->locations->first()
         ?? $scheduleLeaf->sessions->first()?->locations->first();
     $sessions = $sessions ?? $scheduleLeaf->sessions;
-    $locationPrimary = $location?->venue?->name ?? $location?->label ?? $event->resolvedLocationName();
+    $locationPrimary = app(\App\Features\Events\Support\VenueAddressResolver::class)->nameForVenueId($location?->venue_id) ?? $location?->venue?->name ?? $location?->label ?? $event->resolvedLocationName();
     $address = app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($location?->venue_id);
     $address ??= $event->resolvedLocationAddress();
     $locationSecondary = \App\Platform\Location\AddressHierarchyFormatter::formatShort($address) ?: null;

@@ -5,30 +5,44 @@ declare(strict_types=1);
 namespace App\Features\Events\Support;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Places\Api\PlaceCatalog;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
- * Request-scoped adapter: Places supplies scalar address identities;
- * Events reads package-owned address records for local page rendering.
- * No foreign Eloquent models cross the Places API.
+ * Request-scoped, owner-isolated scalar venue projections.
+ *
+ * Places owns venue lookups and returns immutable names/address IDs.
+ * Events resolves package Address records only inside its rendering boundary.
  */
 final class VenueAddressResolver
 {
-    /** @var array<string, Address|null> */
+    /** @var array<string, array<string, Address|null>> */
     private array $addresses = [];
+
+    /** @var array<string, array<string, string|null>> */
+    private array $names = [];
 
     public function __construct(private readonly PlaceCatalog $places) {}
 
     /** @param list<string> $venueIds */
     public function prime(array $venueIds): void
     {
-        $missing = array_values(array_unique(array_filter($venueIds, fn (string $id): bool => $id !== '' && ! array_key_exists($id, $this->addresses))));
+        $scope = $this->scopeKey();
+        $missing = array_values(array_unique(array_filter(
+            $venueIds,
+            fn (string $id): bool => $id !== '' && ! array_key_exists($id, $this->addresses[$scope] ?? []),
+        )));
 
         if ($missing === []) {
             return;
         }
 
-        $addressIds = $this->places->primaryAddressIdsFor($missing);
+        $validIds = array_values(array_filter($missing, static fn (string $id): bool => Str::isUuid($id)));
+        $addressIds = $this->places->primaryAddressIdsFor($validIds);
+        $names = $validIds !== [] ? $this->places->venueNamesByIds($validIds) : [];
+
         $records = $addressIds !== []
             ? Address::query()
                 ->with(['country', 'state', 'city', 'areaAssignments.area'])
@@ -40,7 +54,8 @@ final class VenueAddressResolver
         foreach ($missing as $venueId) {
             $addressId = $addressIds[$venueId] ?? null;
             $address = $addressId !== null ? $records->get($addressId) : null;
-            $this->addresses[$venueId] = $address instanceof Address ? $address : null;
+            $this->addresses[$scope][$venueId] = $address instanceof Address ? $address : null;
+            $this->names[$scope][$venueId] = $names[$venueId] ?? null;
         }
     }
 
@@ -52,6 +67,26 @@ final class VenueAddressResolver
 
         $this->prime([$venueId]);
 
-        return $this->addresses[$venueId];
+        return $this->addresses[$this->scopeKey()][$venueId] ?? null;
+    }
+
+    public function nameForVenueId(?string $venueId): ?string
+    {
+        if ($venueId === null || $venueId === '') {
+            return null;
+        }
+
+        $this->prime([$venueId]);
+
+        return $this->names[$this->scopeKey()][$venueId] ?? null;
+    }
+
+    private function scopeKey(): string
+    {
+        $owner = OwnerContext::resolve();
+
+        return $owner instanceof Model
+            ? $owner->getMorphClass().':'.(string) $owner->getKey()
+            : 'global';
     }
 }

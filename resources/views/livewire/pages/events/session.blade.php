@@ -30,6 +30,7 @@
     $occurrenceLocation = $detail->primaryLocationFor($occurrence);
     $location = $ownLocation ?? $occurrenceLocation ?? $detail->primaryLocationFor($event);
     $locationVenue = $location?->relationLoaded('venue') ? $location->venue : null;
+    $scopedVenueName = app(\App\Features\Events\Support\VenueAddressResolver::class)->nameForVenueId($location?->venue_id);
     $locationSpace = $location?->relationLoaded('venueSpace') ? $location->venueSpace : null;
     $locationInstitution = $location?->relationLoaded('locationable') && $location->locationable instanceof \App\Features\Institutions\Models\Institution ? $location->locationable : null;
     $locationAddress = $location?->primaryAddress() ?? $locationInstitution?->primaryAddress() ?? app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($location?->venue_id);
@@ -38,7 +39,7 @@
             ? null
             : $event->resolvedLocationAddress());
     $addressDisplayLines = \App\Platform\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
-    $venueDisplayName = $locationVenue?->name ?? $locationInstitution?->display_name ?? $detail->locationLabel($location) ?? $event->resolvedLocationName();
+    $venueDisplayName = $scopedVenueName ?? $locationVenue?->name ?? $locationInstitution?->display_name ?? $detail->locationLabel($location) ?? $event->resolvedLocationName();
     $isOnlineOnly = (string) $event->delivery_mode === \App\Features\Events\Api\Enums\EventFormat::Online->value
         && $location === null
         && $locationVenue === null
@@ -47,7 +48,7 @@
     $lat = $primaryAddress?->latitude;
     $lng = $primaryAddress?->longitude;
     $mapQuery = implode(', ', array_unique(array_filter([
-        $locationVenue?->name ?? $locationInstitution?->display_name,
+        $scopedVenueName ?? $locationVenue?->name ?? $locationInstitution?->display_name,
         $detail->locationLabel($location),
         $primaryAddress?->line1,
         $primaryAddress?->line2,

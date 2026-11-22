@@ -704,7 +704,8 @@
                                         $scheduleLocation = $primaryOccurrence->locations->first()
                                             ?? $scheduleLeaf->sessions->first()?->locations->first()
                                             ?? $event->primaryLocation;
-                                        $primaryLocationName = $scheduleLocation?->venue?->name
+                                        $primaryLocationName = app(\App\Features\Events\Support\VenueAddressResolver::class)->nameForVenueId($scheduleLocation?->venue_id)
+                                            ?? $scheduleLocation?->venue?->name
                                             ?? $scheduleLocation?->label
                                             ?? $event->resolvedLocationName();
                                         $locationSpaceName = app(\App\Features\Places\Api\SpaceLocation::class)->name(

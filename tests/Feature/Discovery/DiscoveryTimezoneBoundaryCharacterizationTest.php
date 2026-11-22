@@ -93,11 +93,11 @@ it('splits past and upcoming by the event end instant after the viewer crosses m
 
     $upcoming = $component->instance()
         ->getUpcomingEventsProperty()
-        ->map(static fn ($leaf): string => $leaf->event->title)
+        ->map(static fn ($leaf): string => $leaf->title)
         ->all();
     $past = $component->instance()
         ->getPastEventsProperty()
-        ->map(static fn ($leaf): string => $leaf->event->title)
+        ->map(static fn ($leaf): string => $leaf->title)
         ->all();
 
     expect($upcoming)->toBe(['D0 Tz Ongoing'])
@@ -111,10 +111,10 @@ it('splits past and upcoming by the event end instant after the viewer crosses m
 
     $upcomingAfterRange = $component->instance()
         ->getUpcomingEventsProperty()
-        ->map(static fn ($leaf): string => $leaf->event->title)
+        ->map(static fn ($leaf): string => $leaf->title)
         ->all();
 
     expect($upcomingAfterRange)->toBe(['D0 Tz Ongoing'])
-        ->and($component->instance()->getPastEventsProperty()->map(static fn ($leaf): string => $leaf->event->title)->all())
+        ->and($component->instance()->getPastEventsProperty()->map(static fn ($leaf): string => $leaf->title)->all())
         ->toBe(['D0 Tz Ended']);
 });

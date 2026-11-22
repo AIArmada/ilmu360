@@ -85,11 +85,11 @@ it('classifies a grouped event with an ongoing occurrence as upcoming on the sql
     $component = Livewire::test(Show::class, ['institution' => $institution]);
     $upcoming = $component->instance()
         ->getUpcomingEventsProperty()
-        ->map(static fn ($leaf): string => $leaf->event->title)
+        ->map(static fn ($leaf): string => $leaf->title)
         ->all();
     $past = $component->instance()
         ->getPastEventsProperty()
-        ->map(static fn ($leaf): string => $leaf->event->title)
+        ->map(static fn ($leaf): string => $leaf->title)
         ->all();
 
     expect($upcoming)->toBe(['Grouped Ongoing'])

@@ -36,17 +36,18 @@
     // ── Place ────────────────────────────────────────────────────────
     $eventLocation = $detail->primaryLocationFor($event);
     $locationVenue = $eventLocation?->relationLoaded('venue') ? $eventLocation->venue : null;
+    $scopedVenueName = app(\App\Features\Events\Support\VenueAddressResolver::class)->nameForVenueId($eventLocation?->venue_id);
     $locationSpace = $eventLocation?->relationLoaded('venueSpace') ? $eventLocation->venueSpace : null;
     $primaryAddress = $eventLocation?->primaryAddress()
         ?? app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($eventLocation?->venue_id)
         ?? $event->resolvedLocationAddress();
     $addressDisplayLines = \App\Platform\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
-    $venueDisplayName = $locationVenue?->name ?? $detail->locationLabel($eventLocation) ?? $event->resolvedLocationName();
+    $venueDisplayName = $scopedVenueName ?? $locationVenue?->name ?? $detail->locationLabel($eventLocation) ?? $event->resolvedLocationName();
     $hasLocationContent = filled($venueDisplayName) || $primaryAddress !== null;
     $lat = $primaryAddress?->latitude;
     $lng = $primaryAddress?->longitude;
     $mapQuery = implode(', ', array_filter([
-        $locationVenue?->name,
+        $scopedVenueName ?? $locationVenue?->name,
         $detail->locationLabel($eventLocation),
         $primaryAddress?->line1,
         $primaryAddress?->line2,

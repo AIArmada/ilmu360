@@ -179,6 +179,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
             return new PublicScheduleRenderedCard(
                 id: $leaf->id(),
                 eventId: $eventId,
+                title: (string) $leaf->event()->title,
                 eventStatus: $leaf->eventStatus(),
                 entityType: $leaf->entityType(),
                 html: view('components.events.render-schedule-card', [

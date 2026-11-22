@@ -86,6 +86,8 @@ it('reads venue primary addresses through scalar Places projection and scoped Ev
     expect($addresses[$venueId] ?? null)->toBe((string) $address->getKey())
         ->and($first?->getKey())->toBe($address->getKey())
         ->and($resolver->forVenueId($venueId))->toBe($first)
+        ->and($resolver->nameForVenueId($venueId))->toBe('Catalog Venue With Address')
+        ->and($resolver->nameForVenueId('missing'))->toBeNull()
         ->and($resolver->forVenueId('missing'))->toBeNull();
 });
 
