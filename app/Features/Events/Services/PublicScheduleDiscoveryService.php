@@ -11,7 +11,6 @@ use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder;
-use App\Features\Events\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\EventScheduleFact;
