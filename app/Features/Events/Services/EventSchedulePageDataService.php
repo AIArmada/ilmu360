@@ -14,10 +14,10 @@ use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Platform\Location\Ui\Concerns\JoinsHierarchyAreaName;
 use App\Platform\Models\MorphModelResolver;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Collection;
 
 /**
  * Owner implementation of the upcoming/past event-page schedule split.
@@ -32,7 +32,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
      * Reference family schedule selection is owned entirely by Events:
      * no Eloquent builder, model query or relation callback crosses into References.
      *
-     * @param list<string> $referenceIds
+     * @param  list<string>  $referenceIds
      */
     public function forInstitution(
         string $institutionId,
@@ -76,8 +76,8 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     }
 
     /**
-     * @param Collection<int, PublicScheduleModelLeaf> $leaves
-     * @param list<string> $referenceIds
+     * @param  Collection<int, PublicScheduleModelLeaf>  $leaves
+     * @param  list<string>  $referenceIds
      * @return Collection<int, PublicScheduleModelLeaf>
      */
     private function filterReferenceLeaves(Collection $leaves, array $referenceIds): Collection
@@ -117,7 +117,7 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     }
 
     /**
-     * @param MorphToMany<Address, Model, Pivot, 'pivot'> $relation
+     * @param  MorphToMany<Address, Model, Pivot, 'pivot'>  $relation
      * @return MorphToMany<Address, Model, Pivot, 'pivot'>
      */
     private function joinAddressStateName(MorphToMany $relation): MorphToMany

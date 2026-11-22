@@ -13,8 +13,8 @@ use Filament\Tables\Table;
 interface InstitutionEventTable
 {
     /**
-     * @param array<string, string> $statusOptions
-     * @param array<string, string> $visibilityOptions
+     * @param  array<string, string>  $statusOptions
+     * @param  array<string, string>  $visibilityOptions
      */
     public function configure(
         Table $table,

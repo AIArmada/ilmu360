@@ -247,5 +247,4 @@ final readonly class InstitutionEventTableBuilder implements InstitutionEventTab
             default => 'desc',
         };
     }
-
 }

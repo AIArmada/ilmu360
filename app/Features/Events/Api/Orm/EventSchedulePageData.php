@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Api\Orm;
 
-use Carbon\CarbonInterface;
-
 /**
  * Shared upcoming/past split for event-page schedule sections.
  *
@@ -16,6 +14,4 @@ use Carbon\CarbonInterface;
  *
  * Consumers: Providers/AppServiceProvider.php, References/EntryPoints, Events/Services, Institutions/EntryPoints
  */
-interface EventSchedulePageData
-{
-}
+interface EventSchedulePageData {}

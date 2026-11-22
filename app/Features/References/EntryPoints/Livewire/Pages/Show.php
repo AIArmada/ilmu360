@@ -349,5 +349,4 @@ class Show extends Component
             ]);
         });
     }
-
 }
