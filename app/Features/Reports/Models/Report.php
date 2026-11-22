@@ -2,8 +2,8 @@
 
 namespace App\Features\Reports\Models;
 
-use App\Features\Reports\Actions\InitializeReportDefaultsAction;
 use AIArmada\CommerceSupport\Models\Report as BaseReport;
+use App\Features\Reports\Actions\InitializeReportDefaultsAction;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Media\MediaEvidence;

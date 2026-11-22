@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
