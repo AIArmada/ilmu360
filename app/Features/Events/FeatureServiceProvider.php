@@ -18,6 +18,7 @@ use AIArmada\FilamentEvents\Resources\EventSessionResource;
 use AIArmada\FilamentEvents\Resources\EventTaxonomyResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTermResource;
+use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Actions\Authoring\CreateEventWithInitialOccurrenceAction;
 use App\Features\Events\Actions\Authoring\CreateEventWithRegistrationAction;
 use App\Features\Events\Actions\Authoring\PrepareAdvancedParentProgramSubmissionAction;
@@ -147,6 +148,7 @@ use App\Features\Events\EntryPoints\Mcp\Tools\MemberSearchEventsTool;
 use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventCoverImageTool;
 use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventPosterImageTool;
 use App\Features\Events\EntryPoints\Sitemap\EventSitemapUrls;
+use App\Features\Events\EntryPoints\Ui\EventJsonLd;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\EventSubmission;
@@ -172,6 +174,7 @@ use App\Features\Events\Persistence\EventSearchCacheStore;
 use App\Features\Events\Persistence\EventShareCardCacheStore;
 use App\Features\Events\Persistence\EventSubmissionOptionsCacheStore;
 use App\Features\Events\Persistence\ProductSignalsDashboardCacheStore;
+use App\Features\Events\Policies\EventPolicy;
 use App\Features\Events\Policies\EventTicketingPolicy;
 use App\Features\Events\Queries\EloquentAccountEventFacts;
 use App\Features\Events\Queries\EloquentEventCollections;
@@ -221,7 +224,10 @@ use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;
 use App\Platform\Telemetry\SignalSchemaRegistry;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schedule;
 
 /**
@@ -413,6 +419,15 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        // Application event ownership belongs to Events, not the organizations package.
+        Organization::resolveRelationUsing(
+            'events',
+            static fn (Organization $organization): MorphMany => $organization->morphMany(Event::class, 'owner'),
+        );
+
+        Gate::policy(Event::class, EventPolicy::class);
+        Blade::component(EventJsonLd::class, 'event-json-ld');
+
         Relation::morphMap([
             'event' => Event::class,
             'event_key_person' => EventKeyPerson::class,

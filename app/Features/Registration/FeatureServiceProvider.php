@@ -30,6 +30,7 @@ use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Notifications\EventNotificationCheckInNotifier;
+use App\Features\Registration\Policies\RegistrationPolicy;
 use App\Features\Registration\Queries\DatabaseAdmissionFacts;
 use App\Features\Registration\Queries\DatabasePaidRegistrationFacts;
 use App\Features\Registration\Queries\DatabaseParticipationSourceIds;
@@ -40,6 +41,7 @@ use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Registration owns event admission, attendance and check-in history.
@@ -73,6 +75,8 @@ class FeatureServiceProvider extends FeatureModule
 
     public function boot(): void
     {
+        Gate::policy(Registration::class, RegistrationPolicy::class);
+
         Relation::morphMap([
             'checkin' => EventCheckin::class,
             'registration' => Registration::class,

@@ -29,11 +29,6 @@ use AIArmada\Organizations\Models\Organization;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Events\Actions\Delete\GuardEventOccurrenceDeletionAction;
-use App\Features\Events\EntryPoints\Ui\EventJsonLd;
-use App\Features\Events\Models\Event;
-use App\Features\Events\Policies\EventPolicy;
-use App\Features\Registration\Models\Registration;
-use App\Features\Registration\Policies\RegistrationPolicy;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Host\Affiliates\EloquentAffiliateSnapshotPersistence;
 use App\Host\Pango\ShareCards\PangoShareCardRenderer;
@@ -92,11 +87,9 @@ use Filament\Tables\Table;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
@@ -213,9 +206,6 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->make(RequestExampleRegistry::class)->register(new MobileTelemetryRequestExampleContributor);
 
-        // Preserve the public <x-event-json-ld> tag after removing App/View.
-        Blade::component(EventJsonLd::class, 'event-json-ld');
-
         PassportKeyProvisioner::ensure();
 
         Passport::authorizationView('mcp.authorize');
@@ -255,13 +245,6 @@ class AppServiceProvider extends ServiceProvider
             ]);
             self::$filamentColorsRegistered = true;
         }
-
-        // Event ownership is an application projection of the reusable
-        // organization aggregate; the organizations package remains event-agnostic.
-        Organization::resolveRelationUsing(
-            'events',
-            static fn (Organization $organization): MorphMany => $organization->morphMany(Event::class, 'owner'),
-        );
 
         if (! self::$languageSwitchConfigured) {
             LanguageSwitch::configureUsing(function (LanguageSwitch $switch): void {
@@ -309,8 +292,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FilamentAudit::class, FilamentAuditPolicy::class);
         Gate::policy(AddressArea::class, AddressAreaPolicy::class);
         Gate::policy(AddressCountry::class, AddressCountryPolicy::class);
-        Gate::policy(Event::class, EventPolicy::class);
-        Gate::policy(Registration::class, RegistrationPolicy::class);
         Gate::policy(TrackedProperty::class, TrackedPropertyPolicy::class);
 
         Gate::define('audit', static fn (mixed $user, mixed $resource): bool => $user instanceof User
