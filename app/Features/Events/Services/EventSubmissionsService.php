@@ -349,11 +349,12 @@ final readonly class EventSubmissionsService implements EventSubmissions
             return null;
         }
 
-        $metadata = $submission->getAttribute('metadata');
+        $attrs = $submission->getAttributes();
+        $metadata = array_key_exists('metadata', $attrs) ? $submission->getAttribute('metadata') : null;
         $metadata = is_array($metadata) ? $metadata : [];
         $occurredAt = $submission->getAttribute('submitted_at') ?? $submission->getAttribute('created_at');
-        $ambiguous = $submission->getAttribute('is_ambiguous_device') ?? ($metadata['is_ambiguous_device'] ?? false);
-        $bot = $submission->getAttribute('is_bot') ?? ($metadata['is_bot'] ?? false);
+        $ambiguous = $attrs['is_ambiguous_device'] ?? ($metadata['is_ambiguous_device'] ?? false);
+        $bot = $attrs['is_bot'] ?? ($metadata['is_bot'] ?? false);
 
         return new EventSubmissionRewardFact(
             id: (string) $submission->getKey(),
@@ -364,7 +365,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
                 ? \Carbon\CarbonImmutable::parse($occurredAt)->toIso8601String()
                 : (is_string($occurredAt) ? $occurredAt : null),
             metadata: $metadata,
-            fraudStatus: $this->rewardScalar($submission->getAttribute('fraud_status')),
+            fraudStatus: $this->rewardScalar($attrs['fraud_status'] ?? null),
             isAmbiguousDevice: in_array($ambiguous, [true, 1, '1'], true),
             isBot: in_array($bot, [true, 1, '1'], true),
         );

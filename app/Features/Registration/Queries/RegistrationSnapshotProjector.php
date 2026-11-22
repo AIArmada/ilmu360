@@ -19,7 +19,7 @@ final readonly class RegistrationSnapshotProjector
     {
         $event = $registration->event;
         $event = $event instanceof Model ? $event : null;
-        $metadata = $registration->getAttribute('metadata');
+        $metadata = $this->optionalAttribute($registration, 'metadata');
         $metadata = is_array($metadata) ? $metadata : [];
         $primaryParticipantId = null;
 
@@ -44,21 +44,21 @@ final readonly class RegistrationSnapshotProjector
             eventStartsAt: $event instanceof Model ? $this->date($event->getAttribute('starts_at')) : null,
             eventStatus: $event instanceof Model ? $this->scalar($event->getAttribute('status')) : null,
             createdAt: $this->date($registration->getAttribute('created_at')),
-            registeredAt: $this->date($registration->getAttribute('registered_at')),
+            registeredAt: $this->date($this->optionalAttribute($registration, 'registered_at')),
             registrantType: $this->scalar($registration->getAttribute('registrant_type')),
             registrantId: $this->scalar($registration->getAttribute('registrant_id')),
             status: $registration->statusValue(),
-            externalOrderId: $this->scalar($registration->getAttribute('external_order_id')),
-            eventOccurrenceId: $this->scalar($registration->getAttribute('event_occurrence_id')),
-            eventSessionId: $this->scalar($registration->getAttribute('event_session_id')),
+            externalOrderId: $this->scalar($this->optionalAttribute($registration, 'external_order_id')),
+            eventOccurrenceId: $this->scalar($this->optionalAttribute($registration, 'event_occurrence_id')),
+            eventSessionId: $this->scalar($this->optionalAttribute($registration, 'event_session_id')),
             primaryParticipantUserId: $primaryParticipantId,
-            totalAmount: (int) $registration->getAttribute('total_amount'),
-            paymentStatus: $this->scalar($registration->getAttribute('payment_status')),
-            cancelledAt: $this->date($registration->getAttribute('cancelled_at')),
-            fraudStatus: $this->scalar($registration->getAttribute('fraud_status')),
+            totalAmount: (int) $this->optionalAttribute($registration, 'total_amount'),
+            paymentStatus: $this->scalar($this->optionalAttribute($registration, 'payment_status')),
+            cancelledAt: $this->date($this->optionalAttribute($registration, 'cancelled_at')),
+            fraudStatus: $this->scalar($this->optionalAttribute($registration, 'fraud_status')),
             metadata: $metadata,
-            isAmbiguousDevice: in_array($registration->getAttribute('is_ambiguous_device') ?? ($metadata['is_ambiguous_device'] ?? false), [true, 1, '1'], true),
-            isBot: in_array($registration->getAttribute('is_bot') ?? ($metadata['is_bot'] ?? false), [true, 1, '1'], true),
+            isAmbiguousDevice: in_array($this->optionalAttribute($registration, 'is_ambiguous_device') ?? ($metadata['is_ambiguous_device'] ?? false), [true, 1, '1'], true),
+            isBot: in_array($this->optionalAttribute($registration, 'is_bot') ?? ($metadata['is_bot'] ?? false), [true, 1, '1'], true),
         );
     }
 
@@ -67,7 +67,7 @@ final readonly class RegistrationSnapshotProjector
         $event = $checkIn->event;
         $event = $event instanceof Model ? $event : null;
         $verifier = $checkIn->getRelationValue('verifiedBy');
-        $metadata = $checkIn->getAttribute('metadata');
+        $metadata = $this->optionalAttribute($checkIn, 'metadata');
         $metadata = is_array($metadata) ? $metadata : [];
 
         return new CheckInSnapshot(
@@ -76,20 +76,28 @@ final readonly class RegistrationSnapshotProjector
             eventTitle: $event instanceof Model ? $this->scalar($event->getAttribute('title')) : null,
             eventStartsAt: $event instanceof Model ? $this->date($event->getAttribute('starts_at')) : null,
             createdAt: $this->date($checkIn->getAttribute('created_at')),
-            checkedInAt: $this->date($checkIn->getAttribute('checked_in_at')),
-            checkInSource: $this->scalar($checkIn->getAttribute('check_in_source')),
+            checkedInAt: $this->date($this->optionalAttribute($checkIn, 'checked_in_at')),
+            checkInSource: $this->scalar($this->optionalAttribute($checkIn, 'check_in_source')),
             verifiedByUserId: $this->scalar($checkIn->getAttribute('verified_by_user_id')),
             verifiedByName: $verifier instanceof Model ? $this->scalar($verifier->getAttribute('name')) : null,
             attendeeType: $this->scalar($checkIn->getAttribute('attendee_type')),
             attendeeId: $this->scalar($checkIn->getAttribute('attendee_id')),
-            attendanceType: $this->scalar($checkIn->getAttribute('attendance_type')),
-            status: $this->scalar($checkIn->getAttribute('status')),
-            cancelledAt: $this->date($checkIn->getAttribute('cancelled_at')),
-            fraudStatus: $this->scalar($checkIn->getAttribute('fraud_status')),
+            attendanceType: $this->scalar($this->optionalAttribute($checkIn, 'attendance_type')),
+            status: $this->scalar($this->optionalAttribute($checkIn, 'status')),
+            cancelledAt: $this->date($this->optionalAttribute($checkIn, 'cancelled_at')),
+            fraudStatus: $this->scalar($this->optionalAttribute($checkIn, 'fraud_status')),
             metadata: $metadata,
-            isAmbiguousDevice: in_array($checkIn->getAttribute('is_ambiguous_device') ?? ($metadata['is_ambiguous_device'] ?? false), [true, 1, '1'], true),
-            isBot: in_array($checkIn->getAttribute('is_bot') ?? ($metadata['is_bot'] ?? false), [true, 1, '1'], true),
+            isAmbiguousDevice: in_array($this->optionalAttribute($checkIn, 'is_ambiguous_device') ?? ($metadata['is_ambiguous_device'] ?? false), [true, 1, '1'], true),
+            isBot: in_array($this->optionalAttribute($checkIn, 'is_bot') ?? ($metadata['is_bot'] ?? false), [true, 1, '1'], true),
         );
+    }
+
+    /** Optional attributes are absent on some package-owned source schemas. */
+    private function optionalAttribute(Model $model, string $key): mixed
+    {
+        return array_key_exists($key, $model->getAttributes())
+            ? $model->getAttribute($key)
+            : null;
     }
 
     private function scalar(mixed $value): ?string
