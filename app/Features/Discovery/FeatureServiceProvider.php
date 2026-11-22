@@ -6,6 +6,7 @@ namespace App\Features\Discovery;
 
 use App\Features\Discovery\Actions\InvalidateAddressCatalogsAction;
 use App\Features\Discovery\Api\EventSearchReader;
+use App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Discovery\Api\SearchFilterCatalog;
 use App\Features\Discovery\Api\SearchFilterLabels;
@@ -14,6 +15,7 @@ use App\Features\Discovery\Api\SearchFilterRules;
 use App\Features\Discovery\Contributors\FrontendManifestContributor;
 use App\Features\Discovery\Queries\DatabaseSearchFilterLabels;
 use App\Features\Discovery\Services\EventSearchFilterCatalog;
+use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Discovery\Services\EventSearchFilterNormalizer;
 use App\Features\Discovery\Services\EventSearchFilterRules;
 use App\Features\Discovery\Services\EventSearchService;
@@ -36,6 +38,7 @@ class FeatureServiceProvider extends FeatureModule
     public function register(): void
     {
         $this->app->bind(EventSearchReader::class, EventSearchService::class);
+        $this->app->bind(EventDiscoveryCriteriaBuilder::class, EventDiscoveryCriteriaFactory::class);
         $this->app->scoped(SearchFilterLabels::class, DatabaseSearchFilterLabels::class);
         $this->app->bind(AddressCatalogEffects::class, InvalidateAddressCatalogsAction::class);
         $this->app->bind(PublicListingsCacheInvalidator::class, PublicListingsCache::class);

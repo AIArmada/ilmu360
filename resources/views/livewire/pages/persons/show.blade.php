@@ -119,7 +119,7 @@
     );
     $personRouteSegment = \App\Features\Contributions\Api\Enums\ContributionSubjectType::Person->publicRouteSegment();
 
-    $resolveEventCardLocation = static function (\App\Features\Events\Models\Event $event, ?\App\Features\Discovery\Support\PublicScheduleLeaf $scheduleLeaf = null): array {
+    $resolveEventCardLocation = static function (\App\Features\Events\Models\Event $event, ?\App\Features\Events\Support\PublicScheduleLeaf $scheduleLeaf = null): array {
         $location = $scheduleLeaf?->occurrence->locations->first()
             ?? $scheduleLeaf?->sessions->first()?->locations->first();
         $primary = $location?->venue?->name ?? $location?->label ?? $event->resolvedLocationName();

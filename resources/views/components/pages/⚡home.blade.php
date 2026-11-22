@@ -4,12 +4,12 @@ use App\Features\Events\Api\Enums\EventFormat;
 
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
-use App\Features\Discovery\Support\PublicScheduleLeaf;
+use App\Features\Events\Support\PublicScheduleLeaf;
 use App\Features\Engagement\EntryPoints\Livewire\Concerns\TogglesEventGoing;
 use App\Features\Events\Models\Event;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Features\Discovery\Services\PublicScheduleDiscoveryService;
+use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Features\Events\Services\EventDetailPresenter;
 use App\Platform\Location\AddressHierarchyFormatter;

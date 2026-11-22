@@ -11,7 +11,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Str;
 
-final class EventDiscoveryCriteriaFactory
+final class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder
 {
     /**
      * @param  array<string, mixed>  $filters

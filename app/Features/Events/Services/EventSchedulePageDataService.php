@@ -85,11 +85,6 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
     }
 
     /**
-     * @param  Collection<int, PublicScheduleModelLeaf>  $leaves
-     * @param  list<string>  $referenceIds
-     * @return Collection<int, PublicScheduleModelLeaf>
-     */
-    /**
      * Server-render inside Events so no mutable models cross feature boundaries.
      *
      * @param array{upcoming: Collection<int, PublicScheduleModelLeaf>, past: Collection<int, PublicScheduleModelLeaf>, upcoming_total: int, past_total: int, upcoming_overall_total: int, past_overall_total: int} $page
@@ -136,6 +131,11 @@ final readonly class EventSchedulePageDataService implements EventSchedulePageDa
         ];
     }
 
+    /**
+     * @param Collection<int, PublicScheduleModelLeaf> $leaves
+     * @param list<string> $referenceIds
+     * @return Collection<int, PublicScheduleModelLeaf>
+     */
     private function filterReferenceLeaves(Collection $leaves, array $referenceIds): Collection
     {
         $referenceClass = MorphModelResolver::resolve('reference');
