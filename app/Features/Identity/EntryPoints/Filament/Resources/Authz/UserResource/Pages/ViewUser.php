@@ -10,9 +10,9 @@ use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Data\EventSubmissionCard;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Models\EventSubmission;
 use App\Features\Identity\Api\AccountAdministration;
 use App\Features\Identity\Api\AccountToken;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource;
@@ -303,20 +303,15 @@ class ViewUser extends ViewRecord
         });
     }
 
-    /**
-     * @return Collection<int, EventSubmission>
-     */
+    /** @return \Illuminate\Support\Collection<int, EventSubmissionCard> */
     #[Computed]
-    public function eventSubmissions(): Collection
+    public function eventSubmissions(): \Illuminate\Support\Collection
     {
         $user = $this->userRecord();
 
-        return OwnerContext::withOwner(null, function () use ($user): Collection {
-            /** @var Collection<int, EventSubmission> $submissions */
-            $submissions = app(EventSubmissions::class)->submissionsForAccount((string) $user->getKey());
-
-            return $submissions;
-        });
+        return OwnerContext::withOwner(null, fn (): \Illuminate\Support\Collection => collect(
+            app(EventSubmissions::class)->submissionsForAccount((string) $user->getKey()),
+        ));
     }
 
     /**

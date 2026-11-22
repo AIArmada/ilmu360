@@ -3,31 +3,21 @@
 namespace App\Features\Contributions\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventReference;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\Events\Api\Enums\EventKeyPersonRole;
-use App\Features\Events\Api\Orm\EventSubmissions;
-use App\Features\Events\Api\PublicScheduleSlug;
-use App\Features\Events\Api\PublicScheduleVisibility;
-use App\Features\Events\Models\Event;
-use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Data\EventSubmissionPage;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
-use App\Features\References\Models\Reference;
 use App\Features\Reports\Api\ReportPage;
 use App\Features\Reports\Api\ReportReader;
 use App\Features\Reports\Api\ReportSnapshot;
 use App\Models\User;
-use App\Platform\Time\UserDateTimeFormatter;
-use App\Platform\Time\UserTimezoneResolver;
 use App\Platform\Ui\InteractsWithToasts;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -36,7 +26,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Support\Contracts\HasLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
@@ -121,23 +110,23 @@ class Index extends Component implements HasForms
             ->paginate(perPage: 5, pageName: 'my_update_requests_page'));
     }
 
-    /**
-     * @return LengthAwarePaginator<int, EventSubmission>
-     */
+    /** @return LengthAwarePaginator<int, \App\Features\Events\Api\Data\EventSubmissionCard> */
     #[Computed]
     public function submittedEvents(): LengthAwarePaginator
     {
         /** @var User $user */
         $user = auth()->user();
-
-        /** @var LengthAwarePaginator<int, EventSubmission> $submissions */
-        $submissions = OwnerContext::withOwner(null, fn (): object => app(EventSubmissions::class)->paginateForSubmitter(
+        $page = OwnerContext::withOwner(null, fn (): EventSubmissionPage => app(EventSubmissions::class)->paginateForSubmitter(
             (string) $user->getKey(),
             5,
             'submitted_events_page',
         ));
 
-        return $submissions;
+        return new LengthAwarePaginator($page->items, $page->total, $page->perPage, $page->currentPage, [
+            'pageName' => 'submitted_events_page',
+            'path' => Paginator::resolveCurrentPath(),
+            'query' => request()->query(),
+        ]);
     }
 
     /**
@@ -170,181 +159,6 @@ class Index extends Component implements HasForms
                 'query' => request()->query(),
             ],
         );
-    }
-
-    /**
-     * @return array{
-     *     title: string|null,
-     *     parent_title: string|null,
-     *     status_value: string|null,
-     *     status_label: string|null,
-     *     date_label: string|null,
-     *     time_label: string|null,
-     *     url: string|null
-     * }
-     */
-    public function eventSubmissionPresentation(EventSubmission $submission): array
-    {
-        $event = $submission->event;
-        $occurrence = $submission->occurrence;
-
-        $title = $occurrence instanceof EventOccurrence && filled($occurrence->title)
-            ? (string) $occurrence->title
-            : ($event instanceof Event ? (string) $event->title : null);
-
-        $parentTitle = null;
-
-        if (
-            $occurrence instanceof EventOccurrence
-            && $event instanceof Event
-            && filled($event->title)
-            && (string) $event->title !== $title
-        ) {
-            $parentTitle = (string) $event->title;
-        }
-
-        $status = $occurrence instanceof EventOccurrence
-            ? $occurrence->status
-            : ($event instanceof Event ? $event->status : null);
-        $statusValue = $status !== null ? (string) $status : null;
-        $statusLabel = match (true) {
-            $status instanceof HasLabel => (string) $status->getLabel(),
-            $status !== null && method_exists($status, 'label') => (string) $status->label(),
-            $statusValue !== null => str($statusValue)->headline()->toString(),
-            default => null,
-        };
-
-        $startsAt = $occurrence instanceof EventOccurrence
-            ? $occurrence->starts_at
-            : ($event instanceof Event ? $event->starts_at : null);
-        $endsAt = $occurrence instanceof EventOccurrence
-            ? $occurrence->ends_at
-            : ($event instanceof Event ? $event->ends_at : null);
-
-        $dateLabel = $startsAt !== null
-            ? UserDateTimeFormatter::translatedFormat($startsAt, 'l, j F Y')
-            : null;
-        $timeLabel = null;
-
-        if ($startsAt !== null) {
-            $timeLabel = UserDateTimeFormatter::format($startsAt, 'h:i A');
-
-            if ($endsAt !== null) {
-                $viewerTimezone = UserTimezoneResolver::resolve();
-                $sameDay = $startsAt->copy()->timezone($viewerTimezone)->isSameDay($endsAt->copy()->timezone($viewerTimezone));
-                $timeLabel .= ' – '.UserDateTimeFormatter::format($endsAt, $sameDay ? 'h:i A' : 'j M, h:i A');
-            }
-        }
-
-        $url = null;
-
-        if ($event instanceof Event && $event->isPubliclyReachable()) {
-            if ($occurrence instanceof EventOccurrence) {
-                if (app(PublicScheduleVisibility::class)->isPublicOccurrence((string) $occurrence->getKey())) {
-                    $url = route('events.occurrence', [
-                        $event,
-                        PublicScheduleSlug::occurrence(
-                            slug: (string) $occurrence->slug,
-                            title: $occurrence->title,
-                            id: (string) $occurrence->getKey(),
-                        ),
-                    ]);
-                }
-            } else {
-                $url = route('events.show', $event);
-            }
-        }
-
-        return [
-            'title' => $title,
-            'parent_title' => $parentTitle,
-            'status_value' => $statusValue,
-            'status_label' => $statusLabel,
-            'date_label' => $dateLabel,
-            'time_label' => $timeLabel,
-            'url' => $url,
-        ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function eventSubmissionDetails(EventSubmission $submission): array
-    {
-        $event = $submission->event;
-        $occurrence = $submission->occurrence;
-
-        if (! $occurrence instanceof EventOccurrence && ! $event instanceof Event) {
-            return [];
-        }
-
-        $institution = null;
-        $speakers = collect();
-        $references = collect();
-
-        if ($occurrence instanceof EventOccurrence) {
-            $organizer = $occurrence->involvements
-                ->firstWhere('role_code', 'organizer')
-                ?->involveable;
-
-            $institution = $organizer instanceof Institution ? $organizer : null;
-
-            $speakers = $occurrence->involvements
-                ->where('role_code', EventKeyPersonRole::Speaker->value)
-                ->map(function (EventInvolvement $involvement): ?string {
-                    $person = $involvement->involveable;
-
-                    if ($person instanceof Person) {
-                        return $person->formatted_name;
-                    }
-
-                    return filled($involvement->display_name) ? (string) $involvement->display_name : null;
-                })
-                ->filter()
-                ->values();
-
-            $references = $occurrence->references
-                ->map(function (EventReference $reference): ?string {
-                    $catalogReference = $reference->referenceable;
-
-                    if ($catalogReference instanceof Reference) {
-                        return $catalogReference->displayTitle();
-                    }
-
-                    return filled($reference->title) ? (string) $reference->title : null;
-                })
-                ->filter()
-                ->values();
-        }
-
-        if ($event instanceof Event) {
-            $institution ??= $event->institution;
-
-            if ($speakers->isEmpty()) {
-                $speakers = $event->persons->pluck('formatted_name');
-            }
-
-            if ($references->isEmpty()) {
-                $references = $event->references
-                    ->map(fn (Reference $reference): string => $reference->displayTitle());
-            }
-        }
-
-        $details = [];
-
-        if ($institution instanceof Institution && filled($institution->display_name)) {
-            $details[] = __('Institution: :name', ['name' => $institution->display_name]);
-        }
-
-        if ($speakers->isNotEmpty()) {
-            $details[] = __('Speakers: :names', ['names' => $speakers->join(', ')]);
-        }
-
-        if ($references->isNotEmpty()) {
-            $details[] = __('References: :names', ['names' => $references->join(', ')]);
-        }
-
-        return $details;
     }
 
     public function form(Schema $schema): Schema

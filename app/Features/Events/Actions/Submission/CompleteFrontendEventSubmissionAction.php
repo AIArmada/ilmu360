@@ -6,7 +6,7 @@ namespace App\Features\Events\Actions\Submission;
 
 use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventSubmissionCompletion;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
 
 /** Owner of completion writes and parent moderation decisions. */
 final readonly class CompleteFrontendEventSubmissionAction implements EventSubmissionCompletion

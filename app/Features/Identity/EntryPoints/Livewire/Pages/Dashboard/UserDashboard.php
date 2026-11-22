@@ -11,9 +11,9 @@ use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\AccountEventFacts;
 use App\Features\Events\Api\Orm\EventOrmPort;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Data\EventSubmissionCard;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Models\EventSubmission;
 use App\Features\Institutions\Api\InstitutionDirectoryRecord;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonDirectoryRecord;
@@ -346,37 +346,30 @@ class UserDashboard extends Component
         return $this->sortRegistrationsForPlanner($registrations);
     }
 
-    /**
-     * @return Collection<int, array<string, mixed>>
-     */
+    /** @return Collection<int, array<string, mixed>> */
     #[Computed]
     public function submittedEvents(): Collection
     {
-        /** @var Collection<int, array<string, mixed>> $entries */
+        $submissions = app(EventSubmissions::class)->plannerSubmissionsForAccount((string) $this->user()->getKey());
         $entries = collect();
 
-        /** @var Collection<int, EventSubmission> $submissions */
-        $submissions = app(EventSubmissions::class)->plannerSubmissionsForAccount((string) $this->user()->getKey());
-        $submissions = $submissions->values();
-
         foreach ($submissions as $submission) {
-            if (! $submission instanceof EventSubmission || ! $submission->event instanceof Event) {
+            if (! $submission instanceof EventSubmissionCard || $submission->eventId === '') {
                 continue;
             }
 
             $entries->push([
-                'event' => $submission->event,
-                'created_at' => $submission->created_at,
-                'notes' => $submission->submission_data['notes'] ?? null,
+                'event' => [
+                    'id' => $submission->eventId,
+                    'title' => $submission->eventTitle,
+                    'url' => $submission->eventUrl,
+                ],
+                'created_at' => $submission->createdAt,
+                'notes' => $submission->notes,
             ]);
         }
 
-        /** @var Collection<int, array<string, mixed>> $sortedEntries */
-        $sortedEntries = $entries
-            ->sortByDesc(fn (array $entry): int => $entry['created_at']?->getTimestamp() ?? 0)
-            ->values();
-
-        return $sortedEntries;
+        return $entries->sortByDesc(static fn (array $entry): int => is_string($entry['created_at']) ? (strtotime($entry['created_at']) ?: 0) : 0)->values();
     }
 
     /**

@@ -12,7 +12,7 @@ use App\Features\Events\Api\EventModeration;
 use App\Features\Events\Api\EventReportSubjectProvider;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Api\GuestSubmissionClaims;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Events\Models\EventSubmission;

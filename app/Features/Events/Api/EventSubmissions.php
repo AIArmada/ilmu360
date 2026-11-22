@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Features\Events\Api\Orm;
+namespace App\Features\Events\Api;
 
 use App\Features\Events\Api\Data\EventSubmissionRewardFact;
+use App\Features\Events\Api\Data\EventSubmissionCard;
+use App\Features\Events\Api\Data\EventSubmissionPage;
 use App\Features\Events\Api\EventSubmissionInput;
-use App\Features\Events\Models\EventSubmission;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Public event-submission boundary.
@@ -121,30 +120,14 @@ interface EventSubmissions
         bool $autoApproved,
     ): ?string;
 
-    /**
-     * Documented transport: paginated submissions for an account, excluding
-     * events owned by an institution the account does not belong to, with the
-     * contribution presentation relations eager loaded.
-     *
-     * @return LengthAwarePaginator<int, EventSubmission>
-     */
-    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): LengthAwarePaginator;
+    /** Paginated immutable submission cards for the contributor dashboard. */
+    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): EventSubmissionPage;
 
-    /**
-     * Documented transport: submissions for an account with the event loaded,
-     * newest first.
-     *
-     * @return EloquentCollection<int, EventSubmission>
-     */
-    public function submissionsForAccount(string $accountId): EloquentCollection;
+    /** @return list<EventSubmissionCard> */
+    public function submissionsForAccount(string $accountId): array;
 
-    /**
-     * Documented transport: planner submissions for an account with the event
-     * and planner relations loaded, newest first.
-     *
-     * @return EloquentCollection<int, EventSubmission>
-     */
-    public function plannerSubmissionsForAccount(string $accountId): EloquentCollection;
+    /** @return list<EventSubmissionCard> */
+    public function plannerSubmissionsForAccount(string $accountId): array;
 
     public function existsForSubmitter(string $eventId, string $accountId): bool;
 

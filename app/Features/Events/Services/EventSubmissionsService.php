@@ -18,7 +18,10 @@ use App\Features\Events\Actions\Submission\ValidateEventSubmissionCategoriesActi
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Api\Data\EventSubmissionRewardFact;
 use App\Features\Events\Api\EventSubmissionInput;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Api\Data\EventSubmissionCard;
+use App\Features\Events\Api\Data\EventSubmissionPage;
+use App\Features\Events\Queries\EventSubmissionCardProjector;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Support\EventModel;
 use App\Features\Prayer\Api\EventPrayerTime;
@@ -48,6 +51,7 @@ final readonly class EventSubmissionsService implements EventSubmissions
         private ReviewOccurrenceSubmissionAction $reviewOccurrenceSubmission,
         private CompleteEventSubmissionWritesAction $completeWrites,
         private SubmissionRelationSync $relationSync,
+        private EventSubmissionCardProjector $cards,
     ) {}
 
     public function validate(array $state, string $prefix = ''): array
@@ -244,11 +248,11 @@ final readonly class EventSubmissionsService implements EventSubmissions
         return $model;
     }
 
-    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): LengthAwarePaginator
+    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): EventSubmissionPage
     {
         $institutionIdSelector = 'events.institution_id';
 
-        return EventSubmission::query()
+        $page = EventSubmission::query()
             ->where('submitter_type', (new User)->getMorphClass())
             ->where('submitter_id', $submitterId)
             ->whereHas('event', function (Builder $query) use ($institutionIdSelector, $submitterId): void {
@@ -274,31 +278,39 @@ final readonly class EventSubmissionsService implements EventSubmissions
             ])
             ->latest('created_at')
             ->paginate(perPage: $perPage, pageName: $pageName);
+
+        return new EventSubmissionPage(
+            items: $page->getCollection()->map(fn (EventSubmission $submission): EventSubmissionCard => $this->cards->toCard($submission))->all(),
+            total: $page->total(),
+            perPage: $page->perPage(),
+            currentPage: $page->currentPage(),
+        );
     }
 
-    public function submissionsForAccount(string $accountId): EloquentCollection
+    /** @return list<EventSubmissionCard> */
+    public function submissionsForAccount(string $accountId): array
     {
         return EventSubmission::query()
             ->where('submitter_type', (new User)->getMorphClass())
             ->where('submitter_id', $accountId)
-            ->with('event')
+            ->with(['event.institution', 'event.persons', 'event.references', 'occurrence.involvements.involveable', 'occurrence.references.referenceable'])
             ->latest()
-            ->get();
+            ->get()
+            ->map(fn (EventSubmission $submission): EventSubmissionCard => $this->cards->toCard($submission))
+            ->all();
     }
 
-    public function plannerSubmissionsForAccount(string $accountId): EloquentCollection
+    /** @return list<EventSubmissionCard> */
+    public function plannerSubmissionsForAccount(string $accountId): array
     {
         return EventSubmission::query()
             ->where('submitter_type', (new User)->getMorphClass())
             ->where('submitter_id', $accountId)
-            ->with([
-                'event.media',
-                'event.institution',
-                'event.institution.media',
-                'event.venue',
-            ])
+            ->with(['event.media', 'event.institution.media', 'event.venue', 'event.persons', 'event.references', 'occurrence.involvements.involveable', 'occurrence.references.referenceable'])
             ->latest()
-            ->get();
+            ->get()
+            ->map(fn (EventSubmission $submission): EventSubmissionCard => $this->cards->toCard($submission))
+            ->all();
     }
 
     public function existsForSubmitter(string $eventId, string $accountId): bool

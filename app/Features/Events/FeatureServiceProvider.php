@@ -90,7 +90,7 @@ use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Api\OrganizerLookup;
 use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Api\Orm\EventSchedulePageData;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\Orm\PublicScheduleEventReads;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
 use App\Features\Events\Api\ProductSignalsInsights;

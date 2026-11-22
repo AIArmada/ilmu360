@@ -8,7 +8,7 @@ use AIArmada\Events\States\EventModerationStatus\Approved as SubmissionApproved;
 use AIArmada\Events\States\EventModerationStatus\Pending as SubmissionPending;
 use AIArmada\Events\States\EventModerationStatus\Rejected as SubmissionRejected;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Contracts\OccurrenceReviewNotifier;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;

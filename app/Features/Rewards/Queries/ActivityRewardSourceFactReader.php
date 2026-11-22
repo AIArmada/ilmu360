@@ -13,7 +13,7 @@ use AIArmada\Rewards\Support\RewardSourceFact;
 use App\Features\Engagement\Api\EngagementActivity;
 use App\Features\Engagement\Api\EngagementActivityReader;
 use App\Features\Events\Api\Data\EventSubmissionRewardFact;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Registration\Api\Orm\RegistrationLookup;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;

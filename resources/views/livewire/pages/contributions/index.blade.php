@@ -252,8 +252,8 @@
                     <div class="space-y-3">
                         @forelse($submittedEvents as $submission)
                             @php
-                                $presentation = $this->eventSubmissionPresentation($submission);
-                                $eventDetails = $this->eventSubmissionDetails($submission);
+                                $presentation = $submission->presentation;
+                                $eventDetails = $submission->details;
                                 $cardTag = $presentation['url'] !== null ? 'a' : 'div';
                             @endphp
 
@@ -268,7 +268,7 @@
                                         <div class="space-y-2">
                                             <div class="flex flex-wrap items-center gap-2">
                                                 <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                                                    {{ $submission->occurrence ? __('Occurrence') : __('Event') }}
+                                                    {{ $submission->occurrenceId !== null ? __('Occurrence') : __('Event') }}
                                                 </span>
                                                 @if($presentation['status_label'] !== null)
                                                     <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClass($presentation['status_value'] ?? '') }}">
@@ -289,7 +289,7 @@
                                                 </p>
                                             @endif
 
-                                            <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $submission->created_at?->diffForHumans()]) }}</p>
+                                            <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $submission->createdAtHuman]) }}</p>
 
                                             @if($eventDetails !== [])
                                                 <div class="flex flex-wrap gap-2 pt-1">

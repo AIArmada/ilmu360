@@ -12,7 +12,7 @@ use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventSubmissionCompletion;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissionOrganizerKind;
-use App\Features\Events\Api\Orm\EventSubmissions;
+use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;

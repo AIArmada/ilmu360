@@ -274,16 +274,16 @@
                     @forelse ($this->eventSubmissions as $submission)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
-                                <a href="{{ $this->eventUrl($submission->event) }}" class="font-medium text-primary-600 hover:underline">
-                                    {{ $submission->event?->title ?: '-' }}
+                                <a href="{{ \App\Platform\Admin\AdminResourceLink::to('event', 'view', $submission->eventId) }}" class="font-medium text-primary-600 hover:underline">
+                                    {{ $submission->eventTitle ?: '-' }}
                                 </a>
-                                <x-filament::badge :color="$this->eventStatusBadgeColor($submission->event?->status)">{{ $this->humanLabel($submission->event?->status) }}</x-filament::badge>
+                                <x-filament::badge :color="$this->eventStatusBadgeColor($submission->eventStatus)">{{ $this->humanLabel($submission->eventStatus) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Submitted At: {{ \App\Platform\Time\UserDateTimeFormatter::format($submission->created_at, 'd M Y H:i') ?: '-' }}
+                                Submitted At: {{ ($submission->createdAt !== null ? \App\Platform\Time\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($submission->createdAt), 'd M Y H:i') : '') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Notes: {{ data_get($submission->submission_data, 'notes') ?: '-' }}
+                                Notes: {{ $submission->notes ?: '-' }}
                             </div>
                         </div>
                     @empty
