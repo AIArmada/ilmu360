@@ -8,14 +8,13 @@ use App\Features\Places\Models\Space;
 use App\Features\Places\Persistence\SpaceWriter;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Delete a space through the owning feature while preserving the event-
  * location guard.
  *
- * The Space model keeps its guard and package facility cleanup; the Places
- * writer owns the transactional row delete and institution link cleanup.
+ * The model's pre-delete hook delegates the guard to GuardSpaceDeletionAction;
+ * the writer then performs the transactional delete and link cleanup.
  */
 final readonly class DeleteSpaceAction
 {
@@ -27,12 +26,6 @@ final readonly class DeleteSpaceAction
     {
         /** @var Space $space */
         $space = MorphModelResolver::assert($space, 'space');
-
-        if ($space->eventLocations()->exists()) {
-            throw ValidationException::withMessages([
-                'space' => __('Spaces referenced by event locations cannot be deleted.'),
-            ]);
-        }
 
         $this->spaceWriter->delete($space);
     }

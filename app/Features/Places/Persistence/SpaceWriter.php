@@ -9,7 +9,7 @@ use App\Features\Places\Models\Space;
 /**
  * Owns the transactional space row delete.
  *
- * The Space model keeps its event-location guard and package facility cleanup;
+ * The Space model delegates event-location protection to GuardSpaceDeletionAction and preserves package facility cleanup;
  * this writer keeps the row delete atomic with the institution bridge cleanup
  * that runs on the model's deleted hook.
  */

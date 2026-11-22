@@ -5,12 +5,12 @@ namespace App\Features\Places\Models;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Events\Models\VenueSpace;
 use App\Features\Institutions\Models\Institution;
+use App\Features\Places\Actions\Spaces\GuardSpaceDeletionAction;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\SpaceFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
-use Illuminate\Validation\ValidationException;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 /**
@@ -40,13 +40,7 @@ class Space extends VenueSpace implements AuditableContract
         // The app event-reference guard registers BEFORE the parent
         // deleting cleanup, so a rejected Space deletion leaves its
         // facilities intact.
-        static::deleting(function (self $space): void {
-            if ($space->eventLocations()->exists()) {
-                throw ValidationException::withMessages([
-                    'space' => __('Spaces referenced by event locations cannot be deleted.'),
-                ]);
-            }
-        });
+        static::deleting(static fn (self $space): mixed => app(GuardSpaceDeletionAction::class)->handle($space));
 
         parent::booted();
 
