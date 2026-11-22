@@ -7,7 +7,6 @@ namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventAttendance;
 use AIArmada\Events\Models\EventRegistrationParticipant;
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
@@ -21,7 +20,6 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +39,9 @@ final class Participants extends Component
 {
     use InteractsWithToasts;
     use WithPagination;
+
+    #[Locked]
+    public Event $event;
 
     #[Locked]
     public string $eventId = '';
@@ -77,6 +78,7 @@ final class Participants extends Component
         abort_unless($user instanceof User, 403);
         abort_unless($user->can('viewRegistrations', $event), 403);
 
+        $this->event = $event;
         $this->eventId = (string) $event->getKey();
         $this->attendanceFilter = $this->normalizeAttendanceFilter($this->attendanceFilter);
         $this->scope = $this->normalizeScope($this->scope);
@@ -775,12 +777,8 @@ final class Participants extends Component
 
     private function selectedEvent(): Event
     {
-        $event = app(EventOrmPort::class)->findEvent($this->eventId);
+        abort_unless((string) $this->event->getKey() === $this->eventId, 404);
 
-        if (! $event instanceof Event) {
-            throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);
-        }
-
-        return $event;
+        return $this->event;
     }
 }

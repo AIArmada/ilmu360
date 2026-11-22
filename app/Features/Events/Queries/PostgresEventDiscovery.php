@@ -2087,11 +2087,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->all();
     }
 
-    public function findEvent(string $eventId): ?Event
-    {
-        return Event::query()->find($eventId);
-    }
-
     public function shareIdentityById(string $eventId): ?array
     {
         $event = Event::query()->whereKey($eventId)->first(['id', 'title']);

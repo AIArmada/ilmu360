@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Events\Api\Orm;
 
 use App\Features\Events\Models\Builders\EventBuilder;
-use App\Features\Events\Models\Event;
 
 /**
  * Explicit Eloquent integration port for event schedule composition.
@@ -23,12 +22,6 @@ use App\Features\Events\Models\Event;
  */
 interface EventOrmPort
 {
-    /**
-     * A hydrated Event model for framework contracts (policies, Livewire page
-     * state, eager-loaded relations, media and share subjects).
-     */
-    public function findEvent(string $eventId): ?Event;
-
     /**
      * Institution dashboard table query with the table relation set and
      * dashboard registration count.

@@ -13,7 +13,6 @@ use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Ticketing\Models\TicketType;
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\Enums\OfflineAdmissionPaymentMethod;
@@ -26,7 +25,6 @@ use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -41,6 +39,9 @@ use Throwable;
 final class OfflineAdmissions extends Component
 {
     use InteractsWithToasts;
+
+    #[Locked]
+    public Event $event;
 
     #[Locked]
     public string $eventId = '';
@@ -81,6 +82,7 @@ final class OfflineAdmissions extends Component
     public function mount(Event $event): void
     {
         $this->authorizeAdmissions($event);
+        $this->event = $event;
         $this->eventId = (string) $event->getKey();
         $this->participant = $this->defaultParticipant();
         $this->ticketId = array_key_first($this->ticketOptions($event)) ?? '';
@@ -636,13 +638,9 @@ final class OfflineAdmissions extends Component
 
     private function selectedEvent(): Event
     {
-        $event = app(EventOrmPort::class)->findEvent($this->eventId);
+        abort_unless((string) $this->event->getKey() === $this->eventId, 404);
 
-        if (! $event instanceof Event) {
-            throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);
-        }
-
-        return $event;
+        return $this->event;
     }
 
     private function authorizeAdmissions(Event $event): void

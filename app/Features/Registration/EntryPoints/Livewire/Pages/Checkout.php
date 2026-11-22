@@ -13,7 +13,6 @@ use AIArmada\Events\Models\EventRegistrationQuestion;
 use AIArmada\Events\Support\EventTicketScope;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Events\Api\EventTicketing;
-use App\Features\Events\Api\Orm\EventOrmPort;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionCheckout;
 use App\Features\Registration\Api\AdmissionRegistration;
@@ -23,7 +22,6 @@ use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -37,6 +35,7 @@ use Throwable;
 #[Title('Event Checkout')]
 final class Checkout extends Component
 {
+    #[Locked]
     public Event $event;
 
     #[Locked]
@@ -191,11 +190,8 @@ final class Checkout extends Component
             $this->validate();
             $this->processing = true;
 
-            $event = app(EventOrmPort::class)->findEvent($this->eventId);
-
-            if (! $event instanceof Event) {
-                throw (new ModelNotFoundException)->setModel(Event::class, [$this->eventId]);
-            }
+            $event = $this->event;
+            abort_unless((string) $event->getKey() === $this->eventId, 404);
             $ticket = $this->resolveTicketForSubmit($event, $ticketing);
             $agreement = $this->agreementPayload($user);
             $participants = $this->normalizeParticipants($user, $agreement);
