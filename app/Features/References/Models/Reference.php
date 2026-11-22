@@ -18,11 +18,11 @@ use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
-use App\Features\References\Api\ReferenceWorkflow;
+use App\Features\References\Actions\PrepareReferencePersistenceAction;
+use App\Features\References\Support\ReferenceInputValues;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\MorphModelResolver;
-use BackedEnum;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReferenceFactory;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
@@ -37,7 +37,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -104,35 +103,8 @@ class Reference extends PackageReference implements AuditableContract, Followabl
     #[\Override]
     protected static function booted(): void
     {
-        static::saving(function (self $reference): void {
-            $reference->normalizeReferencePartFields();
-
-            if (blank($reference->slug)) {
-                $reference->slug = app(ReferenceWorkflow::class)->buildSlug($reference->displayTitle(), (string) $reference->getKey());
-            }
-
-            if ($reference->isDirty('status')) {
-                $now = now();
-                $reference->last_state_change_at = $now;
-                $status = (string) $reference->status;
-
-                match ($status) {
-                    'verified' => $reference->verified_at ??= $now,
-                    'published' => $reference->published_at ??= $now,
-                    'rejected' => $reference->rejected_at ??= $now,
-                    default => null,
-                };
-
-                if (in_array($status, ['verified', 'pending'], true)
-                    && ! $reference->isDirty('published_at')
-                    && ($reference->exists || ! array_key_exists('published_at', $reference->getAttributes()))) {
-                    $reference->published_at = $now;
-                }
-
-                if ($status === 'verified') {
-                    $reference->verified_by ??= auth()->id();
-                }
-            }
+        static::saving(static function (self $reference): void {
+            app(PrepareReferencePersistenceAction::class)->handle($reference);
         });
 
         parent::booted();
@@ -144,7 +116,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
         'slug',
         'parent_id',
         'type',
-        // Virtual part inputs consumed by normalizeReferencePartFields() into reference_parts.
+        // Virtual part inputs consumed by PrepareReferencePersistenceAction into reference_parts.
         'part_type',
         'part_number',
         'part_label',
@@ -618,7 +590,7 @@ class Reference extends PackageReference implements AuditableContract, Followabl
 
     public function recordKindValue(): string
     {
-        return (string) $this->optionalStringAttribute('record_kind');
+        return (string) ReferenceInputValues::optionalStringAttribute($this->getAttributes(), 'record_kind');
     }
 
     public function isPart(): bool
@@ -720,27 +692,27 @@ class Reference extends PackageReference implements AuditableContract, Followabl
 
     public function typeValue(): ?string
     {
-        return $this->optionalStringAttribute('type');
+        return ReferenceInputValues::optionalStringAttribute($this->getAttributes(), 'type');
     }
 
     public function parentIdValue(): ?string
     {
-        return $this->optionalStringAttribute('parent_id');
+        return ReferenceInputValues::optionalStringAttribute($this->getAttributes(), 'parent_id');
     }
 
     public function partTypeValue(): ?string
     {
-        return $this->normalizeStringValue($this->primaryPartEntry()['type'] ?? null);
+        return ReferenceInputValues::normalizeStringValue($this->primaryPartEntry()['type'] ?? null);
     }
 
     public function partNumberValue(): ?string
     {
-        return $this->normalizeStringValue($this->primaryPartEntry()['value'] ?? null);
+        return ReferenceInputValues::normalizeStringValue($this->primaryPartEntry()['value'] ?? null);
     }
 
     public function partLabelValue(): ?string
     {
-        return $this->normalizeStringValue($this->primaryPartEntry()['label'] ?? null);
+        return ReferenceInputValues::normalizeStringValue($this->primaryPartEntry()['label'] ?? null);
     }
 
     /**
@@ -768,17 +740,17 @@ class Reference extends PackageReference implements AuditableContract, Followabl
 
     public function titleValue(): ?string
     {
-        return $this->optionalStringAttribute('title');
+        return ReferenceInputValues::optionalStringAttribute($this->getAttributes(), 'title');
     }
 
     public function publisherValue(): ?string
     {
-        return $this->optionalStringAttribute('publisher');
+        return ReferenceInputValues::optionalStringAttribute($this->getAttributes(), 'publisher');
     }
 
     public function descriptionValue(): ?string
     {
-        return $this->optionalStringAttribute('description');
+        return ReferenceInputValues::optionalStringAttribute($this->getAttributes(), 'description');
     }
 
     private function resolvedPartLabel(): string
@@ -799,121 +771,6 @@ class Reference extends PackageReference implements AuditableContract, Followabl
         $label = $partType->getLabel();
 
         return $partNumber !== '' ? "{$label} {$partNumber}" : $label;
-    }
-
-    private function normalizeReferencePartFields(): void
-    {
-        if (! $this->isRootReference() && $this->typeValue() !== ReferenceType::Book->value) {
-            throw ValidationException::withMessages(['type' => __('Only books can have editions or parts.')]);
-        }
-
-        if ($this->isRootReference() && $this->exists && $this->typeValue() !== ReferenceType::Book->value && $this->childReferences()->exists()) {
-            throw ValidationException::withMessages(['type' => __('A book with editions or parts must remain a book.')]);
-        }
-
-        if ($this->isDirty('parent_id')) {
-            $this->unsetRelation('parentReference');
-        }
-
-        if ($this->parentIdValue() !== null) {
-            $parent = self::query()->find($this->parentIdValue());
-            if ($parent instanceof self && $parent->typeValue() !== ReferenceType::Book->value) {
-                throw ValidationException::withMessages(['parent_id' => __('Select a book work or edition.')]);
-            }
-        }
-
-        if ($this->isPart()) {
-            if (array_key_exists('part_type', $this->attributes)
-                || array_key_exists('part_number', $this->attributes)
-                || array_key_exists('part_label', $this->attributes)) {
-                $type = ReferencePartType::tryFrom((string) $this->optionalStringAttribute('part_type'));
-                if ($type === null) {
-                    throw ValidationException::withMessages(['part_type' => __('Select a valid part type.')]);
-                }
-                $this->reference_parts = [[
-                    'type' => $type->value,
-                    'value' => $this->nullableTrimmedString($this->optionalStringAttribute('part_number')),
-                    'label' => $this->nullableTrimmedString($this->optionalStringAttribute('part_label')),
-                ]];
-            }
-            if (ReferencePartType::tryFrom((string) $this->partTypeValue()) === null) {
-                throw ValidationException::withMessages(['part_type' => __('Select a valid part type.')]);
-            }
-            if (blank($this->partNumberValue()) && blank($this->partLabelValue())) {
-                throw ValidationException::withMessages(['part_number' => __('Enter a part number or label.')]);
-            }
-        } else {
-            $this->reference_parts = null;
-        }
-
-        if (! $this->isEdition()) {
-            $this->edition_number = null;
-            $this->edition_label = null;
-        } elseif (blank($this->edition_number) && blank($this->edition_label) && blank($this->publisher) && blank($this->year) && blank($this->isbn)) {
-            throw ValidationException::withMessages(['edition_label' => __('Enter a printing number, edition label, publisher, year, or ISBN to identify this edition.')]);
-        }
-
-        $language = $this->nullableTrimmedString($this->optionalStringAttribute('language'));
-        $this->language = $language;
-
-        if ($language !== null) {
-            if (mb_strlen($language) > 10) {
-                throw ValidationException::withMessages(['language' => __('Select a valid language.')]);
-            }
-
-            if (! DB::table('languages')->where('code', $language)->exists()) {
-                throw ValidationException::withMessages(['language' => __('Select a valid language.')]);
-            }
-        }
-
-        unset($this->attributes['part_type'], $this->attributes['part_number'], $this->attributes['part_label']);
-    }
-
-    private function optionalStringAttribute(string $key): ?string
-    {
-        $attributes = $this->getAttributes();
-
-        if (! array_key_exists($key, $attributes)) {
-            return null;
-        }
-
-        return $this->normalizeStringValue($attributes[$key]);
-    }
-
-    private function normalizeStringValue(mixed $value): ?string
-    {
-        if ($value instanceof BackedEnum) {
-            $value = $value->value;
-        }
-
-        if ($value === null) {
-            return null;
-        }
-
-        if (is_string($value)) {
-            return $value;
-        }
-
-        if (is_int($value) || is_float($value)) {
-            return (string) $value;
-        }
-
-        return null;
-    }
-
-    private function nullableTrimmedString(mixed $value): ?string
-    {
-        if ($value instanceof BackedEnum) {
-            $value = $value->value;
-        }
-
-        if (! is_string($value) && ! is_numeric($value)) {
-            return null;
-        }
-
-        $trimmed = trim((string) $value);
-
-        return $trimmed !== '' ? $trimmed : null;
     }
 
     /**
