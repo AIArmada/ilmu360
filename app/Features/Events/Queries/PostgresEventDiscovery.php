@@ -2356,10 +2356,10 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         }
 
         $location = app(SpaceLocation::class)->name(
-            (string) ($event->primaryLocation?->space_name_snapshot ?? ''),
+            (string) ($event->primaryLocation->space_name_snapshot ?? ''),
             $event->primaryLocation?->venueSpace?->name,
-        ) ?? $event->venue?->name
-            ?? $event->institution?->display_name
+        ) ?? $event->venue->name
+            ?? $event->institution->display_name
             ?? (string) __('Location to be confirmed');
 
         $actor = auth()->user();
