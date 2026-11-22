@@ -53,31 +53,6 @@ final readonly class EloquentPlaceLookup implements PlaceLookup
         return is_string($name) ? $name : null;
     }
 
-    public function resolvedPrimaryAddressId(string $venueId): ?string
-    {
-        $venue = Venue::query()->find($venueId);
-
-        if (! $venue instanceof Venue) {
-            return null;
-        }
-
-        $address = $venue->primaryAddress();
-
-        if ($address instanceof \AIArmada\Addressing\Models\Address) {
-            return (string) $address->getKey();
-        }
-
-        $owner = $venue->institutions()
-            ->reorder()
-            ->orderByDesc('institution_venue.is_primary')
-            ->oldest('institutions.id')
-            ->first();
-
-        $ownerAddress = $owner?->primaryAddress();
-
-        return $ownerAddress !== null ? (string) $ownerAddress->getKey() : null;
-    }
-
     /**
      * @return array<string, string>
      */

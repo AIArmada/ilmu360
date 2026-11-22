@@ -11,4 +11,6 @@ interface PlaceCatalog
 
     /** @return list<array{id: string, label: string}> */
     public function spaces(?string $institutionId = null): array;
+
+    public function resolvedPrimaryAddressId(string $venueId): ?string;
 }

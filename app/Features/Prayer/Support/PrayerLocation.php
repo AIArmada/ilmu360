@@ -8,7 +8,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Institutions\Api\InstitutionLookup;
-use App\Features\Places\Api\Orm\PlaceLookup;
+use App\Features\Places\Api\PlaceCatalog;
 
 /**
  * Extracts prayer-resolution inputs from a package address.
@@ -67,7 +67,7 @@ final class PrayerLocation
         }
 
         if ($venueId !== null && $venueId !== '') {
-            $addressId = app(PlaceLookup::class)->resolvedPrimaryAddressId($venueId);
+            $addressId = app(PlaceCatalog::class)->resolvedPrimaryAddressId($venueId);
 
             if ($addressId !== null) {
                 $address = Address::query()->find($addressId);

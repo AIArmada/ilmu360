@@ -21,11 +21,6 @@ interface PlaceLookup
 
     public function venueName(string $venueId): ?string;
 
-    /**
-     * Primary address for a venue, falling back to its operating institution.
-     */
-    public function resolvedPrimaryAddressId(string $venueId): ?string;
-
     /** @return array<string, string> */
     public function venueNameOptions(string $search = '', int $limit = 50): array;
 
