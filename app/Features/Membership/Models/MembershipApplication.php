@@ -2,10 +2,10 @@
 
 namespace App\Features\Membership\Models;
 
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
 use AIArmada\Membership\Models\MembershipApplication as BaseMembershipApplication;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Cache\CacheVersionStore;
 use Database\Factories\MembershipApplicationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

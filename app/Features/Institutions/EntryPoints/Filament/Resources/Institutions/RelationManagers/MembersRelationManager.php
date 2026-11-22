@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\RelationManagers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\FilamentOrganizations\RelationManagers\AbstractMembersRelationManager;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipCommands;
@@ -10,187 +13,78 @@ use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use App\Platform\Admin\AdminResourceLink;
 use App\Shared\Submission\PublicSubmissionUiEvents;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Model;
 
-class MembersRelationManager extends RelationManager
+class MembersRelationManager extends AbstractMembersRelationManager
 {
-    #[\Override]
-    protected static string $relationship = 'members';
-
-    #[\Override]
-    protected static ?string $title = 'Members';
-
-    public function table(Table $table): Table
+    protected function addMember(Model $owner, Model $member, string $role): void
     {
-        return $table
-            ->columns([
-                TextColumn::make('name')
-                    ->searchable()
-                    ->sortable()
-                    ->url(fn (User $record): ?string => (auth()->user()?->can('update', $record) ?? false)
-                        ? AdminResourceLink::toSlug('authz/users', 'edit', (string) $record->getKey())
-                        : null),
-                TextColumn::make('email')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('role')
-                    ->label('Role')
-                    ->getStateUsing(fn (User $record): string => $record->pivot->role ?? '—'),
-            ])
-            ->headerActions([
-                Action::make('addMember')
-                    ->label('Add member')
-                    ->form([
-                        Select::make('user_id')
-                            ->label('User')
-                            ->searchable()
-                            ->getSearchResultsUsing(function (string $search): array {
-                                $trimmed = trim($search);
-                                $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($trimmed));
+        /** @var Institution $owner */
+        OwnerContext::withOwner($owner, function () use ($owner, $member, $role): void {
+            $resolvedRole = MemberRole::tryFrom($role) ?? MemberRole::Owner;
 
-                                return User::query()
-                                    ->when($escaped !== '', function ($query) use ($escaped): void {
-                                        $query->where(function ($nested) use ($escaped): void {
-                                            $nested->whereRaw('LOWER(name) LIKE ?', ["%{$escaped}%"])
-                                                ->orWhereRaw('LOWER(email) LIKE ?', ["%{$escaped}%"]);
-                                        });
-                                    })
-                                    ->orderBy('name')
-                                    ->limit(50)
-                                    ->get(['id', 'name', 'email'])
-                                    ->mapWithKeys(static fn (User $user): array => [(string) $user->getKey() => "{$user->name} ({$user->email})"])
-                                    ->all();
-                            })
-                            ->getOptionLabelUsing(function (mixed $value): ?string {
-                                if (! is_string($value) || $value === '') {
-                                    return null;
-                                }
-
-                                $user = User::query()->find($value, ['id', 'name', 'email']);
-
-                                return $user instanceof User ? "{$user->name} ({$user->email})" : null;
-                            })
-                            ->required(),
-                        $this->makeRoleSelect(),
-                    ])
-                    ->action(function (array $data): void {
-                        OwnerContext::withOwner($this->getInstitutionOwner(), function () use ($data): void {
-                            $institution = $this->getInstitutionOwner();
-                            $member = User::findOrFail($data['user_id']);
-                            $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner;
-
-                            app(MembershipCommands::class)->addMember(
-                                MemberSubjectType::Institution,
-                                (string) $institution->getKey(),
-                                (string) $member->getKey(),
-                                $role->value,
-                            );
-                        });
-
-                        $this->notifyOwnerEditPage();
-                    }),
-            ])
-            ->actions([
-                Action::make('manageRoles')
-                    ->label('Roles')
-                    ->hidden(fn (User $record): bool => $this->memberHasProtectedRole($record))
-                    ->form([
-                        $this->makeRoleSelect(),
-                    ])
-                    ->fillForm(fn (User $record): array => [
-                        'role_id' => $this->getMemberRoleId($record),
-                    ])
-                    ->action(function (array $data, User $record): void {
-                        $institution = $this->getInstitutionOwner();
-                        $role = MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer;
-
-                        app(MembershipCommands::class)->changeMemberRole(
-                            MemberSubjectType::Institution,
-                            (string) $institution->getKey(),
-                            (string) $record->getKey(),
-                            $role->value,
-                        );
-
-                        $this->notifyOwnerEditPage();
-                    }),
-                Action::make('removeMember')
-                    ->label('Remove')
-                    ->color('danger')
-                    ->hidden(fn (User $record): bool => $this->memberHasProtectedRole($record))
-                    ->requiresConfirmation()
-                    ->action(function (User $record): void {
-                        $institution = $this->getInstitutionOwner();
-
-                        app(MembershipCommands::class)->removeMember(
-                            MemberSubjectType::Institution,
-                            (string) $institution->getKey(),
-                            (string) $record->getKey(),
-                        );
-
-                        $this->notifyOwnerEditPage();
-                    }),
-            ]);
+            app(MembershipCommands::class)->addMember(
+                MemberSubjectType::Institution,
+                (string) $owner->getKey(),
+                (string) $member->getKey(),
+                $resolvedRole->value,
+            );
+        });
     }
 
-    /**
-     * @return array<string, string>
-     */
-    protected function roleOptions(): array
+    protected function changeMemberRole(Model $owner, Model $member, string $role): void
     {
-        return collect(MemberRole::cases())
-            ->mapWithKeys(fn (MemberRole $role): array => [$role->value => $role->label()])
-            ->all();
+        $resolvedRole = MemberRole::tryFrom($role) ?? MemberRole::Viewer;
+
+        app(MembershipCommands::class)->changeMemberRole(
+            MemberSubjectType::Institution,
+            (string) $owner->getKey(),
+            (string) $member->getKey(),
+            $resolvedRole->value,
+        );
     }
 
-    private function getInstitutionOwner(): Institution
+    protected function removeMember(Model $owner, Model $member): void
     {
-        /** @var Institution $institution */
-        $institution = $this->getOwnerRecord();
-
-        return $institution;
+        app(MembershipCommands::class)->removeMember(
+            MemberSubjectType::Institution,
+            (string) $owner->getKey(),
+            (string) $member->getKey(),
+        );
     }
 
-    private function getMemberRoleId(User $user): ?string
+    protected function defaultAddRole(): string
     {
-        $institution = $this->getInstitutionOwner();
-        /** @var Collection<int, User> $members */
-        $members = $institution->relationLoaded('members')
-            ? $institution->members
-            : $institution->members()->get();
+        return MemberRole::Owner->value;
+    }
 
-        if (! $institution->relationLoaded('members')) {
-            $institution->setRelation('members', $members);
+    protected function memberNameUrl(Model $record): ?string
+    {
+        if (! $record instanceof User) {
+            return null;
         }
 
-        $member = $members->first(fn (User $member): bool => (string) $member->getKey() === (string) $user->getKey());
-
-        $pivot = $member?->getRelation('pivot');
-
-        return $pivot instanceof Pivot ? $pivot->getAttribute('role') : null;
+        return (auth()->user()?->can('update', $record) ?? false)
+            ? AdminResourceLink::toSlug('authz/users', 'edit', (string) $record->getKey())
+            : null;
     }
 
-    private function makeRoleSelect(): Select
+    protected function getMemberRoleValue(Model $member): ?string
     {
-        return Select::make('role_id')
-            ->label('Role')
-            ->options(fn () => $this->roleOptions())
-            ->required();
+        $role = parent::getMemberRoleValue($member);
+
+        if ($role !== null) {
+            return $role;
+        }
+
+        /** @var Institution $institution */
+        $institution = $this->getOwnerRecord();
+        $loaded = $institution->members()->whereKey($member->getKey())->first();
+
+        return $loaded instanceof User ? parent::getMemberRoleValue($loaded) : null;
     }
 
-    private function memberHasProtectedRole(User $user): bool
-    {
-        $role = $this->getMemberRoleId($user);
-
-        return $role === MemberRole::Owner->value;
-    }
-
-    private function notifyOwnerEditPage(): void
+    protected function afterMemberMutated(): void
     {
         $this->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)->to($this->getPageClass());
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use App\Features\Events\Api\Data\EventScheduleCard;
 use App\Features\Events\Api\EventPageSchedule;
 use App\Features\Events\Models\Event;
@@ -11,7 +12,6 @@ use App\Features\Events\Models\Series;
 use App\Features\Events\Queries\EventCategoryPresenter;
 use App\Features\Events\Queries\PrimaryOccurrenceSql;
 use App\Features\Events\States\EventStatus\Pending;
-use App\Platform\Location\AddressHierarchyFormatter;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -156,7 +156,7 @@ final readonly class EventPageScheduleService implements EventPageSchedule
             endsAt: $end instanceof CarbonInterface ? CarbonImmutable::instance($end) : null,
             timingText: $event->timing_display !== ''
                 ? (string) $event->timing_display
-                : \App\Platform\Time\UserDateTimeFormatter::format($start, 'h:i A'),
+                : \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($start, 'h:i A'),
             deliveryMode: $format instanceof \BackedEnum ? (string) $format->value : (string) $format,
             isPending: $event->status instanceof Pending,
             referenceSubtitle: $event->reference_study_subtitle,

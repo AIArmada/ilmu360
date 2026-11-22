@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationManagers;
 
 use AIArmada\Engagement\Enums\FollowStatus;
-use Filament\Resources\RelationManagers\RelationManager;
+use AIArmada\FilamentEngagement\RelationManagers\FollowersRelationManager as PackageFollowersRelationManager;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class FollowersRelationManager extends RelationManager
+class FollowersRelationManager extends PackageFollowersRelationManager
 {
     #[\Override]
     protected static string $relationship = 'follows';
@@ -18,26 +17,41 @@ class FollowersRelationManager extends RelationManager
     #[\Override]
     protected static ?string $title = 'Followers';
 
-    public function table(Table $table): Table
+    protected function modifyFollowersQuery(Builder $query): Builder
     {
-        return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('status', FollowStatus::Active->value))
-            ->columns([
-                TextColumn::make('follower.name')
-                    ->label('Name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('follower.email')
-                    ->label('Email')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('created_at')
-                    ->label('Followed At')
-                    ->dateTime()
-                    ->sortable(),
-            ])
-            ->headerActions([])
-            ->actions([])
-            ->bulkActions([]);
+        return $query->where('status', FollowStatus::Active->value);
+    }
+
+    protected function getFollowersColumns(): array
+    {
+        return [
+            TextColumn::make('follower.name')
+                ->label('Name')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('follower.email')
+                ->label('Email')
+                ->searchable()
+                ->sortable(),
+            TextColumn::make('created_at')
+                ->label('Followed At')
+                ->dateTime()
+                ->sortable(),
+        ];
+    }
+
+    protected function getFollowersFilters(): array
+    {
+        return [];
+    }
+
+    protected function getFollowersHeaderActions(): array
+    {
+        return [];
+    }
+
+    protected function getFollowersRecordActions(): array
+    {
+        return [];
     }
 }

@@ -12,6 +12,7 @@ use AIArmada\Rewards\Contracts\RewardGratitudePlanner;
 use AIArmada\Rewards\Contracts\RewardReadinessChecker;
 use AIArmada\Rewards\Contracts\RewardReservationResolver;
 use AIArmada\Rewards\Contracts\RewardSourceFactReader;
+use AIArmada\Rewards\Fulfillment\VouchersRewardBenefitCouponFulfillment;
 use AIArmada\Rewards\Models\RewardAppeal;
 use AIArmada\Rewards\Models\RewardAward;
 use AIArmada\Rewards\Models\RewardBenefitGrant;
@@ -21,6 +22,7 @@ use AIArmada\Rewards\Models\RewardPayee;
 use AIArmada\Rewards\Models\RewardPayoutRequest;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardRecovery;
+use AIArmada\Rewards\Support\CompositeRewardSourceFactReader;
 use AIArmada\Rewards\Support\FundedRewardFinancialReadinessChecker;
 use AIArmada\Rewards\Support\FundedRewardReadinessChecker;
 use AIArmada\Rewards\Support\PointLedgerRewardReservationResolver;
@@ -41,15 +43,17 @@ use App\Features\Rewards\Policies\RewardPayeePolicy;
 use App\Features\Rewards\Policies\RewardPayoutRequestPolicy;
 use App\Features\Rewards\Policies\RewardProgramPolicy;
 use App\Features\Rewards\Policies\RewardRecoveryPolicy;
-use App\Features\Rewards\Queries\CompositeRewardSourceFactReader;
+use App\Features\Rewards\Queries\ActivityRewardSourceFactReader;
+use App\Features\Rewards\Queries\ReferralRewardSourceFactReader;
+use App\Features\Rewards\Queries\ShareAttributionRewardSourceFactReader;
 use App\Features\Rewards\Services\ShareCorrectionKeySource;
 use App\Features\Rewards\Support\DigestRewardGratitudePlanner;
 use App\Features\Rewards\Support\PublishedProgramVersionsAdapter;
 use App\Features\Rewards\Support\Telemetry\RewardsSignalSchemaContributor;
-use App\Features\Rewards\Support\VouchersRewardBenefitCouponFulfillment;
 use App\Platform\FeatureModule;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Auth\AccountActor;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 
@@ -132,7 +136,14 @@ class FeatureServiceProvider extends FeatureModule
 {
     public function register(): void
     {
-        $this->app->singleton(RewardSourceFactReader::class, CompositeRewardSourceFactReader::class);
+        $this->app->singleton(
+            RewardSourceFactReader::class,
+            static fn (Container $app): CompositeRewardSourceFactReader => new CompositeRewardSourceFactReader([
+                'activity:' => $app->make(ActivityRewardSourceFactReader::class),
+                'share-outcome:' => $app->make(ShareAttributionRewardSourceFactReader::class),
+                'referrals:' => $app->make(ReferralRewardSourceFactReader::class),
+            ]),
+        );
         $this->app->singleton(RewardCorrectionKeySource::class, ShareCorrectionKeySource::class);
         $this->commands([
             EntryPoints\Console\Commands\DispatchRewardDigestsCommand::class,

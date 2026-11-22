@@ -2,7 +2,13 @@
 
 namespace App\Features\Contributions\EntryPoints\Livewire\Pages;
 
+use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
+use AIArmada\Addressing\Actions\FetchGooglePlacePhotoPreviewsAction;
+use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
+use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
+use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
@@ -28,17 +34,11 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Platform\Addressing\AddressFormState;
 use App\Platform\Concurrency\MapsIdentityLock;
-use App\Platform\Location\FetchGooglePlaceDetailsAction;
-use App\Platform\Location\FetchGooglePlacePhotoPreviewsAction;
-use App\Platform\Location\GooglePlaceIdentity;
-use App\Platform\Location\GooglePlacesConfiguration;
 use App\Platform\Location\Ui\Concerns\InteractsWithLocationPickerSelection;
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Platform\Ui\Forms\ContactFields;
 use App\Platform\Ui\Forms\DonationQrFields;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Signals\SignalRecorder;
@@ -626,7 +626,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     return $contact;
                 }
 
-                return ContactFields::normalizeContactRowsForComparison($contact);
+                return ContactMethodRepeaterSchema::normalizeRowsForComparison($contact);
             },
             is_array($initialState['contactMethods'] ?? null) ? $initialState['contactMethods'] : [],
         );

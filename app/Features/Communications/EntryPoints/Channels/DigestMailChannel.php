@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Communications\EntryPoints\Channels;
 
 use AIArmada\Communications\Models\CommunicationDelivery;
+use AIArmada\Communications\Support\GuardedDeliverySend;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Notifications\ManagedNotification;
-use App\Features\Communications\Support\Delivery\GuardedDeliverySend;
 use Illuminate\Contracts\Mail\Factory as MailFactory;
 use Illuminate\Mail\Markdown;
 use Illuminate\Notifications\Channels\MailChannel;

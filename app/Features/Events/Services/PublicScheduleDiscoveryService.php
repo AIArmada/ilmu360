@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
@@ -23,7 +24,6 @@ use App\Features\Events\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Events\Support\VenueAddressResolver;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;

@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
 use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
 use App\Features\References\Services\ReferenceSearchService;
-use App\Platform\Time\UserDateTimeFormatter;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;

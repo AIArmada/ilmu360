@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Schemas;
 
+use AIArmada\CommerceSupport\Support\UrlSanitizer;
 use App\Features\Feedback\Models\AppFeedback;
-use App\Platform\Http\UrlSanitizer;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;

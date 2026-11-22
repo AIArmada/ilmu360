@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Routing\EntryPoints\Http;
 
+use AIArmada\CommerceSupport\Support\VersionedCache;
 use App\Http\Controllers\Controller;
-use App\Platform\Cache\VersionedCache;
 use App\Platform\Routing\SitemapUrlProvider;
 use Illuminate\Http\Response;
 

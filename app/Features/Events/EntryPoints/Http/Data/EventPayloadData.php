@@ -2,7 +2,9 @@
 
 namespace App\Features\Events\EntryPoints\Http\Data;
 
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventTimeExpression;
@@ -21,9 +23,7 @@ use App\Features\Places\Api\SpaceLocation;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\References\Models\Reference;
 use App\Platform\Language\Models\Language;
-use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Models\MorphModelResolver;
-use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Cache\SelectionCatalogCache;
 use BackedEnum;
 use Carbon\CarbonInterface;

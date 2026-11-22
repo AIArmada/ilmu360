@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Services;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Enums\TimingMode;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Str;

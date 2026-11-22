@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Addressing\Observers;
 
+use AIArmada\Addressing\Actions\GuardAddressAreaDeletionAction;
 use AIArmada\Addressing\Models\AddressArea;
-use App\Platform\Addressing\Actions\GuardAddressAreaDeletionAction;
 use App\Shared\Contracts\AddressCatalogEffects;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

@@ -6,6 +6,7 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
+use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 use AIArmada\FilamentPersons\Resources\PersonResource\Schemas\PersonForm as PackagePersonForm;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Events\Api\PublicSubmissionLockSweeper;
@@ -13,7 +14,6 @@ use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Platform\Ui\Forms\ContactFields;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -201,7 +201,7 @@ class PersonForm
                                                         ->label(__('Primary'))
                                                         ->fixIndistinctState(),
                                                 ]),
-                                                ...ContactFields::contactValueFields(),
+                                                ...ContactMethodRepeaterSchema::valueFields(),
                                                 Grid::make(2)->schema([
                                                     Toggle::make('is_public')
                                                         ->label(__('Public'))
@@ -209,10 +209,10 @@ class PersonForm
                                                 ]),
                                             ])
                                             ->orderColumn('sort_order')
-                                            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => ContactFields::normalizeContactRowsForFill($data))
-                                            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => ContactFields::normalizeContactRowsForSave($data))
-                                            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => ContactFields::normalizeContactRowsForSave($data))
-                                            ->itemLabel(fn (array $state): string => ContactFields::contactItemLabel($state))
+                                            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => ContactMethodRepeaterSchema::normalizeRowsForFill($data))
+                                            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => ContactMethodRepeaterSchema::normalizeRowsForSave($data))
+                                            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => ContactMethodRepeaterSchema::normalizeRowsForSave($data))
+                                            ->itemLabel(fn (array $state): string => ContactMethodRepeaterSchema::itemLabel($state))
                                             ->saveRelationshipsUsing(null)
                                             ->dehydrated(),
                                     ]),

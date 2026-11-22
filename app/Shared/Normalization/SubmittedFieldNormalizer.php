@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Normalization;
 
-use AIArmada\Contacting\Enums\ContactMethodType;
-use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 
 /**
  * Projects submitted contribution payload fragments onto the canonical stored
@@ -19,11 +18,7 @@ final readonly class SubmittedFieldNormalizer
      */
     public static function normalizeContactRowsForComparison(array $data): array
     {
-        if (array_is_list($data)) {
-            return array_map(self::normalizeContactRowForComparison(...), $data);
-        }
-
-        return self::normalizeContactRowForComparison($data);
+        return ContactMethodRepeaterSchema::normalizeRowsForComparison($data);
     }
 
     /**
@@ -51,116 +46,17 @@ final readonly class SubmittedFieldNormalizer
 
     public static function isPhoneContactType(mixed $type): bool
     {
-        $typeValue = $type instanceof ContactMethodType
-            ? $type->value
-            : strtolower((string) $type);
-
-        return in_array($typeValue, [ContactMethodType::Phone->value, ContactMethodType::Whatsapp->value, ContactMethodType::Mobile->value], true);
+        return ContactMethodRepeaterSchema::isPhoneContactType($type);
     }
 
     public static function normalizedContactValue(mixed $value): ?string
     {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return $value !== '' ? $value : null;
+        return ContactMethodRepeaterSchema::normalizedContactValue($value);
     }
 
     public static function normalizedComparablePhoneValue(mixed $value): ?string
     {
-        $value = self::normalizedContactValue($value);
-
-        if ($value === null) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D+/', '', $value);
-
-        if (! is_string($digits) || $digits === '') {
-            return null;
-        }
-
-        return str_starts_with($value, '+') ? '+'.$digits : $digits;
-    }
-
-    /**
-     * @param  array<string, mixed>  $contact
-     * @return array<string, mixed>
-     */
-    private static function normalizeContactRowForComparison(array $contact): array
-    {
-        $contact = self::normalizeContactRowForSave($contact);
-        $contact = self::normalizeContactRowForFill($contact);
-
-        if (! self::isPhoneContactType($contact['type'] ?? null)) {
-            return $contact;
-        }
-
-        $value = self::normalizedComparablePhoneValue($contact['phone_value'] ?? ($contact['value'] ?? null));
-
-        if ($value !== null) {
-            $contact['phone_value'] = $value;
-        }
-
-        unset($contact['value']);
-
-        return $contact;
-    }
-
-    /**
-     * @param  array<string, mixed>  $contact
-     * @return array<string, mixed>
-     */
-    private static function normalizeContactRowForFill(array $contact): array
-    {
-        $contact['type'] ??= $contact['category'] ?? null;
-        $contact['purpose'] ??= ContactPurpose::General->value;
-
-        unset($contact['category']);
-
-        if (self::isPhoneContactType($contact['type'] ?? null)) {
-            $contact['phone_value'] = $contact['value'] ?? null;
-        }
-
-        return $contact;
-    }
-
-    /**
-     * @param  array<string, mixed>  $contact
-     * @return array<string, mixed>
-     */
-    private static function normalizeContactRowForSave(array $contact): array
-    {
-        $contact['type'] ??= $contact['category'] ?? null;
-        $contact['purpose'] ??= ContactPurpose::General->value;
-        $type = $contact['type'] ?? null;
-
-        unset($contact['category']);
-
-        if (self::isPhoneContactType($type)) {
-            $value = self::normalizedContactValue($contact['phone_value'] ?? $contact['value'] ?? null);
-
-            if ($value !== null) {
-                $contact['value'] = $value;
-            }
-
-            unset($contact['phone_value']);
-
-            return $contact;
-        }
-
-        $value = self::normalizedContactValue($contact['value'] ?? null);
-
-        if ($value !== null) {
-            $contact['value'] = $value;
-        }
-
-        unset($contact['phone_value']);
-
-        return $contact;
+        return ContactMethodRepeaterSchema::normalizedComparablePhoneValue($value);
     }
 
     private static function normalizedNullableString(mixed $value): ?string

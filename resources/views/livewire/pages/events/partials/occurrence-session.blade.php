@@ -5,20 +5,20 @@
         ? $sessionStartLocal->isSameDay($sessionEndLocal)
         : true;
     $sessionTime = $sessionStartLocal
-        ? \App\Platform\Time\UserDateTimeFormatter::format($sessionStartLocal, 'h:i A')
+        ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($sessionStartLocal, 'h:i A')
         : __('TBC');
     if ($sessionEndLocal) {
-        $sessionTime .= ' — '.\App\Platform\Time\UserDateTimeFormatter::format($sessionEndLocal, $sessionSingleDay ? 'h:i A' : 'j M, h:i A');
+        $sessionTime .= ' — '.\AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($sessionEndLocal, $sessionSingleDay ? 'h:i A' : 'j M, h:i A');
     }
     $sessionDayLabel = $sessionStartLocal
-        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'D')
+        ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'D')
         : null;
     $sessionDateNumber = $sessionStartLocal?->format('j');
     $sessionMonthLabel = $sessionStartLocal
-        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'M')
+        ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'M')
         : null;
     $sessionFullDate = $sessionStartLocal
-        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'l, j F Y')
+        ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($sessionStartLocal, 'l, j F Y')
         : null;
     $sessionExpression = $detail->timeExpressionsFor($session)->first();
     $sessionPeople = $session->relationLoaded('involvements')

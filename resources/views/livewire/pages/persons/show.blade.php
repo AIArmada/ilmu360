@@ -24,7 +24,7 @@
         ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)
         : null;
     $bioText = trim($bioRenderer?->toText() ?? '');
-    $locationString = \App\Platform\Location\AddressHierarchyFormatter::format($person->primaryAddress());
+    $locationString = \AIArmada\Addressing\Support\AddressHierarchyFormatter::format($person->primaryAddress());
     $upcomingEvents = $this->upcomingEvents;
     $savedEventIds = $this->savedEventIds;
     $goingEventIds = $this->goingEventIds;
@@ -122,7 +122,7 @@
     $resolveEventCardLocation = static function (\App\Features\Events\Models\Event $event): array {
         return [
             $event->resolvedLocationName(),
-            \App\Platform\Location\AddressHierarchyFormatter::formatShort($event->resolvedLocationAddress()) ?: null,
+            \AIArmada\Addressing\Support\AddressHierarchyFormatter::formatShort($event->resolvedLocationAddress()) ?: null,
         ];
     };
 

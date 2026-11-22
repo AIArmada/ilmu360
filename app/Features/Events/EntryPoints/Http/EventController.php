@@ -3,6 +3,7 @@
 namespace App\Features\Events\EntryPoints\Http;
 
 use AIArmada\Addressing\Support\AddressingTableResolver;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Models\EventOccurrence;
@@ -36,7 +37,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Platform\Api\ApiPagination;
 use App\Platform\Models\MorphModelResolver;
-use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Signals\SignalRecorder;
 use Closure;
 use Dedoc\Scramble\Attributes\Endpoint;

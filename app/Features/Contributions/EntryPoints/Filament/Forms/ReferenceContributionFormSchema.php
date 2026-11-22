@@ -2,8 +2,8 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
+use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
-use App\Platform\Ui\Forms\SocialFields;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Component;
@@ -28,7 +28,7 @@ class ReferenceContributionFormSchema
                 ->columns(2),
             Section::make(__('Links'))
                 ->schema([
-                    SocialFields::socialMediaRepeater('Add additional links for this reference (e.g. YouTube video, Blog article, etc.)'),
+                    SocialProfileRepeaterSchema::make(helperText: 'Add additional links for this reference (e.g. YouTube video, Blog article, etc.)'),
                 ]),
         ];
 

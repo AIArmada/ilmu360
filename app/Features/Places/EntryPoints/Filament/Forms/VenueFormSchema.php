@@ -2,14 +2,14 @@
 
 namespace App\Features\Places\EntryPoints\Filament\Forms;
 
+use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
 use AIArmada\Addressing\Support\AddressCountryResolver;
+use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use App\Features\Places\Api\Enums\VenueType;
 use App\Features\Places\Api\Filament\VenueQuickAdd;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\Models\Venue;
-use App\Platform\Location\GooglePlacesConfiguration;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Platform\Ui\Forms\SocialFields;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
@@ -96,7 +96,7 @@ class VenueFormSchema implements VenueQuickAdd
 
             ...self::addressSchema(includeLocationPicker: $includeLocationPicker),
 
-            SocialFields::socialMediaRepeater('Add social media links for this venue'),
+            SocialProfileRepeaterSchema::make(helperText: 'Add social media links for this venue'),
         ];
     }
 

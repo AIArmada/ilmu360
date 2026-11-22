@@ -3,13 +3,13 @@
 namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Pages;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Models\User;
-use App\Platform\Addressing\AddressFormState;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Shared\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\DeleteAction;

@@ -2,11 +2,11 @@
 
 namespace App\Features\Registration\Policies;
 
+use AIArmada\Events\Contracts\EventRefundEligibility;
 use App\Features\Events\Models\Event;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Registration\Models\Registration;
-use App\Features\Registration\Support\EventCommercePolicy;
 use App\Models\User;
 
 class RegistrationPolicy
@@ -101,7 +101,7 @@ class RegistrationPolicy
         $event = $registration->event;
 
         return $event instanceof Event
-            && app(EventCommercePolicy::class)->canSelfServiceRefund($user, $event, $registration);
+            && app(EventRefundEligibility::class)->canSelfServiceRefund($user, $event, $registration);
     }
 
     /**

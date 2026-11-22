@@ -2,7 +2,7 @@
 
 namespace App\Platform\Time\Http\Middleware;
 
-use App\Platform\Time\UserTimezoneResolver;
+use AIArmada\CommerceSupport\Support\UserTimezoneResolver;
 use App\Shared\Contracts\AccountTimezoneUpdater;
 use Closure;
 use Filament\Support\Facades\FilamentTimezone;

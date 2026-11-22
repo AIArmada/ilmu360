@@ -2,6 +2,7 @@
 
 namespace App\Features\Contributions\Actions;
 
+use AIArmada\Addressing\Support\AddressAssignments;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Contracts\InstitutionClaimGuard;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
@@ -20,7 +21,6 @@ use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Platform\Concurrency\MapsIdentityLock;
-use App\Platform\Location\AddressAssignments;
 use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;

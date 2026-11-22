@@ -3,6 +3,8 @@
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
+use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
@@ -11,9 +13,7 @@ use App\Features\Institutions\Api\Filament\InstitutionQuickAdd;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Platform\Ui\Forms\ContactFields;
 use App\Platform\Ui\Forms\Select as SelectWithCloseOnSelect;
-use App\Platform\Ui\Forms\SocialFields;
 use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -243,11 +243,11 @@ class PersonContributionFormSchema implements PersonContributionSchema
                 ->columns($addressStatePath === null ? 2 : 1),
             Section::make(__('Contact'))
                 ->schema([
-                    ContactFields::contactsRepeater(__('Add a phone number, WhatsApp number, or email that people may use to contact the speaker.')),
+                    ContactMethodRepeaterSchema::make(helperText: __('Add a phone number, WhatsApp number, or email that people may use to contact the speaker.')),
                 ]),
             Section::make(__('Social Media'))
                 ->schema([
-                    SocialFields::socialMediaRepeater(__('Add social media links for this speaker')),
+                    SocialProfileRepeaterSchema::make(helperText: __('Add social media links for this speaker')),
                 ]),
         ];
 

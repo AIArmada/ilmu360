@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Contracts\EventRegistrationQuestionResolver;
 use AIArmada\Events\Enums\EventRegistrationQuestionType;
 use AIArmada\Events\Models\EventOccurrence;
@@ -19,7 +20,6 @@ use App\Features\Registration\Api\Enums\OfflineAdmissionPaymentMethod;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Support\ParticipantIdentity;
 use App\Models\User;
-use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;

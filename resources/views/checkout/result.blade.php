@@ -118,7 +118,7 @@
                                     </div>
                                 @endif
 
-                                @if ($paid && $registration->event instanceof \App\Features\Events\Models\Event && auth()->user() instanceof \App\Models\User && app(\App\Features\Registration\Support\EventCommercePolicy::class)->canSelfServiceRefund(auth()->user(), $registration->event, $registration))
+                                @if ($paid && $registration->event instanceof \App\Features\Events\Models\Event && auth()->user() instanceof \App\Models\User && app(\AIArmada\Events\Contracts\EventRefundEligibility::class)->canSelfServiceRefund(auth()->user(), $registration->event, $registration))
                                     <a href="{{ route('events.registration.refund', ['event' => $registration->event, 'registration' => $registration]) }}"
                                         wire:navigate
                                         data-signal-event="commerce.event_refund_started"

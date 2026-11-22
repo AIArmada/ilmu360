@@ -2,7 +2,12 @@
 
 namespace App\Features\Contributions\EntryPoints\Http;
 
+use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
+use AIArmada\Addressing\Actions\ResolveGooglePlaceSelectionAction;
+use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
+use AIArmada\Addressing\Rules\ValidAreaAssignmentRoles;
 use AIArmada\Addressing\Support\ModelResolver;
+use AIArmada\Contacting\Actions\DiscoverWebsiteSocialProfilesAction;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
@@ -32,14 +37,9 @@ use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
-use App\Platform\Location\DiscoverWebsiteSocialProfilesAction;
-use App\Platform\Location\FetchGooglePlaceDetailsAction;
-use App\Platform\Location\GooglePlaceIdentity;
-use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Platform\Validation\Rules\ValidAreaAssignmentRoles;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;

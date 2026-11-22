@@ -2,6 +2,7 @@
 
 namespace App\Features\ShareTracking\EntryPoints\Livewire\Pages;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\ShareTracking\Api\Data\ShareTrackingLinkData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingOutcomeData;
 use App\Features\ShareTracking\Api\Data\ShareTrackingVisitData;
@@ -9,7 +10,6 @@ use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Features\ShareTracking\Support\ShareTrackingMeasurement;
 use App\Models\User;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;

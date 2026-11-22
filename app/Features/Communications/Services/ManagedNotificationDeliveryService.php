@@ -6,6 +6,8 @@ namespace App\Features\Communications\Services;
 
 use AIArmada\Communications\Actions\CancelCommunicationAction;
 use AIArmada\Communications\Actions\DispatchManagedNotificationAction;
+use AIArmada\Communications\Actions\PersistDeliveryFencingAction;
+use AIArmada\Communications\Contracts\DeliveryFencing;
 use AIArmada\Communications\Data\CommunicationContextData;
 use AIArmada\Communications\Enums\CommunicationCategory;
 use AIArmada\Communications\Enums\CommunicationPriority;
@@ -15,8 +17,6 @@ use AIArmada\Communications\Jobs\DispatchManagedNotificationJob;
 use AIArmada\Communications\Models\Communication;
 use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\CommunicationDelivery;
-use App\Features\Communications\Actions\RecordExternalDeliveryResolutionEvidenceAction;
-use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Api\ManagedCommunicationSnapshot;
 use App\Features\Communications\Api\ManagedDeliveryResolutionSnapshot;
 use App\Features\Communications\Api\ManagedNotificationDelivery;
@@ -36,7 +36,7 @@ final readonly class ManagedNotificationDeliveryService implements ManagedNotifi
         private AccountDirectory $accounts,
         private DispatchManagedNotificationAction $dispatchNotification,
         private DeliveryFencing $deliveryFencing,
-        private RecordExternalDeliveryResolutionEvidenceAction $resolutionEvidence,
+        private PersistDeliveryFencingAction $fencingPersistence,
     ) {}
 
     public function adoptOrDispatch(ManagedNotificationDispatchRequest $request): ?ManagedCommunicationSnapshot
@@ -253,7 +253,7 @@ final readonly class ManagedNotificationDeliveryService implements ManagedNotifi
                     'reason' => $decision === 'failed' ? (string) $reason : null,
                     'resolved_at' => CarbonImmutable::now('UTC')->toIso8601String(),
                 ];
-                $this->resolutionEvidence->handle($resolvedAttempt, $metadata);
+                $this->fencingPersistence->recordAttemptMetadata($resolvedAttempt, $metadata);
             }
 
             $resolvedDelivery = $delivery->refresh();

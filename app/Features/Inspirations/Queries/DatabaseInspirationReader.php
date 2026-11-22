@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Inspirations\Queries;
 
+use AIArmada\CommerceSupport\Support\VersionedCache;
 use App\Features\Inspirations\Api\InspirationCard;
 use App\Features\Inspirations\Api\InspirationReader;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Features\Inspirations\Models\Inspiration;
-use App\Platform\Cache\VersionedCache;
 
 final readonly class DatabaseInspirationReader implements InspirationReader
 {

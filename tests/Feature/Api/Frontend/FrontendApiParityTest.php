@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Actions\NormalizeGoogleMapsInputAction;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Authz\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
@@ -46,7 +47,6 @@ use App\Features\References\EntryPoints\Http\ReferenceDirectoryController;
 use App\Features\References\Models\Reference;
 use App\Features\References\Services\ReferenceSearchService;
 use App\Models\User;
-use App\Platform\Location\NormalizeGoogleMapsInputAction;
 use Database\Factories\EventKeyPersonFactory;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;

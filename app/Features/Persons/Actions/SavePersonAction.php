@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
+use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Api\PersonSubmissionAccess;
 use App\Features\Persons\Models\Person;
-use App\Platform\Addressing\AddressFormState;
 use App\Shared\Auth\AccountActor;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;

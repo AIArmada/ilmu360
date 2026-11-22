@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Communications\Contracts\PayloadRedactor;
-use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
+use AIArmada\Communications\Support\PayloadRedactorService;
 use App\Features\Events\Models\Event;
 use App\Models\User;
 use Tests\TestCase;
@@ -79,7 +79,7 @@ it('keeps the issued guest credential out of share urls platform links and nativ
 it('redacts guest credential transports through the central redactor', function (): void {
     $redactor = app(PayloadRedactor::class);
 
-    expect($redactor)->toBeInstanceOf(ListSafePayloadRedactor::class);
+    expect($redactor)->toBeInstanceOf(PayloadRedactorService::class);
 
     $header = (string) config('share-tracking.guest_credential.header', 'X-Guest-Credential');
     $input = (string) config('share-tracking.guest_credential.input', 'guest_credential');

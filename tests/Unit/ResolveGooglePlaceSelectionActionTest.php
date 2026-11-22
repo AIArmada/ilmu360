@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Actions\ResolveGooglePlaceSelectionAction;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressAreaName;
 use AIArmada\Addressing\Models\AddressAreaPostalCode;
@@ -11,7 +12,6 @@ use AIArmada\Addressing\Models\PostalCode;
 use AIArmada\Addressing\Models\ResolutionGap;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaHierarchyResolver;
-use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;

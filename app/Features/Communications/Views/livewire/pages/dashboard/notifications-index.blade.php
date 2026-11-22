@@ -215,7 +215,7 @@
 
                                     <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-[#5f736c]">
                                         <time datetime="{{ $notificationDate->toIso8601String() }}">
-                                            {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($notificationDate, 'j M Y, g:i A') }}
+                                            {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($notificationDate, 'j M Y, g:i A') }}
                                         </time>
 
                                         @if ($message->channelsAttempted !== [])

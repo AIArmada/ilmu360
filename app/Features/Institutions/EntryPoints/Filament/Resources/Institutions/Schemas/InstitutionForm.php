@@ -6,6 +6,7 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Support\SocialProfileConfig;
+use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 use App\Features\Events\Api\PublicSubmissionLockSweeper;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
@@ -14,7 +15,6 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Support\InstitutionFacilities;
 use App\Models\User;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Platform\Ui\Forms\ContactFields;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -114,7 +114,7 @@ class InstitutionForm
                                     ->options(ContactMethodType::options())
                                     ->required()
                                     ->live(),
-                                ...ContactFields::contactValueFields(),
+                                ...ContactMethodRepeaterSchema::valueFields(),
                                 Select::make('purpose')
                                     ->options(ContactPurpose::options())
                                     ->default(ContactPurpose::General->value)
@@ -125,10 +125,10 @@ class InstitutionForm
                             ])
                             ->columns(4)
                             ->orderColumn('sort_order')
-                            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => ContactFields::normalizeContactRowsForFill($data))
-                            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => ContactFields::normalizeContactRowsForSave($data))
-                            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => ContactFields::normalizeContactRowsForSave($data))
-                            ->itemLabel(fn (array $state): string => ContactFields::contactItemLabel($state)),
+                            ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => ContactMethodRepeaterSchema::normalizeRowsForFill($data))
+                            ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => ContactMethodRepeaterSchema::normalizeRowsForSave($data))
+                            ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => ContactMethodRepeaterSchema::normalizeRowsForSave($data))
+                            ->itemLabel(fn (array $state): string => ContactMethodRepeaterSchema::itemLabel($state)),
                     ]),
                 Section::make('Location')
                     ->statePath('address')

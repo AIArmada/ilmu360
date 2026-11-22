@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
+use AIArmada\Addressing\Support\AddressFormState;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Support\InstitutionFacilities;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;
-use App\Platform\Addressing\AddressFormState;
 use App\Platform\Media\MediaCollectionSync;
 use App\Shared\Auth\AccountActor;
 use App\Shared\Signals\SignalRecorder;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Queries;
 
 use AIArmada\Addressing\Data\AddressLocationData;
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionDirectoryRecord;
@@ -15,7 +16,6 @@ use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Reports\Api\ReportSubject;
 use App\Features\Reports\Api\ReportSubjectType;
 use App\Platform\Admin\AdminResourceUrl;
-use App\Platform\Location\AddressHierarchyFormatter;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Shared\Directory\DirectoryOption;
 use App\Shared\Directory\FollowableSubject;

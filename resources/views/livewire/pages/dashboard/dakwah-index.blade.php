@@ -240,7 +240,7 @@
                                                 {{ $subjectTypeOptions[$link->subjectType] ?? str($link->subjectType)->headline()->toString() }}
                                             </span>
                                             <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                                                {{ !$measurementsAvailable ? __('Measurements withheld') : ($link->lastSharedAt ? __('Last shared') . ' ' . \App\Platform\Time\UserDateTimeFormatter::translatedFormat($link->lastSharedAt, 'j M Y, g:i A') : __('No recorded shares')) }}
+                                                {{ !$measurementsAvailable ? __('Measurements withheld') : ($link->lastSharedAt ? __('Last shared') . ' ' . \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($link->lastSharedAt, 'j M Y, g:i A') : __('No recorded shares')) }}
                                             </span>
                                         </div>
 
@@ -409,7 +409,7 @@
                                             <p class="mt-1 text-sm text-slate-600">{{ $response->linkTitleSnapshot ?: __('Shared page') }}</p>
                                         </div>
                                         <p class="text-xs font-semibold text-slate-500">
-                                            {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($response->occurredAt, 'j M Y, g:i A') }}
+                                            {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($response->occurredAt, 'j M Y, g:i A') }}
                                         </p>
                                     </div>
                                 </article>

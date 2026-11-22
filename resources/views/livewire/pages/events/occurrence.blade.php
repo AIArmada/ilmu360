@@ -1,7 +1,7 @@
 @php
     $occurrencePageTitle = trim((string) ($occurrence->title ?: $event->title));
     $occurrencePageTitle = $occurrencePageTitle === $event->title
-        ? $event->title.($occurrence->starts_at ? ' · '.\App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'j M Y') : '')
+        ? $event->title.($occurrence->starts_at ? ' · '.\AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'j M Y') : '')
         : $occurrencePageTitle.' — '.$event->title;
     $shareCardOg = app(\App\Features\Events\Services\ShareCards\ShareCardService::class)->ogCard($event, (string) ($occurrence->slug ?? $occurrence->getKey()));
 
@@ -64,7 +64,7 @@
     $locationAddress = $location?->primaryAddress() ?? app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($location?->venue_id);
     $primaryAddress = $locationAddress
         ?? ($ownLocation?->venue_id !== null ? null : $event->resolvedLocationAddress());
-    $addressDisplayLines = \App\Platform\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
+    $addressDisplayLines = \AIArmada\Addressing\Support\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $scopedVenueName ?? $locationVenue?->name ?? $detail->locationLabel($location) ?? $event->resolvedLocationName();
     $isOnlineOnly = (string) $occurrence->delivery_mode === \App\Features\Events\Api\Enums\EventFormat::Online->value
         && $location === null
@@ -136,15 +136,15 @@
     $occurrenceReferences = $detail->referencesFor($occurrence);
     $eventReferences = $event->relationLoaded('references') ? $event->references : collect();
     $ownInvolvements = $occurrence->relationLoaded('involvements') ? $occurrence->involvements : collect();
-    $viewerTimezone = \App\Platform\Time\UserTimezoneResolver::resolve();
+    $viewerTimezone = \AIArmada\CommerceSupport\Support\UserTimezoneResolver::resolve();
     $occurrenceSameLocalDay = $occurrence->starts_at && $occurrence->ends_at
         ? $occurrence->starts_at->copy()->timezone($viewerTimezone)->isSameDay($occurrence->ends_at->copy()->timezone($viewerTimezone))
         : true;
     $occurrenceTime = $occurrence->starts_at
-        ? \App\Platform\Time\UserDateTimeFormatter::format($occurrence->starts_at, 'h:i A')
+        ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($occurrence->starts_at, 'h:i A')
         : __('TBC');
     if ($occurrence->ends_at) {
-        $occurrenceTime .= ' — '.\App\Platform\Time\UserDateTimeFormatter::format($occurrence->ends_at, $occurrenceSameLocalDay ? 'h:i A' : 'j M, h:i A');
+        $occurrenceTime .= ' — '.\AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($occurrence->ends_at, $occurrenceSameLocalDay ? 'h:i A' : 'j M, h:i A');
     }
     $occurrenceOwnsSubmissionContent = is_array($occurrence->metadata['public_submission'] ?? null);
     $occurrenceOrganizer = $occurrenceOwnsSubmissionContent
@@ -209,9 +209,9 @@
         && $occurrenceStartLocal->isSameDay($occurrenceEndLocal);
     $occurrenceDateLabel = match (true) {
         $occurrenceStartLocal === null => __('Tarikh akan dikemas kini'),
-        $occurrenceEndLocal === null, $occurrenceSingleDay => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'l, j F Y'),
-        $occurrenceStartLocal->year === $occurrenceEndLocal->year => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'j F').' — '.\App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrenceEndLocal, 'j F Y'),
-        default => \App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'j F Y').' — '.\App\Platform\Time\UserDateTimeFormatter::translatedFormat($occurrenceEndLocal, 'j F Y'),
+        $occurrenceEndLocal === null, $occurrenceSingleDay => \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'l, j F Y'),
+        $occurrenceStartLocal->year === $occurrenceEndLocal->year => \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'j F').' — '.\AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($occurrenceEndLocal, 'j F Y'),
+        default => \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($occurrenceStartLocal, 'j F Y').' — '.\AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($occurrenceEndLocal, 'j F Y'),
     };
     $occurrencePrayerLabel = $occurrence->relationLoaded('timeExpressions')
         ? $occurrence->timeExpressions->firstWhere('anchor_type', 'prayer')?->display_label
@@ -258,10 +258,10 @@
         : null;
     $occurrenceShareUrl = $occurrenceCanonicalUrl;
     $occurrenceTimeLabel = $occurrenceStartLocal
-        ? \App\Platform\Time\UserDateTimeFormatter::format($occurrenceStartLocal, 'h:i A')
+        ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($occurrenceStartLocal, 'h:i A')
         : null;
     if ($occurrenceTimeLabel !== null && $occurrenceSingleDay && $occurrenceEndLocal !== null) {
-        $occurrenceTimeLabel .= ' — '.\App\Platform\Time\UserDateTimeFormatter::format($occurrenceEndLocal, 'h:i A');
+        $occurrenceTimeLabel .= ' — '.\AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($occurrenceEndLocal, 'h:i A');
     }
 
     // Event::resolvedLocationAddress() falls back to the institution when the

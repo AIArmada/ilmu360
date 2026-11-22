@@ -7,7 +7,7 @@ use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
-use App\Platform\Location\LocationLevelLabels;
+use AIArmada\Addressing\Support\LocationLevelLabels;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Auth\IntendedRedirect;
 use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;

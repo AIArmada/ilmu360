@@ -2,13 +2,13 @@
 
 namespace App\Features\Institutions\Actions;
 
+use AIArmada\Addressing\Support\AddressAssignments;
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Institutions\Models\Institution;
-use App\Platform\Location\AddressAssignments;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;

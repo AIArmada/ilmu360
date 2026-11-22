@@ -1,6 +1,6 @@
 <?php
 
-use App\Platform\Location\LocationLevelLabels;
+use AIArmada\Addressing\Support\LocationLevelLabels;
 use App\Platform\Location\LocationSlugResolver;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;

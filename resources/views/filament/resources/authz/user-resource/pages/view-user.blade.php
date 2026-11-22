@@ -24,11 +24,11 @@
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Email Verified At</div>
-                    <div class="font-medium text-gray-950 dark:text-white">{{ \App\Platform\Time\UserDateTimeFormatter::format($user->email_verified_at, 'd M Y H:i') ?: '-' }}</div>
+                    <div class="font-medium text-gray-950 dark:text-white">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($user->email_verified_at, 'd M Y H:i') ?: '-' }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Phone Verified At</div>
-                    <div class="font-medium text-gray-950 dark:text-white">{{ \App\Platform\Time\UserDateTimeFormatter::format($user->phone_verified_at, 'd M Y H:i') ?: '-' }}</div>
+                    <div class="font-medium text-gray-950 dark:text-white">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($user->phone_verified_at, 'd M Y H:i') ?: '-' }}</div>
                 </div>
                 <div class="md:col-span-3">
                     <div class="text-sm text-gray-500">Global Roles</div>
@@ -178,7 +178,7 @@
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($event->status)">{{ $this->humanLabel($event->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd M Y H:i') ?: '-' }}
+                                Starts: {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($event->startsAt, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Institution: {{ $event->institutionName ?: '-' }}
@@ -204,7 +204,7 @@
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($event->status)">{{ $this->humanLabel($event->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd M Y H:i') ?: '-' }}
+                                Starts: {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($event->startsAt, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Institution: {{ $event->institutionName ?: '-' }}
@@ -229,7 +229,7 @@
                                 </a>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Checked In At: {{ ($checkin->checkedInAt !== null ? \App\Platform\Time\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($checkin->checkedInAt), 'd M Y H:i') : '') ?: '-' }}
+                                Checked In At: {{ ($checkin->checkedInAt !== null ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($checkin->checkedInAt), 'd M Y H:i') : '') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Source: {{ $this->humanLabel($checkin->checkInSource) }}
@@ -260,7 +260,7 @@
                                 Event: {{ $registration->eventTitle ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Registered At: {{ ($registration->createdAt !== null ? \App\Platform\Time\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($registration->createdAt), 'd M Y H:i') : '') ?: '-' }}
+                                Registered At: {{ ($registration->createdAt !== null ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($registration->createdAt), 'd M Y H:i') : '') ?: '-' }}
                             </div>
                         </div>
                     @empty
@@ -280,7 +280,7 @@
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($submission->eventStatus)">{{ $this->humanLabel($submission->eventStatus) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Submitted At: {{ ($submission->createdAt !== null ? \App\Platform\Time\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($submission->createdAt), 'd M Y H:i') : '') ?: '-' }}
+                                Submitted At: {{ ($submission->createdAt !== null ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format(\Carbon\CarbonImmutable::parse($submission->createdAt), 'd M Y H:i') : '') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Notes: {{ $submission->notes ?: '-' }}
@@ -392,7 +392,7 @@
                                 <x-filament::badge :color="$this->eventStatusBadgeColor($event->status)">{{ $this->humanLabel($event->status) }}</x-filament::badge>
                             </div>
                             <div class="mt-3 text-sm text-gray-500">
-                                Starts: {{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd M Y H:i') ?: '-' }}
+                                Starts: {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($event->startsAt, 'd M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Institution: {{ $event->institutionName ?: '-' }}
@@ -423,7 +423,7 @@
                             Filters: {{ $this->formatSavedSearchFilters(is_array($savedSearch->filters) ? $savedSearch->filters : null) }}
                         </div>
                         <div class="text-sm text-gray-500">
-                            Created At: {{ \App\Platform\Time\UserDateTimeFormatter::format($savedSearch->createdAt, 'd M Y H:i') ?: '-' }}
+                            Created At: {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($savedSearch->createdAt, 'd M Y H:i') ?: '-' }}
                         </div>
                     </div>
                 @empty

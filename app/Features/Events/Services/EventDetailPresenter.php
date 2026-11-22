@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventLink;
@@ -18,7 +19,6 @@ use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Api\SpaceLocation;
 use App\Features\References\Models\Reference as CatalogReference;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;

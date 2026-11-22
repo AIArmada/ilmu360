@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Platform\Location\Ui\Concerns;
 
-use App\Platform\Location\FetchGooglePlaceDetailsAction;
-use App\Platform\Location\GooglePlaceIdentity;
-use App\Platform\Location\ResolveGooglePlaceSelectionAction;
+use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
+use AIArmada\Addressing\Actions\ResolveGooglePlaceSelectionAction;
+use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
 use App\Platform\Ui\Forms\AddressFields;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;

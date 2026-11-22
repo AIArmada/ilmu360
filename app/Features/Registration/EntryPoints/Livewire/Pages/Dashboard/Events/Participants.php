@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
+use AIArmada\Events\Contracts\EventRefundEligibility;
 use AIArmada\Events\Models\EventAttendance;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
-use App\Features\Registration\Support\EventCommercePolicy;
 use App\Features\Registration\Support\ParticipantIdentity;
 use App\Models\User;
-use App\Platform\Time\UserDateTimeFormatter;
 use App\Platform\Ui\InteractsWithToasts;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -456,7 +456,7 @@ final class Participants extends Component
 
     public function refundsEnabled(Event $event): bool
     {
-        return app(EventCommercePolicy::class)->refundsEnabled($event);
+        return app(EventRefundEligibility::class)->refundsEnabled($event);
     }
 
     public function printList(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Queries;
 
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Addressing\Support\GeoDistance;
 use App\Features\Engagement\Api\EngagementSubjectType;
@@ -18,7 +19,6 @@ use App\Features\Institutions\Models\InstitutionName;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Persons\Api\PersonLookup;
 use App\Platform\Api\Frontend\Data\CountryData;
-use App\Platform\Location\AddressHierarchyFormatter;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;

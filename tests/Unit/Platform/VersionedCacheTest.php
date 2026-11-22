@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Platform\Cache\CacheVersionStore;
-use App\Platform\Cache\VersionedCache;
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
+use AIArmada\CommerceSupport\Support\VersionedCache;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 

@@ -1,12 +1,12 @@
 <?php
 
+use AIArmada\Events\Contracts\EventRefundEligibility;
 use AIArmada\Events\Models\EventAttendanceLog;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Participants;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
-use App\Features\Registration\Support\EventCommercePolicy;
 use App\Features\Registration\Support\ParticipantIdentity;
 use App\Models\User;
 use Livewire\Livewire;
@@ -136,7 +136,7 @@ it('clears attendance evidence when an attended participant is marked absent', f
     expect($attendance->attendance_type)->toBe(EventAttendanceStatus::DidNotAttend->value)
         ->and($attendance->checked_in_at)->toBeNull()
         ->and(data_get($attendance->metadata, 'attendance.original_checked_in_at'))->toBeString()
-        ->and(app(EventCommercePolicy::class)->hasAttendanceEvidence($registration->fresh()))->toBeFalse();
+        ->and(app(EventRefundEligibility::class)->hasAttendanceEvidence($registration->fresh()))->toBeFalse();
 });
 
 it('keeps occurrence check-in separate from event attendance', function () {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\Enums\EventVisibility;
@@ -11,7 +12,6 @@ use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Models\Event;
 use App\Features\References\Api\ReferenceQueries;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;

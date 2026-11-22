@@ -1,11 +1,11 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Models\User;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Livewire\Livewire;
 

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Notifications;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
 use App\Features\Events\Models\Event;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

@@ -2,7 +2,10 @@
 
 namespace App\Features\Institutions\EntryPoints\Filament\Forms;
 
+use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
+use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
@@ -12,10 +15,7 @@ use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Language\MalaysiaLanguageCatalog;
-use App\Platform\Location\GooglePlacesConfiguration;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Platform\Ui\Forms\ContactFields;
-use App\Platform\Ui\Forms\SocialFields;
 use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -175,14 +175,14 @@ class InstitutionFormSchema implements InstitutionQuickAdd
                 ->maxFiles(10)
                 ->helperText(__('Up to 10 photos of the institution')),
 
-            ContactFields::contactsRepeater(__('Add contact details for this institution')),
+            ContactMethodRepeaterSchema::make(helperText: __('Add contact details for this institution')),
 
             ...self::addressSchema(
                 includeLocationPicker: $includeLocationPicker,
                 requireVerifiedMapsSelection: $requireVerifiedMapsSelection,
             ),
 
-            SocialFields::socialMediaRepeater('Add social media links for this institution'),
+            SocialProfileRepeaterSchema::make(helperText: 'Add social media links for this institution'),
         ];
     }
 

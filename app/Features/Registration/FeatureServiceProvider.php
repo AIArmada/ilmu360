@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Registration;
 
-use AIArmada\CommerceSupport\Events\PaymentRefunded;
 use App\Features\Registration\Actions\DeleteEventRegistrationsAction;
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
 use App\Features\Registration\Actions\PrepareAdmissionCheckoutAction;
@@ -26,7 +25,6 @@ use App\Features\Registration\Api\RegistrationConfirmationFactsReader;
 use App\Features\Registration\Api\RegistrationLookup;
 use App\Features\Registration\Api\RegistrationNotificationAudience;
 use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
-use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Notifications\EventNotificationCheckInNotifier;
@@ -40,7 +38,6 @@ use App\Features\Registration\Queries\ResolveAttendanceState;
 use App\Platform\FeatureModule;
 use App\Shared\Auth\AccountLifecycleContributor;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -83,12 +80,5 @@ class FeatureServiceProvider extends FeatureModule
         ]);
 
         parent::boot();
-
-        // Event discovery only scans app/Listeners, so the feature registers
-        // its provider-neutral refund callback listener explicitly.
-        Event::listen(
-            PaymentRefunded::class,
-            [CompletePendingRefundOnPaymentRefunded::class, 'handle'],
-        );
     }
 }

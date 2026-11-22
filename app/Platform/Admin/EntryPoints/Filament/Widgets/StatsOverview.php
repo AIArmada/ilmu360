@@ -2,8 +2,8 @@
 
 namespace App\Platform\Admin\EntryPoints\Filament\Widgets;
 
+use AIArmada\CommerceSupport\Support\VersionedCache;
 use App\Platform\Admin\Filament\Stats\AdminStatProvider;
-use App\Platform\Cache\VersionedCache;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 

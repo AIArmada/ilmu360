@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
+use AIArmada\CommerceSupport\Support\UserTimezoneResolver;
 use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
@@ -14,8 +16,6 @@ use App\Features\Events\Api\PublicScheduleVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\References\Api\ReferenceLookup;
-use App\Platform\Time\UserDateTimeFormatter;
-use App\Platform\Time\UserTimezoneResolver;
 use Carbon\CarbonImmutable;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Database\Eloquent\Model;

@@ -6,6 +6,7 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Contracts\CurrentOrganizationResolver as CurrentOrganizationResolverContract;
 use AIArmada\Organizations\Models\Organization;
+use AIArmada\Organizations\Resolvers\RequestCurrentOrganizationResolver;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Features\Organizations\Api\OrganizationWorkspace;
@@ -14,7 +15,6 @@ use App\Features\Organizations\EntryPoints\Livewire\Pages\CreateEvent as CreateO
 use App\Features\Organizations\EntryPoints\Livewire\Pages\CreateOrganization;
 use App\Features\Organizations\EntryPoints\Livewire\Pages\Index as OrganizationsIndex;
 use App\Features\Organizations\EntryPoints\Livewire\Pages\Workspace as OrganizationWorkspacePage;
-use App\Features\Organizations\Services\CurrentOrganizationResolver;
 use App\Features\Organizations\Services\OrganizationAccessService;
 use App\Features\Organizations\Services\OrganizationCommandsService;
 use App\Features\Organizations\Services\OrganizationWorkspaceService;
@@ -27,8 +27,8 @@ it('binds the organization seams to their feature adapters', function (): void {
     expect(app(OrganizationAccess::class))->toBeInstanceOf(OrganizationAccessService::class)
         ->and(app(OrganizationWorkspace::class))->toBeInstanceOf(OrganizationWorkspaceService::class)
         ->and(app(OrganizationCommands::class))->toBeInstanceOf(OrganizationCommandsService::class)
-        ->and(config('organizations.resolver'))->toBe(CurrentOrganizationResolver::class)
-        ->and(app(CurrentOrganizationResolverContract::class))->toBeInstanceOf(CurrentOrganizationResolver::class);
+        ->and(config('organizations.resolver'))->toBe(RequestCurrentOrganizationResolver::class)
+        ->and(app(CurrentOrganizationResolverContract::class))->toBeInstanceOf(RequestCurrentOrganizationResolver::class);
 });
 
 it('registers organization transport and route names inside the feature', function (): void {

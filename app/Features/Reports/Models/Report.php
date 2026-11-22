@@ -3,10 +3,10 @@
 namespace App\Features\Reports\Models;
 
 use AIArmada\CommerceSupport\Models\Report as BaseReport;
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
 use App\Features\Reports\Actions\InitializeReportDefaultsAction;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Cache\CacheVersionStore;
 use App\Platform\Media\MediaEvidence;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Appends;

@@ -19,7 +19,7 @@
     $locationPrimary = app(\App\Features\Events\Support\VenueAddressResolver::class)->nameForVenueId($location?->venue_id) ?? $location?->venue?->name ?? $location?->label ?? $event->resolvedLocationName();
     $address = app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($location?->venue_id);
     $address ??= $event->resolvedLocationAddress();
-    $locationSecondary = \App\Platform\Location\AddressHierarchyFormatter::formatShort($address) ?: null;
+    $locationSecondary = \AIArmada\Addressing\Support\AddressHierarchyFormatter::formatShort($address) ?: null;
     $statusLabel = $event->public_change_badge_label;
     $statusClass = match (true) {
         (string) $event->status === 'pending' => 'border-amber-100 bg-amber-50 text-amber-700',

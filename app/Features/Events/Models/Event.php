@@ -3,8 +3,10 @@
 namespace App\Features\Events\Models;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressAssignments;
 use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Engagement\Contracts\Bookmarkable;
 use AIArmada\Engagement\Contracts\Respondable;
 use AIArmada\Engagement\Models\Bookmark;
@@ -63,9 +65,7 @@ use App\Features\Registration\Models\Registration;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Language\Models\Language;
-use App\Platform\Location\AddressAssignments;
 use App\Platform\Models\MorphModelResolver;
-use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Auth\AccountActor;
 use BackedEnum;
 use Carbon\CarbonInterface;

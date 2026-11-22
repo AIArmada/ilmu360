@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Communications\Contracts\CommunicationRecorder;
+use AIArmada\Communications\Contracts\DeliveryFencing;
 use AIArmada\Communications\Enums\CommunicationStatus;
 use AIArmada\Communications\Enums\DeliveryStatus;
 use AIArmada\Communications\Models\Communication;
@@ -20,7 +21,6 @@ use AIArmada\Rewards\Enums\RewardComponent;
 use AIArmada\Rewards\Enums\RewardProgramMode;
 use AIArmada\Rewards\Enums\RewardProgramStatus;
 use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Api\ManagedNotificationDelivery;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Notifications\ManagedNotification;

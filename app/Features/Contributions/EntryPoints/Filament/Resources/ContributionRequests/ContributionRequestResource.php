@@ -2,6 +2,7 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests;
 
+use AIArmada\CommerceSupport\Support\VersionedCache;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Schemas\ContributionRequestInfolist;
@@ -9,7 +10,6 @@ use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionReques
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Tables\ContributionRequestsTable;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Platform\Auditing\AuditsRelationManager;
-use App\Platform\Cache\VersionedCache;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

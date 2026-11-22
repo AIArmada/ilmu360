@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
+use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
+use AIArmada\Addressing\Actions\ResolveGooglePlaceSelectionAction;
+use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
+use AIArmada\Contacting\Actions\DiscoverWebsiteSocialProfilesAction;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Platform\Addressing\AddressAreaRoles;
-use App\Platform\Location\DiscoverWebsiteSocialProfilesAction;
-use App\Platform\Location\FetchGooglePlaceDetailsAction;
-use App\Platform\Location\GooglePlaceIdentity;
-use App\Platform\Location\ResolveGooglePlaceSelectionAction;
 use Illuminate\Support\Arr;
 use Lorisleiva\Actions\Concerns\AsAction;
 

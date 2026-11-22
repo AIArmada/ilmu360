@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Mcp;
 
-use App\Platform\Http\PublicUrlGuard;
+use AIArmada\CommerceSupport\Support\PublicHttpUrlGuard;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -539,7 +539,15 @@ final class McpFilePayloadNormalizer
         }
 
         try {
-            return PublicUrlGuard::resolvePinnedTarget($contentUrl);
+            $target = app(PublicHttpUrlGuard::class)->validate($contentUrl);
+
+            return [
+                'url' => $target->url,
+                'host' => $target->host,
+                'port' => $target->port,
+                'ip' => $target->selectedIp,
+                'curl_resolve' => $target->curlResolveEntry() ?? sprintf('%s:%d:%s', $target->host, $target->port, $target->selectedIp),
+            ];
         } catch (InvalidArgumentException) {
             throw ValidationException::withMessages([
                 $field => ['The MCP file descriptor content_url host is not allowed.'],

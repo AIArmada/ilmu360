@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Mcp;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use AIArmada\Events\Models\EventAccessPolicy;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Api\Enums\EventAgeGroup;
@@ -25,7 +26,6 @@ use App\Features\Places\Models\Venue;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
 use App\Platform\Language\Models\Language;
-use App\Platform\Location\AddressHierarchyFormatter;
 use BackedEnum;
 use Carbon\Carbon;
 use DateTimeInterface;

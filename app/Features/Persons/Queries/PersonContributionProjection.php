@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Queries;
 
+use AIArmada\Addressing\Rules\ValidAreaAssignmentRoles;
 use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
@@ -15,7 +16,6 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\ContributionProjection;
 use App\Features\Persons\Models\Person;
 use App\Platform\Models\MorphModelResolver;
-use App\Platform\Validation\Rules\ValidAreaAssignmentRoles;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;

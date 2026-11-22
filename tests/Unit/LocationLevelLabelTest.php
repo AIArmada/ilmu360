@@ -1,6 +1,6 @@
 <?php
 
-use App\Platform\Location\LocationLevelLabels;
+use AIArmada\Addressing\Support\LocationLevelLabels;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

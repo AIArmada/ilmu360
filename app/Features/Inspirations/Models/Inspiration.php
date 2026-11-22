@@ -2,9 +2,9 @@
 
 namespace App\Features\Inspirations\Models;
 
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Cache\CacheVersionStore;
 use Database\Factories\InspirationFactory;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Database\Eloquent\Attributes\Scope;

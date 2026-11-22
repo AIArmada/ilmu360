@@ -6,7 +6,7 @@
 
 @php
     use App\Features\Events\Api\Enums\TimingMode;
-    use App\Platform\Time\UserDateTimeFormatter;
+    use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
     
     $isPrayerRelative = $event->timing_mode === TimingMode::PrayerRelative;
     $prayerDisplayText = $event->prayer_display_text;

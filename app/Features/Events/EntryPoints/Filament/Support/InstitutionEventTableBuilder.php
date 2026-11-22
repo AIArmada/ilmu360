@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Filament\Support;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Events\Api\InstitutionEventTable;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Api\SpaceLocation;
-use App\Platform\Time\UserDateTimeFormatter;
 use BackedEnum;
 use Closure;
 use Filament\Support\Enums\Width;

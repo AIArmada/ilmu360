@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\CommerceSupport\Support\VersionedCache;
 use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Pages\CreateDonationChannel;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Persistence\EventHomepageStatsCacheStore;
@@ -22,7 +23,6 @@ use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Refund;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;
-use App\Platform\Cache\VersionedCache;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Forms\Components\Select;

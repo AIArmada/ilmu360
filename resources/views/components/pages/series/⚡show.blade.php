@@ -549,11 +549,11 @@ new
                                             <div
                                                 class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-emerald-600 to-emerald-800') }} p-2.5 text-white sm:w-24 sm:p-3">
                                                 <span
-                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[11px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'l') }}</span>
+                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[11px]">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($event->startsAt, 'l') }}</span>
                                                 <span
-                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd') }}</span>
+                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($event->startsAt, 'd') }}</span>
                                                 <span
-                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[13px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'F') }}</span>
+                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-emerald-200/80') }} sm:text-[13px]">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($event->startsAt, 'F') }}</span>
                                             </div>
                                             {{-- Event details --}}
                                             <div class="flex flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
@@ -589,7 +589,7 @@ new
                                                         {{ $event->timingText }}
                                                         @if($event->endsAt)
                                                             <span
-                                                                class="text-slate-300">–</span>{{ \App\Platform\Time\UserDateTimeFormatter::format($event->endsAt, 'h:i A') }}
+                                                                class="text-slate-300">–</span>{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($event->endsAt, 'h:i A') }}
                                                         @endif
                                                     </div>
                                                     @if($venueLocation && $eventFormatValue !== 'online')
@@ -658,11 +658,11 @@ new
                                             <div
                                                 class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-slate-500 to-slate-700') }} p-2.5 text-white sm:w-24 sm:p-3">
                                                 <span
-                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[11px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'l') }}</span>
+                                                    class="text-[10px] font-bold uppercase tracking-widest {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[11px]">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($event->startsAt, 'l') }}</span>
                                                 <span
-                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \App\Platform\Time\UserDateTimeFormatter::format($event->startsAt, 'd') }}</span>
+                                                    class="font-heading text-2xl font-black leading-none sm:text-4xl">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($event->startsAt, 'd') }}</span>
                                                 <span
-                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[13px]">{{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($event->startsAt, 'F') }}</span>
+                                                    class="mt-0.5 text-[11px] font-bold tracking-wide {{ $isPendingEvent ? 'text-amber-200/80' : ($isRemoteEvent ? 'text-sky-200/80' : 'text-slate-300/80') }} sm:text-[13px]">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($event->startsAt, 'F') }}</span>
                                             </div>
                                             <div class="flex flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
                                                 <div class="flex items-center gap-2">
@@ -697,7 +697,7 @@ new
                                                         {{ $event->timingText }}
                                                         @if($event->endsAt)
                                                             <span
-                                                                class="text-slate-300">–</span>{{ \App\Platform\Time\UserDateTimeFormatter::format($event->endsAt, 'h:i A') }}
+                                                                class="text-slate-300">–</span>{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($event->endsAt, 'h:i A') }}
                                                         @endif
                                                     </div>
                                                     @if($pastVenueLocation && $eventFormatValue !== 'online')

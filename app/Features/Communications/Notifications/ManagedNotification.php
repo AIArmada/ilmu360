@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Communications\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationContextAware;
+use AIArmada\Communications\Contracts\DeliveryFencing;
 use AIArmada\Communications\Traits\HasCommunicationContext;
-use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Api\InAppNotificationMessage;
 use App\Features\Communications\Api\InAppNotificationPayload;
 use App\Features\Communications\Api\ManagedNotificationMessage;

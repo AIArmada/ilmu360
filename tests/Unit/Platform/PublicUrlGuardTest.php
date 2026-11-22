@@ -2,19 +2,18 @@
 
 declare(strict_types=1);
 
-use App\Platform\Http\PublicUrlGuard;
+use AIArmada\CommerceSupport\Http\PinnedHttpClient;
+use AIArmada\CommerceSupport\Support\PublicHttpUrlGuard;
+use AIArmada\CommerceSupport\Support\ValidatedHttpTarget;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class);
 
-afterEach(function (): void {
-    PublicUrlGuard::fakeResolver(null);
-});
-
 it('rejects empty, invalid-scheme, credentialed, private, loopback, cgnat, mapped-ipv6, and non-standard port urls', function (string $unsafeUrl): void {
-    PublicUrlGuard::fakeResolver(fn (string $host): array => match ($host) {
+    $guard = new PublicHttpUrlGuard(static fn (string $host): array => match ($host) {
         'private.example.test' => ['10.0.0.15'],
         'metadata.example.test' => ['169.254.169.254'],
         'cgnat.example.test' => ['100.64.10.2'],
@@ -23,7 +22,7 @@ it('rejects empty, invalid-scheme, credentialed, private, loopback, cgnat, mappe
         default => ['93.184.216.34'],
     });
 
-    expect(fn (): string => PublicUrlGuard::assertSafeUrl($unsafeUrl))
+    expect(fn () => $guard->assertAllowed($unsafeUrl))
         ->toThrow(InvalidArgumentException::class);
 })->with([
     'empty string' => [''],
@@ -49,33 +48,35 @@ it('rejects empty, invalid-scheme, credentialed, private, loopback, cgnat, mappe
 ]);
 
 it('resolves and pins public http targets without duplicate dns lookups', function (): void {
-    PublicUrlGuard::fakeResolver(fn (string $host): array => $host === 'example.com' ? ['93.184.216.34'] : []);
+    $guard = new PublicHttpUrlGuard(static fn (string $host): array => $host === 'example.com' ? ['93.184.216.34'] : []);
 
-    $pinned = PublicUrlGuard::resolvePinnedTarget('https://Example.COM/assets/logo.png');
+    $pinned = $guard->validate('https://Example.COM/assets/logo.png');
 
-    expect($pinned)->toBe([
-        'url' => 'https://Example.COM/assets/logo.png',
-        'host' => 'example.com',
-        'port' => 443,
-        'ip' => '93.184.216.34',
-        'curl_resolve' => 'example.com:443:93.184.216.34',
-    ]);
+    expect($pinned)->toBeInstanceOf(ValidatedHttpTarget::class)
+        ->and($pinned->url)->toBe('https://example.com/assets/logo.png')
+        ->and($pinned->host)->toBe('example.com')
+        ->and($pinned->port)->toBe(443)
+        ->and($pinned->selectedIp)->toBe('93.184.216.34')
+        ->and($pinned->curlResolveEntry())->toBe('example.com:443:93.184.216.34');
 });
 
 it('follows safe public redirects and rejects redirects to internal addresses', function (): void {
-    PublicUrlGuard::fakeResolver(fn (string $host): array => match ($host) {
+    $guard = new PublicHttpUrlGuard(static fn (string $host): array => match ($host) {
         'start.example.com', 'final.example.org' => ['93.184.216.34'],
         default => [],
     });
+    $client = new PinnedHttpClient;
 
     Http::fake([
         'https://start.example.com/go' => Http::response('', 302, ['Location' => 'https://final.example.org/done']),
         'https://final.example.org/done' => Http::response('ok', 200),
     ]);
 
-    $response = PublicUrlGuard::getFollowingSafeRedirects(
-        'https://start.example.com/go',
-        static function ($request): void {
+    $response = $client->sendFollowingRedirects(
+        guard: $guard,
+        method: 'GET',
+        url: 'https://start.example.com/go',
+        configure: static function (PendingRequest $request): void {
             $request->timeout(5);
         },
     );
@@ -89,6 +90,6 @@ it('follows safe public redirects and rejects redirects to internal addresses', 
         'https://start.example.com/evil' => Http::response('', 302, ['Location' => 'http://127.0.0.1/internal']),
     ]);
 
-    expect(fn () => PublicUrlGuard::getFollowingSafeRedirects('https://start.example.com/evil', static function (): void {}))
+    expect(fn () => $client->sendFollowingRedirects(guard: $guard, method: 'GET', url: 'https://start.example.com/evil'))
         ->toThrow(InvalidArgumentException::class);
 });

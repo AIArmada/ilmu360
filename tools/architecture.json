@@ -7,18 +7,6 @@
       "reason": "The root media maintenance command moves files in configured media storage.",
       "expires": "2027-06-30"
     },
-    "App\\Platform\\Cache\\CacheVersionStore": {
-      "adapter": "cache",
-      "resource": "store:infrastructure.cache-versions",
-      "reason": "The platform cache version store keeps root infrastructure invalidation counters.",
-      "expires": "2027-06-30"
-    },
-    "App\\Platform\\Cache\\VersionedCache": {
-      "adapter": "cache",
-      "resource": "store:infrastructure.versioned-cache",
-      "reason": "The platform versioned cache wraps generic root cache operations outside feature stores.",
-      "expires": "2027-06-30"
-    },
     "App\\Platform\\Media\\MediaUrlGenerator": {
       "adapter": "cache",
       "resource": "store:infrastructure.media-url-cache",
@@ -63,24 +51,6 @@
       "target": "table:unknown",
       "model": "AIArmada\\Checkout\\Models\\CheckoutSession",
       "reason": "Registration stores its event-specific payment payload on the package CheckoutSession returned by the Checkout contract; Checkout owns the session table and exposes no update operation for this payload.",
-      "owner": "Registration",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Registration/Actions/ProcessAdmissionRefundAction.php",
-      "target": "table:order_refunds",
-      "model": "AIArmada\\Orders\\Models\\OrderRefund",
-      "reason": "Provider refund correlation metadata is written through the package OrderRefund model.",
-      "owner": "Registration",
-      "expires": "2027-06-30"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/Registration/Listeners/CompletePendingRefundOnPaymentRefunded.php",
-      "target": "table:order_refunds",
-      "model": "AIArmada\\Orders\\Models\\OrderRefund",
-      "reason": "Provider refund completion metadata is written through the package OrderRefund model.",
       "owner": "Registration",
       "expires": "2027-06-30"
     },

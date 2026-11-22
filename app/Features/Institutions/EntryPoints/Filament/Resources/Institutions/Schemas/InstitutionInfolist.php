@@ -2,11 +2,11 @@
 
 namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Schemas;
 
+use AIArmada\Addressing\Support\AddressAssignments;
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
-use App\Platform\Location\AddressAssignments;
-use App\Platform\Location\AddressHierarchyFormatter;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
@@ -109,7 +109,7 @@ class InstitutionInfolist
                                             ->state(fn (?Institution $record): ?string => AddressHierarchyFormatter::roleAreaName($record?->primaryAddress(), AddressAssignments::ADMINISTRATIVE_DISTRICT))
                                             ->placeholder('-'),
                                         TextEntry::make('address.subdistrict')
-                                            ->label(fn (?Institution $record): string => AddressHierarchyFormatter::subdivisionOrLocalityLabel($record?->primaryAddress()))
+                                            ->label(fn (?Institution $record): string => AddressHierarchyFormatter::subdivisionOrLocalityLabel($record?->primaryAddress(), 'Mukim / Kawasan'))
                                             ->state(fn (?Institution $record): ?string => AddressHierarchyFormatter::subdivisionOrLocalityName($record?->primaryAddress()))
                                             ->placeholder('-'),
                                         TextEntry::make('address.state')
@@ -136,13 +136,13 @@ class InstitutionInfolist
                                             ->label('Pautan Google Maps')
                                             ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->google_maps_url)
                                             ->placeholder('-')
-                                            ->url(fn (?string $state): ?string => \App\Platform\Http\UrlSanitizer::sanitize($state))
+                                            ->url(fn (?string $state): ?string => \AIArmada\CommerceSupport\Support\UrlSanitizer::sanitize($state))
                                             ->openUrlInNewTab(),
                                         TextEntry::make('address.waze_url')
                                             ->label('Pautan Waze')
                                             ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->waze_url)
                                             ->placeholder('-')
-                                            ->url(fn (?string $state): ?string => \App\Platform\Http\UrlSanitizer::sanitize($state))
+                                            ->url(fn (?string $state): ?string => \AIArmada\CommerceSupport\Support\UrlSanitizer::sanitize($state))
                                             ->openUrlInNewTab(),
                                     ])
                                     ->columns(2),
@@ -197,7 +197,7 @@ class InstitutionInfolist
                                                     ->label('Handle'),
                                                 TextEntry::make('url')
                                                     ->label('URL')
-                                                    ->url(fn (?string $state): ?string => \App\Platform\Http\UrlSanitizer::sanitize($state))
+                                                    ->url(fn (?string $state): ?string => \AIArmada\CommerceSupport\Support\UrlSanitizer::sanitize($state))
                                                     ->openUrlInNewTab(),
                                             ])
                                             ->columns(3)

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\EntryPoints\Livewire\Pages;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
+use AIArmada\Events\Contracts\EventRefundEligibility;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Models\Registration;
-use App\Features\Registration\Support\EventCommercePolicy;
 use App\Models\User;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -111,7 +111,7 @@ final class Refund extends Component
 
     public function refundDeadlineLabel(): string
     {
-        $deadline = app(EventCommercePolicy::class)->selfServiceRefundDeadline($this->event, $this->registration);
+        $deadline = app(EventRefundEligibility::class)->selfServiceRefundDeadline($this->event, $this->registration);
 
         return $deadline instanceof CarbonImmutable
             ? UserDateTimeFormatter::translatedFormat($deadline, 'j F Y, h:i A')

@@ -233,7 +233,7 @@ new
     // Listener updates travel as __dispatch calls; wire:target matches the call method, not syncFilters.
     $venueLoadingTarget = '__dispatch,gotoPage,nextPage,previousPage';
     $formatVenueLocation = static function ($addressModel): string {
-        $parts = \App\Platform\Location\AddressHierarchyFormatter::parts($addressModel);
+        $parts = \AIArmada\Addressing\Support\AddressHierarchyFormatter::parts($addressModel);
 
         return $parts === [] ? '-' : implode(', ', $parts);
     };

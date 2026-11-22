@@ -2,12 +2,12 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
+use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
+use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
+use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionType;
-use App\Platform\Location\GooglePlacesConfiguration;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Platform\Ui\Forms\ContactFields;
-use App\Platform\Ui\Forms\SocialFields;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -170,11 +170,11 @@ class InstitutionContributionFormSchema
                 ->columns($addressStatePath === null ? 2 : 1),
             Section::make(__('Contact'))
                 ->schema([
-                    ContactFields::contactsRepeater(),
+                    ContactMethodRepeaterSchema::make(),
                 ]),
             Section::make(__('Social Media'))
                 ->schema([
-                    SocialFields::socialMediaRepeater(__('Add social media links for this institution')),
+                    SocialProfileRepeaterSchema::make(helperText: __('Add social media links for this institution')),
                 ]),
             Section::make(__('Donation Channels'))
                 ->description(__('Share official donation accounts for this institution.'))

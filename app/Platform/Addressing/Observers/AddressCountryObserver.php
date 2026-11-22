@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Addressing\Observers;
 
+use AIArmada\Addressing\Actions\GuardAddressCountryDeletionAction;
 use AIArmada\Addressing\Models\AddressCountry;
-use App\Platform\Addressing\Actions\GuardAddressCountryDeletionAction;
 use App\Shared\Contracts\AddressCatalogEffects;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

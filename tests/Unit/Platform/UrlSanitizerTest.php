@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Platform\Http\UrlSanitizer;
+use AIArmada\CommerceSupport\Support\UrlSanitizer;
 
 it('rejects dangerous, obfuscated, and protocol-relative urls', function (?string $url): void {
     expect(UrlSanitizer::sanitize($url))->toBeNull();

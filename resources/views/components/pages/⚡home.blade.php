@@ -12,8 +12,8 @@ use App\Models\User;
 use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Features\Events\Services\EventDetailPresenter;
-use App\Platform\Location\AddressHierarchyFormatter;
-use App\Platform\Time\UserDateTimeFormatter;
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -185,7 +185,7 @@ new
         public function featuredPersons(): Collection
         {
             /** @var list<string> $ids */
-            $ids = app(\App\Platform\Cache\VersionedCache::class)->remember(
+            $ids = app(\AIArmada\CommerceSupport\Support\VersionedCache::class)->remember(
                 Person::FEATURED_IDS_CACHE_KEY,
                 'home:featured_person_ids',
                 300,

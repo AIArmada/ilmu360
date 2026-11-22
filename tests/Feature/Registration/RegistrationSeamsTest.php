@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Events\PaymentRefunded;
+use AIArmada\Events\Listeners\CompletePendingRefundOnPaymentRefunded;
 use AIArmada\Events\Models\EventAttendanceLog;
 use AIArmada\Events\Models\EventRegistrationAnswer;
 use AIArmada\Events\Models\EventRegistrationItem;
@@ -28,7 +29,6 @@ use App\Features\Registration\Api\CheckInNotifier;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
 use App\Features\Registration\Contributors\RegistrationAccountLifecycleContributor;
 use App\Features\Registration\FeatureServiceProvider as RegistrationFeatureServiceProvider;
-use App\Features\Registration\Listeners\CompletePendingRefundOnPaymentRefunded;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Notifications\EventNotificationCheckInNotifier;

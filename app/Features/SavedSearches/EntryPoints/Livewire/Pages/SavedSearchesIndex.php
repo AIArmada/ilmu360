@@ -2,6 +2,7 @@
 
 namespace App\Features\SavedSearches\EntryPoints\Livewire\Pages;
 
+use AIArmada\Addressing\Support\LocationLevelLabels;
 use App\Features\Discovery\Api\SearchFilterCatalog;
 use App\Features\Discovery\Api\SearchFilterLabels;
 use App\Features\Discovery\Api\SearchFilterRules;
@@ -11,7 +12,6 @@ use App\Features\SavedSearches\Api\SavedSearchReader;
 use App\Features\SavedSearches\Api\SavedSearchSnapshot;
 use App\Features\SavedSearches\Enums\NotificationFrequency;
 use App\Features\SavedSearches\Exceptions\SavedSearchLimitReachedException;
-use App\Platform\Location\LocationLevelLabels;
 use App\Platform\Ui\InteractsWithToasts;
 use App\Shared\Auth\ResourceOwner;
 use App\Shared\Location\VisitorCountryResolving;

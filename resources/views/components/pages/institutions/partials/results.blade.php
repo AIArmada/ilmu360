@@ -2,7 +2,7 @@
     $institutions = $this->institutions;
     $institutionLoadingTarget = 'search,country,state,city,locality,district,subdivision,areas,followed_only,toggleFollowedOnly,clearSearch,clearFilters,gotoPage,setPage,nextPage,previousPage,selectGroupedSubdivisionLocality,__dispatch';
     $formatInstitutionLocation = static function ($addressModel): string {
-        $parts = \App\Platform\Location\AddressHierarchyFormatter::parts($addressModel);
+        $parts = \AIArmada\Addressing\Support\AddressHierarchyFormatter::parts($addressModel);
 
         return $parts === [] ? '-' : implode(', ', $parts);
     };
@@ -136,7 +136,7 @@
                             <span class="min-w-0">
                                 <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{{ __('Next event') }}</span>
                                 <span class="mt-1 block truncate text-[11px] font-semibold text-slate-700 transition-colors group-hover/next:font-bold group-hover/next:text-emerald-800 sm:text-xs">
-                                    {{ \App\Platform\Time\UserDateTimeFormatter::translatedFormat($nextEventStartsAt, 'j M') }}
+                                    {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($nextEventStartsAt, 'j M') }}
                                     <span class="text-slate-300" aria-hidden="true">·</span>
                                     {{ $institution->next_event_title }}
                                 </span>

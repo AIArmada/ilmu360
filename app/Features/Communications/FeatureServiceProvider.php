@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Communications;
 
 use AIArmada\Communications\Contracts\ConsentResolver;
-use AIArmada\Communications\Contracts\DestinationResolver;
-use AIArmada\Communications\Contracts\PayloadRedactor;
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Contracts\QuietHoursResolver;
 use AIArmada\Communications\Contracts\RecipientSnapshotResolver;
 use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Api\ManagedNotificationDelivery;
 use App\Features\Communications\Api\NotificationDispatch;
 use App\Features\Communications\Api\NotificationInboxManagement;
@@ -23,7 +20,6 @@ use App\Features\Communications\EntryPoints\ApiDocumentation\CommunicationsReque
 use App\Features\Communications\EntryPoints\Channels\DigestMailChannel;
 use App\Features\Communications\EntryPoints\Channels\InboxChannel;
 use App\Features\Communications\EntryPoints\Channels\PushChannel;
-use App\Features\Communications\Services\DeliveryFencingService;
 use App\Features\Communications\Services\ManagedNotificationDeliveryService;
 use App\Features\Communications\Services\NotificationDispatchService;
 use App\Features\Communications\Services\NotificationInboxManagementService;
@@ -34,8 +30,6 @@ use App\Features\Communications\Support\Integration\AppConsentResolver;
 use App\Features\Communications\Support\Integration\AppPreferenceResolver;
 use App\Features\Communications\Support\Integration\AppQuietHoursResolver;
 use App\Features\Communications\Support\Integration\AppRecipientSnapshotResolver;
-use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
-use App\Features\Communications\Support\Integration\ProbeSafeDestinationResolver;
 use App\Features\Communications\Support\Telemetry\CommunicationsSignalSchemaContributor;
 use App\Platform\ApiDocumentation\RequestExampleRegistry;
 use App\Platform\FeatureModule;
@@ -58,14 +52,11 @@ final class FeatureServiceProvider extends FeatureModule
         $this->app->bind(NotificationDispatch::class, NotificationDispatchService::class);
         $this->app->bind(NotificationMessageRendering::class, NotificationMessageRenderer::class);
         $this->app->bind(PushDestinationManagement::class, PushDestinationService::class);
-        $this->app->bind(DeliveryFencing::class, DeliveryFencingService::class);
         $this->app->bind(ManagedNotificationDelivery::class, ManagedNotificationDeliveryService::class);
         $this->app->bind(ConsentResolver::class, AppConsentResolver::class);
-        $this->app->bind(DestinationResolver::class, ProbeSafeDestinationResolver::class);
         $this->app->bind(PreferenceResolver::class, AppPreferenceResolver::class);
         $this->app->bind(QuietHoursResolver::class, AppQuietHoursResolver::class);
         $this->app->bind(RecipientSnapshotResolver::class, AppRecipientSnapshotResolver::class);
-        $this->app->singleton(PayloadRedactor::class, ListSafePayloadRedactor::class);
         $this->app->tag([
             CommunicationsAccountLifecycleContributor::class,
         ], AccountLifecycleContributor::TAG);

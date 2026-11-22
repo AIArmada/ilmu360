@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Venues;
 
+use AIArmada\Addressing\Support\AddressAssignments;
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Support\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Places\Models\Venue;
-use App\Platform\Location\AddressAssignments;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;

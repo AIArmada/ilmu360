@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Communications\Contracts\PayloadRedactor;
-use App\Features\Communications\Support\Integration\ListSafePayloadRedactor;
+use AIArmada\Communications\Support\PayloadRedactorService;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
@@ -48,7 +48,7 @@ function wp3crGuestShare(): array
 it('redacts the claim capability across its canonical transports through the bound contract', function (): void {
     $redactor = app(PayloadRedactor::class);
 
-    expect($redactor)->toBeInstanceOf(ListSafePayloadRedactor::class);
+    expect($redactor)->toBeInstanceOf(PayloadRedactorService::class);
 
     $secrets = wp3crGuestShare();
     $capability = $secrets['capability'];

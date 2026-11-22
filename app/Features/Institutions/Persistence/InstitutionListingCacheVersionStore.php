@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Persistence;
 
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
-use App\Platform\Cache\CacheVersionStore;
 
 final readonly class InstitutionListingCacheVersionStore implements InstitutionListingCacheVersion
 {

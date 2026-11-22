@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Support\PersonBioContent;
-use App\Platform\Addressing\AddressFormState;
 use App\Platform\Ui\Forms\AddressFields;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;

@@ -27,7 +27,7 @@
 
 @php
     $detail = $this->detail;
-    $viewerTimezone = \App\Platform\Time\UserTimezoneResolver::resolve();
+    $viewerTimezone = \AIArmada\CommerceSupport\Support\UserTimezoneResolver::resolve();
     $occurrences = $detail->occurrences();
     $occurrenceCount = $occurrences->count();
     $firstOccurrence = $occurrences->first();
@@ -41,7 +41,7 @@
     $primaryAddress = $eventLocation?->primaryAddress()
         ?? app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($eventLocation?->venue_id)
         ?? $event->resolvedLocationAddress();
-    $addressDisplayLines = \App\Platform\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
+    $addressDisplayLines = \AIArmada\Addressing\Support\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $scopedVenueName ?? $locationVenue?->name ?? $detail->locationLabel($eventLocation) ?? $event->resolvedLocationName();
     $hasLocationContent = filled($venueDisplayName) || $primaryAddress !== null;
     $lat = $primaryAddress?->latitude;
@@ -192,10 +192,10 @@
 
     // ── Hero fact band ───────────────────────────────────────────────
     $firstDateLabel = $firstOccurrence?->starts_at
-        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($firstOccurrence->starts_at->copy()->timezone($viewerTimezone), 'j M Y')
+        ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($firstOccurrence->starts_at->copy()->timezone($viewerTimezone), 'j M Y')
         : __('Akan dikemas kini');
     $lastDateLabel = $lastOccurrence?->starts_at
-        ? \App\Platform\Time\UserDateTimeFormatter::translatedFormat($lastOccurrence->starts_at->copy()->timezone($viewerTimezone), 'j M Y')
+        ? \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($lastOccurrence->starts_at->copy()->timezone($viewerTimezone), 'j M Y')
         : null;
     $heroFacts = collect([
         ['label' => $occurrenceCount > 1 ? __('Tarikh pertama') : __('Tarikh'), 'value' => $firstDateLabel],

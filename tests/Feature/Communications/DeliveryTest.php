@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Communications\Contracts\ConsentResolver;
+use AIArmada\Communications\Contracts\DeliveryFencing;
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Enums\CommunicationCategory;
 use AIArmada\Communications\Enums\CommunicationDirection;
@@ -15,7 +16,6 @@ use AIArmada\Communications\Models\CommunicationAttempt;
 use AIArmada\Communications\Models\CommunicationDelivery;
 use AIArmada\Communications\Models\CommunicationRecipient;
 use App\Features\Communications\Api\AccountNotificationPreferences;
-use App\Features\Communications\Api\DeliveryFencing;
 use App\Features\Communications\Api\NotificationTransport;
 use App\Features\Communications\Support\Integration\AppConsentResolver;
 use App\Features\Communications\Support\Integration\AppPreferenceResolver;

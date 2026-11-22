@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -15,7 +16,6 @@ use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Models\Reference;
-use App\Platform\Location\AddressHierarchyFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 

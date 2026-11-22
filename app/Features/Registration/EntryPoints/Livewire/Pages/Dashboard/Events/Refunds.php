@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 
+use AIArmada\Events\Contracts\EventRefundEligibility;
 use AIArmada\Orders\Enums\PaymentStatus as OrderPaymentStatus;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderPayment;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AdmissionRefunds;
 use App\Features\Registration\Models\Registration;
-use App\Features\Registration\Support\EventCommercePolicy;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -51,7 +51,7 @@ final class Refunds extends Component
 
         abort_unless($user instanceof User, 403);
         abort_unless($user->can('manageAdmissions', $event), 403);
-        abort_unless(app(EventCommercePolicy::class)->refundsEnabled($event), 404);
+        abort_unless(app(EventRefundEligibility::class)->refundsEnabled($event), 404);
 
         $this->event = $event;
         $this->eventId = (string) $event->getKey();

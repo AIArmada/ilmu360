@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Rewards\Support;
 
 use AIArmada\Rewards\Models\RewardProgram;
+use AIArmada\Rewards\Models\RewardProgramVersion;
+use AIArmada\Rewards\Support\RewardVersionResolver;
 use App\Features\Rewards\Api\PublishedProgramVersions;
 use App\Features\Rewards\Api\PublishedProgramVersionSnapshot;
 
@@ -15,10 +17,6 @@ use App\Features\Rewards\Api\PublishedProgramVersionSnapshot;
  */
 final readonly class PublishedProgramVersionsAdapter implements PublishedProgramVersions
 {
-    public function __construct(
-        private PublishedRewardProgramVersionResolver $resolver,
-    ) {}
-
     public function publishedVersion(string $programId): ?PublishedProgramVersionSnapshot
     {
         $program = RewardProgram::query()->find($programId);
@@ -27,9 +25,9 @@ final readonly class PublishedProgramVersionsAdapter implements PublishedProgram
             return null;
         }
 
-        $version = $this->resolver->resolve($program);
+        $version = RewardVersionResolver::resolveCurrentForProgram($program);
 
-        if (! $version instanceof \AIArmada\Rewards\Models\RewardProgramVersion) {
+        if (! $version instanceof RewardProgramVersion) {
             return null;
         }
 

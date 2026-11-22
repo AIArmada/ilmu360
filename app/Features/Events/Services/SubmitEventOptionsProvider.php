@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
@@ -21,7 +22,6 @@ use App\Features\Persons\Api\PersonSubmissionOptionsCache;
 use App\Models\User;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Language\Models\Language;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;

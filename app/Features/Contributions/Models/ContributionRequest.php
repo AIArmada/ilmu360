@@ -2,12 +2,12 @@
 
 namespace App\Features\Contributions\Models;
 
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Cache\CacheVersionStore;
 use Database\Factories\ContributionRequestFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

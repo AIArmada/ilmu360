@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services\ShareCards;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -14,7 +15,6 @@ use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
-use App\Platform\Time\UserDateTimeFormatter;
 use App\Shared\Media\ShareCards\ShareCardRenderInput;
 use Carbon\CarbonInterface;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;

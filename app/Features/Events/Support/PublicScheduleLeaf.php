@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Support;
 
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTimeExpression;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
-use App\Platform\Time\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;

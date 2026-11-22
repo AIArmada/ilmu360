@@ -2,6 +2,7 @@
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
@@ -11,7 +12,6 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Actions\SyncPersonRelationsAction;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
-use App\Platform\Addressing\AddressFormState;
 use App\Platform\Ui\Forms\AddressFields;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;

@@ -4,6 +4,7 @@ namespace App\Features\Persons\Models;
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Contracts\Followable;
@@ -25,7 +26,6 @@ use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Services\PersonSearchService;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
-use App\Platform\Cache\CacheVersionStore;
 use App\Platform\Models\Concerns\HasLanguages;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auditing\RecordsCustomAuditDifferences;

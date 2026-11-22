@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Platform\Cache\CacheVersionStore;
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Tests\TestCase;

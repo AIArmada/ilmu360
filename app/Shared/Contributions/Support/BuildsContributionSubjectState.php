@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Shared\Contributions\Support;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressAssignments;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
-use App\Platform\Location\AddressAssignments;
 use App\Platform\Ui\Forms\AddressFields;
 use BackedEnum;
 use Illuminate\Support\Collection;

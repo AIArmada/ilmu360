@@ -3,13 +3,13 @@
 namespace App\Platform\Api\Frontend;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressAssignments;
+use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use App\Platform\Api\Frontend\Data\CountryData;
-use App\Platform\Location\AddressAssignments;
-use App\Platform\Location\AddressHierarchyFormatter;
 use BackedEnum;
 use Illuminate\Support\Str;
 
