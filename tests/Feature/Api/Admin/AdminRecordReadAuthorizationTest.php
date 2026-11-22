@@ -11,28 +11,7 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-
-/**
- * A user may have permission to edit a record without permission to read its
- * full details. The admin API must never substitute any mutation ability for view.
- */
-final class DeniedAdminPersonReadPolicy
-{
-    public function viewAny(): bool
-    {
-        return true;
-    }
-
-    public function view(): bool
-    {
-        return false;
-    }
-
-    public function update(): bool
-    {
-        return true;
-    }
-}
+use Tests\Support\DeniedAdminPersonReadPolicy;
 
 it('does not expose admin details, relations or media when editing is allowed but viewing is denied', function (): void {
     setPermissionsTeamId(null);

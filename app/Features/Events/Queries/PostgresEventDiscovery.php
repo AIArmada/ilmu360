@@ -1250,6 +1250,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         $longitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.longitude when {$venueExists} then venue_addresses.longitude end";
         $connection = $queryBuilder->getConnection();
         $driver = $connection instanceof Connection ? $connection->getDriverName() : null;
+        $castType = $driver === 'sqlite' ? 'real' : 'double precision';
         $box = GeoDistance::boundingBox($lat, $lng, (float) $radiusKm);
         $distanceSql = GeoDistance::haversineSql($latitudeExpression, $longitudeExpression, $driver);
         $distanceBindings = GeoDistance::haversineBindings($lat, $lng);
@@ -1271,8 +1272,8 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->leftJoin("{$addressesTable} as institution_addresses", 'institution_addresses.id', '=', 'institution_addressables.address_id')
             ->whereRaw("{$latitudeExpression} is not null")
             ->whereRaw("{$longitudeExpression} is not null")
-            ->whereRaw("({$latitudeExpression}) between ? and ?", [$box['min_lat'], $box['max_lat']])
-            ->whereRaw("({$longitudeExpression}) between ? and ?", [$box['min_lng'], $box['max_lng']])
+            ->whereRaw("({$latitudeExpression}) between cast(? as {$castType}) and cast(? as {$castType})", [$box['min_lat'], $box['max_lat']])
+            ->whereRaw("({$longitudeExpression}) between cast(? as {$castType}) and cast(? as {$castType})", [$box['min_lng'], $box['max_lng']])
             ->select("{$eventsTable}.*")
             ->selectRaw("{$distanceSql} as distance_km", $distanceBindings)
             ->whereRaw("{$distanceSql} <= ?", [...$distanceBindings, $radiusKm])

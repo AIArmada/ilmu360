@@ -3,18 +3,7 @@
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Media\MediaChangeListener;
 use Illuminate\Support\Facades\Storage;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
-
-final class RecordingMediaChangeListener implements MediaChangeListener
-{
-    /** @var list<string> */
-    public array $changes = [];
-
-    public function mediaChanged(Media $media, string $change): void
-    {
-        $this->changes[] = $change;
-    }
-}
+use Tests\Support\RecordingMediaChangeListener;
 
 beforeEach(function (): void {
     Storage::fake('public');

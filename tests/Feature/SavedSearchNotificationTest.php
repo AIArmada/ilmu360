@@ -3,30 +3,13 @@
 declare(strict_types=1);
 
 use App\Features\Communications\Api\NotificationCadence;
-use App\Features\Communications\Api\NotificationDispatchData;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\Events\Models\Event;
-use App\Features\Events\Notifications\EventNotificationService;
 use App\Features\Institutions\Models\Institution;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use Illuminate\Support\Str;
-
-class SavedSearchNotificationRecorder extends EventNotificationService
-{
-    /** @var list<array{recipientId: string, data: NotificationDispatchData}> */
-    public array $recordedNotifications = [];
-
-    protected function dispatchForUsers(iterable $users, callable $builder): void
-    {
-        foreach ($users as $user) {
-            $this->recordedNotifications[] = [
-                'recipientId' => (string) $user->getKey(),
-                'data' => $builder($user),
-            ];
-        }
-    }
-}
+use Tests\Support\SavedSearchNotificationRecorder;
 
 it('groups matching search snapshots into one owner notification with the fastest cadence', function (): void {
     config(['scout.driver' => 'database']);
