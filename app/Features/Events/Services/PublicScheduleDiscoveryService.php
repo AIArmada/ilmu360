@@ -330,7 +330,7 @@ final readonly class PublicScheduleDiscoveryService
         foreach ($events as $event) {
             $defaultVenueId = $event->getAttribute('default_venue_id');
 
-            if (is_string($defaultVenueId) && $defaultVenueId !== '') {
+            if (is_string($defaultVenueId) && $defaultVenueId !== '' && ! $event->relationLoaded('venue')) {
                 $venueIds = $venueIds->push($defaultVenueId);
             }
         }
