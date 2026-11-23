@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
@@ -36,7 +37,7 @@ final class Workspace extends Component
 
     public string $organizationId = '';
 
-    public string $inviteEmail = '';
+    public string $inviteRecipient = '';
 
     public string $inviteRole = 'viewer';
 
@@ -70,27 +71,28 @@ final class Workspace extends Component
         $this->authorizeManageMembers($organization);
 
         $validated = $this->validate([
-            'inviteEmail' => ['required', 'email:rfc', 'max:255'],
+            'inviteRecipient' => ['required', 'email:rfc', 'max:255'],
             'inviteRole' => ['required', Rule::in($this->manageableRoles())],
         ]);
 
-        $email = mb_strtolower(trim((string) $validated['inviteEmail']));
+        $email = mb_strtolower(trim((string) $validated['inviteRecipient']));
 
         if ($organization->members()->where('users.email', $email)->exists()) {
             throw ValidationException::withMessages([
-                'inviteEmail' => __('This person is already a member of the organization.'),
+                'inviteRecipient' => __('This person is already a member of the organization.'),
             ]);
         }
 
         $membershipInvitations->invite(
             MemberSubjectType::Organization,
             (string) $organization->getKey(),
+            EmailInvitationChannel::CHANNEL,
             $email,
             (string) $validated['inviteRole'],
             (string) $user->getKey(),
         );
 
-        $this->reset('inviteEmail');
+        $this->reset('inviteRecipient');
         $this->successToast(__('Invitation sent successfully.'));
     }
 

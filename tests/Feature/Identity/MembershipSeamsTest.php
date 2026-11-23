@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -250,7 +251,8 @@ it('reads applications and invitations through the feature query boundaries', fu
     $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
-        'email' => 'invitee@example.com',
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => 'invitee@example.com',
         'role' => MemberRole::Viewer->spatieRoleName(),
         'invited_by' => $inviter->getKey(),
     ]);
@@ -258,9 +260,9 @@ it('reads applications and invitations through the feature query boundaries', fu
 
     $invitations = app(MembershipInvitations::class);
 
-    expect($invitations->findByToken('seam-invitation-token')?->email)->toBe('invitee@example.com')
+    expect($invitations->findByToken('seam-invitation-token')?->recipient)->toBe('invitee@example.com')
         ->and($invitations->pendingForSubject(MemberSubjectType::Institution, (string) $institution->getKey()))->toHaveCount(1)
-        ->and($invitations->pendingExistsForEmail(MemberSubjectType::Institution, (string) $institution->getKey(), 'INVITEE@example.com'))->toBeTrue()
+        ->and($invitations->pendingExistsForRecipient(MemberSubjectType::Institution, (string) $institution->getKey(), EmailInvitationChannel::CHANNEL, 'invitee@example.com'))->toBeTrue()
         ->and($invitations->find((string) $invitation->getKey())?->id)->toBe((string) $invitation->getKey());
 });
 
@@ -302,18 +304,20 @@ it('writes the invitation lifecycle through the invitation boundary', function (
     $invited = $invitations->invite(
         MemberSubjectType::Institution,
         $institutionId,
+        EmailInvitationChannel::CHANNEL,
         'Boundary-Invitee@example.com',
         'admin',
         (string) $inviter->getKey(),
     );
 
-    expect($invited->email)->toBe('boundary-invitee@example.com')
+    expect($invited->recipient)->toBe('boundary-invitee@example.com')
         ->and($invited->role)->toBe('admin')
         ->and($invited->isValid)->toBeTrue()
-        ->and($invitations->pendingExistsForEmail(MemberSubjectType::Institution, $institutionId, 'BOUNDARY-INVITEE@example.com'))->toBeTrue()
+        ->and($invitations->pendingExistsForRecipient(MemberSubjectType::Institution, $institutionId, EmailInvitationChannel::CHANNEL, 'boundary-invitee@example.com'))->toBeTrue()
         ->and(fn () => $invitations->invite(
             MemberSubjectType::Institution,
             $institutionId,
+            EmailInvitationChannel::CHANNEL,
             'boundary-invitee@example.com',
             'viewer',
             (string) $inviter->getKey(),
@@ -327,6 +331,7 @@ it('writes the invitation lifecycle through the invitation boundary', function (
     $pending = $invitations->invite(
         MemberSubjectType::Institution,
         $institutionId,
+        EmailInvitationChannel::CHANNEL,
         'revoked-invitee@example.com',
         'viewer',
         (string) $inviter->getKey(),

@@ -456,7 +456,7 @@ it('lets speaker admins invite, change, and remove non-owner members', function 
 
     Livewire::actingAs($admin)
         ->test(PersonDashboard::class, ['person' => $person])
-        ->set('inviteEmail', 'new-speaker-member@example.test')
+        ->set('inviteRecipient', 'new-speaker-member@example.test')
         ->set('inviteRole', MemberRole::Editor->value)
         ->call('invite')
         ->call('startEditingMember', $member->getKey())
@@ -465,7 +465,7 @@ it('lets speaker admins invite, change, and remove non-owner members', function 
         ->call('removeMember', $member->getKey());
 
     expect($person->fresh()->members()->whereKey($member->getKey())->exists())->toBeFalse()
-        ->and(MemberInvitation::query()->where('email', 'new-speaker-member@example.test')->where('subject_id', $person->getKey())->exists())->toBeTrue();
+        ->and(MemberInvitation::query()->where('recipient', 'new-speaker-member@example.test')->where('subject_id', $person->getKey())->exists())->toBeTrue();
 
     Notification::assertSentOnDemand(MemberInvitationNotification::class);
 });
@@ -582,14 +582,14 @@ it('does not invite an existing speaker member when email casing differs', funct
 
     Livewire::actingAs($admin)
         ->test(PersonDashboard::class, ['person' => $person])
-        ->set('inviteEmail', 'speaker.member@example.test')
+        ->set('inviteRecipient', 'speaker.member@example.test')
         ->set('inviteRole', MemberRole::Editor->value)
         ->call('invite')
-        ->assertHasErrors(['inviteEmail']);
+        ->assertHasErrors(['inviteRecipient']);
 
     expect(MemberInvitation::query()
         ->where('subject_id', $person->getKey())
-        ->where('email', 'speaker.member@example.test')
+        ->where('recipient', 'speaker.member@example.test')
         ->exists())->toBeFalse();
 });
 

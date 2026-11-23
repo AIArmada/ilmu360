@@ -22,8 +22,8 @@
                 <dd class="mt-1 text-sm text-slate-900">{{ $roleLabel }}</dd>
             </div>
             <div>
-                <dt class="text-sm font-medium text-slate-500">{{ __('Invited email') }}</dt>
-                <dd class="mt-1 text-sm text-slate-900">{{ $invitation->email }}</dd>
+                <dt class="text-sm font-medium text-slate-500">{{ __('Invited recipient') }}</dt>
+                <dd class="mt-1 text-sm text-slate-900">{{ $invitation->recipient }}</dd>
             </div>
             <div>
                 <dt class="text-sm font-medium text-slate-500">{{ __('Invited by') }}</dt>

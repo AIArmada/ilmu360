@@ -13,7 +13,6 @@ use App\Features\Membership\Api\MembershipInvitations;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use Carbon\CarbonInterface;
-use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -46,30 +45,21 @@ abstract class MemberInvitationsRelationManager extends AbstractMemberInvitation
 
     abstract protected function getSubjectOwner(): Model;
 
-    #[\Override]
-    protected function getInvitationColumns(): array
-    {
-        return [
-            ...parent::getInvitationColumns(),
-            TextColumn::make('delivery')
-                ->label('Delivery')
-                ->state('Email only'),
-        ];
-    }
-
     protected function createInvitation(
         Model $owner,
-        string $email,
+        string $recipient,
         string $role,
         Model $actor,
         ?CarbonInterface $expiresAt,
+        string $channel,
     ): void {
         app(InviteMemberAction::class)->handle(
             $this->getSubjectOwner(),
-            $email,
+            $recipient,
             MemberRole::tryFrom($role) ?? MemberRole::Viewer,
             $actor,
             $expiresAt,
+            $channel,
         );
     }
 

@@ -36,14 +36,6 @@ final readonly class AcceptSubjectMemberInvitation
             throw ValidationException::withMessages(['invitation' => 'This invitation has been revoked.']);
         }
 
-        $inviteeEmail = method_exists($invitee, 'getEmailForVerification')
-            ? $invitee->getEmailForVerification()
-            : $invitee->getAttribute('email');
-
-        if (! is_string($inviteeEmail) || mb_trim($inviteeEmail) === '') {
-            throw ValidationException::withMessages(['email' => 'User does not have an email address.']);
-        }
-
         $subject = $invitation->subject;
 
         if ($subject === null || ! $subject->exists()) {

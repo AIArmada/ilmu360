@@ -15,7 +15,8 @@ use OwenIt\Auditing\Contracts\Auditable;
  * @property MemberSubjectType|null $subject_type
  * @property string|null $role
  * @property string|null $subject_id
- * @property string|null $email
+ * @property string|null $channel
+ * @property string|null $recipient
  * @property string|null $token
  * @property InvitationStatus $status
  * @property CarbonImmutable|null $expires_at
@@ -44,7 +45,8 @@ class MemberInvitation extends PackageMembershipInvitation implements Auditable
     protected $fillable = [
         'subject_type',
         'subject_id',
-        'email',
+        'channel',
+        'recipient',
         'role',
         'invited_by',
     ];

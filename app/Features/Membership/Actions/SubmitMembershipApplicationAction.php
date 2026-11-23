@@ -6,6 +6,7 @@ namespace App\Features\Membership\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\ApplyForMembershipAction;
+use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\InvitationStatus;
 use App\Features\Membership\Api\MembershipDirectory;
@@ -102,7 +103,8 @@ final readonly class SubmitMembershipApplicationAction
         if ($invitationClass::query()
             ->where('subject_type', $subjectMorphClass)
             ->where('subject_id', $subjectId)
-            ->where('email', mb_strtolower(trim($email)))
+            ->where('channel', EmailInvitationChannel::CHANNEL)
+            ->where('recipient', mb_strtolower(trim($email)))
             ->where('status', InvitationStatus::Pending->value)
             ->where(function (Builder $query): void {
                 $query

@@ -39,22 +39,24 @@ interface MembershipInvitations
         int $limit = 20,
     ): array;
 
-    public function pendingExistsForEmail(
+    public function pendingExistsForRecipient(
         MemberSubjectType $subjectType,
         string $subjectId,
-        string $email,
+        string $channel,
+        string $recipient,
     ): bool;
 
     /**
      * Issue an app-side invitation with the app-only invitation email.
      *
      * Rejects owner-role invitations and any pending, unexpired invitation for
-     * the same subject and email address.
+     * the same subject, channel and recipient.
      */
     public function invite(
         MemberSubjectType $subjectType,
         string $subjectId,
-        string $email,
+        string $channel,
+        string $recipient,
         string $role,
         string $inviterId,
     ): MembershipInvitationDetail;

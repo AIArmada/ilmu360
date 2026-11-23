@@ -3,6 +3,7 @@
 use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
+use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Institutions\Models\Institution;
@@ -92,7 +93,8 @@ it('rejects a claim while a matching invitation is still pending', function () {
     $invitation->fill([
         'subject_type' => MemberSubjectType::Institution,
         'subject_id' => $institution->getKey(),
-        'email' => $claimant->email,
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => $claimant->email,
         'role' => MemberRole::Editor->spatieRoleName(),
         'invited_by' => $inviter->getKey(),
     ]);

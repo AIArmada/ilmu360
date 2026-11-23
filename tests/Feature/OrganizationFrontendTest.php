@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
 use AIArmada\Organizations\Models\Organization;
@@ -121,7 +122,7 @@ it('lets organization managers invite members and change non-owner roles', funct
 
     Livewire::actingAs($owner)
         ->test(Workspace::class, ['organization' => $organization])
-        ->set('inviteEmail', 'new-member@example.com')
+        ->set('inviteRecipient', 'new-member@example.com')
         ->set('inviteRole', MemberRole::Editor->value)
         ->call('invite')
         ->call('startEditingMember', $member->getKey())
@@ -130,7 +131,7 @@ it('lets organization managers invite members and change non-owner roles', funct
 
     expect($organization->members()->whereKey($member->getKey())->first()?->pivot?->role)
         ->toBe(MemberRole::Admin->spatieRoleName())
-        ->and(MemberInvitation::query()->where('email', 'new-member@example.com')->where('subject_id', $organization->getKey())->exists())
+        ->and(MemberInvitation::query()->where('recipient', 'new-member@example.com')->where('subject_id', $organization->getKey())->exists())
         ->toBeTrue();
 
     Notification::assertSentOnDemand(MemberInvitationNotification::class);
@@ -163,7 +164,8 @@ it('lets an invited organization member accept a frontend invitation', function 
     $invitation->fill([
         'subject_type' => 'organization',
         'subject_id' => $organization->getKey(),
-        'email' => $invitee->email,
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => $invitee->email,
         'role' => MemberRole::Viewer->spatieRoleName(),
         'invited_by' => $owner->getKey(),
     ]);

@@ -80,26 +80,30 @@ final readonly class MembershipInvitationsService implements MembershipInvitatio
             ->all();
     }
 
-    public function pendingExistsForEmail(
+    public function pendingExistsForRecipient(
         MemberSubjectType $subjectType,
         string $subjectId,
-        string $email,
+        string $channel,
+        string $recipient,
     ): bool {
         return $this->pendingQuery($subjectType, $subjectId)
-            ->where('email', mb_strtolower(mb_trim($email)))
+            ->where('channel', $channel)
+            ->where('recipient', $recipient)
             ->exists();
     }
 
     public function invite(
         MemberSubjectType $subjectType,
         string $subjectId,
-        string $email,
+        string $channel,
+        string $recipient,
         string $role,
         string $inviterId,
     ): MembershipInvitationDetail {
         return MembershipValueMapper::invitation($this->inviteSubjectMember->handle(
             $this->subject($subjectType, $subjectId),
-            $email,
+            $channel,
+            $recipient,
             $role,
             $this->account($inviterId),
         ));

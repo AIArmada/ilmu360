@@ -2,6 +2,7 @@
 
 use AIArmada\Membership\Actions\InviteMemberAction;
 use AIArmada\Membership\Actions\RevokeInvitationAction;
+use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Actions\DeleteInstitutionAction;
@@ -72,7 +73,8 @@ it('lets institution admins create and revoke institution member invitations fro
 
     expect($invitation)->not->toBeNull()
         ->and($invitation?->subject_id)->toBe($institution->getKey())
-        ->and($invitation?->email)->toBe('invitee@example.com')
+        ->and($invitation?->channel)->toBe(EmailInvitationChannel::CHANNEL)
+        ->and($invitation?->recipient)->toBe('invitee@example.com')
         ->and($invitation?->role)->toBe(MemberRole::Admin->spatieRoleName())
         ->and($invitation?->revoked_at)->toBeNull();
 
@@ -117,7 +119,8 @@ it('redirects guests to login for member invitation pages', function () {
     $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
-        'email' => 'invitee@example.com',
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => 'invitee@example.com',
         'role' => 'viewer',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -141,7 +144,8 @@ it('lets invitees accept member invitations from the invitation page', function 
     $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
-        'email' => $invitee->email,
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => $invitee->email,
         'role' => 'admin',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -159,7 +163,7 @@ it('lets invitees accept member invitations from the invitation page', function 
         ->and($invitation->fresh()?->accepted_by)->toBe($invitee->getKey());
 });
 
-it('shows a clear message when the signed-in user has no email for the invitation', function () {
+it('blocks acceptance when the signed-in user cannot verify the invited recipient', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -173,7 +177,8 @@ it('shows a clear message when the signed-in user has no email for the invitatio
     $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
-        'email' => 'invitee@example.com',
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => 'invitee@example.com',
         'role' => 'viewer',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -183,7 +188,7 @@ it('shows a clear message when the signed-in user has no email for the invitatio
         ->test(ShowInvitation::class, [
             'token' => $rawToken,
         ])
-        ->assertSee('Add an email address to your account before accepting this invitation.')
+        ->assertSee('This invitation was sent to invitee@example.com, but your account cannot verify that identity.')
         ->call('accept');
 
     expect($invitation->fresh()?->accepted_at)->toBeNull();
@@ -203,7 +208,8 @@ it('shows invalid messaging for protected invitations that should no longer be a
     $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
-        'email' => $invitee->email,
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => $invitee->email,
         'role' => 'owner',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -233,7 +239,8 @@ it('shows invalid messaging when the invited subject no longer exists', function
     $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
-        'email' => $invitee->email,
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => $invitee->email,
         'role' => 'viewer',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -260,7 +267,8 @@ it('shows invalid messaging when the invitation references a subject that never 
     $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => (string) Str::uuid(),
-        'email' => $invitee->email,
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => $invitee->email,
         'role' => 'viewer',
         'invited_by' => $inviter->getKey(),
     ]);

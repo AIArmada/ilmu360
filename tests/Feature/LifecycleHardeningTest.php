@@ -2,6 +2,7 @@
 
 use AIArmada\Events\States\RegistrationStatus\Confirmed;
 use AIArmada\Events\States\RegistrationStatus\Pending;
+use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\InvitationStatus;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
@@ -147,7 +148,8 @@ it('hashes invitation tokens and keeps invitation lifecycle fields behind transi
     $invitation->fill([
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
-        'email' => $invitee->email,
+        'channel' => EmailInvitationChannel::CHANNEL,
+        'recipient' => $invitee->email,
         'role' => 'viewer',
         'invited_by' => $inviter->getKey(),
     ]);

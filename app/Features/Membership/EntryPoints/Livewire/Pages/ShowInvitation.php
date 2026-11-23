@@ -2,6 +2,8 @@
 
 namespace App\Features\Membership\EntryPoints\Livewire\Pages;
 
+use AIArmada\Membership\Channels\InvitationChannelManager;
+use AIArmada\Membership\Data\InvitationActorData;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\Events\Models\Event;
@@ -153,20 +155,25 @@ class ShowInvitation extends Component
             return __('This invitation is no longer valid.');
         }
 
-        $userEmail = is_string($user->email) ? trim($user->email) : '';
-
-        if ($userEmail === '') {
-            return __('Add an email address to your account before accepting this invitation.');
-        }
-
-        if (mb_strtolower($userEmail) !== mb_strtolower($this->invitation->email)) {
-            return __('This invitation was sent to :email, but you are signed in as :current.', [
-                'email' => $this->invitation->email,
-                'current' => $userEmail,
+        if (! $this->recipientIsVerified($user)) {
+            return __('This invitation was sent to :recipient, but your account cannot verify that identity.', [
+                'recipient' => (string) $this->invitation->recipient,
             ]);
         }
 
         return null;
+    }
+
+    private function recipientIsVerified(User $user): bool
+    {
+        return app(InvitationChannelManager::class)->verifyRecipient(
+            (string) $this->invitation->channel,
+            (string) $this->invitation->recipient,
+            new InvitationActorData(
+                id: (string) $user->getKey(),
+                email: $user->getEmailForVerification(),
+            ),
+        );
     }
 
     private function resolveSubjectName(\Illuminate\Database\Eloquent\Model $subject): string

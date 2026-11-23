@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Persons\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Membership\Api\MemberPermissions;
@@ -50,7 +51,7 @@ final class PersonDashboard extends Component
     #[Url(as: 'event_per_page', except: 8)]
     public int $eventPerPage = 8;
 
-    public string $inviteEmail = '';
+    public string $inviteRecipient = '';
 
     public string $inviteRole = 'viewer';
 
@@ -98,27 +99,28 @@ final class PersonDashboard extends Component
         $this->authorizeManageMembers($person);
 
         $validated = $this->validate([
-            'inviteEmail' => ['required', 'email:rfc', 'max:255'],
+            'inviteRecipient' => ['required', 'email:rfc', 'max:255'],
             'inviteRole' => ['required', Rule::in($this->manageableRoles())],
         ]);
 
-        $email = mb_strtolower(trim((string) $validated['inviteEmail']));
+        $email = mb_strtolower(trim((string) $validated['inviteRecipient']));
 
         if ($person->members()->whereRaw('LOWER(users.email) = ?', [$email])->exists()) {
             throw ValidationException::withMessages([
-                'inviteEmail' => __('This person is already a member of the speaker profile.'),
+                'inviteRecipient' => __('This person is already a member of the speaker profile.'),
             ]);
         }
 
         $membershipInvitations->invite(
             MemberSubjectType::Person,
             (string) $person->getKey(),
+            EmailInvitationChannel::CHANNEL,
             $email,
             (string) $validated['inviteRole'],
             (string) $user->getKey(),
         );
 
-        $this->reset('inviteEmail');
+        $this->reset('inviteRecipient');
         $this->successToast(__('Invitation sent successfully.'));
     }
 
