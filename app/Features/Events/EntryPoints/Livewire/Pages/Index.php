@@ -306,6 +306,13 @@ class Index extends Component implements HasForms
     public bool $filtersPanelOpen = false;
 
     /**
+     * Whether the (heavy) filter form subtree has been mounted. The panel
+     * opens instantly with the Lokasi bar; the Filament form below it is
+     * rendered lazily to keep the first paint of listing pages cheap.
+     */
+    public bool $filterFormMounted = false;
+
+    /**
      * Landing preference for the filter panel. Links that already carry a
      * complete, ready-to-read result set (for example an institution's past
      * events) pass `filters_panel=closed` so results appear immediately;
@@ -354,7 +361,9 @@ class Index extends Component implements HasForms
         $this->fillPublicPropertiesFromFilters($normalized);
         $this->filterData = $normalized;
         $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults($normalized['area_assignments']);
-        $this->filtersPanelOpen = $this->filters_panel !== 'closed' && $this->hasActiveFilters();
+        $this->filtersPanelOpen = $this->filters_panel === 'open'
+            || ($this->filters_panel !== 'closed' && $this->hasActiveFilters());
+        $this->filterFormMounted = $this->filtersPanelOpen;
     }
 
     /**
@@ -447,6 +456,17 @@ class Index extends Component implements HasForms
     public function hasActiveFilters(): bool
     {
         return $this->activeFilterCount() > 0;
+    }
+
+    public function mountFilterForm(): void
+    {
+        $this->filterFormMounted = true;
+    }
+
+    public function openFiltersPanel(): void
+    {
+        $this->filtersPanelOpen = true;
+        $this->filterFormMounted = true;
     }
 
     public function showsGeolocationControls(): bool
@@ -829,6 +849,8 @@ class Index extends Component implements HasForms
 
     public function updatedFilterData(mixed $value = null, ?string $key = null): void
     {
+        $this->filterFormMounted = true;
+
         [$slot0, $slot1] = $this->slotRoles();
 
         if ($key === 'country_id') {
@@ -919,6 +941,7 @@ class Index extends Component implements HasForms
         $this->filterData = $normalized;
         $this->filterData['area_assignments'] = $this->withAreaAssignmentDefaults($normalized['area_assignments']);
         $this->filterFormVersion++;
+        $this->filterFormMounted = true;
 
         $this->resetPage();
     }
@@ -1006,7 +1029,17 @@ class Index extends Component implements HasForms
             return [];
         }
 
-        return app(EventEngagement::class)->goingEventIds((string) $user->getKey());
+        $eventIds = $this->visibleScheduleEventIds();
+
+        if ($eventIds === []) {
+            return [];
+        }
+
+        if ($this->goingEventIdsForFilterCache !== null) {
+            return array_values(array_intersect($this->goingEventIdsForFilterCache, $eventIds));
+        }
+
+        return app(EventEngagement::class)->goingEventIdsFor((string) $user->getKey(), $eventIds);
     }
 
     public function toggleSave(string $eventId): void
@@ -1052,6 +1085,24 @@ class Index extends Component implements HasForms
             return [];
         }
 
+        $eventIds = $this->visibleScheduleEventIds();
+
+        if ($eventIds === []) {
+            return [];
+        }
+
+        if ($this->savedEventIdsForFilterCache !== null) {
+            return array_values(array_intersect($this->savedEventIdsForFilterCache, $eventIds));
+        }
+
+        return app(EventEngagement::class)->savedEventIdsFor((string) $user->getKey(), $eventIds);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function visibleScheduleEventIds(): array
+    {
         $eventIds = [];
 
         foreach ($this->scheduleItems()->items() as $scheduleLeaf) {
@@ -1060,14 +1111,7 @@ class Index extends Component implements HasForms
             }
         }
 
-        if ($eventIds === []) {
-            return [];
-        }
-
-        return array_values(array_intersect(
-            app(EventEngagement::class)->savedEventIds((string) $user->getKey()),
-            $eventIds,
-        ));
+        return $eventIds;
     }
 
     /**
@@ -1076,9 +1120,18 @@ class Index extends Component implements HasForms
     #[Computed]
     public function countries(): Collection
     {
-        return AddressCountry::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'iso2']);
+        $countries = array_map(static function (array $row): AddressCountry {
+            $country = (new AddressCountry)->forceFill([
+                'id' => $row['id'],
+                'name' => $row['name'],
+                'iso2' => $row['iso2'],
+            ]);
+            $country->exists = true;
+
+            return $country;
+        }, app(SelectionCatalogCache::class)->countryRows());
+
+        return new \Illuminate\Database\Eloquent\Collection($countries);
     }
 
     /**
@@ -1100,14 +1153,27 @@ class Index extends Component implements HasForms
             return collect();
         }
 
-        if (app(LocationSlugResolver::class)->stateMaps($this->country_id)['options'] === []) {
+        $options = app(LocationSlugResolver::class)->stateOptionsForCountry($this->country_id);
+
+        if ($options === []) {
             return collect();
         }
 
-        return State::query()
-            ->where('country_id', $this->country_id)
-            ->orderBy('name')
-            ->get();
+        $countryId = $this->country_id;
+        $states = [];
+
+        foreach ($options as $stateId => $name) {
+            $state = (new State)->forceFill([
+                'id' => (string) $stateId,
+                'country_id' => $countryId,
+                'name' => $name,
+            ]);
+            $state->exists = true;
+
+            $states[] = $state;
+        }
+
+        return new \Illuminate\Database\Eloquent\Collection($states);
     }
 
     /**

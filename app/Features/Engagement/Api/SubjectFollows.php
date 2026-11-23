@@ -33,6 +33,12 @@ interface SubjectFollows
      */
     public function followedSubjectIds(string $accountId, EngagementSubjectType $subjectType): array;
 
+    /**
+     * @param  list<EngagementSubjectType>  $subjectTypes
+     * @return array<string, list<string>>
+     */
+    public function followedSubjectIdsByTypes(string $accountId, array $subjectTypes): array;
+
     public function followerCount(EngagementSubjectType $subjectType, string $subjectId): int;
 
     /**

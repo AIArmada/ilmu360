@@ -150,6 +150,46 @@ final readonly class MembershipDirectoryService implements MembershipDirectory
     }
 
     /**
+     * @param  list<MemberSubjectType>  $subjectTypes
+     * @return array<string, bool>
+     */
+    public function hasAnyMembershipForTypes(string $accountId, array $subjectTypes): array
+    {
+        if ($subjectTypes === []) {
+            return [];
+        }
+
+        $grammar = DB::getQueryGrammar();
+        $selects = [];
+        $bindings = [];
+        $typeValues = [];
+
+        foreach ($subjectTypes as $subjectType) {
+            $value = $subjectType->value;
+
+            if (in_array($value, $typeValues, true)) {
+                continue;
+            }
+
+            [$table] = $this->subjectTable($subjectType);
+
+            $selects[] = 'exists(select 1 from '.$grammar->wrapTable($table).' where user_id = ?) as '.$grammar->wrap($value);
+            $bindings[] = $accountId;
+            $typeValues[] = $value;
+        }
+
+        $row = DB::selectOne('select '.implode(', ', $selects), $bindings);
+
+        $result = [];
+
+        foreach ($typeValues as $value) {
+            $result[$value] = (bool) ($row->{$value} ?? false);
+        }
+
+        return $result;
+    }
+
+    /**
      * @return array{0: string, 1: string}
      */
     private function subjectTable(MemberSubjectType $subjectType): array

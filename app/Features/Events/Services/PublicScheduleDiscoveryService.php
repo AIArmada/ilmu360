@@ -19,6 +19,7 @@ use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\EventScheduleTimeFact;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Events\Queries\PostgresEventDiscovery;
 use App\Features\Events\Support\PublicScheduleLeaf as PublicScheduleLeafValue;
 use App\Features\Events\Support\VenueAddressResolver;
@@ -73,6 +74,56 @@ final readonly class PublicScheduleDiscoveryService
 
         $eventFilters['time_scope'] = 'all';
 
+        $currentPage = max(1, (int) Paginator::resolveCurrentPage());
+        $hasExpressionFilters = $this->hasExpressionFilters($criteria->filters);
+
+        if (
+            $criteria->latitude === null
+            && $criteria->longitude === null
+            && $sort !== 'distance'
+            && ! $hasExpressionFilters
+        ) {
+            $pageResult = $this->scheduleFacts->paginatePublicScheduleOccurrences(
+                $criteria->text,
+                $criteria->filters,
+                $currentPage,
+                $perPage,
+                $sort,
+            );
+
+            if ($criteria->text !== null && ! $pageResult['has_matching_events']) {
+                $parentPage = $this->eventSearch->search(
+                    query: $criteria->text,
+                    filters: $eventFilters,
+                    perPage: 1000,
+                    sort: $sort,
+                );
+
+                $factSet = $this->factsFromSearchPage($parentPage);
+                $leaves = $this->sortLeaves(
+                    collect($factSet->leaves)
+                        ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $criteria->filters))
+                        ->values(),
+                    $sort,
+                    $criteria->filters,
+                );
+
+                return $this->paginateFacts($leaves, $perPage);
+            }
+
+            return new Paginator(
+                items: $this->hydrateSelectedOccurrences($pageResult['rows']),
+                total: $pageResult['total'],
+                perPage: $perPage,
+                currentPage: $currentPage,
+                options: [
+                    'path' => Paginator::resolveCurrentPath(),
+                    'pageName' => 'page',
+                    'query' => request()->query(),
+                ],
+            );
+        }
+
         if ($criteria->latitude !== null && $criteria->longitude !== null) {
             $parentPage = $this->eventSearch->searchNearbyWithQuery(
                 query: $criteria->text,
@@ -85,7 +136,9 @@ final readonly class PublicScheduleDiscoveryService
 
             $factSet = $this->factsFromSearchPage($parentPage);
         } else {
-            $directFactSet = $this->scheduleFacts->publicScheduleFactSet($criteria->text, $eventFilters);
+            $directFactSet = $hasExpressionFilters
+                ? $this->scheduleFacts->publicScheduleFactSetForWindow($criteria->text, $eventFilters, $criteria->filters)
+                : $this->scheduleFacts->publicScheduleFactSet($criteria->text, $eventFilters);
 
             if ($criteria->text === null || $directFactSet->eventIds !== []) {
                 $factSet = $directFactSet;
@@ -101,62 +154,96 @@ final readonly class PublicScheduleDiscoveryService
             }
         }
 
-        $leaves = collect($factSet->leaves)
-            ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $criteria->filters))
-            ->values();
+        $leaves = $this->sortLeaves(
+            collect($factSet->leaves)
+                ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $criteria->filters))
+                ->values(),
+            $sort,
+            $criteria->filters,
+        );
 
+        return $this->paginateFacts($leaves, $perPage);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function hasExpressionFilters(array $filters): bool
+    {
+        foreach (['timing_mode', 'prayer_time', 'starts_time_from', 'starts_time_until'] as $key) {
+            $value = $filters[$key] ?? null;
+
+            if (is_array($value) ? $value !== [] : filled($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  Collection<int, EventScheduleFact>  $leaves
+     * @param  array<string, mixed>  $filters
+     * @return Collection<int, EventScheduleFact>
+     */
+    private function sortLeaves(Collection $leaves, string $sort, array $filters): Collection
+    {
         if ($sort === 'distance') {
-            $leaves = $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByDistance($left, $right))->values();
-        } elseif (($criteria->filters['time_scope'] ?? null) === 'past') {
+            return $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByDistance($left, $right))->values();
+        }
+
+        if (($filters['time_scope'] ?? null) === 'past') {
             // Past listings read newest-first ("Terbaru"): the most recently
             // held majlis should lead, mirroring how upcoming listings lead
             // with the soonest one.
-            $leaves = $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($right, $left))->values();
-        } else {
-            $leaves = $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($left, $right))->values();
+            return $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($right, $left))->values();
         }
 
-        return $this->paginateFacts($leaves, $perPage);
+        return $leaves->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($left, $right))->values();
     }
 
     /** @return Collection<int, PublicScheduleLeafValue> */
     public function homepageSelection(?string $accountId): Collection
     {
-        $personIds = $accountId !== null ? $this->subjectFollows->followedSubjectIds($accountId, EngagementSubjectType::Person) : [];
-        $institutionIds = $accountId !== null ? $this->subjectFollows->followedSubjectIds($accountId, EngagementSubjectType::Institution) : [];
-        $referenceIds = $accountId !== null ? $this->subjectFollows->followedSubjectIds($accountId, EngagementSubjectType::Reference) : [];
-        $hasFollows = $personIds !== [] || $institutionIds !== [] || $referenceIds !== [];
+        $featuredRows = $this->scheduleFacts->homepageFeaturedOccurrences(9);
+        $selectedRows = $featuredRows;
 
-        $factSet = $this->scheduleFacts->homepageScheduleFacts($personIds, $institutionIds, $referenceIds);
+        if ($accountId !== null && count($featuredRows) < 9) {
+            $followsByType = $this->subjectFollows->followedSubjectIdsByTypes($accountId, [
+                EngagementSubjectType::Person,
+                EngagementSubjectType::Institution,
+                EngagementSubjectType::Reference,
+            ]);
 
-        $followedEventIds = $hasFollows
-            ? collect($this->scheduleFacts->homepageFollowedEventIds($personIds, $institutionIds, $referenceIds))->flip()
-            : collect();
+            $personIds = $followsByType[EngagementSubjectType::Person->value] ?? [];
+            $institutionIds = $followsByType[EngagementSubjectType::Institution->value] ?? [];
+            $referenceIds = $followsByType[EngagementSubjectType::Reference->value] ?? [];
 
-        $filters = [
-            'time_scope' => 'upcoming',
-            'starts_before' => UserDateTimeFormatter::userNow()->addDays(14)->toDateString(),
-        ];
-        $featuredFilters = ['time_scope' => 'upcoming'];
-        $leaves = collect($factSet->leaves)
-            ->unique(static fn (EventScheduleFact $fact): string => $fact->occurrenceId);
+            if ($personIds !== [] || $institutionIds !== [] || $referenceIds !== []) {
+                $startsBeforeUtc = UserDateTimeFormatter::parseUserDateToUtc(
+                    UserDateTimeFormatter::userNow()->addDays(14)->toDateString(),
+                    true,
+                );
 
-        $featured = $leaves
-            ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $featuredFilters))
-            ->filter(static fn (EventScheduleFact $fact): bool => $fact->isFeatured)
-            ->sort(fn (EventScheduleFact $left, EventScheduleFact $right): int => $this->compareByTime($left, $right))
-            ->take(9);
+                if ($startsBeforeUtc instanceof CarbonInterface) {
+                    $followedRows = $this->scheduleFacts->homepageFollowedOccurrences(
+                        $personIds,
+                        $institutionIds,
+                        $referenceIds,
+                        $startsBeforeUtc,
+                        excludeOccurrenceIds: array_column($featuredRows, 'occurrence_id'),
+                    );
 
-        $selected = $featured->concat(
-            $leaves
-                ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $filters))
-                ->reject(static fn (EventScheduleFact $fact): bool => $fact->isFeatured)
-                ->filter(fn (EventScheduleFact $fact): bool => $followedEventIds->has($fact->eventId))
-                ->shuffle()
-                ->take(9 - $featured->count()),
-        )->values();
+                    if ($followedRows !== []) {
+                        shuffle($followedRows);
+                        $followedRows = array_slice($followedRows, 0, 9 - count($featuredRows));
+                        $selectedRows = array_merge($featuredRows, $followedRows);
+                    }
+                }
+            }
+        }
 
-        return $this->hydrateLeaves($selected);
+        return $this->hydrateSelectedOccurrences($selectedRows);
     }
 
     /** @param iterable<int, EventSession> $sessions */
@@ -238,9 +325,17 @@ final readonly class PublicScheduleDiscoveryService
 
         $venueIds = $locations
             ->map(fn (EventLocation $location): mixed => $location->getAttribute('venue_id'))
-            ->filter(fn (mixed $venueId): bool => is_string($venueId) && $venueId !== '')
-            ->unique()
-            ->values();
+            ->filter(fn (mixed $venueId): bool => is_string($venueId) && $venueId !== '');
+
+        foreach ($events as $event) {
+            $defaultVenueId = $event->getAttribute('default_venue_id');
+
+            if (is_string($defaultVenueId) && $defaultVenueId !== '') {
+                $venueIds = $venueIds->push($defaultVenueId);
+            }
+        }
+
+        $venueIds = $venueIds->unique()->values();
 
         if ($venueIds->isEmpty()) {
             return;
@@ -519,5 +614,54 @@ final readonly class PublicScheduleDiscoveryService
         }
 
         return $leaves;
+    }
+
+    /**
+     * Hydrate exactly the selected occurrence rows, constraining both the
+     * parent ids and the occurrence ids loaded per event.
+     *
+     * @param  list<array{event_id: string, occurrence_id: string}>  $rows
+     * @return Collection<int, PublicScheduleLeafValue>
+     */
+    private function hydrateSelectedOccurrences(array $rows): Collection
+    {
+        if ($rows === []) {
+            return collect();
+        }
+
+        $eventIds = array_values(array_unique(array_map(static fn (array $row): string => $row['event_id'], $rows)));
+        $occurrenceIds = array_values(array_unique(array_map(static fn (array $row): string => $row['occurrence_id'], $rows)));
+
+        $events = $this->scheduleEvents->hydrateScheduleEvents(
+            $eventIds,
+            occurrenceIds: $occurrenceIds,
+        );
+        $this->primeVenueAddresses($events);
+        $eventsById = $events->keyBy(static fn (Event $event): string => (string) $event->getKey());
+        $leaves = collect();
+
+        foreach ($rows as $row) {
+            $event = $eventsById->get($row['event_id']);
+
+            if (! $event instanceof Event || ! $event->relationLoaded('occurrences')) {
+                continue;
+            }
+
+            $occurrence = $event->occurrences->first(
+                static fn (EventOccurrence $candidate): bool => (string) $candidate->getKey() === $row['occurrence_id'],
+            );
+
+            if (! $occurrence instanceof EventOccurrence || ! $occurrence->relationLoaded('sessions')) {
+                continue;
+            }
+
+            $sessions = $occurrence->sessions
+                ->filter(static fn (EventSession $session): bool => PublicSchedulePolicy::isMeaningfulSession($session))
+                ->values();
+
+            $leaves->push($this->leafFor($event, $occurrence, $sessions));
+        }
+
+        return $leaves->values();
     }
 }

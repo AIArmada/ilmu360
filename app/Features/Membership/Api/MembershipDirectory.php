@@ -62,4 +62,10 @@ interface MembershipDirectory
         MemberSubjectType $subjectType,
         array $roles,
     ): bool;
+
+    /**
+     * @param  list<MemberSubjectType>  $subjectTypes
+     * @return array<string, bool>
+     */
+    public function hasAnyMembershipForTypes(string $accountId, array $subjectTypes): array;
 }

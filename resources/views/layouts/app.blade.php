@@ -108,7 +108,6 @@
     </script>
     @livewireStyles
     @filamentStyles(['app'])
-    @filamentStyles(['filament/filament'])
     @signalsTracker(['properties' => ['surface' => 'public']])
     @stack('head')
 </head>
@@ -138,9 +137,16 @@
                 $membershipAccountId = $authenticatedUser instanceof \App\Shared\Auth\AccountActor
                     ? $authenticatedUser->actorId()
                     : null;
-                $hasInstitutionDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Features\Membership\Api\MemberSubjectType::Institution) !== [];
-                $hasPersonDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Features\Membership\Api\MemberSubjectType::Person) !== [];
-                $hasOrganizationDashboardAccess = $memberships !== null && $memberships->subjectIdsFor($membershipAccountId, \App\Features\Membership\Api\MemberSubjectType::Organization) !== [];
+                $membershipAccess = $memberships !== null
+                    ? $memberships->hasAnyMembershipForTypes($membershipAccountId, [
+                        \App\Features\Membership\Api\MemberSubjectType::Institution,
+                        \App\Features\Membership\Api\MemberSubjectType::Person,
+                        \App\Features\Membership\Api\MemberSubjectType::Organization,
+                    ])
+                    : [];
+                $hasInstitutionDashboardAccess = $membershipAccess[\App\Features\Membership\Api\MemberSubjectType::Institution->value] ?? false;
+                $hasPersonDashboardAccess = $membershipAccess[\App\Features\Membership\Api\MemberSubjectType::Person->value] ?? false;
+                $hasOrganizationDashboardAccess = $membershipAccess[\App\Features\Membership\Api\MemberSubjectType::Organization->value] ?? false;
                 $hasManagedWorkspaceAccess = $hasInstitutionDashboardAccess || $hasPersonDashboardAccess || $hasOrganizationDashboardAccess;
                 $authenticatedUserAvatarUrl = $authenticatedUser !== null
                     ? app(\App\Features\Identity\Api\SocialAccounts::class)->avatarUrl((string) $authenticatedUser->getKey())
@@ -259,8 +265,11 @@
                     @endif
 
                     <a href="{{ route('home') }}" wire:navigate class="flex shrink-0 items-center">
-                        <img src="{{ asset($useHomeHeader ? 'images/logo-ilmu360-footer.png' : 'images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}" width="{{ $useHomeHeader ? 2167 : 2172 }}" height="{{ $useHomeHeader ? 726 : 724 }}"
-                            class="{{ $logoClass }}">
+                        <picture class="flex shrink-0 items-center">
+                            <source srcset="{{ asset($useHomeHeader ? 'images/logo-ilmu360-footer.webp' : 'images/logo-ilmu360.webp') }}" type="image/webp">
+                            <img src="{{ asset($useHomeHeader ? 'images/logo-ilmu360-footer.png' : 'images/logo-ilmu360.png') }}" alt="{{ config('app.name') }}" width="{{ $useHomeHeader ? 2167 : 2172 }}" height="{{ $useHomeHeader ? 726 : 724 }}"
+                                class="{{ $logoClass }}" decoding="async">
+                        </picture>
                     </a>
 
                     <!-- Desktop Menu -->
@@ -614,9 +623,12 @@
             <footer class="jp-shell-footer living-majlis-footer relative mt-20 overflow-hidden text-emerald-50">
                 <div class="living-majlis-footer-scene pointer-events-none absolute inset-0">
                     <picture>
+                        <source media="(max-width: 639px)" srcset="{{ asset('images/footer-courtyard-v14-mobile.webp') }}" type="image/webp">
+                        <source media="(max-width: 1023px)" srcset="{{ asset('images/footer-courtyard-v14-tablet.webp') }}" type="image/webp">
+                        <source srcset="{{ asset('images/footer-courtyard-v14-desktop.webp') }}" type="image/webp">
                         <source media="(max-width: 639px)" srcset="{{ asset('images/footer-courtyard-v14-mobile.png') }}">
                         <source media="(max-width: 1023px)" srcset="{{ asset('images/footer-courtyard-v14-tablet.png') }}">
-                        <img src="{{ asset('images/footer-courtyard-v14-desktop.png') }}" alt="" aria-hidden="true" loading="lazy" class="living-majlis-footer-art">
+                        <img src="{{ asset('images/footer-courtyard-v14-desktop.png') }}" alt="" aria-hidden="true" loading="lazy" decoding="async" class="living-majlis-footer-art">
                     </picture>
                 </div>
                 <div class="living-majlis-footer-content relative z-10 mx-auto flex flex-col">
@@ -624,13 +636,18 @@
                         <div>
                             <a href="{{ route('home') }}" wire:navigate aria-label="{{ config('app.name') }}"
                                 class="inline-flex items-start rounded-sm transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-300/60">
-                                <img
-                                    src="{{ asset('images/logo-ilmu360-footer.png') }}"
-                                    alt="{{ config('app.name') }}"
-                                    width="2167"
-                                    height="726"
-                                    class="living-majlis-footer-logo w-auto drop-shadow-sm"
-                                >
+                                <picture>
+                                    <source srcset="{{ asset('images/logo-ilmu360-footer.webp') }}" type="image/webp">
+                                    <img
+                                        src="{{ asset('images/logo-ilmu360-footer.png') }}"
+                                        alt="{{ config('app.name') }}"
+                                        width="2167"
+                                        height="726"
+                                        class="living-majlis-footer-logo w-auto drop-shadow-sm"
+                                        loading="lazy"
+                                        decoding="async"
+                                    >
+                                </picture>
                                 <span class="mt-0.5 text-sm font-semibold text-gold-300" aria-hidden="true">™</span>
                             </a>
                             <div class="living-majlis-footer-socials flex items-center">

@@ -13,6 +13,7 @@
             cookieName: @js(\App\Platform\Location\PublicGeolocationPermission::COOKIE_NAME),
         }),
         filtersOpen: $wire.entangle('filtersPanelOpen'),
+        filterFormMounted: $wire.entangle('filterFormMounted'),
         locating: false,
         locationNotice: null,
         setLocationNotice(message) {
@@ -26,6 +27,10 @@
             this.filtersOpen = true;
 
             if (detail.quickFilterKey === 'nearby') {
+                if (! this.filterFormMounted) {
+                    this.$wire.mountFilterForm();
+                }
+
                 this.locate();
             }
         },

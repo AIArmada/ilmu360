@@ -37,9 +37,10 @@
     $lat = $this->lat;
     $lng = $this->lng;
     $sort = $this->sort;
-    $countries = $this->countries;
-    $states = $this->states;
-    $languageOptions = $this->languageOptions();
+    $selectedLanguageCodes = array_values(array_filter((array) $this->language_codes));
+    $countries = $hasCountryScope ? $this->countries : collect();
+    $states = filled($stateId) ? $this->states : collect();
+    $languageOptions = $selectedLanguageCodes !== [] ? $this->languageOptions() : [];
     $selectedAgeGroups = array_values(array_filter((array) $this->age_group));
     $selectedDisciplineTagIds = array_values(array_filter((array) $this->discipline_tag_ids));
     $selectedDomainTagIds = array_values(array_filter((array) $this->domain_tag_ids));
@@ -57,7 +58,6 @@
     $selectedBilalIds = array_values(array_filter((array) $this->bilal_ids));
     $selectedEventCategories = array_values(array_filter((array) $this->event_category_ids));
     $selectedEventFormats = array_values(array_filter((array) $this->event_format));
-    $selectedLanguageCodes = array_values(array_filter((array) $this->language_codes));
     $selectedPersonLabelIds = collect([
         $selectedPersonIds,
         $selectedPersonInChargeIds,
@@ -74,7 +74,7 @@
     $personLabels = $this->personOptionLabels($selectedPersonLabelIds);
     $referenceLabels = $this->referenceOptionLabels($selectedReferenceIds);
     $keyPersonRoleLabels = \App\Features\Events\Api\Enums\EventKeyPersonRole::nonSpeakerOptions();
-    $eventCategoryLabels = $this->eventCategoryOptions;
+    $eventCategoryLabels = $selectedEventCategories !== [] ? $this->eventCategoryOptions : [];
     $eventFormatLabels = collect(\App\Features\Events\Api\Enums\EventFormat::cases())
         ->mapWithKeys(fn (\App\Features\Events\Api\Enums\EventFormat $format): array => [$format->value => $format->getLabel()])
         ->all();
@@ -175,6 +175,7 @@
             cookieName: @js(\App\Platform\Location\PublicGeolocationPermission::COOKIE_NAME),
         }),
         filtersOpen: $wire.entangle('filtersPanelOpen'),
+        filterFormMounted: $wire.entangle('filterFormMounted'),
         locating: false,
         locationNotice: null,
         copiedShareLink: false,
@@ -373,6 +374,7 @@
                 <img
                     srcset="{{ asset('images/events/majlis-hero-background-v1.webp') }}" src="{{ asset('images/events/majlis-hero-background-v1.png') }}"
                     alt="{{ __('Laman masjid pada waktu keemasan') }}"
+                    fetchpriority="high"
                     class="h-full w-full object-cover object-center sm:object-[35%_center] lg:object-center"
                 >
             </picture>

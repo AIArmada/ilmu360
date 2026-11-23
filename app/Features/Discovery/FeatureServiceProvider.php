@@ -13,6 +13,9 @@ use App\Features\Discovery\Api\SearchFilterLabels;
 use App\Features\Discovery\Api\SearchFilterNormalizer;
 use App\Features\Discovery\Api\SearchFilterRules;
 use App\Features\Discovery\Contributors\FrontendManifestContributor;
+use App\Features\Discovery\EntryPoints\Mcp\Tools\MemberFindEventInstitutionsTool;
+use App\Features\Discovery\EntryPoints\Mcp\Tools\MemberFindEventSpeakersTool;
+use App\Features\Discovery\EntryPoints\Mcp\Tools\MemberGetEventSubmissionOptionsTool;
 use App\Features\Discovery\Queries\DatabaseSearchFilterLabels;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Discovery\Services\EventSearchFilterCatalog;
@@ -23,6 +26,7 @@ use App\Features\Discovery\Services\PublicListingsCache;
 use App\Features\Discovery\Support\Telemetry\DiscoverySignalSchemaContributor;
 use App\Platform\Api\Frontend\FrontendFormContractRegistry;
 use App\Platform\FeatureModule;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Shared\Contracts\AddressCatalogEffects;
 
@@ -54,5 +58,10 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->make(FrontendFormContractRegistry::class)->register(FrontendManifestContributor::class);
 
         $this->app->make(SignalSchemaRegistry::class)->register(new DiscoverySignalSchemaContributor);
+
+        $surfaces = $this->app->make(McpSurfaceRegistry::class);
+        $surfaces->registerMemberTool(MemberFindEventInstitutionsTool::class);
+        $surfaces->registerMemberTool(MemberFindEventSpeakersTool::class);
+        $surfaces->registerMemberTool(MemberGetEventSubmissionOptionsTool::class);
     }
 }

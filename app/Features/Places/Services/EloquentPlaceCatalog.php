@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Services;
 
+use AIArmada\Addressing\Models\Address;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;
 use App\Platform\Models\SlugOrUuidResolver;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 final readonly class EloquentPlaceCatalog implements PlaceCatalog
@@ -152,9 +154,9 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
 
     /**
      * @param  list<string>  $venueIds
-     * @return array<string, string>
+     * @return array<string, array{name: string, address_id: ?string}>
      */
-    public function primaryAddressIdsFor(array $venueIds): array
+    public function venueLocationSummariesFor(array $venueIds): array
     {
         $ids = array_values(array_unique(array_filter($venueIds, static fn (string $id): bool => Str::isUuid($id))));
 
@@ -162,22 +164,75 @@ final readonly class EloquentPlaceCatalog implements PlaceCatalog
             return [];
         }
 
-        $addresses = [];
+        $summaries = [];
+        $fallbackVenueIds = [];
 
-        foreach (Venue::query()->whereKey($ids)->with('addresses')->get() as $venue) {
+        foreach (Venue::query()->whereKey($ids)->with('addresses')->get(['id', 'name']) as $venue) {
+            $venueId = (string) $venue->getKey();
             $address = $venue->primaryAddress();
 
-            if (! $address instanceof \AIArmada\Addressing\Models\Address) {
-                $owner = $venue->institutions()
-                    ->reorder()
-                    ->orderByDesc('institution_venue.is_primary')
-                    ->oldest('institutions.id')
-                    ->with('addresses')
-                    ->first();
-                $address = $owner?->primaryAddress();
-            }
+            $summaries[$venueId] = [
+                'name' => (string) $venue->name,
+                'address_id' => $address instanceof Address ? (string) $address->getKey() : null,
+            ];
 
-            if ($address instanceof \AIArmada\Addressing\Models\Address) {
+            if (! $address instanceof Address) {
+                $fallbackVenueIds[] = $venueId;
+            }
+        }
+
+        if ($fallbackVenueIds !== []) {
+            foreach ($this->fallbackInstitutionAddresses($fallbackVenueIds) as $venueId => $addressId) {
+                if (($summaries[$venueId]['address_id'] ?? null) === null) {
+                    $summaries[$venueId]['address_id'] = $addressId;
+                }
+            }
+        }
+
+        return $summaries;
+    }
+
+    /**
+     * @param  list<string>  $venueIds
+     * @return array<string, string>
+     */
+    public function primaryAddressIdsFor(array $venueIds): array
+    {
+        $addresses = [];
+
+        foreach ($this->venueLocationSummariesFor($venueIds) as $venueId => $summary) {
+            $addressId = $summary['address_id'];
+
+            if (is_string($addressId) && $addressId !== '') {
+                $addresses[$venueId] = $addressId;
+            }
+        }
+
+        return $addresses;
+    }
+
+    /**
+     * Resolve the first institution fallback address for each venue that has
+     * no primary address of its own, in one batched relation load.
+     *
+     * @param  list<string>  $venueIds
+     * @return array<string, string>
+     */
+    private function fallbackInstitutionAddresses(array $venueIds): array
+    {
+        $addresses = [];
+
+        foreach (Venue::query()->whereKey($venueIds)->with([
+            'institutions' => static function (BelongsToMany $query): void {
+                $query
+                    ->orderByDesc('institution_venue.is_primary')
+                    ->orderBy('institutions.id')
+                    ->with('addresses');
+            },
+        ])->get(['id']) as $venue) {
+            $address = $venue->institutions->first()?->primaryAddress();
+
+            if ($address instanceof Address) {
                 $addresses[(string) $venue->getKey()] = (string) $address->getKey();
             }
         }

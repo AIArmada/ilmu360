@@ -167,6 +167,49 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
     }
 
     /**
+     * @param  array<string, mixed>  $parentFilters
+     * @param  array<string, mixed>  $timeFilters
+     */
+    public function publicScheduleFactSetForWindow(?string $query, array $parentFilters, array $timeFilters): EventScheduleFactSet
+    {
+        $occurrencesTable = (new EventOccurrence)->getTable();
+        $publicScheduleScope = $this->constrainPublicSchedule(...);
+
+        /** @var EloquentCollection<int, Event> $events */
+        $events = $this->buildPublicEventQuery($query, $parentFilters)
+            ->whereHas('occurrences', function (Builder $occurrences) use ($timeFilters, $occurrencesTable): void {
+                $occurrences
+                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
+                $this->applyOccurrenceWindowFilters($occurrences, $timeFilters, $occurrencesTable);
+            })
+            ->with([
+                'timeExpressions',
+                'occurrences' => function (Relation $relation) use ($publicScheduleScope, $timeFilters, $occurrencesTable): void {
+                    $publicScheduleScope($relation);
+                    $this->applyOccurrenceWindowFilters($relation->getQuery(), $timeFilters, $occurrencesTable);
+                    $relation
+                        ->orderBy('starts_at')
+                        ->orderBy('created_at')
+                        ->orderBy('id');
+                },
+                'occurrences.timeExpressions',
+                'occurrences.sessions' => function (Relation $relation) use ($publicScheduleScope): void {
+                    $publicScheduleScope($relation);
+                    $relation
+                        ->orderBy('sort_order')
+                        ->orderBy('starts_at')
+                        ->orderBy('created_at')
+                        ->orderBy('id');
+                },
+                'occurrences.sessions.timeExpressions',
+            ])
+            ->get();
+
+        return $this->scheduleFactSet($events);
+    }
+
+    /**
      * @param  list<string>  $personIds
      * @param  list<string>  $institutionIds
      * @param  list<string>  $referenceIds
@@ -235,39 +278,306 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
     }
 
     /**
+     * @param  array<string, mixed>  $filters
+     * @return array{rows: list<array{event_id: string, occurrence_id: string}>, total: int, has_matching_events: bool}
+     */
+    public function paginatePublicScheduleOccurrences(
+        ?string $query,
+        array $filters,
+        int $page,
+        int $perPage,
+        string $sort = 'time',
+    ): array {
+        $occurrencesTable = (new EventOccurrence)->getTable();
+        $parentFilters = $filters;
+
+        foreach ([
+            'starts_after',
+            'starts_before',
+            'starts_on_local_date',
+            'time_scope',
+            'prayer_time',
+            'timing_mode',
+            'starts_time_from',
+            'starts_time_until',
+            'has_end_time',
+        ] as $occurrenceTimeKey) {
+            unset($parentFilters[$occurrenceTimeKey]);
+        }
+
+        $parentFilters['time_scope'] = 'all';
+
+        $parentEventQuery = $this->buildPublicEventQuery($query, $parentFilters)->select('events.id');
+        $timeScope = $this->normalizeTimeScope($filters['time_scope'] ?? null);
+
+        $occurrenceQuery = DB::table("{$occurrencesTable} as occ")
+            ->join('events as ev', 'ev.id', '=', 'occ.event_id')
+            ->whereIn('occ.event_id', $parentEventQuery->toBase())
+            ->whereIn('occ.status', $this->stringValues(Event::PUBLIC_SCHEDULE_STATUSES))
+            ->whereIn('occ.visibility', $this->stringValues(Event::PUBLIC_SCHEDULE_VISIBILITIES))
+            ->whereNotNull('occ.starts_at');
+
+        $this->applyOccurrenceWindowFilters($occurrenceQuery, $filters, 'occ');
+
+        $titleExpression = "trim(coalesce(nullif(trim(coalesce(occ.title, '')), ''), ev.title))";
+        $direction = $timeScope === 'past' ? 'desc' : 'asc';
+
+        $occurrenceQuery
+            ->orderBy('occ.starts_at', $direction)
+            ->orderByRaw("{$titleExpression} {$direction}")
+            ->orderBy('occ.id', $direction);
+
+        $rows = (clone $occurrenceQuery)
+            ->select('occ.event_id', 'occ.id as occurrence_id')
+            ->selectRaw('count(*) over () as matching_total')
+            ->forPage(max(1, $page), max(1, $perPage))
+            ->get();
+
+        $firstRow = $rows->first();
+        $total = $firstRow !== null ? (int) $firstRow->matching_total : 0;
+
+        if ($firstRow === null && $page > 1) {
+            $total = (int) (clone $occurrenceQuery)->count();
+        }
+
+        $hasMatchingEvents = $total > 0
+            || $this->normalizeSearchQuery($query) === null
+            || (clone $parentEventQuery)->exists();
+
+        return [
+            'rows' => $rows
+                ->map(static fn (object $row): array => [
+                    'event_id' => (string) $row->event_id,
+                    'occurrence_id' => (string) $row->occurrence_id,
+                ])
+                ->values()
+                ->all(),
+            'total' => $total,
+            'has_matching_events' => $hasMatchingEvents,
+        ];
+    }
+
+    /**
+     * @return list<array{event_id: string, occurrence_id: string}>
+     */
+    public function homepageFeaturedOccurrences(int $limit = 9): array
+    {
+        $occurrencesTable = (new EventOccurrence)->getTable();
+        $nowUtc = UserDateTimeFormatter::userNow()->utc();
+
+        return DB::table("{$occurrencesTable} as occ")
+            ->join('events as ev', 'ev.id', '=', 'occ.event_id')
+            ->where('ev.status', 'approved')
+            ->where('ev.visibility', EventVisibility::Public->value)
+            ->whereNotNull('ev.published_at')
+            ->where('occ.is_featured', true)
+            ->whereIn('occ.status', $this->stringValues(Event::PUBLIC_SCHEDULE_STATUSES))
+            ->whereIn('occ.visibility', $this->stringValues(Event::PUBLIC_SCHEDULE_VISIBILITIES))
+            ->whereNotNull('occ.starts_at')
+            ->whereRaw('coalesce(occ.ends_at, occ.starts_at) >= ?', [$nowUtc])
+            ->orderBy('occ.starts_at')
+            ->orderByRaw("trim(coalesce(nullif(trim(coalesce(occ.title, '')), ''), ev.title)) asc")
+            ->orderBy('occ.id')
+            ->limit($limit)
+            ->get(['occ.event_id', 'occ.id as occurrence_id'])
+            ->map(static fn (object $row): array => [
+                'event_id' => (string) $row->event_id,
+                'occurrence_id' => (string) $row->occurrence_id,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     * @param  list<string>  $excludeOccurrenceIds
+     * @return list<array{event_id: string, occurrence_id: string}>
+     */
+    public function homepageFollowedOccurrences(
+        array $personIds,
+        array $institutionIds,
+        array $referenceIds,
+        CarbonInterface $startsBeforeUtc,
+        array $excludeOccurrenceIds = [],
+        int $limit = 50,
+    ): array {
+        if ($personIds === [] && $institutionIds === [] && $referenceIds === []) {
+            return [];
+        }
+
+        $occurrencesTable = (new EventOccurrence)->getTable();
+        $nowUtc = UserDateTimeFormatter::userNow()->utc();
+
+        return DB::table("{$occurrencesTable} as occ")
+            ->join('events as ev', 'ev.id', '=', 'occ.event_id')
+            ->where('ev.status', 'approved')
+            ->where('ev.visibility', EventVisibility::Public->value)
+            ->whereNotNull('ev.published_at')
+            ->where('occ.is_featured', false)
+            ->whereIn('occ.status', $this->stringValues(Event::PUBLIC_SCHEDULE_STATUSES))
+            ->whereIn('occ.visibility', $this->stringValues(Event::PUBLIC_SCHEDULE_VISIBILITIES))
+            ->whereNotNull('occ.starts_at')
+            ->whereRaw('coalesce(occ.ends_at, occ.starts_at) >= ?', [$nowUtc])
+            ->where('occ.starts_at', '<=', $startsBeforeUtc)
+            ->when($excludeOccurrenceIds !== [], static fn (QueryBuilder $query): QueryBuilder => $query->whereNotIn('occ.id', $excludeOccurrenceIds))
+            ->where(function (QueryBuilder $followQuery) use ($personIds, $institutionIds, $referenceIds): void {
+                if ($personIds !== []) {
+                    $followQuery->orWhereExists(static function (QueryBuilder $sub) use ($personIds): void {
+                        $sub->selectRaw('1')
+                            ->from('event_involvements as follow_involvements')
+                            ->whereColumn('follow_involvements.event_id', 'ev.id')
+                            ->whereNull('follow_involvements.event_occurrence_id')
+                            ->whereNull('follow_involvements.event_session_id')
+                            ->where('follow_involvements.involveable_type', 'person')
+                            ->where('follow_involvements.role_code', EventKeyPersonRole::Speaker->value)
+                            ->whereIn('follow_involvements.involveable_id', $personIds);
+                    });
+                }
+
+                if ($institutionIds !== []) {
+                    $followQuery->orWhereIn('ev.institution_id', $institutionIds);
+                }
+
+                if ($referenceIds !== []) {
+                    $followQuery->orWhereExists(function (QueryBuilder $sub) use ($referenceIds): void {
+                        $sub->selectRaw('1')
+                            ->from('event_references as follow_references')
+                            ->join('references as follow_reference_rows', 'follow_reference_rows.id', '=', 'follow_references.referenceable_id')
+                            ->whereColumn('follow_references.event_id', 'ev.id')
+                            ->where('follow_references.referenceable_type', 'reference')
+                            ->whereIn('follow_references.referenceable_id', $referenceIds);
+
+                        app(PublicReferenceConstraint::class)->apply($sub, 'follow_reference_rows');
+                    });
+                }
+            })
+            ->orderBy('occ.starts_at')
+            ->limit($limit)
+            ->get(['occ.event_id', 'occ.id as occurrence_id'])
+            ->map(static fn (object $row): array => [
+                'event_id' => (string) $row->event_id,
+                'occurrence_id' => (string) $row->occurrence_id,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Builder<*>|QueryBuilder  $query
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyOccurrenceWindowFilters(Builder|QueryBuilder $query, array $filters, string $occurrencesTable): void
+    {
+        $endInstant = "coalesce({$occurrencesTable}.ends_at, {$occurrencesTable}.starts_at)";
+        $timeScope = $this->normalizeTimeScope($filters['time_scope'] ?? null);
+        $nowUtc = UserDateTimeFormatter::userNow()->utc();
+
+        if ($timeScope === 'past') {
+            $query->whereRaw("{$endInstant} < ?", [$nowUtc]);
+        } elseif ($timeScope === 'upcoming') {
+            $query->whereRaw("{$endInstant} >= ?", [$nowUtc]);
+        }
+
+        $startsAfter = UserDateTimeFormatter::parseUserDateToUtc($filters['starts_after'] ?? null, false);
+
+        if ($startsAfter instanceof CarbonInterface) {
+            $query->whereRaw("{$endInstant} >= ?", [$startsAfter]);
+        }
+
+        $startsBefore = UserDateTimeFormatter::parseUserDateToUtc($filters['starts_before'] ?? null, true);
+
+        if ($startsBefore instanceof CarbonInterface) {
+            $query->where("{$occurrencesTable}.starts_at", '<=', $startsBefore);
+        }
+
+        $startsOnLocalDate = $filters['starts_on_local_date'] ?? null;
+
+        if (is_string($startsOnLocalDate) && $startsOnLocalDate !== '') {
+            $startsOnLocalDateStart = UserDateTimeFormatter::parseUserDateToUtc($startsOnLocalDate, false);
+            $startsOnLocalDateEnd = UserDateTimeFormatter::parseUserDateToUtc($startsOnLocalDate, true);
+
+            if ($startsOnLocalDateStart instanceof CarbonInterface && $startsOnLocalDateEnd instanceof CarbonInterface) {
+                $query->whereBetween("{$occurrencesTable}.starts_at", [$startsOnLocalDateStart, $startsOnLocalDateEnd]);
+            }
+        }
+
+        $hasEndTime = $this->normalizeBooleanFilter($filters['has_end_time'] ?? null);
+
+        if ($hasEndTime === true) {
+            $query->whereNotNull("{$occurrencesTable}.ends_at");
+        } elseif ($hasEndTime === false) {
+            $query->whereNull("{$occurrencesTable}.ends_at");
+        }
+    }
+
+    /**
      * @return array<int|string, mixed>
      */
     private function scheduleCardRelations(): array
     {
-        return collect($this->scheduleRelations())
+        $dropped = [
+            'goingWindowOccurrences',
+            'languageRecords',
+            'displayOccurrence.media',
+            'occurrences.media',
+            'occurrences.sessions.media',
+            'occurrences.sessions.involvements',
+            'occurrences.sessions.involvements.involveable',
+            'primaryLocation.venue',
+            'occurrences.locations.venue',
+            'occurrences.sessions.locations.venue',
+            'venue',
+            'venue.addresses.country',
+            'venue.addresses.state',
+            'venue.addresses.city',
+            'venue.addresses.areaAssignments.area',
+            'primaryLocationVenue',
+            'primaryLocationVenue.addresses.country',
+            'primaryLocationVenue.addresses.state',
+            'primaryLocationVenue.addresses.city',
+            'primaryLocationVenue.addresses.areaAssignments.area',
+            'persons.titleAssignments.title.category',
+        ];
+
+        $relations = collect($this->scheduleRelations())
             // Keys are strings for constrained relations, but bare nested paths
             // arrive with numeric keys — match those by value, or Eloquent
             // resurrects the dropped parents unconstrained to satisfy them.
-            ->reject(function (mixed $constraints, int|string $key): bool {
+            ->reject(function (mixed $constraints, int|string $key) use ($dropped): bool {
                 $path = is_string($key) ? $key : (is_string($constraints) ? $constraints : null);
 
                 return is_string($path)
                     && ($path === 'primaryOccurrence'
                         || str_starts_with($path, 'primaryOccurrence.')
-                        || in_array($path, [
-                            'goingWindowOccurrences',
-                            'primaryLocation.venue',
-                            'occurrences.locations.venue',
-                            'occurrences.sessions.locations.venue',
-                        ], true));
+                        || in_array($path, $dropped, true));
             })
             ->all();
+
+        $relations['occurrences.media'] = static function (Relation $query): void {
+            $query->whereIn('collection_name', ['cover', 'poster']);
+        };
+        $relations['persons.titleAssignments'] = static function (Relation $query): void {
+            $query
+                ->where('status', AssignmentStatus::Active)
+                ->with('title.category');
+        };
+
+        return $relations;
     }
 
     /**
      * @param  list<string>  $eventIds
      * @param  array<string, float>  $distanceByEventId
+     * @param  list<string>|null  $occurrenceIds
      * @return EloquentCollection<int, Event>
      */
     public function hydrateScheduleEvents(
         array $eventIds,
         bool $withOccurrenceReferences = false,
         array $distanceByEventId = [],
+        ?array $occurrenceIds = null,
     ): EloquentCollection {
         if ($eventIds === []) {
             return new EloquentCollection;
@@ -279,8 +589,28 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             $relations[] = 'occurrences.references';
         }
 
+        if ($occurrenceIds !== null && $occurrenceIds !== []) {
+            $relations['occurrences'] = function (Relation $query) use ($occurrenceIds): void {
+                $this->constrainPublicSchedule($query);
+                $query
+                    ->whereIn('id', $occurrenceIds)
+                    ->orderBy('starts_at')
+                    ->orderBy('created_at')
+                    ->orderBy('id');
+            };
+        }
+
         /** @var EloquentCollection<string, Event> $events */
         $events = $this->hydrateEventsForIds($eventIds, $relations);
+
+        if ($occurrenceIds !== null) {
+            $groupedEvents = $events->filter(fn (Event $event): bool => is_array($event->metadata['public_submission_group'] ?? null)
+                && is_string($event->metadata['public_submission_group']['key'] ?? null));
+
+            if ($groupedEvents->isNotEmpty()) {
+                $groupedEvents->loadMissing('goingWindowOccurrences');
+            }
+        }
 
         $orderedEvents = collect($eventIds)
             ->map(static fn (string $eventId): ?Event => $events->get($eventId))
@@ -664,7 +994,8 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             });
         }
 
-        $categoryIds = $this->categoryCatalog->descendantIds($this->normalizeArrayFilter($filters['event_category_ids'] ?? null));
+        $rawCategoryIds = $this->normalizeArrayFilter($filters['event_category_ids'] ?? null);
+        $categoryIds = $rawCategoryIds !== [] ? $this->categoryCatalog->descendantIds($rawCategoryIds) : [];
 
         if ($categoryIds !== []) {
             $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($categoryIds): void {
@@ -1489,8 +1820,11 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
      */
     protected function resolvedReferenceFilter(array $filters): array
     {
-        $hasIdFilter = $this->uuidFilterValues($filters['reference_ids'] ?? null) !== [];
-        $referenceIds = $this->expandedReferenceIdsForFiltering($filters['reference_ids'] ?? null);
+        $referenceIdValues = $this->uuidFilterValues($filters['reference_ids'] ?? null);
+        $hasIdFilter = $referenceIdValues !== [];
+        $referenceIds = $referenceIdValues !== []
+            ? $this->referenceQueries->expandReferenceIdsForFiltering($referenceIdValues)
+            : [];
         $hasAuthorFilter = false;
 
         foreach ($this->normalizeArrayFilter($filters['reference_author_search'] ?? null) as $authorSearch) {
@@ -1982,33 +2316,46 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
         $occurrencesTable = (string) config('events.database.tables.event_occurrences', 'event_occurrences');
         $now = now();
 
-        $countsQuery = DB::table("{$occurrencesTable} as public_occurrences")
-            ->join('events', 'events.id', '=', 'public_occurrences.event_id')
+        $ranked = DB::table('events')
+            ->join("{$occurrencesTable} as occ", 'occ.event_id', '=', 'events.id')
             ->whereIn('events.institution_id', $institutionIds)
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
             ->where('events.visibility', EventVisibility::Public->value);
-        $this->constrainPublicUpcomingOccurrences($countsQuery, 'public_occurrences', $now);
+        $this->constrainPublicUpcomingOccurrences($ranked, 'occ', $now);
 
-        $counts = $countsQuery
-            ->groupBy('events.institution_id')
-            ->selectRaw('events.institution_id as institution_id, count(*) as aggregate')
-            ->pluck('aggregate', 'institution_id')
-            ->mapWithKeys(static fn (mixed $count, mixed $id): array => [(string) $id => (int) $count])
-            ->all();
+        $ranked
+            ->select([
+                'events.institution_id',
+                'events.slug',
+                'events.title',
+                'occ.starts_at',
+            ])
+            ->selectRaw('row_number() over (partition by events.institution_id order by occ.starts_at asc, events.id asc) as rn')
+            ->selectRaw('count(*) over (partition by events.institution_id) as events_count');
 
-        $nextEventIds = $this->nextPublicEventIds($institutionIds, $occurrencesTable, $now);
-        $details = $this->nextPublicEventDetails(array_values($nextEventIds), $occurrencesTable, $now);
+        $rows = DB::query()
+            ->fromSub($ranked, 'ranked_institution_events')
+            ->where('rn', 1)
+            ->get();
 
         $facts = [];
 
         foreach ($institutionIds as $institutionId) {
-            $eventId = $nextEventIds[$institutionId] ?? null;
-            $detail = $eventId !== null ? ($details[$eventId] ?? null) : null;
-
             $facts[$institutionId] = [
-                'events_count' => $counts[$institutionId] ?? 0,
-                'next_event' => $detail,
+                'events_count' => 0,
+                'next_event' => null,
+            ];
+        }
+
+        foreach ($rows as $row) {
+            $facts[(string) $row->institution_id] = [
+                'events_count' => (int) $row->events_count,
+                'next_event' => [
+                    'slug' => (string) $row->slug,
+                    'title' => (string) $row->title,
+                    'starts_at' => (string) $row->starts_at,
+                ],
             ];
         }
 
@@ -2026,70 +2373,6 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->selectRaw('institution_id, count(*) as aggregate')
             ->pluck('aggregate', 'institution_id')
             ->mapWithKeys(static fn (mixed $count, mixed $id): array => [(string) $id => (int) $count])
-            ->all();
-    }
-
-    /**
-     * @param  list<string>  $institutionIds
-     * @return array<string, string>
-     */
-    private function nextPublicEventIds(array $institutionIds, string $occurrencesTable, CarbonInterface $now): array
-    {
-        $query = DB::table('events')
-            ->join("{$occurrencesTable} as next_event_occurrences", 'next_event_occurrences.event_id', '=', 'events.id')
-            ->whereIn('events.institution_id', $institutionIds)
-            ->whereNotNull('events.published_at')
-            ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
-            ->where('events.visibility', EventVisibility::Public->value);
-        $this->constrainPublicUpcomingOccurrences($query, 'next_event_occurrences', $now);
-
-        $rows = $query
-            ->orderBy('next_event_occurrences.starts_at')
-            ->orderBy('events.id')
-            ->get(['events.institution_id', 'events.id']);
-
-        $nextIds = [];
-
-        foreach ($rows as $row) {
-            $institutionId = (string) $row->institution_id;
-
-            if (! array_key_exists($institutionId, $nextIds)) {
-                $nextIds[$institutionId] = (string) $row->id;
-            }
-        }
-
-        return $nextIds;
-    }
-
-    /**
-     * @param  list<string>  $eventIds
-     * @return array<string, array{slug: string, title: string, starts_at: string}>
-     */
-    private function nextPublicEventDetails(array $eventIds, string $occurrencesTable, CarbonInterface $now): array
-    {
-        if ($eventIds === []) {
-            return [];
-        }
-
-        $query = DB::table('events')
-            ->join($occurrencesTable, "{$occurrencesTable}.event_id", '=', 'events.id')
-            ->whereIn('events.id', $eventIds)
-            ->whereNotNull('events.published_at')
-            ->whereIn('events.status', $this->stringValues(Event::PUBLIC_STATUSES))
-            ->where('events.visibility', EventVisibility::Public->value);
-        $this->constrainPublicUpcomingOccurrences($query, $occurrencesTable, $now);
-
-        return $query
-            ->groupBy('events.id', 'events.slug', 'events.title')
-            ->selectRaw("events.id, events.slug, events.title, min(\"{$occurrencesTable}\".\"starts_at\") as next_event_starts_at")
-            ->get()
-            ->mapWithKeys(static fn (object $row): array => [
-                (string) $row->id => [
-                    'slug' => (string) $row->slug,
-                    'title' => (string) $row->title,
-                    'starts_at' => (string) $row->next_event_starts_at,
-                ],
-            ])
             ->all();
     }
 
@@ -2723,7 +3006,7 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
     /**
      * @param  array<string, list<string>>  $referenceFamilies
-     * @return array<string, array{next_event_id: ?string, upcoming_events_count: int}>
+     * @return array<string, array{next_event_id: ?string, next_event_slug: ?string, next_event_title: ?string, next_event_starts_at: ?string, upcoming_events_count: int}>
      */
     public function referenceDirectoryFacts(array $referenceFamilies): array
     {
@@ -2760,6 +3043,8 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             ->select([
                 'reference_links.referenceable_id as reference_id',
                 'events.id as event_id',
+                'events.slug as event_slug',
+                'events.title as event_title',
                 'upcoming_occurrences.id as occurrence_id',
                 'upcoming_occurrences.starts_at as occurrence_starts_at',
             ])
@@ -2776,6 +3061,10 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             $byReference[$referenceId]['event_starts'][$eventId] = isset($byReference[$referenceId]['event_starts'][$eventId])
                 ? min($byReference[$referenceId]['event_starts'][$eventId], $startsAt)
                 : $startsAt;
+            $byReference[$referenceId]['event_meta'][$eventId] = [
+                'slug' => (string) $row->event_slug,
+                'title' => (string) $row->event_title,
+            ];
             $byReference[$referenceId]['occurrences'][$occurrenceId] = true;
         }
 
@@ -2783,11 +3072,16 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
 
         foreach ($referenceFamilies as $rootId => $ids) {
             $eventStarts = [];
+            $eventMeta = [];
             $occurrences = [];
 
             foreach ($ids as $referenceId) {
                 foreach ($byReference[$referenceId]['event_starts'] ?? [] as $eventId => $startsAt) {
                     $eventStarts[$eventId] = isset($eventStarts[$eventId]) ? min($eventStarts[$eventId], $startsAt) : $startsAt;
+                }
+
+                foreach ($byReference[$referenceId]['event_meta'] ?? [] as $eventId => $meta) {
+                    $eventMeta[$eventId] = $meta;
                 }
 
                 foreach (array_keys($byReference[$referenceId]['occurrences'] ?? []) as $occurrenceId) {
@@ -2796,18 +3090,25 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             }
 
             $nextEventId = null;
-            $nextStartsAt = null;
+            $nextEventSlug = null;
+            $nextEventTitle = null;
+            $nextEventStartsAt = null;
 
             foreach ($eventStarts as $eventId => $startsAt) {
-                if ($nextStartsAt === null || $startsAt < $nextStartsAt
-                    || ($startsAt === $nextStartsAt && $nextEventId !== null && $eventId < $nextEventId)) {
-                    $nextStartsAt = $startsAt;
+                if ($nextEventStartsAt === null || $startsAt < $nextEventStartsAt
+                    || ($startsAt === $nextEventStartsAt && $nextEventId !== null && $eventId < $nextEventId)) {
+                    $nextEventStartsAt = $startsAt;
                     $nextEventId = $eventId;
+                    $nextEventSlug = $eventMeta[$eventId]['slug'] ?? null;
+                    $nextEventTitle = $eventMeta[$eventId]['title'] ?? null;
                 }
             }
 
             $facts[(string) $rootId] = [
                 'next_event_id' => $nextEventId,
+                'next_event_slug' => $nextEventSlug,
+                'next_event_title' => $nextEventTitle,
+                'next_event_starts_at' => $nextEventStartsAt,
                 'upcoming_events_count' => count($occurrences),
             ];
         }

@@ -220,6 +220,9 @@ class EventFilters extends EventsIndex
         $this->applyingHomeQuickFilter = true;
 
         try {
+            $this->filtersPanelOpen = true;
+            $this->filterFormMounted = true;
+
             if ($quickFilterKey === 'malam_ini') {
                 $this->selectedHomeQuickFilter = 'malam_ini';
                 $this->filterData['date_shortcut'] = 'today';

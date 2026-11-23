@@ -889,25 +889,32 @@ it('shows the nearest upcoming public majlis on state-filtered cards with one ba
     $queries = collect(DB::getQueryLog())->pluck('query');
 
     $listingQueries = $queries->filter(
-        static fn (string $query): bool => str_contains($query, 'from "institutions"')
-            && str_contains($query, 'next_event'),
+        static fn (string $query): bool => str_contains($query, 'from "institutions"'),
     );
 
     expect($listingQueries)->toHaveCount(1);
 
     $listingSql = (string) $listingQueries->first();
 
-    // One correlated id subquery — not three repeated LIMIT 1 lookups — plus
-    // a single batched hydration query for the visible page.
-    expect($listingSql)->toContain('as "next_event_id"')
+    expect($listingSql)->toContain('count(*) over ()')
+        ->and($listingSql)->not->toContain('as "next_event_id"')
         ->and($listingSql)->not->toContain('as "next_event_slug"')
         ->and($listingSql)->not->toContain('as "next_event_title"')
         ->and($listingSql)->not->toContain('as "next_event_starts_at"')
-        ->and(substr_count($listingSql, 'as "next_event_occurrences"'))->toBe(1)
-        ->and($queries->filter(
-            static fn (string $query): bool => str_contains($query, 'next_event_starts_at')
-                && str_contains($query, 'min('),
-        ))->toHaveCount(1);
+        ->and($listingSql)->not->toContain('as "events_count"');
+
+    expect($queries->filter(
+        static fn (string $query): bool => str_contains($query, 'from "institutions"')
+            && str_contains($query, 'count(*) as "aggregate"'),
+    ))->toBeEmpty();
+
+    $factsQueries = $queries->filter(
+        static fn (string $query): bool => str_contains($query, 'event_occurrences')
+            && str_contains($query, 'row_number() over')
+            && str_contains($query, 'count(*) over'),
+    );
+
+    expect($factsQueries)->toHaveCount(1);
 });
 
 it('shows the earliest public occurrence on institution next-event cards', function (): void {

@@ -26,9 +26,21 @@ interface EventEngagement
     public function savedEventIds(string $accountId): array;
 
     /**
+     * @param  list<string>  $eventIds
+     * @return list<string>
+     */
+    public function savedEventIdsFor(string $accountId, array $eventIds): array;
+
+    /**
      * @return list<string>
      */
     public function goingEventIds(string $accountId): array;
+
+    /**
+     * @param  list<string>  $eventIds
+     * @return list<string>
+     */
+    public function goingEventIdsFor(string $accountId, array $eventIds): array;
 
     public function hasSavedEvent(string $accountId, string $eventId): bool;
 

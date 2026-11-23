@@ -145,8 +145,10 @@ use App\Features\Events\EntryPoints\Mcp\Tools\AdminUpdateEventTool;
 use App\Features\Events\EntryPoints\Mcp\Tools\AdminUploadEventCoverImageTool;
 use App\Features\Events\EntryPoints\Mcp\Tools\AdminUploadEventPosterImageTool;
 use App\Features\Events\EntryPoints\Mcp\Tools\MemberSearchEventsTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\MemberSubmitEventTool;
 use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventCoverImageTool;
 use App\Features\Events\EntryPoints\Mcp\Tools\MemberUploadEventPosterImageTool;
+use App\Features\Events\EntryPoints\Mcp\Tools\MemberValidateEventSubmissionTool;
 use App\Features\Events\EntryPoints\Sitemap\EventSitemapUrls;
 use App\Features\Events\EntryPoints\Ui\EventJsonLd;
 use App\Features\Events\Models\Event;
@@ -545,6 +547,8 @@ class FeatureServiceProvider extends FeatureModule
         $surfaces->registerMemberPrompt(MemberEventCoverImagePrompt::class);
         $surfaces->registerMemberPrompt(MemberEventPosterImagePrompt::class);
         $surfaces->registerMemberTool(MemberSearchEventsTool::class);
+        $surfaces->registerMemberTool(MemberValidateEventSubmissionTool::class);
+        $surfaces->registerMemberTool(MemberSubmitEventTool::class);
         $surfaces->registerMemberTool(MemberUploadEventCoverImageTool::class);
         $surfaces->registerMemberTool(MemberUploadEventPosterImageTool::class);
     }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Mcp\EntryPoints\Mcp\Resources;
 
+use App\Features\Mcp\Services\MemberMcpDocumentationPreflight;
 use Laravel\Mcp\Enums\Role;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Annotations\Audience;
 use Laravel\Mcp\Server\Annotations\Priority;
 
@@ -23,6 +25,14 @@ class MemberMcpGuideResource extends MarkdownDocumentResource
 
     #[\Override]
     protected string $uri = 'file://docs/ilmu360_mcp_member_agent_guide.md';
+
+    public function __construct(private readonly MemberMcpDocumentationPreflight $preflight) {}
+
+    #[\Override]
+    protected function markGuideRead(Request $request): void
+    {
+        $this->preflight->markGuideInContext($request);
+    }
 
     protected function documentRelativePath(): string
     {

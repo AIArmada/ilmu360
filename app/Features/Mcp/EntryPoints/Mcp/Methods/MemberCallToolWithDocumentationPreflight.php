@@ -33,20 +33,17 @@ class MemberCallToolWithDocumentationPreflight extends CallTool implements Errab
     #[\Override]
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        if (is_null($request->get('name'))) {
-            throw new JsonRpcException(
-                'Missing [name] parameter.',
-                -32602,
-                $request->id,
-            );
+        $name = $request->get('name');
+        if (! is_string($name)) {
+            return parent::handle($request, $context);
         }
 
         $tool = $context
             ->tools()
             ->first(
-                fn ($tool): bool => $tool->name() === $request->params['name'],
+                fn ($tool): bool => $tool->name() === $name,
                 fn () => throw new JsonRpcException(
-                    "Tool [{$request->params['name']}] not found.",
+                    "Tool [{$name}] not found.",
                     -32602,
                     $request->id,
                 ));

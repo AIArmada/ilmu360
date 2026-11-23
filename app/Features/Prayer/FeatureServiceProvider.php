@@ -10,9 +10,11 @@ use App\Features\Prayer\Api\PrayerLocationResolver;
 use App\Features\Prayer\Api\RamadanGate;
 use App\Features\Prayer\EntryPoints\Commands\PrayerStatsCommand;
 use App\Features\Prayer\EntryPoints\Commands\PrefetchPrayerTimes;
+use App\Features\Prayer\EntryPoints\Mcp\Tools\MemberPreviewEventPrayerTimeTool;
 use App\Features\Prayer\Services\PrayerInstitutionCatalogService;
 use App\Features\Prayer\Services\PrayerLocationResolverService;
 use App\Platform\FeatureModule;
+use App\Platform\Mcp\McpSurfaceRegistry;
 use Illuminate\Support\Facades\Schedule;
 
 class FeatureServiceProvider extends FeatureModule
@@ -35,6 +37,8 @@ class FeatureServiceProvider extends FeatureModule
     public function boot(): void
     {
         parent::boot();
+
+        $this->app->make(McpSurfaceRegistry::class)->registerMemberTool(MemberPreviewEventPrayerTimeTool::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([PrefetchPrayerTimes::class, PrayerStatsCommand::class]);

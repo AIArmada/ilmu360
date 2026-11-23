@@ -48,6 +48,7 @@ use App\Features\Events\Models\Builders\EventBuilder;
 use App\Features\Events\Queries\PrimaryLocationSql;
 use App\Features\Events\States\EventStatus\EventStatus;
 use App\Features\Events\States\EventStatus\Pending;
+use App\Features\Events\Support\VenueAddressResolver;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MemberSubjectType;
@@ -1179,8 +1180,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
         }
 
         $occurrences = match (true) {
-            $this->relationLoaded('occurrences') => $this->occurrences,
             $this->relationLoaded('goingWindowOccurrences') => $this->goingWindowOccurrences,
+            $this->relationLoaded('occurrences') => $this->occurrences,
             default => $this->occurrences()->withoutGlobalScopes()->get(),
         };
 
@@ -1631,11 +1632,21 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function resolvedLocationAddress(): ?Address
     {
         if (filled($this->default_venue_id)) {
-            return $this->venue?->primaryAddress();
+            if ($this->relationLoaded('venue')) {
+                return $this->venue?->primaryAddress();
+            }
+
+            return app(VenueAddressResolver::class)->forVenueId((string) $this->default_venue_id);
         }
 
-        if ($this->primaryLocationVenueId() !== null) {
-            return $this->primaryLocationVenue?->primaryAddress();
+        $primaryLocationVenueId = $this->primaryLocationVenueId();
+
+        if ($primaryLocationVenueId !== null) {
+            if ($this->relationLoaded('primaryLocationVenue')) {
+                return $this->primaryLocationVenue?->primaryAddress();
+            }
+
+            return app(VenueAddressResolver::class)->forVenueId($primaryLocationVenueId);
         }
 
         if (filled($this->institution_id)) {
@@ -1648,11 +1659,21 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     public function resolvedLocationName(): ?string
     {
         if (filled($this->default_venue_id)) {
-            return $this->venue?->name;
+            if ($this->relationLoaded('venue')) {
+                return $this->venue?->name;
+            }
+
+            return app(VenueAddressResolver::class)->nameForVenueId((string) $this->default_venue_id);
         }
 
-        if ($this->primaryLocationVenueId() !== null) {
-            return $this->primaryLocationVenue?->name;
+        $primaryLocationVenueId = $this->primaryLocationVenueId();
+
+        if ($primaryLocationVenueId !== null) {
+            if ($this->relationLoaded('primaryLocationVenue')) {
+                return $this->primaryLocationVenue?->name;
+            }
+
+            return app(VenueAddressResolver::class)->nameForVenueId($primaryLocationVenueId);
         }
 
         return $this->institution?->name;

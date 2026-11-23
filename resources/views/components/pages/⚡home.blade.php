@@ -103,6 +103,31 @@ new
         }
 
         /**
+         * @return list<string>
+         */
+        #[Computed]
+        public function goingEventIds(): array
+        {
+            $user = auth()->user();
+
+            if (! $user instanceof User) {
+                return [];
+            }
+
+            $eventIds = $this->featuredEvents
+                ->map(fn (PublicScheduleLeaf $leaf): string => (string) $leaf->event->getKey())
+                ->values()
+                ->all();
+
+            if ($eventIds === []) {
+                return [];
+            }
+
+            return app(\App\Features\Engagement\Api\EventEngagement::class)
+                ->goingEventIdsFor((string) $user->getKey(), $eventIds);
+        }
+
+        /**
          * @return array{event: Event, location: string, address: string, embed_url: string, directions_url: string}|null
          */
         #[Computed]
@@ -211,7 +236,12 @@ new
             return new Collection(
                 Person::query()
                     ->whereIn('persons.id', $ids)
-                    ->with('media')
+                    ->with([
+                        'media' => static fn ($query) => $query->where('collection_name', 'profile'),
+                        'titleAssignments' => static fn ($query) => $query
+                            ->where('status', \AIArmada\Persons\Enums\AssignmentStatus::Active)
+                            ->with('title.category'),
+                    ])
                     ->get()
                     ->sortBy(static fn (Person $person): int => $positions[(string) $person->getKey()] ?? PHP_INT_MAX)
                     ->values()
@@ -417,7 +447,14 @@ new
                                 $event = $scheduleLeaf->event;
                                 $occurrence = $scheduleLeaf->occurrence;
                                 $scheduleLocation = $occurrence->locations->first() ?? $scheduleLeaf->sessions->first()?->locations->first() ?? $event->primaryLocation;
-                                $locationName = $scheduleLocation?->venue?->name ?? $scheduleLocation?->label ?? $event->resolvedLocationName();
+                                $venueAddressResolver = app(\App\Features\Events\Support\VenueAddressResolver::class);
+                                $venueId = $scheduleLocation?->venue_id
+                                    ?? $event->default_venue_id
+                                    ?? $event->primaryLocationVenueId();
+                                $locationName = $venueAddressResolver->nameForVenueId($venueId)
+                                    ?? $scheduleLocation?->venue?->name
+                                    ?? $scheduleLocation?->label
+                                    ?? $event->resolvedLocationName();
                                 $spaceName = app(\App\Features\Places\Api\SpaceLocation::class)->name(
                                     (string) ($scheduleLocation?->space_name_snapshot ?? ''),
                                     $scheduleLocation?->venueSpace?->name,
@@ -425,8 +462,7 @@ new
                                 if (filled($spaceName)) {
                                     $locationName = collect([$locationName, $spaceName])->filter()->implode(' · ');
                                 }
-                                $scheduleVenue = $scheduleLocation?->venue;
-                                $address = $scheduleVenue instanceof \App\Features\Places\Models\Venue ? $scheduleVenue->primaryAddress() : null;
+                                $address = $venueAddressResolver->forVenueId($venueId);
                                 $address ??= $event->resolvedLocationAddress();
                                 $locationSecondary = AddressHierarchyFormatter::formatShort($address) ?: null;
                                 $startsAt = $scheduleLeaf->startsAt();
@@ -526,7 +562,8 @@ new
     <section class="relative isolate overflow-hidden bg-[#0b3027] text-white">
         <picture class="absolute inset-0">
             <source media="(max-width: 639px)" srcset="{{ asset('images/home/speaker-feature-mobile-v1.webp') }}" type="image/webp">
-            <img src="{{ asset('images/home/speaker-feature-v1.png') }}" alt="" aria-hidden="true" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-[center_58%]">
+            <source srcset="{{ asset('images/home/speaker-feature-v1.webp') }}" type="image/webp">
+            <img src="{{ asset('images/home/speaker-feature-v1.png') }}" alt="" aria-hidden="true" loading="lazy" decoding="async" class="absolute inset-0 h-full w-full object-cover object-[center_58%]">
         </picture>
         <div class="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,24,19,0.28)_0%,rgba(4,24,19,0.12)_30%,transparent_58%,rgba(255,247,228,0.12)_100%)]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(0deg,rgba(4,25,19,0.2),transparent_46%)]"></div>
@@ -546,10 +583,11 @@ new
 
             <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-5 sm:gap-3">
                 @forelse($this->featuredPersons as $person)
+                    @php($personFormattedName = $person->formatted_name)
                     <a href="{{ route('persons.show', $person) }}" wire:navigate wire:key="home-speaker-{{ $person->id }}" class="group relative aspect-[0.82] min-h-[10rem] overflow-hidden rounded-xl border border-white/35 bg-[#153d31]/55 shadow-lg shadow-black/15 sm:aspect-[0.58] sm:min-h-[10rem]">
-                        <img src="{{ $person->public_main_url }}" alt="{{ $person->formatted_name }}" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top opacity-95 transition duration-500 group-hover:scale-[1.03]">
+                        <img src="{{ $person->public_main_url }}" alt="{{ $personFormattedName }}" loading="lazy" class="absolute inset-0 h-full w-full object-cover object-top opacity-95 transition duration-500 group-hover:scale-[1.03]">
                         <div class="absolute inset-0 bg-gradient-to-t from-[#05251d]/95 via-[#05251d]/10 to-transparent"></div>
-                        <span class="absolute inset-x-2.5 bottom-2.5 line-clamp-2 text-[0.66rem] font-bold leading-tight text-white sm:text-xs">{{ $person->formatted_name }}</span>
+                        <span class="absolute inset-x-2.5 bottom-2.5 line-clamp-2 text-[0.66rem] font-bold leading-tight text-white sm:text-xs">{{ $personFormattedName }}</span>
                     </a>
                 @empty
                     <div class="col-span-full rounded-xl border border-white/25 bg-[#153d31]/60 p-8 text-sm text-white/85">{{ __('Penceramah pilihan akan dipaparkan di sini.') }}</div>

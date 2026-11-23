@@ -507,6 +507,7 @@ it('returns member update schema and updates institutions through member MCP wri
     ensureMemberMcpMalaysiaCountryExists();
 
     [$member, $institution] = institutionMemberMcpContext(role: 'admin');
+    $member->assignRole(Role::findOrCreate('admin', 'web'));
     $originalAddress = $institution->fresh()?->primaryAddress();
     $originalLat = $originalAddress?->latitude;
     $originalLng = $originalAddress?->longitude;

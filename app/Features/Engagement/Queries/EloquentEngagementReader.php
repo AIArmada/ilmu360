@@ -51,6 +51,47 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
     }
 
     /**
+     * @param  list<EngagementSubjectType>  $subjectTypes
+     * @return array<string, list<string>>
+     */
+    public function followedSubjectIdsByTypes(string $accountId, array $subjectTypes): array
+    {
+        /** @var array<string, EngagementSubjectType> $morphToType */
+        $morphToType = [];
+
+        foreach ($subjectTypes as $subjectType) {
+            $morphToType[$this->subjectMorphClass($subjectType)] = $subjectType;
+        }
+
+        if ($morphToType === []) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($subjectTypes as $subjectType) {
+            $result[$subjectType->value] = [];
+        }
+
+        foreach (Follow::query()
+            ->where('follower_type', (new User)->getMorphClass())
+            ->where('follower_id', $accountId)
+            ->whereIn('followable_type', array_keys($morphToType))
+            ->where('status', 'active')
+            ->get(['followable_type', 'followable_id']) as $follow) {
+            $subjectType = $morphToType[(string) $follow->getAttribute('followable_type')] ?? null;
+
+            if (! $subjectType instanceof EngagementSubjectType) {
+                continue;
+            }
+
+            $result[$subjectType->value][] = (string) $follow->getAttribute('followable_id');
+        }
+
+        return $result;
+    }
+
+    /**
      * @return list<string>
      */
     public function followerAccountIds(EngagementSubjectType $subjectType, string $subjectId): array
@@ -79,12 +120,61 @@ final readonly class EloquentEngagementReader implements EngagementActivityReade
             ->all();
     }
 
+    /**
+     * @param  list<string>  $eventIds
+     * @return list<string>
+     */
+    public function savedEventIdsFor(string $accountId, array $eventIds): array
+    {
+        $eventIds = $this->uniqueIds($eventIds);
+
+        if ($eventIds === []) {
+            return [];
+        }
+
+        return Bookmark::query()
+            ->where('bookmarker_type', (new User)->getMorphClass())
+            ->where('bookmarker_id', $accountId)
+            ->where('bookmarkable_type', $this->morphType('event'))
+            ->whereIn('bookmarkable_id', $eventIds)
+            ->where('status', 'active')
+            ->pluck('bookmarkable_id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
+    }
+
     public function goingEventIds(string $accountId): array
     {
         return Response::query()
             ->where('responder_type', (new User)->getMorphClass())
             ->where('responder_id', $accountId)
             ->where('respondable_type', $this->morphType('event'))
+            ->where('response_type', 'going')
+            ->where('status', 'active')
+            ->pluck('respondable_id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $eventIds
+     * @return list<string>
+     */
+    public function goingEventIdsFor(string $accountId, array $eventIds): array
+    {
+        $eventIds = $this->uniqueIds($eventIds);
+
+        if ($eventIds === []) {
+            return [];
+        }
+
+        return Response::query()
+            ->where('responder_type', (new User)->getMorphClass())
+            ->where('responder_id', $accountId)
+            ->where('respondable_type', $this->morphType('event'))
+            ->whereIn('respondable_id', $eventIds)
             ->where('response_type', 'going')
             ->where('status', 'active')
             ->pluck('respondable_id')

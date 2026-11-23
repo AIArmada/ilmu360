@@ -39,6 +39,10 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
      */
     public function validateTermIds(array $termIds): array
     {
+        if ($termIds === []) {
+            return [];
+        }
+
         return $this->hierarchy->minimalTermIds(self::TAXONOMY_CODE, $termIds);
     }
 
@@ -48,6 +52,10 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
      */
     public function validTermIds(array $termIds): array
     {
+        if ($termIds === []) {
+            return [];
+        }
+
         return $this->hierarchy->validTermIds(self::TAXONOMY_CODE, $termIds);
     }
 
@@ -57,6 +65,10 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
      */
     public function descendantIds(array $termIds): array
     {
+        if ($termIds === []) {
+            return [];
+        }
+
         return $this->hierarchy->descendantIds(self::TAXONOMY_CODE, $termIds);
     }
 
@@ -66,6 +78,10 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
      */
     public function termNames(array $termIds): array
     {
+        if ($termIds === []) {
+            return [];
+        }
+
         $terms = $this->hierarchy->terms(self::TAXONOMY_CODE);
         $selected = array_fill_keys($this->validTermIds($termIds), true);
 
@@ -82,6 +98,10 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
      */
     public function termCodes(array $termIds): array
     {
+        if ($termIds === []) {
+            return [];
+        }
+
         $selected = array_fill_keys($this->validTermIds($termIds), true);
 
         return $this->hierarchy->terms(self::TAXONOMY_CODE)

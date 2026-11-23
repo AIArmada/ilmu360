@@ -591,7 +591,10 @@ describe('Event Search Filters', function () {
         app()->setLocale('ms');
 
         try {
-            $response = $this->get(eventsIndexUrl());
+            $response = $this->get(eventsIndexUrl([
+                'filters_panel' => 'open',
+                'language_codes' => ['ms'],
+            ]));
 
             $response->assertOk()
                 ->assertSee('Sebarang Negara')
@@ -740,6 +743,7 @@ describe('Event Search Filters', function () {
 
     it('renders secondary filters directly in the events index sidebar', function () {
         Livewire::test(Index::class)
+            ->call('openFiltersPanel')
             // The section key is Malay "Penceramah", translated for the English locale.
             ->assertSee('Speaker')
             ->assertSee('Cari atau pilih penceramah...')
@@ -2221,6 +2225,7 @@ describe('Event Search Filters', function () {
             ->assertSet('state_id', null);
 
         Livewire::test(Index::class)
+            ->call('openFiltersPanel')
             ->assertSee('Country');
     });
 

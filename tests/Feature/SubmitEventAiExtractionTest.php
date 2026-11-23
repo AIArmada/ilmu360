@@ -74,7 +74,7 @@ it('extracts media data with AI and moves the wizard to review step', function (
         ->assertSet('data.gender', EventGenderRestriction::All->value)
         ->assertSet('data.age_group', [EventAgeGroup::Adults->value])
         ->assertSet('data.children_allowed', false)
-        ->assertSet('data.domain_tags', $domainTag->id)
+        ->assertSet('data.domain_tags', [$domainTag->id])
         ->assertSet('data.source_tags', [$sourceTag->id])
         // Review is always the 5th visible step: the religious topic detail is
         // a conditional section now, not a conditional step.
@@ -162,7 +162,7 @@ it('extracts uploaded jpeg posters through the real ai pipeline', function () {
         ->call('extractEventFromMedia')
         ->assertHasNoErrors(['event_source_attachment'])
         ->assertSet('data.title', 'Daurah Fiqh Keluarga')
-        ->assertSet('data.domain_tags', $domainTag->getKey())
+        ->assertSet('data.domain_tags', [$domainTag->getKey()])
         ->assertWizardCurrentStep(5);
 
     $request = Http::recorded()[0][0] ?? null;

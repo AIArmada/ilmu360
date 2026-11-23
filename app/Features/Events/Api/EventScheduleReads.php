@@ -9,6 +9,7 @@ use App\Features\Events\Api\Data\InstitutionDashboardEventCard;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\Data\PersonDashboardEventPage;
 use App\Features\Events\Api\Data\PlannerEventCard;
+use Carbon\CarbonInterface;
 
 /**
  * Scalar event-schedule reads owned by the Events feature.
@@ -25,6 +26,56 @@ interface EventScheduleReads
      * @param  array<string, mixed>  $filters
      */
     public function publicScheduleFactSet(?string $query, array $filters): EventScheduleFactSet;
+
+    /**
+     * Public schedule facts whose parent event and eagerly-loaded occurrences
+     * both satisfy the occurrence window so expression filters never load
+     * out-of-window occurrences into PHP.
+     *
+     * @param  array<string, mixed>  $parentFilters
+     * @param  array<string, mixed>  $timeFilters
+     */
+    public function publicScheduleFactSetForWindow(?string $query, array $parentFilters, array $timeFilters): EventScheduleFactSet;
+
+    /**
+     * Page of public occurrence ids matching the owner-applied filters,
+     * ordered like {@see \App\Features\Events\Services\PublicScheduleDiscoveryService::compareByTime()}.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array{rows: list<array{event_id: string, occurrence_id: string}>, total: int, has_matching_events: bool}
+     */
+    public function paginatePublicScheduleOccurrences(
+        ?string $query,
+        array $filters,
+        int $page,
+        int $perPage,
+        string $sort = 'time',
+    ): array;
+
+    /**
+     * Featured public occurrences for the homepage.
+     *
+     * @return list<array{event_id: string, occurrence_id: string}>
+     */
+    public function homepageFeaturedOccurrences(int $limit = 9): array;
+
+    /**
+     * Upcoming public occurrences for events followed by the supplied ids.
+     *
+     * @param  list<string>  $personIds
+     * @param  list<string>  $institutionIds
+     * @param  list<string>  $referenceIds
+     * @param  list<string>  $excludeOccurrenceIds
+     * @return list<array{event_id: string, occurrence_id: string}>
+     */
+    public function homepageFollowedOccurrences(
+        array $personIds,
+        array $institutionIds,
+        array $referenceIds,
+        CarbonInterface $startsBeforeUtc,
+        array $excludeOccurrenceIds = [],
+        int $limit = 50,
+    ): array;
 
     /**
      * Homepage candidate events: featured occurrences plus events followed by
@@ -207,10 +258,10 @@ interface EventScheduleReads
     public function publicEventCountsForReferenceFamilies(array $referenceFamilies): array;
 
     /**
-     * Next upcoming event and upcoming-occurrence count per reference family.
+     * Next upcoming event identity and upcoming-occurrence count per reference family.
      *
      * @param  array<string, list<string>>  $referenceFamilies  Family reference ids keyed by directory root id.
-     * @return array<string, array{next_event_id: ?string, upcoming_events_count: int}>
+     * @return array<string, array{next_event_id: ?string, next_event_slug: ?string, next_event_title: ?string, next_event_starts_at: ?string, upcoming_events_count: int}>
      */
     public function referenceDirectoryFacts(array $referenceFamilies): array;
 }

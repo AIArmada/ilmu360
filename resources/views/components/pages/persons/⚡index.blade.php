@@ -1,26 +1,25 @@
 <?php
 
-use App\Features\Engagement\Api\EngagementSubjectType;
-
 use AIArmada\CommerceSupport\Support\OwnerContext;
-
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
+use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollowCommands;
+use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;
 use App\Features\Persons\Models\Person;
+use App\Features\Persons\Services\PersonSearchService;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
-use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
-use App\Features\Persons\Services\PersonSearchService;
-use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -97,7 +96,7 @@ new
 
             if ($search === null) {
                 return $this->attachUpcomingEventCountsToPaginator(
-                    $this->applySort($this->basePersonsQuery())->paginate(12)->appends($this->directoryQueryString()),
+                    $this->paginateWithWindowTotal($this->applySort($this->basePersonsQuery())),
                 );
             }
 
@@ -246,6 +245,9 @@ new
             $stateId = $this->normalizedFilterId($this->state_id);
             $upcomingOnly = $this->upcoming_only === true;
             $followedOnly = $this->followed_only === true && auth()->user() instanceof User;
+            $eventsTable = (new Event)->getTable();
+            $eventInvolvementsTable = (new EventKeyPerson)->getTable();
+            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
 
             return $query
                 ->when($followedOnly, function (Builder $query): void {
@@ -268,19 +270,23 @@ new
                         $addressQuery->where('state_id', $stateId);
                     });
                 })
-                ->when($upcomingOnly, function (Builder $query): void {
-                    $query->whereHas('personEvents', function (Builder $eventQuery): void {
-                        $eventQuery
+                ->when($upcomingOnly, function (Builder $query) use ($eventInvolvementsTable, $eventsTable, $occurrencesTable): void {
+                    $query->whereExists(function (QueryBuilder $existsQuery) use ($eventInvolvementsTable, $eventsTable, $occurrencesTable): void {
+                        $existsQuery
+                            ->selectRaw('1')
+                            ->from("{$eventInvolvementsTable} as event_involvements")
+                            ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
+                            ->join("{$occurrencesTable} as occurrences", 'occurrences.event_id', '=', 'events.id')
+                            ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
+                            ->whereColumn('event_involvements.involveable_id', 'persons.id')
+                            ->where('event_involvements.role_code', EventKeyPersonRole::Speaker->value)
                             ->whereIn('events.status', Event::PUBLIC_STATUSES)
                             ->where('events.visibility', EventVisibility::Public->value)
                             ->whereNotNull('events.published_at')
-                            ->whereHas('occurrences', function (Builder $occurrenceQuery): void {
-                                $occurrenceQuery
-                                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
-                                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
-                                    ->whereNotNull('starts_at')
-                                    ->where('starts_at', '>=', now());
-                            });
+                            ->whereIn('occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
+                            ->whereIn('occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                            ->whereNotNull('occurrences.starts_at')
+                            ->where('occurrences.starts_at', '>=', now());
                     });
                 });
         }
@@ -314,9 +320,10 @@ new
 
             if ($this->sort === 'name') {
                 return $this->attachUpcomingEventCountsToPaginator(
-                    $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $matchingIds))
-                        ->paginate(12)
-                        ->withQueryString(),
+                    $this->paginateWithWindowTotal(
+                        $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $matchingIds)),
+                        withQueryString: true,
+                    ),
                 );
             }
 
@@ -343,9 +350,10 @@ new
 
             if ($this->sort === 'name') {
                 return $this->attachUpcomingEventCountsToPaginator(
-                    $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $orderedIds))
-                        ->paginate(12)
-                        ->withQueryString(),
+                    $this->paginateWithWindowTotal(
+                        $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $orderedIds)),
+                        withQueryString: true,
+                    ),
                 );
             }
 
@@ -399,6 +407,42 @@ new
                 ->all();
         }
 
+        private function paginateWithWindowTotal(Builder $query, int $perPage = 12, bool $withQueryString = false): LengthAwarePaginator
+        {
+            $currentPage = max(1, (int) $this->getPage());
+
+            $persons = (clone $query)
+                ->select('persons.*')
+                ->selectRaw('count(*) over () as matching_total')
+                ->forPage($currentPage, $perPage)
+                ->get();
+
+            $total = $persons->first() instanceof Person
+                ? (int) $persons->first()->getAttribute('matching_total')
+                : 0;
+
+            // A page beyond the end has no row from which to read the window
+            // total, so fall back to a scoped count without changing the normal
+            // request path.
+            if ($persons->isEmpty() && $currentPage > 1) {
+                $total = (clone $query)->reorder()->count();
+            }
+
+            $persons->each(static fn (Person $person): Person => $person->makeHidden('matching_total'));
+
+            $paginator = new LengthAwarePaginator(
+                $persons,
+                $total,
+                $perPage,
+                $currentPage,
+                $withQueryString
+                    ? ['path' => request()->url(), 'query' => request()->query()]
+                    : $this->paginationMeta(),
+            );
+
+            return $withQueryString ? $paginator : $paginator->appends($this->directoryQueryString());
+        }
+
         private function attachUpcomingEventCountsToPaginator(LengthAwarePaginator $paginator): LengthAwarePaginator
         {
             $this->attachUpcomingEventCountsToPersons($paginator->getCollection());
@@ -443,15 +487,18 @@ new
                 ->groupBy('event_involvements.involveable_id')
                 ->pluck('events_count', 'event_involvements.involveable_id');
 
-            $nextEvents = DB::table("{$eventInvolvementsTable} as event_involvements")
+            $rankedNextEvents = DB::table("{$eventInvolvementsTable} as event_involvements")
                 ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
                 ->join("{$occurrencesTable} as occurrences", 'occurrences.event_id', '=', 'events.id')
                 ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
                 ->whereIn('event_involvements.involveable_id', $personIds->all())
                 ->where('event_involvements.role_code', EventKeyPersonRole::Speaker->value)
+                ->whereNotNull('occurrences.starts_at')
                 ->where('occurrences.starts_at', '>=', $now)
+                ->whereIn('occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
+                ->whereIn('occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
                 ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                ->where('events.visibility', EventVisibility::Public)
+                ->where('events.visibility', EventVisibility::Public->value)
                 ->whereNotNull('events.published_at')
                 ->select([
                     'event_involvements.involveable_id as person_id',
@@ -459,12 +506,13 @@ new
                     'events.title as event_title',
                     'occurrences.starts_at as event_starts_at',
                 ])
-                ->orderBy('event_involvements.involveable_id')
-                ->orderBy('occurrences.starts_at')
-                ->orderBy('events.id')
+                ->selectRaw('row_number() over (partition by event_involvements.involveable_id order by occurrences.starts_at asc, events.id asc) as rn');
+
+            $nextEvents = DB::query()
+                ->fromSub($rankedNextEvents, 'ranked_next_events')
+                ->where('rn', 1)
                 ->get()
-                ->groupBy('person_id')
-                ->map(static fn (Collection $eventRows): mixed => $eventRows->first());
+                ->keyBy('person_id');
 
             foreach ($persons as $person) {
                 $personId = (string) $person->getKey();

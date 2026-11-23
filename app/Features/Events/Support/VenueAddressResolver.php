@@ -40,8 +40,17 @@ final class VenueAddressResolver
         }
 
         $validIds = array_values(array_filter($missing, static fn (string $id): bool => Str::isUuid($id)));
-        $addressIds = $this->places->primaryAddressIdsFor($validIds);
-        $names = $validIds !== [] ? $this->places->venueNamesByIds($validIds) : [];
+        $summaries = $validIds !== [] ? $this->places->venueLocationSummariesFor($validIds) : [];
+
+        $addressIds = [];
+
+        foreach ($summaries as $summary) {
+            $addressId = $summary['address_id'];
+
+            if (is_string($addressId) && $addressId !== '') {
+                $addressIds[$addressId] = $addressId;
+            }
+        }
 
         $records = $addressIds !== []
             ? Address::query()
@@ -52,10 +61,11 @@ final class VenueAddressResolver
             : collect();
 
         foreach ($missing as $venueId) {
-            $addressId = $addressIds[$venueId] ?? null;
-            $address = $addressId !== null ? $records->get($addressId) : null;
+            $summary = $summaries[$venueId] ?? null;
+            $addressId = $summary['address_id'] ?? null;
+            $address = is_string($addressId) ? $records->get($addressId) : null;
             $this->addresses[$scope][$venueId] = $address instanceof Address ? $address : null;
-            $this->names[$scope][$venueId] = $names[$venueId] ?? null;
+            $this->names[$scope][$venueId] = isset($summary['name']) ? $summary['name'] : null;
         }
     }
 

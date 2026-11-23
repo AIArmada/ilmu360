@@ -78,7 +78,7 @@
         @endauth
     @endif
 
-    <button type="button" @click="filtersOpen = !filtersOpen"
+    <button type="button" @click="filtersOpen = !filtersOpen; if (filtersOpen && !filterFormMounted) { $wire.mountFilterForm(); }"
         :aria-expanded="filtersOpen"
         aria-controls="majlis-filter-panel"
         data-signal-event="filter.panel_toggled"
@@ -168,11 +168,21 @@
                     <div x-show="locationNotice" x-cloak x-text="locationNotice" class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800"></div>
 
                     <div class="mi-filter-shell" wire:key="event-filter-form-{{ $filterFormVersion }}">
-                        <div class="mb-5 max-w-xs">
-                            <p class="mb-2 text-xs font-bold text-slate-700">{{ __('Susun') }}</p>
-                            {{ $this->sortForm }}
-                        </div>
-                        {{ $this->form }}
+                        @if($this->filterFormMounted)
+                            <div class="mb-5 max-w-xs">
+                                <p class="mb-2 text-xs font-bold text-slate-700">{{ __('Susun') }}</p>
+                                {{ $this->sortForm }}
+                            </div>
+                            {{ $this->form }}
+                        @else
+                            <div class="flex items-center gap-2 py-4 text-sm font-semibold text-slate-500" role="status">
+                                <svg class="size-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                                    <path class="opacity-75" stroke-width="4" d="M22 12a10 10 0 0 0-10-10"></path>
+                                </svg>
+                                <span>{{ __('Loading filters...') }}</span>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">

@@ -62,7 +62,7 @@ class MediaUrlGenerator extends DefaultUrlGenerator
 
     private function normalizeUrl(string $url): string
     {
-        if ($this->getDiskName() === 's3') {
+        if ($this->isS3Disk()) {
             return $url;
         }
 
@@ -93,13 +93,36 @@ class MediaUrlGenerator extends DefaultUrlGenerator
 
     protected function shouldUseTemporaryUrl(): bool
     {
-        return $this->getDiskName() === 's3';
+        if (! $this->isS3Disk()) {
+            return false;
+        }
+
+        $diskName = $this->getDiskName();
+
+        if (config("filesystems.disks.{$diskName}.visibility") === 'private') {
+            return true;
+        }
+
+        $override = config('media-library.s3_use_temporary_urls');
+
+        if ($override !== null && $override !== '') {
+            return filter_var($override, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return blank(config("filesystems.disks.{$diskName}.url"));
+    }
+
+    protected function isS3Disk(): bool
+    {
+        $diskName = $this->getDiskName();
+
+        return $diskName === 's3' || config("filesystems.disks.{$diskName}.driver") === 's3';
     }
 
     protected function mediaFileIsMissing(): bool
     {
         try {
-            if ($this->getDiskName() !== 's3' || $this->media?->getKey() === null) {
+            if (! $this->isS3Disk() || $this->media?->getKey() === null) {
                 return ! $this->getDisk()->exists($this->getPathRelativeToRoot());
             }
 

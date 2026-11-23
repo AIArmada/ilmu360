@@ -21,6 +21,8 @@ abstract class MarkdownDocumentResource extends Resource
             return Response::error('Unable to read the markdown documentation resource.');
         }
 
+        $this->markGuideRead($request);
+
         return Response::text($contents);
     }
 
@@ -28,6 +30,8 @@ abstract class MarkdownDocumentResource extends Resource
     {
         return is_file($this->documentAbsolutePath());
     }
+
+    abstract protected function markGuideRead(Request $request): void;
 
     abstract protected function documentRelativePath(): string;
 

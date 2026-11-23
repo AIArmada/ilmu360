@@ -14,6 +14,7 @@ use App\Platform\Media\MediaFileNamer;
 use App\Platform\Media\MediaPathGenerator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileUnacceptableForCollection;
 use Spatie\MediaLibrary\Support\FileRemover\FileBaseFileRemover;
@@ -598,4 +599,164 @@ it('uses file-based media remover strategy for shared directories', function () 
 
 it('enables media url versioning for cache busting', function () {
     expect(config('media-library.version_urls'))->toBeTrue();
+});
+
+it('configures immutable cache control headers for remote s3 media uploads', function () {
+    expect(config('media-library.remote.extra_headers.CacheControl'))
+        ->toBe('public, max-age=31536000, immutable');
+});
+
+it('disables inline RichEditor file attachments globally so uploads cannot bypass Spatie Media Library', function () {
+    $editor = Filament\Forms\Components\RichEditor::make('description');
+    $livewire = new class extends Livewire\Component implements Filament\Schemas\Contracts\HasSchemas
+    {
+        use Filament\Schemas\Concerns\InteractsWithSchemas;
+    };
+
+    $editor->container(Filament\Schemas\Schema::make($livewire));
+
+    expect($editor->hasToolbarButton('attachFiles'))->toBeFalse()
+        ->and($editor->hasFileAttachmentsByDefault())->toBeFalse();
+});
+
+it('generates canonical lowercase kebab-case storage filenames with safe fallbacks', function () {
+    $event = Event::factory()->create(['slug' => str_repeat('kuliah-maghrib-', 8)]);
+    $longFileName = MediaFileNamer::generateStorageFileName($event, 'JPG');
+
+    expect($longFileName)
+        ->toMatch('/^[a-z0-9-]+-[0-9a-z]{8}\.jpg$/')
+        ->not->toContain('--');
+
+    $basePart = preg_replace('/-[0-9a-z]{8}\.jpg$/', '', $longFileName);
+    expect(strlen((string) $basePart))->toBeLessThanOrEqual(80);
+
+    $symbolOnlyChannel = DonationChannel::factory()->make([
+        'label' => '🕌✨',
+    ]);
+    expect(MediaFileNamer::resolveBaseNameFromModel($symbolOnlyChannel))->toBe('donation-channel');
+
+    $report = Report::factory()->make();
+    expect(MediaFileNamer::resolveBaseNameFromModel($report))->toBe('report');
+});
+
+it('normalizes filenames when syncing media from disk without an explicit filename', function () {
+    $event = Event::factory()->create(['slug' => 'kuliah-subuh']);
+    Storage::disk('public')->put('tmp/IMG_9999.JPG', (string) fakeGeneratedImageUpload('cover.jpg')->get());
+
+    app(App\Platform\Media\MediaCollectionSync::class)->syncFromDisk(
+        $event,
+        'tmp/IMG_9999.JPG',
+        'public',
+        'cover',
+    );
+
+    $media = $event->fresh()->getFirstMedia('cover');
+
+    expect($media)->not->toBeNull()
+        ->and($media?->file_name)->toMatch('/^kuliah-subuh-[0-9a-z]{8}\.jpg$/')
+        ->and($media?->getCustomProperty('original_file_name'))->toBe('IMG_9999.JPG');
+});
+
+it('renames staged contribution donation QR media to the target DonationChannel on approval', function () {
+    $institution = Institution::factory()->create();
+    $channel = DonationChannel::factory()->create([
+        'donatable_type' => $institution->getMorphClass(),
+        'donatable_id' => $institution->getKey(),
+        'method' => 'ewallet',
+        'ewallet_provider' => 'tng',
+        'ewallet_handle' => '0123456789',
+        'ewallet_qr_payload' => null,
+        'label' => 'Tabung Masjid',
+    ]);
+
+    $workflow = app(App\Features\DonationChannels\Api\DonationQrWorkflow::class);
+    $fingerprint = $workflow->donationChannelFingerprint([
+        'method' => 'ewallet',
+        'ewallet_provider' => 'tng',
+        'ewallet_handle' => '0123456789',
+        'ewallet_qr_payload' => null,
+    ]);
+
+    $request = App\Features\Contributions\Models\ContributionRequest::factory()->create([
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => $institution->getKey(),
+    ]);
+
+    $staged = $request->addMediaFromString((string) fakeGeneratedImageUpload('qr.png')->get())
+        ->usingFileName('contribution-request-01jxab3k.png')
+        ->withCustomProperties([
+            'contribution_field' => 'donation_qr',
+            'donation_fingerprint' => $fingerprint,
+            'original_file_name' => 'duitnow-qr.png',
+        ])
+        ->toMediaCollection('pending_media');
+
+    $filesBefore = Storage::disk('public')->allFiles();
+
+    expect(fn () => DB::transaction(function () use ($workflow, $institution, $staged): void {
+        $workflow->attachStagedDonationQr(
+            $institution->getMorphClass(),
+            (string) $institution->getKey(),
+            (string) $staged->getKey(),
+        );
+
+        throw new RuntimeException('Approval failed after copying the QR.');
+    }))->toThrow(RuntimeException::class, 'Approval failed after copying the QR.');
+
+    expect($channel->fresh()->getFirstMedia('qr'))->toBeNull()
+        ->and(Storage::disk('public')->allFiles())->toBe($filesBefore);
+
+    $workflow->attachStagedDonationQr(
+        $institution->getMorphClass(),
+        (string) $institution->getKey(),
+        (string) $staged->getKey(),
+    );
+
+    $qrMedia = $channel->fresh()->getFirstMedia('qr');
+
+    expect($qrMedia)->not->toBeNull()
+        ->and($qrMedia?->file_name)->toMatch('/^tabung-masjid-[0-9a-z]{8}\.png$/')
+        ->and($qrMedia?->getCustomProperty('original_file_name'))->toBe('duitnow-qr.png')
+        ->and($qrMedia?->getCustomProperty('collection'))->toBe('qr');
+});
+
+it('uses direct public CDN URLs for public S3 media when AWS_URL is configured and keeps private S3 media temporary', function () {
+    $event = Event::factory()->create(['slug' => 'majlis-ilmu']);
+    $media = $event->addMedia(fakeGeneratedImageUpload('cover.png', 1600, 900))
+        ->toMediaCollection('cover');
+
+    $media->disk = 's3';
+
+    $generator = new class(config()) extends App\Platform\Media\MediaUrlGenerator
+    {
+        public function exposeShouldUseTemporaryUrl(): bool
+        {
+            return $this->shouldUseTemporaryUrl();
+        }
+    };
+    $generator->setMedia($media);
+
+    // 1. Public S3 with AWS_URL configured -> direct CDN URL (no temporary URL)
+    config()->set('media-library.s3_use_temporary_urls', null);
+    config()->set('filesystems.disks.s3.visibility', null);
+    config()->set('filesystems.disks.s3.url', 'https://cdn.ilmu360.com');
+    expect($generator->exposeShouldUseTemporaryUrl())->toBeFalse();
+
+    // 2. Public S3 without AWS_URL -> falls back to temporary presigned URL
+    config()->set('filesystems.disks.s3.url', null);
+    expect($generator->exposeShouldUseTemporaryUrl())->toBeTrue();
+
+    // 3. Explicit override via MEDIA_S3_USE_TEMPORARY_URLS=false -> direct URL even without AWS_URL
+    config()->set('media-library.s3_use_temporary_urls', false);
+    expect($generator->exposeShouldUseTemporaryUrl())->toBeFalse();
+
+    // 4. Explicit override via MEDIA_S3_USE_TEMPORARY_URLS=true -> temporary URL even with AWS_URL
+    config()->set('filesystems.disks.s3.url', 'https://cdn.ilmu360.com');
+    config()->set('media-library.s3_use_temporary_urls', true);
+    expect($generator->exposeShouldUseTemporaryUrl())->toBeTrue();
+
+    // 5. Private S3 disk -> ALWAYS temporary even when override is false and url is set
+    config()->set('media-library.s3_use_temporary_urls', false);
+    config()->set('filesystems.disks.s3.visibility', 'private');
+    expect($generator->exposeShouldUseTemporaryUrl())->toBeTrue();
 });

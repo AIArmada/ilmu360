@@ -24,6 +24,8 @@ final class VisitorCountryResolver implements VisitorCountryResolving
 {
     private static ?string $cacheScope = null;
 
+    private static bool $resolved = false;
+
     /**
      * @var array{
      *     country_id: string|null,
@@ -55,6 +57,7 @@ final class VisitorCountryResolver implements VisitorCountryResolving
         }
 
         self::$cacheScope = $scope;
+        self::$resolved = false;
         self::$memoized = [
             'country_id' => null,
             'country_code' => null,
@@ -90,7 +93,7 @@ final class VisitorCountryResolver implements VisitorCountryResolving
     {
         $this->ensureCacheScope();
 
-        if (self::$memoized['source'] !== 'unresolved') {
+        if (self::$resolved) {
             return self::$memoized;
         }
 
@@ -100,6 +103,8 @@ final class VisitorCountryResolver implements VisitorCountryResolving
             $countryId = $this->countryIdForCode($headerCode);
 
             if ($countryId !== null) {
+                self::$resolved = true;
+
                 return self::$memoized = [
                     'country_id' => $countryId,
                     'country_code' => $headerCode,
@@ -111,14 +116,20 @@ final class VisitorCountryResolver implements VisitorCountryResolving
         $fallbackCode = mb_strtoupper(mb_trim((string) config('location.default_country_code', 'MY')));
 
         if ($fallbackCode === '') {
+            self::$resolved = true;
+
             return self::$memoized;
         }
 
         $countryId = $this->countryIdForCode($fallbackCode);
 
         if ($countryId === null) {
+            self::$resolved = true;
+
             return self::$memoized;
         }
+
+        self::$resolved = true;
 
         return self::$memoized = [
             'country_id' => $countryId,
@@ -133,6 +144,7 @@ final class VisitorCountryResolver implements VisitorCountryResolving
     public function forget(): void
     {
         self::$cacheScope = null;
+        self::$resolved = false;
         self::$memoized = [
             'country_id' => null,
             'country_code' => null,

@@ -1003,6 +1003,65 @@ Source: `ilmu360-orm-audit-2026-11-21-1834.md`, reviewed at
   Code + ledger SHA `664b2ce1` passed all 26 jobs in
   [run 44897003682](https://github.com/AIArmada/ilmu360/actions/runs/44897003682).
 
+## Laravel MCP 1.2.1 integration
+
+- [x] Verify the installed version against upstream tags and review the native request and discovery APIs.
+- [x] Delegate resource reads to Laravel MCP, preserve guide preflight, and validate tool names before preflight.
+- [x] Expose the existing audience-scoped documentation URIs as native resource templates with completions and add server icons.
+- [x] Verify authenticated discovery, resource isolation, and request validation through the HTTP endpoints.
+
+Verification passed for the seven focused HTTP tests, Pint, PHPStan level 6,
+architecture checks, and route/configuration/feature cache builds. The broader
+MCP run passed 155 of 156 tests. Its URL upload fixture depended on external
+DNS, so it now uses the existing resolver fake and passed a focused rerun.
+
+## Focused member MCP event submission
+
+- [x] Trace the public event submission path, selector permissions, timing, and media requirements.
+- [x] Expose event submission selectors, prayer preview, draft validation, and submission with shared workflow rules.
+- [x] Verify a member can validate without persisting, then submit and read the resulting review status.
+
+Verification passed for the authenticated MCP round trip, including canonical
+selectors, exact prayer preview, field-level errors, institution scope,
+CAPTCHA, and cover persistence. The 90 related submission and prayer tests,
+PHPStan level 6, architecture check, and Pint also passed.
+
+## Speaker contribution form parity
+
+- [x] Compare creation and update forms.
+- [x] Share tabs, media fields, and mobile styles while preserving update permissions and moderation.
+- [x] Run contribution tests and static checks.
+
+The shared tabs and media schema preserve the edit flow and its upload moderation. Existing speaker records without a country remain editable. Contribution page tests, architecture checks, scoped PHPStan, and Pint passed. The repository-wide PHPStan run reached its configured memory limit.
+
+## Reference, institution, and event form parity
+
+- [x] Compare the public create and update forms.
+- [x] Share media controls and align event edit groups with public submission.
+- [x] Verify contribution updates and public event submission.
+
+Reference and institution forms share their media definitions. Event updates follow the four submission groups and both event forms enforce the same image ratios. Focused Pest tests, architecture checks, scoped PHPStan, Pint, and diff checks passed.
+
+## Admin-only direct publishing for directory updates
+
+- [x] Trace public, API, dashboard, Filament, and member MCP publication paths.
+- [x] Enforce admin-only direct publication and preserve independent review.
+- [x] Align create/edit validation and stage contributor media safely.
+- [x] Verify permission, form, and moderation regressions.
+
+### Review — admin-only direct publishing
+
+- Direct publication is now gated by `User::canPublishDirectoryUpdates()` (`super_admin`/`admin`). `ApplyDirectContributionUpdateAction::apply()` takes the actor id and aborts 403 for everyone else; the web update page, API update endpoint, Filament mutation hooks, and the event dashboard schedule mutation all use the same check.
+- Filament Edit pages for events, institutions, persons, and references redirect non-publishers who still hold update ability to `/sumbangan/{jenis}/{slug}/kemas-kini`; users without update ability stay 403. The Ahli institution page keeps member-invitation management available without exposing the edit form or save path.
+- Contributor updates file a review request. Media selected on update forms is staged onto the request's `pending_media` collection inside the same transaction (`stageMedia` callback on `ContributionRequestLifecycle::submitUpdate()`); the live entity's media is untouched until approval. Direct admins replace media in place as before.
+- Updates now require an independent reviewer: `ContributionRequestPolicy::review()` and `ApproveContributionRequestAction` reject a proposer approving their own update request, while create requests keep the previous behaviour.
+- `PersonContributionFormSchema::publicTabs()` is the single tab/media definition for both `/sumbangan/penceramah/baru` and `/sumbangan/penceramah/{slug}/kemas-kini`; the speaker mobile styling lives in `person-form-styles.blade.php`. Event, institution, and reference update forms share their media controls with the create forms, including the 16:9 cover, 3:4 poster/profile/front/back cover, 1:1 main photo, and gallery limits.
+- Event submission keeps the same boundary: non-admins adding sessions to existing events are directed to the contribution form instead of doing a direct write, non-admin occurrence submissions on approved events always enter review, and publish/archive/cancel table actions are admin-only.
+- Verification: focused contribution selection `ContributionPagesTest`, `ContributionEventPrayerTest`, `ContributionAddressPersistenceTest`, `EventActionsTest`, `ContributionRequestPolicyTest` — **149 passed / 917 assertions**; `FrontendApiParityTest` **112 passed / 808 assertions**; Filament/admin regression batch **32 passed** (`PublicSubmissionLockActionsTest` separately **11 passed**); `MediaConversionsTest` **52 passed**; new `DirectoryPublishingPermissionTest` **2 passed**. Architecture **0 violations / 28 features**, ownership PHPStan OK, full PHPStan **0 errors**, Pint passed.
+- Local test runs must clear exported staging environment values (`APP_ENV`, `DB_*`, `QUEUE_CONNECTION`, `CACHE_STORE`, …); PHPUnit `<env>` does not override variables already exported by the shell, which otherwise runs the suite against staging with `runningUnitTests()` false.
+- Additional regression coverage after the fix round: `InstitutionContributionLocationPickerTest`, `SubmitEventSessionIsolationTest`, `Contributions/ContributionBoundarySeamsTest` **79 passed**; `PublicSubmissionOccurrenceGroupingTest`, `SubmitEventLocationTest`, `SubmitEventAdaptiveFormTest`, `SubmitEventInputValidationTest`, `ManagedWorkspacesTest`, `PersonContributionOptimizationTest` **150 passed**; `Mcp/MemberServerTest` passed. Session/grouping/prefill tests now use a global administrator where the action is an authoritative write; contributor paths keep asserting review staging.
+- The broad 97-file TIA selection now leaves only failures unrelated to this change: Filament 5.12 renders non-native select options through Alpine, so `PrayerTimeConditionalsTest`, `SubmitEventPrayerTimeTest`, and `SubmitEventOrganizerAutoSelectTest` assert option labels that are no longer in the initial HTML; `EventShowPageTest` share-card image and `Laravel13CacheSerializationTest` event-filter cache checks also fail without this change. The last green CI run predates the committed Filament 5.11.3 → 5.12.0 upgrade.
+
 ## Copy unslop pass (2026-11-22)
 
 - [x] Replace curly quotes and apostrophes with straight quotes across the JSON locales (en, ms, id, jv, ms_MY) and the en/ms PHP lang files, including the `:search` keys and all callers.
@@ -1010,3 +1069,21 @@ Source: `ilmu360-orm-audit-2026-11-21-1834.md`, reviewed at
 - [x] Keep native punctuation in Chinese (`——`) and Tamil copy, and keep `—` where it is an empty-cell placeholder, a value separator, or a select label.
 
 Review: the audit found no AI vocabulary, filler phrases, or "not just X but Y" padding in the shipping copy, so the change is limited to rule 13 (em dashes) and rule 19 (curly quotes). Em dashes in data separators and `—` placeholders were left alone because they are structural, not prose. Verification: targeted Pest selection `AboutPageTest`, `LegalPagesTest`, `PersonIndexTest`, `ReferralMemberSurfaceTest`, `PublicMenuTranslationsTest`, `IndonesianLocaleTest`, `RewardMemberWebTest`, `ContributionPagesTest` remainder — 85 passed / 370 assertions; JSON parses for all five locales; `php -l` clean on every changed PHP file; Blade cache compiles; architecture 0 violations / 28 features; Pint passed. The 10 `ContributionPagesTest` person-affiliation failures reproduce on the untouched baseline and are unrelated.
+
+## Contribution audit remediation
+
+- [x] Close moderator and MCP direct publishing paths.
+- [x] Align fields, validation, reviewer notes, and schedule navigation.
+- [x] Preserve live media on failed writes and enforce gallery capacity.
+- [x] Run focused regression and architecture checks.
+
+### Review — contribution audit remediation
+
+- Direct event image publishing is now closed at the write seam: the shared MCP upload trait rejects every non-publisher with the contribution-form URL, and `StoreEventImageAction` re-checks `canPublishDirectoryUpdates()` so a broader admin-MCP role check cannot reach the live media write.
+- Occurrence self-approval is blocked in both layers: the moderation queue hides `approve_occurrence` for the submitter, and `ReviewOccurrenceSubmissionAction` throws before any write. Donation channel `create`/`update` now use `hasGlobalAdminAccess()`; moderators keep read-only access and the reviewed institution-form proposal path.
+- Update-form parity: the proposer note is visible to admins (blank publishes, a note files review); event edit now requires language/topic and exposes recording/series like creation; an untouched legacy `event_format` stays selectable even when its category requires physical delivery. Institution create/update APIs share the same media validation (logo SVG, 16:9 cover, ten-image gallery).
+- Approval rejects a staged gallery that would exceed ten images, while direct edits cap the result at ten. Published-event maintainers get a proposal workflow (`SubmitScheduleOccurrenceForReviewAction`, pending `event_submission`, submit-for-review UI) instead of a 403; open-ended/prayer-relative occurrences keep `ends_at = null` through the proposal/approval cycle.
+- Media writes are store-then-replace: Filament's abandoned-file deletion is bypassed for direct editors, `storeSingle`/`syncMultiple` add before clearing, and staged approval copies every file before deleting old/staged rows. Direct field and media writes share one transaction wrapped by `cleanUpFailedWrites`, so a failed upload rolls back fields and removes only newly stored files.
+- Media file removal is already commit-deferred at the framework boundary: `app/Platform/Media/AuditedMediaObserver.php` implements `ShouldHandleEventsAfterCommit`, so Spatie's `deleted` file removal runs only after the transaction commits; a rolled-back delete restores the row with its file. Regression tests now pin that behavior in `MediaCollectionSyncTest` (rolled-back media delete) and `DirectoryPublishingPermissionTest` (replacement stored, later failure rolls back), alongside the failed-write cleanup test that still removes only newly created files.
+- Verification: audit suite `ContributionPagesTest`, `DirectoryPublishingPermissionTest`, `EventScheduleWorkspaceTest`, `ModerationQueueTest`, `Mcp/EventImageGenerationToolTest` — **123 passed / 890 assertions**; `FrontendApiParityTest` **113 passed / 829**; `MediaConversionsTest`, `MediaCollectionSyncTest`, `DirectoryPublishingPermissionTest` **67 passed**; `ContributionPagesTest`, `InstitutionContributionLocationPickerTest`, `ContributionBoundarySeamsTest` **146 passed / 950**. Architecture **0 violations / 28 features**, ownership PHPStan **0**, scoped PHPStan clean, Pint passed. The full PHPStan run currently reports one unrelated error in concurrently edited `app/Shared/Cache/SelectionCatalogCache.php`.
+- Test environment note: run with staging exports removed and `FILAMENT_ADMIN_DOMAIN=`/`FILAMENT_AHLI_DOMAIN=` empty; otherwise PHPUnit ignores its `<env>` values and the moderation-queue routes resolve to the production admin domain.

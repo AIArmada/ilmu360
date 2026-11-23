@@ -3,11 +3,10 @@
 use App\Features\Engagement\Api\EngagementSubjectType;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\References\Api\ReferenceQueries;
-use App\Features\Events\Models\Event;
 use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
@@ -17,7 +16,6 @@ use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Computed;
@@ -68,11 +66,27 @@ new
             $search = $this->normalizedSearch();
 
             if ($search === null) {
-                $paginator = $this->baseReferencesQuery()
-                    ->root()
-                    ->orderBy('references.title')
-                    ->paginate(12)
-                    ->withQueryString();
+                $currentPage = max(1, (int) $this->getPage());
+                $perPage = 12;
+                $query = $this->baseReferencesQuery()->orderBy('references.title');
+
+                $items = (clone $query)
+                    ->selectRaw('count(*) over () as matching_total')
+                    ->forPage($currentPage, $perPage)
+                    ->get();
+
+                $firstItem = $items->first();
+                $total = $firstItem instanceof Reference
+                    ? (int) $firstItem->getAttribute('matching_total')
+                    : 0;
+
+                if ($items->isEmpty() && $currentPage > 1) {
+                    $total = (clone $query)->reorder()->count();
+                }
+
+                $items->each(static fn (Reference $reference): Reference => $reference->makeHidden('matching_total'));
+
+                $paginator = new LengthAwarePaginator($items, $total, $perPage, $currentPage, $this->paginationMeta());
             } elseif (mb_strlen($search) < self::MIN_SEARCH_LENGTH) {
                 return $this->emptyPaginator();
             } else {
@@ -158,8 +172,6 @@ new
 
         private function baseReferencesQuery(bool $includeParts = false): Builder
         {
-            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-
             $query = $this->applyFollowedOnlyFilter(
                 Reference::query()->active(),
             )
@@ -167,16 +179,31 @@ new
                 // Cards only read front/back covers, so skip the gallery
                 // collection instead of loading every media row per page.
                 ->with([
-                    'parentReference.parentReference',
-                    'authors.titleAssignments.title.category',
-                    'parentReference.authors.titleAssignments.title.category',
-                    'parentReference.parentReference.authors.titleAssignments.title.category',
+                    'authors.titleAssignments' => function (MorphMany $relation): void {
+                        $relation
+                            ->where('status', AssignmentStatus::Active->value)
+                            ->with('title.category');
+                    },
                     'media' => function (MorphMany $relation): void {
                         $relation->whereIn('collection_name', ['front_cover', 'back_cover']);
                     },
                 ]);
 
-            if (! $includeParts) {
+            if ($includeParts) {
+                $query->with([
+                    'parentReference.parentReference',
+                    'parentReference.authors.titleAssignments' => function (MorphMany $relation): void {
+                        $relation
+                            ->where('status', AssignmentStatus::Active->value)
+                            ->with('title.category');
+                    },
+                    'parentReference.parentReference.authors.titleAssignments' => function (MorphMany $relation): void {
+                        $relation
+                            ->where('status', AssignmentStatus::Active->value)
+                            ->with('title.category');
+                    },
+                ]);
+            } else {
                 $query->root();
             }
 
@@ -184,14 +211,6 @@ new
         }
 
         /**
-         * Hydrate the next-event card fields for one page of references in a
-         * single batched query. The listing only needs these three columns for
-         * the visible page, so repeating the same correlated LIMIT 1 subquery
-         * three times per row only triples that work — and each repetition
-         * evaluates its own "now", which can mix columns from different events
-         * at the boundary. Selecting the winning id per row and resolving its
-         * columns once keeps every card internally consistent.
-         *
          * @param  array<int, Reference>  $references
          */
         private function attachNextPublicEvents(array $references): void
@@ -200,66 +219,22 @@ new
                 return;
             }
 
-            $families = [];
+            $referenceIds = array_values(array_map(
+                static fn (Reference $reference): string => (string) $reference->getKey(),
+                $references,
+            ));
 
-            foreach ($references as $reference) {
-                $referenceId = (string) $reference->getKey();
-                $families[$referenceId] = app(ReferenceQueries::class)->defaultEventReferenceIds($referenceId);
-            }
-
+            $families = app(ReferenceQueries::class)->defaultEventReferenceIdsForMany($referenceIds);
             $facts = app(EventScheduleReads::class)->referenceDirectoryFacts($families);
 
             foreach ($references as $reference) {
-                $fact = $facts[(string) $reference->getKey()] ?? ['next_event_id' => null, 'upcoming_events_count' => 0];
+                $fact = $facts[(string) $reference->getKey()] ?? null;
 
-                $reference->setAttribute('next_event_id', $fact['next_event_id']);
-                $reference->setAttribute('upcoming_events_count', $fact['upcoming_events_count']);
+                $reference->setAttribute('upcoming_events_count', (int) ($fact['upcoming_events_count'] ?? 0));
+                $reference->setAttribute('next_event_slug', $fact['next_event_slug'] ?? null);
+                $reference->setAttribute('next_event_title', $fact['next_event_title'] ?? null);
+                $reference->setAttribute('next_event_starts_at', $fact['next_event_starts_at'] ?? null);
             }
-
-            $nextEventIds = collect($references)
-                ->map(static fn (Reference $reference): mixed => $reference->getAttribute('next_event_id'))
-                ->filter()
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->unique()
-                ->values()
-                ->all();
-
-            /** @var EloquentCollection<int, Event> $details */
-            $details = $nextEventIds === []
-                ? new EloquentCollection
-                : $this->nextPublicEventDetails($nextEventIds)->keyBy(static fn (Event $event): string => (string) $event->getKey());
-
-            foreach ($references as $reference) {
-                $detail = $details->get((string) $reference->getAttribute('next_event_id'));
-
-                $reference->setAttribute('next_event_slug', $detail?->getAttribute('slug'));
-                $reference->setAttribute('next_event_title', $detail?->getAttribute('title'));
-                $reference->setAttribute('next_event_starts_at', $detail?->getAttribute('next_event_starts_at'));
-                $reference->offsetUnset('next_event_id');
-            }
-        }
-
-        /**
-         * Resolve the card columns for already-selected next events. The id
-         * already identifies the earliest future (event, occurrence) pair per
-         * reference, so the event's minimum future occurrence start is exactly
-         * that pair's start — no tie-break needed for the timestamp itself.
-         *
-         * @param  list<string>  $eventIds
-         * @return EloquentCollection<int, Event>
-         */
-        private function nextPublicEventDetails(array $eventIds): EloquentCollection
-        {
-            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-
-            return Event::query()
-                ->select('events.id', 'events.slug', 'events.title')
-                ->selectRaw('min("'.$occurrencesTable.'"."starts_at") as next_event_starts_at')
-                ->join("{$occurrencesTable}", "{$occurrencesTable}.event_id", '=', 'events.id')
-                ->whereIn('events.id', $eventIds)
-                ->where("{$occurrencesTable}.starts_at", '>=', now())
-                ->groupBy('events.id', 'events.slug', 'events.title')
-                ->get();
         }
 
         private function directSearch(string $search): LengthAwarePaginatorContract
@@ -385,7 +360,7 @@ new
         {
             return [
                 'path' => request()->url(),
-                'query' => request()->query(),
+                'query' => request()->except('page'),
             ];
         }
 
@@ -418,6 +393,7 @@ new
                     height="821"
                     loading="eager"
                     decoding="async"
+                    fetchpriority="high"
                 >
             </picture>
             <div

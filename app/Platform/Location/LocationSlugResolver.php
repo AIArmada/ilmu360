@@ -457,46 +457,51 @@ final class LocationSlugResolver
             return self::$maps[$key];
         }
 
-        $options = $optionsResolver();
-        $storedSlugs = $slugResolver !== null ? $slugResolver() : [];
+        /** @var array{slugToId: array<string, string>, idToSlug: array<string, string>, options: array<string, string>} $map */
+        $map = $this->catalogCache->rememberAddressData("slug-maps:{$key}", static function () use ($optionsResolver, $slugResolver): array {
+            $options = $optionsResolver();
+            $storedSlugs = $slugResolver !== null ? $slugResolver() : [];
 
-        $ids = array_keys($options);
-        usort($ids, static fn (mixed $a, mixed $b): int => [(string) $options[$a], (string) $a] <=> [(string) $options[$b], (string) $b]);
+            $ids = array_keys($options);
+            usort($ids, static fn (mixed $a, mixed $b): int => [(string) $options[$a], (string) $a] <=> [(string) $options[$b], (string) $b]);
 
-        $slugToId = [];
-        $idToSlug = [];
-        $slugOptions = [];
-        $usedSlugs = [];
+            $slugToId = [];
+            $idToSlug = [];
+            $slugOptions = [];
+            $usedSlugs = [];
 
-        foreach ($ids as $id) {
-            $stored = $storedSlugs[$id] ?? null;
-            $base = is_string($stored) && trim($stored) !== ''
-                ? strtolower(trim($stored))
-                : Str::slug((string) $options[$id]);
+            foreach ($ids as $id) {
+                $stored = $storedSlugs[$id] ?? null;
+                $base = is_string($stored) && trim($stored) !== ''
+                    ? strtolower(trim($stored))
+                    : Str::slug((string) $options[$id]);
 
-            if ($base === '') {
-                $base = 'loc';
+                if ($base === '') {
+                    $base = 'loc';
+                }
+
+                $slug = $base;
+                $suffix = 2;
+
+                while (isset($usedSlugs[$slug])) {
+                    $slug = "{$base}-{$suffix}";
+                    $suffix++;
+                }
+
+                $usedSlugs[$slug] = true;
+                $slugToId[$slug] = (string) $id;
+                $idToSlug[(string) $id] = $slug;
+                $slugOptions[$slug] = (string) $options[$id];
             }
 
-            $slug = $base;
-            $suffix = 2;
+            return [
+                'slugToId' => $slugToId,
+                'idToSlug' => $idToSlug,
+                'options' => $slugOptions,
+            ];
+        });
 
-            while (isset($usedSlugs[$slug])) {
-                $slug = "{$base}-{$suffix}";
-                $suffix++;
-            }
-
-            $usedSlugs[$slug] = true;
-            $slugToId[$slug] = (string) $id;
-            $idToSlug[(string) $id] = $slug;
-            $slugOptions[$slug] = (string) $options[$id];
-        }
-
-        return self::$maps[$key] = [
-            'slugToId' => $slugToId,
-            'idToSlug' => $idToSlug,
-            'options' => $slugOptions,
-        ];
+        return self::$maps[$key] = $map;
     }
 
     /**

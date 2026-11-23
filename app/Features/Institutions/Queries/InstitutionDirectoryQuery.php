@@ -2,17 +2,18 @@
 
 namespace App\Features\Institutions\Queries;
 
-use App\Features\Events\Api\EventDirectoryProjectionProvider;
+use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 final readonly class InstitutionDirectoryQuery
 {
     public function __construct(
         private InstitutionSearchService $searchService,
-        private EventDirectoryProjectionProvider $eventProjection,
+        private EventScheduleReads $scheduleReads,
     ) {}
 
     /**
@@ -34,11 +35,10 @@ final readonly class InstitutionDirectoryQuery
         $normalizedSearch = $this->searchService->normalizedSearch($search ?? '');
 
         if ($normalizedSearch === null) {
-            $paginator = $this->baseInstitutionsQuery($locationIds, $followedOnly, $followingInstitutionIds)
-                ->publicDirectoryOrder()
-                ->paginate($perPage, page: $page)
-                ->withPath($paginationMeta['path'])
-                ->appends($paginationMeta['query']);
+            $query = $this->baseInstitutionsQuery($locationIds, $followedOnly, $followingInstitutionIds);
+            $query->publicDirectoryOrder();
+
+            $paginator = $this->paginateQuery($query, $page, $paginationMeta, $perPage);
         } else {
             $directMatches = $this->paginateDirectSearch(
                 $normalizedSearch,
@@ -91,6 +91,16 @@ final readonly class InstitutionDirectoryQuery
         // before the location/followed scope is applied; the DB/collection
         // path has no such cap. Fully location-aware Typesense search would
         // require indexing location fields and adding filter_by constraints.
+        return $this->paginateQuery($query, $page, $paginationMeta, $perPage);
+    }
+
+    /**
+     * @param  Builder<Institution>  $query
+     * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
+     * @return LengthAwarePaginator<int, Institution>
+     */
+    private function paginateQuery(Builder $query, int $page, array $paginationMeta, int $perPage): LengthAwarePaginator
+    {
         $institutions = (clone $query)
             ->selectRaw('count(*) over () as matching_total')
             ->forPage($page, $perPage)
@@ -158,24 +168,16 @@ final readonly class InstitutionDirectoryQuery
     private function baseInstitutionsQuery(array $locationIds, bool $followedOnly, array $followingInstitutionIds): Builder
     {
         $query = $this->scopedInstitutionsQuery($locationIds, $followedOnly, $followingInstitutionIds);
-        $eventColumns = $this->eventProjection->institutionDirectoryEventColumns();
-        $grammar = $query->getQuery()->getGrammar();
 
         return $query
             ->select('institutions.*')
-            ->selectRaw(
-                "({$eventColumns->upcomingCount->sql}) as {$grammar->wrap('events_count')}",
-                $eventColumns->upcomingCount->bindings,
-            )
-            ->selectRaw(
-                "({$eventColumns->nextEventId->sql}) as {$grammar->wrap('next_event_id')}",
-                $eventColumns->nextEventId->bindings,
-            )
             ->with([
                 'addresses.state',
                 'addresses.city',
                 'addresses.areaAssignments.area',
-                'media',
+                'media' => static function (MorphMany $relation): void {
+                    $relation->whereIn('collection_name', ['cover', 'logo']);
+                },
             ]);
     }
 
@@ -268,23 +270,21 @@ final readonly class InstitutionDirectoryQuery
             return;
         }
 
-        $nextEventIds = collect($institutions)
-            ->map(static fn (Institution $institution): mixed => $institution->getAttribute('next_event_id'))
-            ->filter()
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->unique()
+        $institutionIds = collect($institutions)
+            ->map(static fn (Institution $institution): string => (string) $institution->getKey())
             ->values()
             ->all();
 
-        $details = $this->nextEventDetails($nextEventIds);
+        $facts = $this->scheduleReads->institutionDirectoryFacts($institutionIds);
 
         foreach ($institutions as $institution) {
-            $detail = $details[(string) $institution->getAttribute('next_event_id')] ?? null;
+            $fact = $facts[(string) $institution->getKey()] ?? ['events_count' => 0, 'next_event' => null];
+            $nextEvent = $fact['next_event'];
 
-            $institution->setAttribute('next_event_slug', $detail['slug'] ?? null);
-            $institution->setAttribute('next_event_title', $detail['title'] ?? null);
-            $institution->setAttribute('next_event_starts_at', $detail['next_event_starts_at'] ?? null);
-            $institution->offsetUnset('next_event_id');
+            $institution->setAttribute('events_count', (int) $fact['events_count']);
+            $institution->setAttribute('next_event_slug', $nextEvent['slug'] ?? null);
+            $institution->setAttribute('next_event_title', $nextEvent['title'] ?? null);
+            $institution->setAttribute('next_event_starts_at', $nextEvent['starts_at'] ?? null);
         }
     }
 
@@ -402,18 +402,5 @@ final readonly class InstitutionDirectoryQuery
     private function emptyPaginator(int $page, array $paginationMeta, int $perPage): LengthAwarePaginator
     {
         return new LengthAwarePaginator(collect(), 0, $perPage, max(1, $page), $paginationMeta);
-    }
-
-    /**
-     * @param  list<string>  $eventIds
-     * @return array<string, array{slug: string, title: string, next_event_starts_at: string}>
-     */
-    private function nextEventDetails(array $eventIds): array
-    {
-        if ($eventIds === []) {
-            return [];
-        }
-
-        return $this->eventProjection->institutionNextEventDetails($eventIds);
     }
 }

@@ -736,17 +736,30 @@ class extends Component
     $search = $this->search;
     $countries = $this->countries;
     $states = $this->states;
-    $cities = $this->cities;
-    $localities = $this->localities;
     $country = $this->country;
     $state = $this->state;
+    $stateLabel = $this->stateLabel();
     $city = $this->city;
     $locality = $this->locality;
-    $areaFilters = $this->areaFilters;
-    $groupedSubdivisionLocality = $this->groupedSubdivisionLocality;
-    $stateLabel = $this->stateLabel();
-    $subdivisionLabel = $this->subdistrictLabel();
-    $localityLabel = $this->localityLabel();
+
+    $hasLocationDetails = $state !== null || ($country !== null && $states === []);
+
+    if ($hasLocationDetails) {
+        $cities = $this->cities;
+        $localities = $this->localities;
+        $areaFilters = $this->areaFilters;
+        $groupedSubdivisionLocality = $this->groupedSubdivisionLocality;
+        $subdivisionLabel = $this->subdistrictLabel();
+        $localityLabel = $this->localityLabel();
+    } else {
+        $cities = [];
+        $localities = [];
+        $areaFilters = [];
+        $groupedSubdivisionLocality = null;
+        $subdivisionLabel = '';
+        $localityLabel = '';
+    }
+
     $submitInstitutionUrl = route('contributions.submit-institution');
 @endphp
 
@@ -765,6 +778,7 @@ class extends Component
                         height="941"
                         loading="eager"
                         decoding="async"
+                        fetchpriority="high"
                     >
                 </picture>
                 <div class="absolute inset-0 bg-gradient-to-r from-[#fffdf8]/78 via-[#fffdf8]/24 to-transparent"></div>

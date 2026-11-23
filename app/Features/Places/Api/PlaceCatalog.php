@@ -31,6 +31,14 @@ interface PlaceCatalog
      */
     public function venueNamesByIds(array $venueIds): array;
 
+    /**
+     * Batch-load venue names and resolved primary address IDs in at most two queries.
+     *
+     * @param  list<string>  $venueIds
+     * @return array<string, array{name: string, address_id: ?string}>
+     */
+    public function venueLocationSummariesFor(array $venueIds): array;
+
     public function resolvedPrimaryAddressId(string $venueId): ?string;
 
     /** @param list<string> $venueIds

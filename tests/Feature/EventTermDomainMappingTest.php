@@ -108,19 +108,26 @@ it('filters discipline options by the selected domain', function () {
     $pendidikanOnly = submitEventTerm('discipline');
     app(SyncEventTermDomainMappingAction::class)->handle($pendidikanOnly, [(string) $pendidikan->id]);
 
-    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Discipline, (string) $agama->id);
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomains(EventTaxonomyCode::Discipline, [(string) $agama->id]);
 
     expect($options)
         ->toHaveKey((string) $agamaOnly->id)
         ->toHaveKey((string) $global->id)
         ->not->toHaveKey((string) $pendidikanOnly->id);
 
-    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Discipline, (string) $pendidikan->id);
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomains(EventTaxonomyCode::Discipline, [(string) $pendidikan->id]);
 
     expect($options)
         ->toHaveKey((string) $pendidikanOnly->id)
         ->toHaveKey((string) $global->id)
         ->not->toHaveKey((string) $agamaOnly->id);
+
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomains(EventTaxonomyCode::Discipline, [
+        (string) $agama->id,
+        (string) $pendidikan->id,
+    ]);
+
+    expect($options)->toHaveKeys([(string) $agamaOnly->id, (string) $pendidikanOnly->id, (string) $global->id]);
 });
 
 it('filters issue options by the selected domain', function () {
@@ -135,14 +142,14 @@ it('filters issue options by the selected domain', function () {
     $pendidikanOnly = submitEventTerm('issue');
     app(SyncEventTermDomainMappingAction::class)->handle($pendidikanOnly, [(string) $pendidikan->id]);
 
-    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Issue, (string) $agama->id);
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomains(EventTaxonomyCode::Issue, [(string) $agama->id]);
 
     expect($options)
         ->toHaveKey((string) $agamaOnly->id)
         ->toHaveKey((string) $global->id)
         ->not->toHaveKey((string) $pendidikanOnly->id);
 
-    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomain(EventTaxonomyCode::Issue, (string) $pendidikan->id);
+    $options = app(SubmitEventOptionsProvider::class)->taxonomyTermOptionsForDomains(EventTaxonomyCode::Issue, [(string) $pendidikan->id]);
 
     expect($options)
         ->toHaveKey((string) $pendidikanOnly->id)

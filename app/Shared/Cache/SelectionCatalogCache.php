@@ -112,6 +112,42 @@ final readonly class SelectionCatalogCache
     }
 
     /**
+     * @return list<array{id: string, name: string, iso2: string}>
+     */
+    public function countryRows(): array
+    {
+        /** @var list<array{id: string, name: string, iso2: string}> $rows */
+        $rows = $this->versionedCache->remember(
+            self::ADDRESS_VERSION_KEY,
+            'selection_catalog:address:country_rows',
+            self::CATALOG_TTL_SECONDS,
+            static fn (): array => AddressCountry::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'iso2'])
+                ->map(static fn (AddressCountry $country): array => [
+                    'id' => (string) $country->getKey(),
+                    'name' => (string) $country->name,
+                    'iso2' => (string) $country->iso2,
+                ])
+                ->values()
+                ->all(),
+        );
+
+        return $rows;
+    }
+
+    /** @param Closure(): mixed $resolver */
+    public function rememberAddressData(string $key, Closure $resolver): mixed
+    {
+        return $this->versionedCache->remember(
+            self::ADDRESS_VERSION_KEY,
+            "selection_catalog:address:data:{$key}",
+            self::CATALOG_TTL_SECONDS,
+            $resolver,
+        );
+    }
+
+    /**
      * Full language catalog keyed by code with friendly native-inclusive labels.
      *
      * @return array<string, string>

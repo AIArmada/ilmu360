@@ -74,7 +74,6 @@ use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController as McpOAuthRegisterController;
 use Laravel\Passport\Passport;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -255,7 +254,9 @@ class AppServiceProvider extends ServiceProvider
             });
 
             RichEditor::configureUsing(
-                static fn (RichEditor $editor): RichEditor => $editor->preventFileAttachmentPathTampering(),
+                static fn (RichEditor $editor): RichEditor => $editor
+                    ->preventFileAttachmentPathTampering()
+                    ->disableToolbarButtons(['attachFiles']),
             );
 
             // Configure SpatieMediaLibraryFileUpload to use slug-based filenames globally.
@@ -303,13 +304,9 @@ class AppServiceProvider extends ServiceProvider
 
                 $upload->getUploadedFileNameForStorageUsing(
                     static function (SpatieMediaLibraryFileUpload $component, TemporaryUploadedFile $file): string {
-                        $record = $component->getRecord();
-                        $extension = $file->getClientOriginalExtension();
-                        $baseName = MediaFileNamer::resolveBaseNameFromModel($record);
+                        $extension = (string) ($file->getClientOriginalExtension() ?: $file->extension());
 
-                        $suffix = strtolower(substr((string) Str::ulid(), -8));
-
-                        return "{$baseName}-{$suffix}.{$extension}";
+                        return MediaFileNamer::generateStorageFileName($component->getRecord(), $extension);
                     }
                 );
 

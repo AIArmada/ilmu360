@@ -260,6 +260,15 @@ return [
      */
     'temporary_url_default_lifetime' => env('MEDIA_TEMPORARY_URL_DEFAULT_LIFETIME', 5),
 
+    /*
+     * Control whether public S3 disks serve presigned temporary URLs or direct public/CDN URLs.
+     * - null (default): use direct URLs whenever the disk has a public `url` (e.g. AWS_URL / CloudFront / R2),
+     *   and fall back to temporary URLs when no public URL is configured.
+     * - true / false: explicitly force temporary or direct URLs for non-private S3 disks.
+     * Private S3 disks (`visibility => 'private'`) always use temporary URLs.
+     */
+    's3_use_temporary_urls' => env('MEDIA_S3_USE_TEMPORARY_URLS'),
+
     'remote' => [
         /*
          * Any extra headers that should be included when uploading media to
@@ -270,7 +279,7 @@ return [
          * ServerSideEncryption, Metadata, ACL, ContentEncoding
          */
         'extra_headers' => [
-            'CacheControl' => 'max-age=604800',
+            'CacheControl' => 'public, max-age=31536000, immutable',
         ],
     ],
 

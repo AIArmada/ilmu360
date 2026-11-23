@@ -162,6 +162,10 @@ final class ReferenceFamily
      */
     private static function expand(array $referenceIds, \Illuminate\Database\Eloquent\Builder $query): array
     {
+        if ($referenceIds === []) {
+            return [];
+        }
+
         $selected = (clone $query)->whereKey($referenceIds)->get(['id', 'record_kind']);
         $ids = $selected->modelKeys();
         $parents = $selected
