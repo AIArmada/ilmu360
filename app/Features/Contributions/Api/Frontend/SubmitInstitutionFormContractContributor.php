@@ -73,8 +73,9 @@ final readonly class SubmitInstitutionFormContractContributor implements Fronten
                 FrontendFormContractField::make('address.city_id', 'uuid', required: false, catalog: route('api.client.catalogs.cities')),
                 FrontendFormContractField::make('contactMethods', 'array<object>', required: false),
                 FrontendFormContractField::make('social_media', 'array<object>', required: false),
-                FrontendFormContractField::make('cover', 'file', required: false, acceptedMimeTypes: FrontendFormContractField::imageMimeTypes(), maxFileSizeKb: FrontendFormContractField::maxUploadSizeKb()),
-                FrontendFormContractField::make('gallery', 'array<file>', required: false, acceptedMimeTypes: FrontendFormContractField::imageMimeTypes(), maxFileSizeKb: FrontendFormContractField::maxUploadSizeKb()),
+                FrontendFormContractField::make('logo', 'file', required: false, acceptedMimeTypes: [...FrontendFormContractField::imageMimeTypes(), 'image/svg+xml'], maxFileSizeKb: FrontendFormContractField::maxUploadSizeKb()),
+                FrontendFormContractField::make('cover', 'file', required: false, acceptedMimeTypes: FrontendFormContractField::imageMimeTypes(), maxFileSizeKb: FrontendFormContractField::maxUploadSizeKb(), meta: ['required_aspect_ratio' => '16:9']),
+                FrontendFormContractField::make('gallery', 'array<file>', required: false, acceptedMimeTypes: FrontendFormContractField::imageMimeTypes(), maxFileSizeKb: FrontendFormContractField::maxUploadSizeKb(), maxFiles: 10),
             ],
             'conditional_rules' => [
                 ['field' => 'address.google_place_id', 'required' => true],

@@ -120,7 +120,7 @@ final readonly class SubmissionContextResolver
             ]);
         }
 
-        if (! $submitter instanceof User || ! $submitter->can('update', $persisted)) {
+        if (! $submitter instanceof User || (! $submitter->canPublishDirectoryUpdates() && ! $submitter->can('update', $persisted))) {
             throw ValidationException::withMessages([
                 SubmissionValues::prefixedKey('event_id', $validationKeyPrefix) => __('Anda tidak dibenarkan mengubah majlis ini.'),
             ]);
@@ -136,6 +136,12 @@ final readonly class SubmissionContextResolver
         ) {
             throw ValidationException::withMessages([
                 SubmissionValues::prefixedKey('event_id', $validationKeyPrefix) => __('Majlis yang dipilih bukan di bawah institusi ini.'),
+            ]);
+        }
+
+        if (! $submitter->canPublishDirectoryUpdates()) {
+            throw ValidationException::withMessages([
+                SubmissionValues::prefixedKey('event_id', $validationKeyPrefix) => __('Only administrators can add a session to an existing event. Use the event\'s Suggest an Update page to send changes for review.'),
             ]);
         }
 

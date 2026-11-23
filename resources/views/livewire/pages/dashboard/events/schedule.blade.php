@@ -19,7 +19,14 @@
                 @can('manageAdmissions', $event)
                     <a href="{{ route('dashboard.events.offline-admissions', $event) }}" wire:navigate class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 hover:bg-amber-100" data-signal-event="navigation.event_offline_admissions_opened" data-signal-category="navigation" data-signal-component="event_schedule" data-signal-control="offline_admissions" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}">{{ __('Offline admissions') }}</a>
                 @endcan
-                <button type="button" wire:click="openOccurrenceForm" class="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700" data-signal-event="event_occurrence_create_started" data-signal-category="event_management" data-signal-component="event_schedule" data-signal-control="add_occurrence">+ {{ __('Add occurrence') }}</button>
+                @if($canEditSchedule)
+                    <button type="button" wire:click="openOccurrenceForm" class="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700" data-signal-event="event_occurrence_create_started" data-signal-category="event_management" data-signal-component="event_schedule" data-signal-control="add_occurrence">+ {{ __('Add occurrence') }}</button>
+                @else
+                    @if($canProposeSchedule)
+                        <button type="button" wire:click="openOccurrenceForm" class="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700" data-signal-event="event_occurrence_proposal_started" data-signal-category="event_management" data-signal-component="event_schedule" data-signal-control="propose_occurrence" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}">{{ __('Propose an occurrence') }}</button>
+                    @endif
+                    <a href="{{ $suggestUpdateUrl }}" wire:navigate class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 hover:bg-emerald-100" data-signal-event="navigation.event_schedule_event_update_opened" data-signal-category="navigation" data-signal-component="event_schedule" data-signal-control="suggest_update" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}">{{ __('Suggest an event update') }}</a>
+                @endif
             </div>
         </header>
 
@@ -29,24 +36,37 @@
             <p class="mt-2 text-xs text-emerald-900/70">{{ __('Times are entered and shown in the selected timezone; stored schedule timestamps remain UTC.') }}</p>
         </section>
 
-        @if($showOccurrenceForm)
+        @unless($canEditSchedule)
+            <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{{ $canProposeSchedule
+                ? __('Proposed changes to dates and sessions go to moderation. The published schedule stays visible until approval.')
+                : __('An administrator can edit this schedule and manage sessions.') }}</p>
+        @endunless
+
+        @if($showOccurrenceForm && ($canEditSchedule || $canProposeSchedule))
             <section class="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm sm:p-8" aria-labelledby="occurrence-form-title">
                 <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{{ $editingOccurrenceId ? __('Edit occurrence') : __('New occurrence') }}</p><h2 id="occurrence-form-title" class="mt-2 font-heading text-2xl font-bold text-[#0b2a42]">{{ $editingOccurrenceId ? __('Update this date') : __('Add another date') }}</h2></div>
+                    <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{{ $editingOccurrenceId ? __('Edit occurrence') : __('New occurrence') }}</p><h2 id="occurrence-form-title" class="mt-2 font-heading text-2xl font-bold text-[#0b2a42]">{{ $editingOccurrenceId ? __('Update this date') : ($canEditSchedule ? __('Add another date') : __('Propose another date')) }}</h2></div>
                     <button type="button" wire:click="closeOccurrenceForm" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">{{ __('Cancel') }}</button>
                 </div>
-                <form wire:submit="saveOccurrence" data-signal-submit-event="{{ $editingOccurrenceId ? 'event_occurrence_update_submitted' : 'event_occurrence_create_submitted' }}" data-signal-category="event_management" data-signal-component="event_schedule" data-signal-control="occurrence_form" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="mt-6 grid gap-5 sm:grid-cols-2">
+                <form wire:submit="saveOccurrence" data-signal-submit-event="{{ $editingOccurrenceId ? 'event_occurrence_update_submitted' : ($canEditSchedule ? 'event_occurrence_create_submitted' : 'event_occurrence_proposal_submitted') }}" data-signal-category="event_management" data-signal-component="event_schedule" data-signal-control="occurrence_form" data-signal-entity-type="event" data-signal-entity-id="{{ $event->id }}" class="mt-6 grid gap-5 sm:grid-cols-2">
                     <div class="sm:col-span-2"><label for="occurrence-title" class="text-sm font-semibold text-slate-800">{{ __('Date / occurrence name') }}</label><input id="occurrence-title" type="text" wire:model="occurrenceForm.title" class="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="{{ __('For example: Day 2 or Saturday programme') }}">@error('occurrenceForm.title')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
                     <div><label for="occurrence-starts" class="text-sm font-semibold text-slate-800">{{ __('Starts') }}</label><input id="occurrence-starts" type="datetime-local" wire:model="occurrenceForm.starts_at" class="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">@error('occurrenceForm.starts_at')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
                     <div><label for="occurrence-ends" class="text-sm font-semibold text-slate-800">{{ __('Ends') }}</label><input id="occurrence-ends" type="datetime-local" wire:model="occurrenceForm.ends_at" class="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">@error('occurrenceForm.ends_at')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
                     <div><label for="occurrence-timezone" class="text-sm font-semibold text-slate-800">{{ __('Timezone') }}</label><input id="occurrence-timezone" type="text" wire:model="occurrenceForm.timezone" class="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="Asia/Kuala_Lumpur">@error('occurrenceForm.timezone')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
                     <div><label for="occurrence-capacity" class="text-sm font-semibold text-slate-800">{{ __('Capacity') }}</label><input id="occurrence-capacity" type="number" min="1" wire:model="occurrenceForm.capacity" class="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm" placeholder="{{ __('Optional') }}">@error('occurrenceForm.capacity')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
-                    <div class="flex justify-end sm:col-span-2"><button type="submit" class="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700" wire:loading.attr="disabled">{{ $editingOccurrenceId ? __('Save occurrence') : __('Add occurrence') }}</button></div>
+                    @unless($canEditSchedule)
+                        <div class="sm:col-span-2">
+                            <label for="occurrence-note" class="text-sm font-semibold text-slate-800">{{ __('Note for the reviewer') }}</label>
+                            <textarea id="occurrence-note" rows="3" maxlength="2000" wire:model="occurrenceForm.note" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="{{ __('Optional') }}"></textarea>
+                            @error('occurrenceForm.note')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    @endunless
+                    <div class="flex justify-end sm:col-span-2"><button type="submit" class="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700" wire:loading.attr="disabled">{{ ! $canEditSchedule ? __('Submit for review') : ($editingOccurrenceId ? __('Save occurrence') : __('Add occurrence')) }}</button></div>
                 </form>
             </section>
         @endif
 
-        @if($showSessionForm)
+        @if(($canEditSchedule || $canProposeSchedule) && $showSessionForm)
             <section class="rounded-3xl border border-indigo-200 bg-white p-6 shadow-sm sm:p-8" aria-labelledby="session-form-title">
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-indigo-700">{{ $editingSessionId ? __('Edit session') : __('New session') }}</p><h2 id="session-form-title" class="mt-2 font-heading text-2xl font-bold text-[#0b2a42]">{{ $editingSessionId ? __('Update this activity') : __('Add a session inside the occurrence') }}</h2></div>
@@ -60,7 +80,14 @@
                     <div><label for="session-capacity" class="text-sm font-semibold text-slate-800">{{ __('Capacity') }}</label><input id="session-capacity" type="number" min="1" wire:model="sessionForm.capacity" class="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm" placeholder="{{ __('Optional') }}">@error('sessionForm.capacity')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
                     <div><label for="session-summary" class="text-sm font-semibold text-slate-800">{{ __('Short summary') }}</label><input id="session-summary" type="text" wire:model="sessionForm.summary" class="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm">@error('sessionForm.summary')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
                     <div class="sm:col-span-2"><label for="session-description" class="text-sm font-semibold text-slate-800">{{ __('Description') }}</label><textarea id="session-description" rows="4" wire:model="sessionForm.description" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"></textarea>@error('sessionForm.description')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
-                    <div class="flex justify-end sm:col-span-2"><button type="submit" class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700" wire:loading.attr="disabled">{{ $editingSessionId ? __('Save session') : __('Add session') }}</button></div>
+                    @unless($canEditSchedule)
+                        <div class="sm:col-span-2">
+                            <label for="session-note" class="text-sm font-semibold text-slate-800">{{ __('Note for the reviewer') }}</label>
+                            <textarea id="session-note" rows="3" maxlength="2000" wire:model="sessionForm.note" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="{{ __('Optional') }}"></textarea>
+                            @error('sessionForm.note')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    @endunless
+                    <div class="flex justify-end sm:col-span-2"><button type="submit" class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700" wire:loading.attr="disabled">{{ ! $canEditSchedule ? __('Submit for review') : ($editingSessionId ? __('Save session') : __('Add session')) }}</button></div>
                 </form>
             </section>
         @endif
@@ -74,18 +101,20 @@
                             <div class="flex size-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-slate-950 text-white"><span class="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-300">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'M') }}</span><span class="text-2xl font-bold leading-none">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($occurrence->starts_at, 'd') }}</span></div>
                             <div><div class="flex flex-wrap items-center gap-2"><h2 class="font-heading text-2xl font-bold text-[#0b2a42]">{{ $occurrence->title }}</h2><span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600">{{ $occurrence->status->getValue() }}</span></div><p class="mt-2 text-sm text-slate-600">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::translatedFormat($occurrence->starts_at, 'l, j F Y') }} · {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($occurrence->starts_at, 'h:i A') }} — {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($occurrence->ends_at, 'h:i A') }}</p><p class="mt-1 text-xs text-slate-400">{{ $occurrence->timezone }}@if($occurrence->capacity !== null) · {{ __('Capacity') }}: {{ number_format($occurrence->capacity) }}@endif · {{ trans_choice(':count session|:count sessions', $sessions->count(), ['count' => $sessions->count()]) }}</p></div>
                         </div>
-                        <div class="flex flex-wrap gap-2"><button type="button" wire:click="openSessionForm('{{ $occurrence->id }}')" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100" data-signal-event="event_session_create_started" data-signal-category="event_management" data-signal-component="event_schedule" data-signal-control="add_session">+ {{ __('Add session') }}</button><button type="button" wire:click="editOccurrence('{{ $occurrence->id }}')" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ __('Edit') }}</button></div>
+                        @if($canEditSchedule || ($canProposeSchedule && (string) $occurrence->status === \AIArmada\Events\Models\EventOccurrence::SCHEDULED))
+                            <div class="flex flex-wrap gap-2"><button type="button" wire:click="openSessionForm('{{ $occurrence->id }}')" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100" data-signal-event="event_session_create_started" data-signal-category="event_management" data-signal-component="event_schedule" data-signal-control="add_session">+ {{ $canEditSchedule ? __('Add session') : __('Propose a session') }}</button><button type="button" wire:click="editOccurrence('{{ $occurrence->id }}')" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">{{ $canEditSchedule ? __('Edit') : __('Propose date changes') }}</button></div>
+                        @endif
                     </div>
                     <div class="p-6 sm:p-8">
                         @forelse($sessions as $session)
-                            <div wire:key="schedule-session-{{ $session->id }}" class="flex flex-col gap-3 border-b border-slate-100 py-4 first:pt-0 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-indigo-700">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($session->starts_at, 'h:i A') }} — {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($session->ends_at, 'h:i A') }}</p><h3 class="mt-1 font-semibold text-slate-900">{{ $session->title }}</h3>@if($session->summary)<p class="mt-1 text-sm text-slate-500">{{ $session->summary }}</p>@endif</div><button type="button" wire:click="editSession('{{ $session->id }}')" class="self-start rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:self-auto">{{ __('Edit session') }}</button></div>
+                            <div wire:key="schedule-session-{{ $session->id }}" class="flex flex-col gap-3 border-b border-slate-100 py-4 first:pt-0 last:border-b-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-indigo-700">{{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($session->starts_at, 'h:i A') }} — {{ \AIArmada\CommerceSupport\Support\UserDateTimeFormatter::format($session->ends_at, 'h:i A') }}</p><h3 class="mt-1 font-semibold text-slate-900">{{ $session->title }}</h3>@if($session->summary)<p class="mt-1 text-sm text-slate-500">{{ $session->summary }}</p>@endif</div>@if($canEditSchedule || ($canProposeSchedule && (string) $occurrence->status === \AIArmada\Events\Models\EventOccurrence::SCHEDULED))<button type="button" wire:click="editSession('{{ $session->id }}')" class="self-start rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:self-auto">{{ $canEditSchedule ? __('Edit session') : __('Propose session changes') }}</button>@endif</div>
                         @empty
-                            <div class="rounded-2xl bg-[#fbf8f1] p-5 text-sm leading-6 text-slate-600">{{ __('No detailed sessions yet. The occurrence can still be used as a simple one-date event, or you can add the activities inside it now.') }}</div>
+                            <div class="rounded-2xl bg-[#fbf8f1] p-5 text-sm leading-6 text-slate-600">{{ $canEditSchedule ? __('No detailed sessions yet. The occurrence can still be used as a simple one-date event, or you can add the activities inside it now.') : __('No detailed sessions yet.') }}</div>
                         @endforelse
                     </div>
                 </article>
             @empty
-                <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center"><p class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('No occurrences yet') }}</p><p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">{{ __('Add the first date to make the schedule visible to participants.') }}</p><button type="button" wire:click="openOccurrenceForm" class="mt-5 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700">+ {{ __('Add occurrence') }}</button></div>
+                <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center"><p class="font-heading text-2xl font-bold text-[#0b2a42]">{{ __('No occurrences yet') }}</p>@if($canEditSchedule)<p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">{{ __('Add the first date to make the schedule visible to participants.') }}</p><button type="button" wire:click="openOccurrenceForm" class="mt-5 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700">+ {{ __('Add occurrence') }}</button>@endif</div>
             @endforelse
         </section>
     </div>

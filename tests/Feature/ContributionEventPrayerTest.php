@@ -96,6 +96,7 @@ function contributionProviderEvent(User $actor, Institution $institution, string
         'primary_organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
         'persons' => [$person->getKey()],
+        'languages' => [languageId('ms')],
         'event_date' => $eventDate,
         'prayer_time' => $prayerTime,
         'timezone' => 'Asia/Kuala_Lumpur',
@@ -109,7 +110,7 @@ function contributionProviderEvent(User $actor, Institution $institution, string
 
     app(SyncEventClassificationsAction::class)->handle($event, [
         'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
-        'domain_tags' => [],
+        'domain_tags' => [submitEventTerm('domain')->getKey()],
         'discipline_tags' => [],
         'source_tags' => [],
         'issue_tags' => [],
@@ -235,6 +236,8 @@ it('preserves the provider instant and provenance on a UI direct title-only edit
     $expectedStart = CarbonImmutable::parse('2026-02-20 19:07:00', 'Asia/Kuala_Lumpur')->utc()->toIso8601String();
     $beforeMeta = contributionPrayerExpression($event)?->metadata['prayer'] ?? null;
 
+    $owner->assignRole('admin');
+
     Livewire::actingAs($owner)
         ->test(SuggestUpdate::class, contributionSuggestParams($event))
         ->set('data.title', 'Provider Prayer Event Renamed')
@@ -262,6 +265,7 @@ it('preserves the provider instant and provenance on an API direct title-only ed
     $expectedStart = CarbonImmutable::parse('2026-02-20 19:07:00', 'Asia/Kuala_Lumpur')->utc()->toIso8601String();
     $beforeMeta = contributionPrayerExpression($event)?->metadata['prayer'] ?? null;
 
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->postJson(contributionSuggestUrl($event), [
@@ -318,6 +322,8 @@ it('re-resolves a changed anchor through cached provider data after a title-only
     $institution = contributionPrayerOrganizer();
     addTestMember($institution, $owner, MemberRole::Owner);
     $event = contributionProviderEvent($owner, $institution, EventPrayerTime::SelepasMaghrib->value, '2026-02-20');
+
+    $owner->assignRole('admin');
 
     Livewire::actingAs($owner)
         ->test(SuggestUpdate::class, contributionSuggestParams($event))
@@ -382,6 +388,7 @@ it('accepts valid prayer calendar counterparts on the contribution API', functio
     addTestMember($institution, $owner, MemberRole::Owner);
     $event = contributionProviderEvent($owner, $institution, EventPrayerTime::SelepasMaghrib->value, '2026-02-20');
 
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->postJson(contributionSuggestUrl($event), [
@@ -404,6 +411,8 @@ it('nulls the anchor on a direct isyak to tarawih contribution update', function
     $institution = contributionPrayerOrganizer();
     addTestMember($institution, $owner, MemberRole::Owner);
     $event = contributionProviderEvent($owner, $institution, EventPrayerTime::SelepasIsyak->value, '2026-02-20');
+
+    $owner->assignRole('admin');
 
     Livewire::actingAs($owner)
         ->test(SuggestUpdate::class, contributionSuggestParams($event))
@@ -471,6 +480,8 @@ it('preserves the overnight instant on a UI direct title-only edit', function ()
 
     expect($event->starts_at->toIso8601String())->toBe($expectedStart);
 
+    $owner->assignRole('admin');
+
     Livewire::actingAs($owner)
         ->test(SuggestUpdate::class, contributionSuggestParams($event))
         ->set('data.title', 'Provider Prayer Event Renamed')
@@ -496,6 +507,7 @@ it('preserves the overnight instant on an API direct title-only edit', function 
     $expectedStart = CarbonImmutable::parse('2026-02-21 00:03:00', 'Asia/Kuala_Lumpur')->utc()->toIso8601String();
     $beforeMeta = contributionPrayerExpression($event)?->metadata['prayer'] ?? null;
 
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->postJson(contributionSuggestUrl($event), [
@@ -549,6 +561,8 @@ it('resolves the intended prayer day on an intentional overnight date change', f
     $institution = contributionPrayerOrganizer();
     addTestMember($institution, $owner, MemberRole::Owner);
     $event = contributionProviderEvent($owner, $institution, EventPrayerTime::SelepasIsyak->value, '2026-02-20', contributionOvernightIsyaDto());
+
+    $owner->assignRole('admin');
 
     Livewire::actingAs($owner)
         ->test(SuggestUpdate::class, contributionSuggestParams($event))
@@ -640,6 +654,8 @@ it('preserves non-default prayer offsets on UI direct title-only edits', functio
 
     rewritePrayerExpressionOffset($event, $offset, $expectedStart);
 
+    $owner->assignRole('admin');
+
     Livewire::actingAs($owner)
         ->test(SuggestUpdate::class, contributionSuggestParams($event->fresh()))
         ->set('data.title', 'Provider Prayer Event Renamed')
@@ -675,6 +691,7 @@ it('preserves non-default prayer offsets on API direct title-only edits', functi
 
     rewritePrayerExpressionOffset($event, $offset, $expectedStart);
 
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->postJson(contributionSuggestUrl($event->fresh()), [

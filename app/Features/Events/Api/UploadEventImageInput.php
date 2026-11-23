@@ -9,6 +9,7 @@ use App\Shared\Media\StagedUpload;
 final readonly class UploadEventImageInput
 {
     public function __construct(
+        public string $actorId,
         public string $eventId,
         public EventImageCollection $collection,
         public StagedUpload $file,

@@ -390,6 +390,11 @@ class User extends Authenticatable implements AccountActor, AuditableContract, C
             ->exists();
     }
 
+    public function canPublishDirectoryUpdates(): bool
+    {
+        return $this->hasGlobalAdminAccess();
+    }
+
     private function hasGlobalRoleAssignment(): bool
     {
         $modelHasRolesTable = (string) (config('permission.table_names.model_has_roles') ?? 'model_has_roles');

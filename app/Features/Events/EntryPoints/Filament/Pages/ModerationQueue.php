@@ -453,6 +453,34 @@ class ModerationQueue extends Page implements HasTable
                 TextColumn::make('occurrence.starts_at')
                     ->label('Event Date')
                     ->dateTime('M d, Y H:i'),
+                TextColumn::make('submission_data.schedule_change.values')
+                    ->label(__('Proposed schedule'))
+                    ->state(function (EventSubmission $record): array {
+                        $values = data_get($record->submission_data, 'schedule_change.values');
+
+                        if (! is_array($values)) {
+                            return [];
+                        }
+
+                        $labels = [
+                            'title' => __('Title'),
+                            'starts_at' => __('Starts (UTC)'),
+                            'ends_at' => __('Ends (UTC)'),
+                            'timezone' => __('Timezone'),
+                            'capacity' => __('Capacity'),
+                            'summary' => __('Short summary'),
+                            'description' => __('Description'),
+                        ];
+
+                        return collect($labels)->filter(fn (string $label, string $key): bool => array_key_exists($key, $values))
+                            ->map(fn (string $label, string $key): string => $label.' — '.($values[$key] ?? __('Empty')))
+                            ->values()->all();
+                    })
+                    ->listWithLineBreaks()
+                    ->wrap(),
+                TextColumn::make('submission_data.notes')
+                    ->label(__('Contributor note'))
+                    ->wrap(),
                 TextColumn::make('created_at')
                     ->label('Submitted')
                     ->since()
@@ -460,6 +488,13 @@ class ModerationQueue extends Page implements HasTable
             ])
             ->actions([
                 Action::make('approve_occurrence')
+                    ->authorize(function (EventSubmission $record): bool {
+                        $reviewer = auth()->user();
+
+                        return $reviewer instanceof User
+                            && ($record->submitter_type !== $reviewer->getMorphClass()
+                                || (string) $record->submitter_id !== (string) $reviewer->getKey());
+                    })
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
@@ -525,7 +560,9 @@ class ModerationQueue extends Page implements HasTable
             ->whereNotNull('event_occurrence_id')
             ->whereNull('event_session_id')
             ->whereHas('event', fn (Builder $query) => $query->whereState('status', Approved::class))
-            ->whereHas('occurrence', fn (Builder $query) => $query->where('status', 'draft'))
+            ->where(fn (Builder $query) => $query
+                ->whereHas('occurrence', fn (Builder $occurrences) => $occurrences->where('status', 'draft'))
+                ->orWhereNotNull('submission_data->schedule_change'))
             ->orderByDesc('submitted_at')
             ->orderBy('id');
     }

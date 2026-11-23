@@ -10,7 +10,9 @@ final class EventsSignalSchemaContributor implements SignalSchemaContributor
 {
     public function supports(string $event): bool
     {
-        return str_starts_with($event, 'moderation.') || str_starts_with($event, 'admin.event_cover.');
+        return $event === 'event.occurrence_review_requested'
+            || str_starts_with($event, 'moderation.')
+            || str_starts_with($event, 'admin.event_cover.');
     }
 
     /**
@@ -20,6 +22,7 @@ final class EventsSignalSchemaContributor implements SignalSchemaContributor
     {
         return [
             'admin.event_cover.generated' => ['event_id', 'event_status'],
+            'event.occurrence_review_requested' => ['event_id', 'event_occurrence_id'],
             'moderation.event.occurrence_*' => [
                 'event_id', 'event_occurrence_id', 'submission_id', 'moderation_action',
                 'previous_status', 'current_status', 'moderator_id', 'reason_code', 'has_note',

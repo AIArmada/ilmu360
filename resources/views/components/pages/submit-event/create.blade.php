@@ -371,8 +371,8 @@
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{{ __('Kemajuan borang') }}</p>
-                        <h2 id="submit-event-progress-title" class="mt-1 text-lg font-semibold text-slate-950" x-text="`{{ __('Anda sudah bermula') }} — ${progress}% {{ __('lengkap') }}`">
-                            {{ __('Anda sudah bermula — :percent% lengkap', ['percent' => $formProgress]) }}
+                        <h2 id="submit-event-progress-title" class="mt-1 text-lg font-semibold text-slate-950" x-text="`{{ __('Anda sudah bermula') }}: ${progress}% {{ __('lengkap') }}`">
+                            {{ __('Anda sudah bermula, :percent% lengkap', ['percent' => $formProgress]) }}
                         </h2>
                         <p class="mt-1 text-sm text-slate-600">{{ __('Pilihan asas sudah disediakan. Lengkapkan maklumat majlis yang khusus sahaja.') }}</p>
                     </div>

@@ -9,6 +9,7 @@ use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Schema
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
+use App\Models\User;
 use App\Platform\Auditing\AuditsRelationManager;
 use App\Shared\Auth\AccountActor;
 use BackedEnum;
@@ -79,8 +80,10 @@ class InstitutionResource extends Resource
     #[\Override]
     public static function getRelations(): array
     {
+        $actor = auth()->user();
+
         return [
-            'donation_channels' => DonationChannelsRelationManager::class,
+            ...($actor instanceof User && $actor->canPublishDirectoryUpdates() ? ['donation_channels' => DonationChannelsRelationManager::class] : []),
             'member_invitations' => MemberInvitationsRelationManager::class,
             AuditsRelationManager::class,
         ];

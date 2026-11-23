@@ -23,6 +23,7 @@ use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
 use App\Features\Events\EntryPoints\Http\SubmitEventRequestHandler;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Models\Series;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Prayer\Api\EventPrayerTime;
@@ -30,6 +31,7 @@ use App\Features\References\Models\Reference;
 use App\Models\User;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -102,6 +104,7 @@ it('creates a date-free institutional parent and preserves every contribution on
     $institution = publicOccurrenceGroupingInstitution();
     $speaker = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $reference = Reference::factory()->create(['status' => 'verified']);
+    $series = Series::factory()->create(['visibility' => 'public']);
     $domainTag = $this->domainTag;
     $disciplineTag = $this->disciplineTag;
     $date = now()->addDays(8)->toDateString();
@@ -113,6 +116,8 @@ it('creates a date-free institutional parent and preserves every contribution on
             'event_date' => $date,
             'persons' => [$speaker->getKey()],
             'references' => [$reference->getKey()],
+            'series_ids' => [$series->getKey()],
+            'recording_url' => 'https://video.example.com/recording',
             'domain_tags' => [$domainTag->getKey()],
             'discipline_tags' => [$disciplineTag->getKey()],
         ]),
@@ -152,7 +157,9 @@ it('creates a date-free institutional parent and preserves every contribution on
         ->and(EventLocation::query()->where('event_occurrence_id', $occurrence->getKey())->sole()->locationable_id)->toBe((string) $institution->getKey())
         ->and(EventAudience::query()->where('event_occurrence_id', $occurrence->getKey())->where('audience_type', 'gender')->value('value'))->toBe(EventGenderRestriction::WomenOnly->value)
         ->and(EventAudienceProfile::query()->where('event_occurrence_id', $occurrence->getKey())->sole()->is_child_friendly)->toBeFalse()
-        ->and(EventLink::query()->where('event_occurrence_id', $occurrence->getKey())->count())->toBe(2)
+        ->and($event->series()->pluck('event_series.id')->all())->toBe([$series->getKey()])
+        ->and(EventLink::query()->where('event_occurrence_id', $occurrence->getKey())->where('link_type', 'recording')->value('url'))->toBe('https://video.example.com/recording')
+        ->and(EventLink::query()->where('event_occurrence_id', $occurrence->getKey())->count())->toBe(3)
         ->and(EventClassification::query()->where('event_occurrence_id', $occurrence->getKey())->whereIn('event_term_id', [$domainTag->getKey(), $disciplineTag->getKey()])->count())->toBe(2)
         ->and($occurrence->languages()->pluck('language_code')->all())->toBe(['ms'])
         ->and(EventInvolvement::query()->where('event_occurrence_id', $occurrence->getKey())->where('involveable_id', $speaker->getKey())->exists())->toBeTrue()
@@ -408,7 +415,11 @@ it('does not reuse a private or terminal parent candidate', function (): void {
 });
 
 it('matches an existing ordinary event from its canonical institution category and prayer expression', function (): void {
+    $admin = User::factory()->create();
+    $admin->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+
     $institution = publicOccurrenceGroupingInstitution();
+    $institution->members()->syncWithoutDetaching([$admin->getKey()]);
     $existing = Event::factory()->create([
         'title' => 'Existing Kuliah Topic',
         'institution_id' => $institution->getKey(),
@@ -440,6 +451,8 @@ it('matches an existing ordinary event from its canonical institution category a
             'event_date' => now()->addDays(16)->toDateString(),
         ]),
         request: publicOccurrenceGroupingRequest(),
+        submitter: $admin,
+        scopedInstitutionId: (string) $institution->getKey(),
     );
 
     expect($result['event']->getKey())->toBe($existing->getKey())
@@ -778,6 +791,7 @@ it('holds appends to approved parents for occurrence review without changing the
     $registrationMode = $event->registration_mode;
     $accessPolicy = $event->accessPolicy()->firstOrFail()->only(['registration_required', 'walk_in_allowed']);
 
+    $submitter = User::factory()->create();
     $second = app(SubmitEventRequestHandler::class)->handle(
         state: publicOccurrenceGroupingPayload($institution, [
             'title' => 'Awaiting Review Date',
@@ -786,6 +800,7 @@ it('holds appends to approved parents for occurrence review without changing the
             'persons' => [$speaker->getKey()],
         ]),
         request: publicOccurrenceGroupingRequest(),
+        submitter: $submitter,
     );
     $occurrence = $second['occurrence']->fresh();
     $submission = $second['submission']->fresh();
@@ -801,6 +816,15 @@ it('holds appends to approved parents for occurrence review without changing the
         ->and($firstOccurrence->title)->toBe('Approved Parent Date')
         ->and($second['event']->fresh()->registration_mode)->toBe($registrationMode)
         ->and($second['event']->fresh()->accessPolicy()->firstOrFail()->only(['registration_required', 'walk_in_allowed']))->toBe($accessPolicy);
+
+    expect(fn () => app(OccurrenceSubmissionReviews::class)->approve(
+        (string) $submission->getKey(),
+        $submitter->getMorphClass(),
+        (string) $submitter->getKey(),
+    ))->toThrow(AuthorizationException::class);
+
+    expect((string) $submission->fresh()->status)->toBe('pending')
+        ->and((string) $occurrence->fresh()->status)->toBe(EventOccurrence::DRAFT);
 
     $firstOccurrence->forceFill(['starts_at' => now()->subDays(1)])->save();
     $moderator = User::factory()->create();

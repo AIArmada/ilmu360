@@ -9,6 +9,7 @@ use App\Features\Events\Api\EventImageUploadResult;
 use App\Features\Events\Api\EventImageUploads;
 use App\Features\Events\Api\UploadEventImageInput;
 use App\Features\Events\Models\Event;
+use App\Models\User;
 use App\Platform\Api\Admin\AdminResourceRegistry;
 use App\Platform\Api\Member\MemberResourceRegistry;
 use App\Platform\Mcp\McpFilePayloadNormalizer;
@@ -137,12 +138,21 @@ trait UploadsEventImage
      */
     protected function uploadEventImage(
         EventImageUploads $uploads,
+        User $actor,
         string $eventId,
         EventImageCollection $collection,
         array $descriptor,
         ?string $creativeDirection,
         string $traceId,
     ): EventImageUploadResult {
+        if (! $actor->canPublishDirectoryUpdates()) {
+            throw ValidationException::withMessages([
+                'event_key' => [__('Submit the image for review at :url.', [
+                    'url' => route('contributions.suggest-update', ['subjectType' => 'majlis', 'subjectId' => $eventId]),
+                ])],
+            ]);
+        }
+
         $normalizer = app(McpFilePayloadNormalizer::class);
         $field = $collection->value;
         $normalized = $normalizer->normalize(
@@ -173,6 +183,7 @@ trait UploadsEventImage
             $sourceFileId = $descriptor['file_id'] ?? null;
 
             return $uploads->upload(new UploadEventImageInput(
+                actorId: (string) $actor->getKey(),
                 eventId: $eventId,
                 collection: $collection,
                 file: app(StagedUploadFactory::class)->fromUploadedFile($file),

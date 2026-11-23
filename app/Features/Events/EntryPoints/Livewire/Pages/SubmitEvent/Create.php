@@ -219,7 +219,7 @@ class Create extends Component implements HasActions, HasForms
             'submitter_name' => auth()->user()?->name,
             'submitter_email' => auth()->user()?->email,
             'event_category_ids' => $defaultCategoryId,
-            'domain_tags' => $defaultDomainId,
+            'domain_tags' => $defaultDomainId === null ? [] : [$defaultDomainId],
             'persons' => $this->prefillPersonId !== null ? [$this->prefillPersonId] : [],
             'children_allowed' => true,
             'gender' => EventGenderRestriction::All->value,
@@ -241,6 +241,15 @@ class Create extends Component implements HasActions, HasForms
         ];
 
         if (($eventContainer = $this->selectedEventContainer()) instanceof Event) {
+            if (! $this->submitterUser()?->canPublishDirectoryUpdates()) {
+                $this->redirectRoute('contributions.suggest-update', [
+                    'subjectType' => 'majlis',
+                    'subjectId' => $eventContainer->slug,
+                ], navigate: true);
+
+                return;
+            }
+
             $state = array_replace($state, SubmitEventPrefill::containerDefaults(
                 $eventContainer,
                 $this->submitterUser(),
@@ -418,7 +427,7 @@ class Create extends Component implements HasActions, HasForms
 
         $mergedState = array_replace($this->data ?? [], $extractedState);
         $mergedState['event_category_ids'] = $this->firstSelection($mergedState['event_category_ids'] ?? null);
-        $mergedState['domain_tags'] = $this->firstSelection($mergedState['domain_tags'] ?? null);
+        $mergedState['domain_tags'] = EventSubmissionFormSchema::normalizeDomainTagState($mergedState['domain_tags'] ?? null);
         $mergedState['age_group'] = EventSubmissionFormSchema::normalizeAgeGroupState($mergedState['age_group'] ?? []);
 
         if (
@@ -1003,7 +1012,7 @@ class Create extends Component implements HasActions, HasForms
             abort(404);
         }
 
-        if (! $user instanceof User || ! $user->can('update', $event)) {
+        if (! $user instanceof User || (! $user->canPublishDirectoryUpdates() && ! $user->can('update', $event))) {
             abort(403);
         }
 

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Features\References\EntryPoints\Filament\Resources\References\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;
 use App\Features\References\EntryPoints\Filament\Resources\References\ReferenceResource;
 use App\Features\References\Models\Reference;
+use App\Shared\Contributions\Support\RedirectsDirectoryEditsForReview;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -16,8 +18,23 @@ use Illuminate\Validation\ValidationException;
 
 class EditReference extends EditRecord
 {
+    use RedirectsDirectoryEditsForReview;
+
     #[\Override]
     protected static string $resource = ReferenceResource::class;
+
+    #[\Override]
+    protected function authorizeAccess(): void
+    {
+        $this->requireDirectoryPublishingPermission();
+
+        parent::authorizeAccess();
+    }
+
+    protected function contributionSubjectRouteSegment(): string
+    {
+        return ContributionSubjectType::Reference->publicRouteSegment();
+    }
 
     public function boot(): void
     {
@@ -28,7 +45,9 @@ class EditReference extends EditRecord
     public function mount(int|string $record): void
     {
         OwnerContext::withOwner(null, function () use ($record): void {
-            parent::mount($record);
+            if (! $this->redirectDirectoryEditForReview($record)) {
+                parent::mount($record);
+            }
         });
     }
 

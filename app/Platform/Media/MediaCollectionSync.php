@@ -23,6 +23,11 @@ interface MediaCollectionSync
      */
     public function deleteMedia(Media $media): void;
 
+    /** @param Closure(): void $write */
+    public function cleanUpFailedWrites(HasMedia $model, Closure $write): void;
+
+    public function removeFilesOnRollback(Media $media): void;
+
     public function clearCollection(HasMedia $model, string $collection): void;
 
     public function syncSingle(HasMedia $model, ?UploadedFile $file, string $collection): void;
@@ -69,7 +74,7 @@ interface MediaCollectionSync
      *
      * Each staged file keeps its stored filename and is written to the
      * collection named by its `contribution_field` custom property (`cover`
-     * by default). Single-file collections are cleared first unless
+     * by default). Single-file collections are cleared after storage unless
      * `is_single` is false; every staged row is deleted after it is applied.
      *
      * A special handler may claim a staged file before the default chain

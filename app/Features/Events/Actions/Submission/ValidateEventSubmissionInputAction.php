@@ -9,6 +9,7 @@ use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Models\Series;
 use App\Features\Prayer\Api\EventPrayerTime;
 use BackedEnum;
 use Closure;
@@ -44,6 +45,7 @@ final readonly class ValidateEventSubmissionInputAction
         'languages',
         'persons',
         'references',
+        'series_ids',
         'domain_tags',
         'discipline_tags',
         'source_tags',
@@ -132,7 +134,7 @@ final readonly class ValidateEventSubmissionInputAction
             $input['event_category_ids'] = $this->validationList($input['event_category_ids'], fn (mixed $item): mixed => $this->trimmedString($item));
         }
 
-        foreach (['space_ids', 'languages', 'persons', 'references'] as $field) {
+        foreach (['space_ids', 'languages', 'persons', 'references', 'series_ids'] as $field) {
             if (array_key_exists($field, $input)) {
                 $input[$field] = $this->validationList($input[$field], fn (mixed $item): mixed => $this->nullIfBlank($this->trimmedString($item)));
             }
@@ -183,6 +185,8 @@ final readonly class ValidateEventSubmissionInputAction
             'persons.*' => ['nullable', 'uuid'],
             'references' => ['nullable', 'array'],
             'references.*' => ['nullable', 'uuid'],
+            'series_ids' => ['nullable', 'array'],
+            'series_ids.*' => ['required', 'uuid', Rule::exists(Series::class, 'id')->where('visibility', 'public')->where('status', 'active')],
             'domain_tags' => ['nullable', 'array'],
             'domain_tags.*' => ['required', 'string', 'min:1', 'max:255'],
             'discipline_tags' => ['nullable', 'array'],
@@ -205,6 +209,7 @@ final readonly class ValidateEventSubmissionInputAction
             'location_type' => ['nullable', Rule::in(['institution', 'venue'])],
             'event_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
             'live_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
+            'recording_url' => ['nullable', 'string', 'url:http,https', 'max:255'],
             'submitter_name' => ['nullable', 'string', 'max:255'],
             'submitter_email' => ['nullable', 'string', 'max:255'],
             'submitter_phone' => ['nullable', 'string', 'max:20'],

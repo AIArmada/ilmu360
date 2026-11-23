@@ -34,7 +34,7 @@ class MemberUploadEventCoverImageTool extends AbstractMemberTool
     protected string $title = 'Upload Event Cover Image';
 
     #[\Override]
-    protected string $description = 'Upload and save a 16:9 website/mobile-app cover image for an accessible Ahli event. Accepts image descriptors via {content_base64} or {content_url}. Use the member-event-cover-image-prompt to get the recommended prompt and reference images before generating.';
+    protected string $description = 'Upload and save a 16:9 website/mobile-app cover image for an accessible Ahli event. Global administrators can publish directly. Other members can submit images from the Suggest an Update page for the event. Accepts image descriptors via {content_base64} or {content_url}. Use the member-event-cover-image-prompt to get the recommended prompt and reference images before generating.';
 
     public function __construct(
         private readonly MemberResourceRegistry $registry,
@@ -91,6 +91,7 @@ class MemberUploadEventCoverImageTool extends AbstractMemberTool
 
             $result = $this->uploadEventImage(
                 uploads: $this->imageUploads,
+                actor: $actor,
                 eventId: $eventId,
                 collection: EventImageCollection::Cover,
                 descriptor: $imageDescriptor,

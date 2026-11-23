@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Filament\Resources\Events\Pages;
 
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
 use App\Models\User;
+use App\Shared\Contributions\Support\RedirectsDirectoryEditsForReview;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -17,8 +19,31 @@ use LogicException;
 
 final class EditEvent extends EditRecord
 {
+    use RedirectsDirectoryEditsForReview;
+
     #[\Override]
     protected static string $resource = EventResource::class;
+
+    #[\Override]
+    public function mount(int|string $record): void
+    {
+        if (! $this->redirectDirectoryEditForReview($record)) {
+            parent::mount($record);
+        }
+    }
+
+    #[\Override]
+    protected function authorizeAccess(): void
+    {
+        $this->requireDirectoryPublishingPermission();
+
+        parent::authorizeAccess();
+    }
+
+    protected function contributionSubjectRouteSegment(): string
+    {
+        return ContributionSubjectType::Event->publicRouteSegment();
+    }
 
     protected function getHeaderActions(): array
     {

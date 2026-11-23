@@ -13,6 +13,11 @@ class ContributionRequestPolicy
 {
     public function review(User $user, ContributionRequest $request): bool
     {
+        if ($request->type === ContributionRequestType::Update
+            && (string) $request->proposer_id === (string) $user->getKey()) {
+            return false;
+        }
+
         if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }

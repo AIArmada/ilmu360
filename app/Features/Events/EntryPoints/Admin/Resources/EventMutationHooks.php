@@ -118,6 +118,8 @@ final readonly class EventMutationHooks implements AdminMutationHooks
 
     public function update(string $resourceClass, Model $record, array $validated, User $actor): ?Model
     {
+        abort_unless($actor->canPublishDirectoryUpdates(), 403, __('Submit directory updates for review through the contribution form.'));
+
         if ($resourceClass === \App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource::class && $record instanceof Event) {
             return $this->persistAdminEvent($validated, $actor, $record);
         }

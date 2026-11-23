@@ -22,6 +22,7 @@ use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Media\MediaCollectionSync;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -68,6 +69,11 @@ class ApproveContributionRequestAction
                     throw new ContributionRequestNotPendingException('Only pending contribution requests can be approved.');
                 }
 
+                if ($request->type === ContributionRequestType::Update
+                    && (string) $request->proposer_id === (string) $reviewer->getKey()) {
+                    throw new AuthorizationException(__('A different reviewer must approve this update.'));
+                }
+
                 if ($request->type === ContributionRequestType::Create) {
                     $entity = $this->approveCreateRequest($request);
 
@@ -75,20 +81,28 @@ class ApproveContributionRequestAction
                         'entity_type' => $entity->getMorphClass(),
                         'entity_id' => (string) $entity->getKey(),
                     ]);
-                } else {
-                    $this->applyApprovedUpdate($request);
+                    $this->recordApproval($request, $reviewer, $reviewerNote);
+
+                    return;
                 }
 
-                $now = now();
+                $entity = $request->entity;
 
-                $request->forceFill([
-                    'reviewer_id' => $reviewer->getKey(),
-                    'reviewer_note' => $reviewerNote,
-                    'status' => ContributionRequestStatus::Approved,
-                    'reviewed_at' => $now,
-                    'approved_at' => $now,
-                    'last_state_change_at' => $now,
-                ])->save();
+                if (! $entity instanceof Model) {
+                    throw new RuntimeException('Update request is missing its target entity.');
+                }
+
+                $entity = $entity->newQuery()->whereKey($entity->getKey())->lockForUpdate()->firstOrFail();
+                $write = function () use ($request, $entity, $reviewer, $reviewerNote): void {
+                    $this->applyApprovedUpdate($request, $entity);
+                    $this->recordApproval($request, $reviewer, $reviewerNote);
+                };
+
+                if ($entity instanceof HasMedia) {
+                    $this->mediaCollectionSync->cleanUpFailedWrites($entity, $write);
+                } else {
+                    $write();
+                }
             });
         };
 
@@ -306,13 +320,9 @@ class ApproveContributionRequestAction
     /**
      * @param  \App\Features\Contributions\Models\ContributionRequest  $request
      */
-    private function applyApprovedUpdate(Model $request): void
+    private function applyApprovedUpdate(Model $request, Model $entity): void
     {
-        $entity = $request->entity;
-
-        if (! $entity instanceof Model) {
-            throw new RuntimeException('Update request is missing its target entity.');
-        }
+        $this->validateGalleryCapacity($request, $entity);
 
         /** @var array<string, mixed> $payload */
         $payload = $request->proposed_data ?? [];
@@ -330,6 +340,40 @@ class ApproveContributionRequestAction
             || ContributionModel::isReference($entity)
         ) {
             $this->applyStagedMedia($request, $entity);
+        }
+    }
+
+    /** @param \App\Features\Contributions\Models\ContributionRequest $request */
+    private function recordApproval(Model $request, Model $reviewer, ?string $reviewerNote): void
+    {
+        $now = now();
+
+        $request->forceFill([
+            'reviewer_id' => $reviewer->getKey(),
+            'reviewer_note' => $reviewerNote,
+            'status' => ContributionRequestStatus::Approved,
+            'reviewed_at' => $now,
+            'approved_at' => $now,
+            'last_state_change_at' => $now,
+        ])->save();
+    }
+
+    /** @param \App\Features\Contributions\Models\ContributionRequest $request */
+    private function validateGalleryCapacity(Model $request, Model $entity): void
+    {
+        if ((! ContributionModel::isEvent($entity) && ! ContributionModel::isInstitution($entity))
+            || ! $entity instanceof HasMedia) {
+            return;
+        }
+
+        $incoming = $request->getMedia('pending_media')
+            ->filter(fn (Media $media): bool => $media->getCustomProperty('contribution_field') === 'gallery')
+            ->count();
+
+        if ($incoming > 0 && $entity->getMedia('gallery')->count() + $incoming > 10) {
+            throw ValidationException::withMessages([
+                'gallery' => __('Approving this update would exceed the ten-image gallery limit.'),
+            ]);
         }
     }
 

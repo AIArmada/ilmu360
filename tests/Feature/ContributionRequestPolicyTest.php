@@ -19,14 +19,27 @@ it('allows privileged reviewers to review create and update requests without a t
     Role::findOrCreate($roleName, 'web');
     $reviewer = User::factory()->create();
     $reviewer->assignRole($roleName);
+    $proposer = User::factory()->create();
     $request = ContributionRequest::factory()->make([
         'type' => $requestType,
-        'proposer_id' => $reviewer->getKey(),
+        'proposer_id' => $proposer->getKey(),
     ])->setRelation('entity', null);
 
     expect(app(ContributionRequestPolicy::class)->review($reviewer, $request))->toBeTrue();
 })->with(['super_admin', 'admin', 'moderator'])
     ->with([ContributionRequestType::Create, ContributionRequestType::Update]);
+
+it('denies update review to the proposal author even with a privileged role', function (string $roleName) {
+    Role::findOrCreate($roleName, 'web');
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole($roleName);
+    $request = ContributionRequest::factory()->make([
+        'type' => ContributionRequestType::Update,
+        'proposer_id' => $reviewer->getKey(),
+    ])->setRelation('entity', null);
+
+    expect(app(ContributionRequestPolicy::class)->review($reviewer, $request))->toBeFalse();
+})->with(['super_admin', 'admin', 'moderator']);
 
 it('denies create request review to an entity owner who can update the entity', function () {
     $this->seed(PermissionSeeder::class);

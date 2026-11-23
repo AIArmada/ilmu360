@@ -323,6 +323,7 @@ it('persists the selected ticket seating mode when seating is enabled', function
 
 it('persists the public event profile while keeping institution context authoritative', function (): void {
     $user = User::factory()->create();
+    $user->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create(['name' => 'Context Institution', 'status' => 'verified']);
     $speaker = Person::factory()->create(['name' => 'Context Speaker', 'status' => 'verified']);
     $reference = Reference::factory()->create(['status' => 'verified']);

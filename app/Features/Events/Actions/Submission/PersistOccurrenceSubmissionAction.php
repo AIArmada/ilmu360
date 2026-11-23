@@ -142,7 +142,7 @@ final readonly class PersistOccurrenceSubmissionAction
             'event_session_id' => null,
         ];
 
-        foreach (['event_url' => 'external', 'live_url' => 'streaming'] as $field => $type) {
+        foreach (['event_url' => 'external', 'live_url' => 'streaming', 'recording_url' => 'recording'] as $field => $type) {
             if (filled($state[$field] ?? null)) {
                 $occurrence->links()->create($scope + [
                     'link_type' => $type,

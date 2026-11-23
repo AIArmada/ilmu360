@@ -3,8 +3,10 @@
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\FileUnacceptableForCollection;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 beforeEach(function (): void {
     Storage::fake('public');
@@ -76,7 +78,7 @@ it('replaces multiple files when requested', function (): void {
     expect($institution->refresh()->getMedia('gallery'))->toHaveCount(1);
 });
 
-it('clears the existing single file before a rejected replacement fails', function (): void {
+it('keeps the existing single file when a rejected replacement fails', function (): void {
     $institution = Institution::factory()->create(['name' => 'Failed Single Institution']);
     $institution->addMedia(fakeGeneratedImageUpload('logo.png', 800, 800))->toMediaCollection('logo');
 
@@ -85,10 +87,10 @@ it('clears the existing single file before a rejected replacement fails', functi
         UploadedFile::fake()->create('notes.txt', 1, 'text/plain'),
         'logo',
     ))->toThrow(FileUnacceptableForCollection::class)
-        ->and($institution->refresh()->getMedia('logo'))->toBeEmpty();
+        ->and($institution->refresh()->getMedia('logo'))->toHaveCount(1);
 });
 
-it('keeps files added before a rejected replacement fails', function (): void {
+it('keeps the existing gallery when a later replacement file fails', function (): void {
     $institution = Institution::factory()->create(['name' => 'Partial Multiple Institution']);
     $institution->addMedia(fakeGeneratedImageUpload('existing.png', 1200, 800))->toMediaCollection('gallery');
 
@@ -97,4 +99,23 @@ it('keeps files added before a rejected replacement fails', function (): void {
         UploadedFile::fake()->create('notes.txt', 1, 'text/plain'),
     ], 'gallery', replace: true))->toThrow(FileUnacceptableForCollection::class)
         ->and($institution->refresh()->getMedia('gallery'))->toHaveCount(1);
+});
+
+it('keeps media files when a rolled-back transaction restores the media row', function (): void {
+    $institution = Institution::factory()->create(['name' => 'Deferred Removal Institution']);
+    $media = $institution->addMedia(fakeGeneratedImageUpload('deferred.png', 800, 800))->toMediaCollection('logo');
+    $path = $media->getPathRelativeToRoot();
+
+    try {
+        DB::transaction(function () use ($media): void {
+            $media->delete();
+
+            throw new RuntimeException('Rollback after media delete.');
+        });
+    } catch (RuntimeException) {
+        // Expected: the transaction rolls back and restores the media row.
+    }
+
+    expect(Storage::disk($media->disk)->exists($path))->toBeTrue()
+        ->and(Media::query()->whereKey($media->getKey())->exists())->toBeTrue();
 });

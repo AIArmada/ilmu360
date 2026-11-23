@@ -99,5 +99,5 @@ interface InstitutionWorkflow
      * freshly created institution inside the same transaction.
      */
     /** @param array<int|string, mixed> $gallery */
-    public function syncContributionMedia(string $institutionId, mixed $cover, ?array $gallery): void;
+    public function syncContributionMedia(string $institutionId, mixed $logo, mixed $cover, ?array $gallery): void;
 }

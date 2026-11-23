@@ -195,7 +195,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->not->toContain('address.line1')
         ->not->toContain('address.google_maps_url')
         ->not->toContain('position')
-        ->not->toContain('main');
+        ->toContain('main', 'profile', 'family_name', 'middle_name', 'names', 'title_ids');
 
     $institutionContract = $this->getJson(route('api.client.forms.contributions.institutions'))
         ->assertOk()
@@ -203,9 +203,10 @@ it('exposes corrected frontend contract metadata', function () {
     $institutionFields = collect($institutionContract['fields'] ?? [])->pluck('name')->all();
     $institutionPlaceField = collect($institutionContract['fields'] ?? [])->firstWhere('name', 'address.google_place_id');
 
-    expect($institutionFields)->toContain('address.google_place_id')
+    expect($institutionFields)->toContain('address.google_place_id', 'logo')
         ->and($institutionPlaceField['required'] ?? null)->toBeTrue()
-        ->and($institutionFields)->not->toContain('logo', 'address.google_maps_url');
+        ->and($institutionFields)->not->toContain('address.google_maps_url')
+        ->and(collect($institutionContract['fields'])->firstWhere('name', 'gallery')['max_files'])->toBe(10);
 
     Sanctum::actingAs(User::factory()->create());
 
@@ -407,8 +408,8 @@ it('exposes authenticated contribution update contracts and permission-gated dir
     $fields = collect($ownerResponse->json('data.fields'));
 
     expect($visitorResponse->json('data.can_direct_edit'))->toBeFalse()
-        ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe([])
-        ->and($ownerResponse->json('data.can_direct_edit'))->toBeTrue()
+        ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe(['logo', 'cover', 'gallery'])
+        ->and($ownerResponse->json('data.can_direct_edit'))->toBeFalse()
         ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['logo', 'cover', 'gallery'])
         ->and($ownerResponse->json('data.current_media.cover.0.url'))->not->toBeNull()
         ->and($ownerResponse->json('data.current_media.gallery.0.url'))->not->toBeNull()
@@ -433,17 +434,17 @@ it('does not grant institution direct edit access from bearer token abilities al
         ]))->assertOk();
 
     expect($response->json('data.can_direct_edit'))->toBeFalse()
-        ->and($response->json('data.direct_edit_media_fields'))->toBe([]);
+        ->and($response->json('data.direct_edit_media_fields'))->toBe(['logo', 'cover', 'gallery']);
 });
 
-it('allows institution direct edit access over bearer tokens without token abilities', function () {
+it('allows administrator direct edit access over bearer tokens without token abilities', function () {
     $owner = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'description' => 'Community institution',
     ]);
 
-    assignInstitutionOwnerForFrontendApi($owner, $institution);
+    $owner->assignRole('admin');
 
     $ownerToken = $owner->createToken('owner-device', [])->plainTextToken;
 
@@ -458,7 +459,7 @@ it('allows institution direct edit access over bearer tokens without token abili
         ->and($response->json('data.initial_state.description'))->toBe('Community institution');
 });
 
-it('reflects scoped institution role grants and removals on an existing bearer token', function () {
+it('reflects administrator role grants and removals on an existing bearer token', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -475,7 +476,7 @@ it('reflects scoped institution role grants and removals on an existing bearer t
         ->assertOk()
         ->assertJsonPath('data.can_direct_edit', false);
 
-    assignInstitutionOwnerForFrontendApi($user, $institution);
+    $user->assignRole('admin');
 
     $this->withToken($token)
         ->getJson(route('api.client.forms.contributions.suggest', [
@@ -485,7 +486,7 @@ it('reflects scoped institution role grants and removals on an existing bearer t
         ->assertOk()
         ->assertJsonPath('data.can_direct_edit', true);
 
-    $institution->members()->detach($user);
+    $user->removeRole('admin');
 
     $this->withToken($token)
         ->getJson(route('api.client.forms.contributions.suggest', [
@@ -552,7 +553,7 @@ it('normalizes event update context to public organizer values and exposes looku
         ->and($initialStateKeys)->not->toContain('starts_at', 'ends_at', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text', 'primary_organizer_kind', 'primary_organizer_institution_id', 'primary_organizer_person_id');
 });
 
-it('exposes event direct edit media support for authorized public updaters', function () {
+it('exposes event media fields for visitors and maintainers', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -593,8 +594,8 @@ it('exposes event direct edit media support for authorized public updaters', fun
     ]))->assertOk();
 
     expect($visitorResponse->json('data.can_direct_edit'))->toBeFalse()
-        ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe([])
-        ->and($ownerResponse->json('data.can_direct_edit'))->toBeTrue()
+        ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe(['cover', 'poster', 'gallery'])
+        ->and($ownerResponse->json('data.can_direct_edit'))->toBeFalse()
         ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['cover', 'poster', 'gallery'])
         ->and($ownerResponse->json('data.current_media.cover.0.url'))->not->toBeNull()
         ->and($ownerResponse->json('data.current_media.poster.0.url'))->not->toBeNull()
@@ -618,6 +619,7 @@ it('accepts helper-shaped event timing updates on public contribution suggestion
     withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $targetDate = now()->addDays(5)->toDateString();
@@ -649,6 +651,7 @@ it('allows direct contribution updates to clear nullable institution fields', fu
     ]);
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->postJson(route('api.client.contributions.suggest.store', [
@@ -707,7 +710,7 @@ it('blocks direct api contribution updates while any pending request exists', fu
             ->count())->toBe(1);
 });
 
-it('exposes person avatar direct edit media support for authorized public updaters', function () {
+it('exposes speaker media fields for visitors and maintainers', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -737,8 +740,8 @@ it('exposes person avatar direct edit media support for authorized public update
     ]))->assertOk();
 
     expect($visitorResponse->json('data.can_direct_edit'))->toBeFalse()
-        ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe([])
-        ->and($ownerResponse->json('data.can_direct_edit'))->toBeTrue()
+        ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe(['avatar', 'main', 'profile', 'cover', 'gallery'])
+        ->and($ownerResponse->json('data.can_direct_edit'))->toBeFalse()
         ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['avatar', 'main', 'profile', 'cover', 'gallery'])
         ->and($ownerResponse->json('data.current_media.avatar.0.url'))->not->toBeNull()
         ->and($ownerResponse->json('data.current_media.cover.0.url'))->not->toBeNull()
@@ -755,6 +758,7 @@ it('allows direct institution gallery uploads on public contribution update sugg
     ]);
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->post(route('api.client.contributions.suggest.store', [
@@ -781,6 +785,7 @@ it('accepts SVG institution logos on public contribution update suggestions', fu
     ]);
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="#185aa0"/></svg>';
@@ -798,6 +803,52 @@ it('accepts SVG institution logos on public contribution update suggestions', fu
 
     expect($institution->fresh()?->getMedia('logo'))->toHaveCount(1);
 });
+
+it('stages proposed institution media and reviewer notes until a different reviewer approves', function (string $role) {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $contributor = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole('admin');
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $institution->addMedia(fakeGeneratedImageUpload('published-cover.jpg', 1600, 900))->toMediaCollection('cover');
+    $publishedCoverId = $institution->getFirstMedia('cover')?->getKey();
+
+    match ($role) {
+        'owner' => assignInstitutionOwnerForFrontendApi($contributor, $institution),
+        'moderator', 'admin' => $contributor->assignRole(Role::findOrCreate($role, 'web')),
+        default => null,
+    };
+
+    Sanctum::actingAs($contributor);
+
+    $response = $this->post(route('api.client.contributions.suggest.store', [
+        'subjectType' => 'institusi',
+        'subject' => $institution->slug,
+    ]), [
+        'cover' => fakeGeneratedImageUpload('new-cover.jpg', 1600, 900),
+        'proposer_note' => 'The current cover is out of date.',
+    ], [
+        'Accept' => 'application/json',
+    ])
+        ->assertCreated()
+        ->assertJsonPath('data.mode', 'review')
+        ->assertJsonPath('data.request.proposer_note', 'The current cover is out of date.');
+
+    $request = ContributionRequest::query()->findOrFail($response->json('data.request.id'));
+    expect($request->getMedia('pending_media'))->toHaveCount(1)
+        ->and($institution->fresh()->getFirstMedia('cover')?->getKey())->toBe($publishedCoverId);
+
+    $approveUrl = route('api.client.contributions.approve', ['requestId' => $request->getKey()]);
+    $this->postJson($approveUrl)->assertForbidden();
+
+    Sanctum::actingAs($reviewer);
+    $this->postJson($approveUrl)->assertOk();
+
+    expect($request->fresh()->getMedia('pending_media'))->toBeEmpty()
+        ->and($institution->fresh()->getFirstMedia('cover')?->getKey())->not->toBe($publishedCoverId);
+})->with(['visitor', 'owner', 'moderator', 'admin']);
 
 it('rejects partially filled donation channels on public contribution update suggestions', function () {
     $owner = User::factory()->create();
@@ -932,6 +983,7 @@ it('preserves hidden person address details during region-only direct updates', 
     ]);
 
     assignPersonOwnerForFrontendApi($owner, $person);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->postJson(route('api.client.contributions.suggest.store', [
@@ -971,6 +1023,7 @@ it('allows direct person avatar uploads on public contribution update suggestion
     ]);
 
     assignPersonOwnerForFrontendApi($owner, $person);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->post(route('api.client.contributions.suggest.store', [
@@ -994,7 +1047,7 @@ it('allows direct person cover uploads on public contribution update suggestions
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
-    $coverUpload = fakeGeneratedImageUpload('person-cover.png', 1200, 1200);
+    $coverUpload = fakeGeneratedImageUpload('person-cover.png', 1600, 900);
 
     $owner = User::factory()->create();
     $person = Person::factory()->create([
@@ -1002,6 +1055,7 @@ it('allows direct person cover uploads on public contribution update suggestions
     ]);
 
     assignPersonOwnerForFrontendApi($owner, $person);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->post(route('api.client.contributions.suggest.store', [
@@ -1031,6 +1085,7 @@ it('allows direct person gallery uploads on public contribution update suggestio
     ]);
 
     assignPersonOwnerForFrontendApi($owner, $person);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->post(route('api.client.contributions.suggest.store', [
@@ -1096,6 +1151,7 @@ it('maps public event organizer values back to persistence classes during direct
     withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->postJson(route('api.client.contributions.suggest.store', [
@@ -1128,6 +1184,7 @@ it('allows direct event cover, poster, and gallery uploads on public contributio
     withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
+    $owner->assignRole('admin');
     Sanctum::actingAs($owner);
 
     $this->post(route('api.client.contributions.suggest.store', [
@@ -2076,7 +2133,7 @@ it('rejects unsupported files on public contribution update suggestions', functi
         'subjectType' => 'institusi',
         'subject' => $institution->slug,
     ]), [
-        'cover' => fakeGeneratedImageUpload('institution-cover.jpg'),
+        'poster' => fakeGeneratedImageUpload('institution-poster.jpg'),
     ], [
         'Accept' => 'application/json',
     ])
@@ -2123,6 +2180,9 @@ it('does not infer country defaults for frontend form contracts', function () {
 });
 
 it('creates institution contribution requests through the frontend api', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
     $user = User::factory()->create();
     ensureFrontendApiMalaysiaCountryExists();
     config()->set('services.google.maps_api_key', 'test-maps-key');
@@ -2158,6 +2218,7 @@ it('creates institution contribution requests through the frontend api', functio
 
     $this->postJson(route('api.client.contributions.institutions.store'), [
         'description' => '<p>Institution description</p>',
+        'logo' => fakeGeneratedImageUpload('institution-logo.jpg', 640, 640),
         'address' => [
             'google_place_id' => 'api_place_verified',
         ],
@@ -2172,6 +2233,7 @@ it('creates institution contribution requests through the frontend api', functio
         ->and($institution->type)->toBe(InstitutionType::Masjid)
         ->and($institution->members()->whereKey($user->id)->exists())->toBeFalse()
         ->and(ContributionRequest::query()->where('entity_id', $institution->getKey())->exists())->toBeTrue()
+        ->and($institution->getMedia('logo'))->toHaveCount(1)
         ->and($institution->primaryAddress()?->google_place_id)->toBe('api_place_verified')
         ->and($institution->primaryAddress()?->google_cid)->toBe('123456789')
         ->and($institution->primaryAddress()?->latitude)->toBe(3.139)
@@ -2251,6 +2313,9 @@ it('requires an explicit institution type when Google Maps cannot infer one', fu
 });
 
 it('creates person contribution requests with explicit country and institution fields', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
     $singaporeId = (string) ensureTestAddressCountry('SG', 'Singapore', 'SGP', ['Asia/Singapore'], '65')->getKey();
@@ -2261,6 +2326,10 @@ it('creates person contribution requests with explicit country and institution f
         ->postJson(route('api.client.contributions.persons.store'), [
             'name' => 'Frontend API Scoped Country Person',
             'gender' => 'male',
+            'middle_name' => 'Abdul',
+            'family_name' => 'Rahman',
+            'main' => fakeGeneratedImageUpload('speaker-main.jpg', 640, 640),
+            'profile' => fakeGeneratedImageUpload('speaker-profile.jpg', 600, 800),
             'institutions' => [[
                 'institution_id' => (string) $institution->getKey(),
                 'position' => 'Ustaz',
@@ -2279,10 +2348,35 @@ it('creates person contribution requests with explicit country and institution f
         ->firstOrFail();
 
     expect($person->primaryAddress()?->country_id)->toBe($singaporeId)
+        ->and($person->middle_name)->toBe('Abdul')
+        ->and($person->family_name)->toBe('Rahman')
         ->and($person->institutions->firstWhere('id', $institution->getKey())?->pivot?->position)->toBe('Ustaz')
         ->and($person->institutions->firstWhere('id', $institution->getKey())?->pivot?->is_primary)->toBeTruthy()
         ->and($person->slug)->toEndWith('-sg')
+        ->and($person->getMedia('main'))->toHaveCount(1)
+        ->and($person->getMedia('profile'))->toHaveCount(1)
         ->and(ContributionRequest::query()->where('entity_id', $person->getKey())->exists())->toBeTrue();
+});
+
+it('applies the contribution update media constraints to frontend creation', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->postJson(route('api.client.contributions.institutions.store'), [
+        'address' => ['google_place_id' => 'api_place_verified'],
+        'cover' => fakeGeneratedImageUpload('institution-cover.jpg', 600, 600),
+        'gallery' => array_fill(0, 11, fakeGeneratedImageUpload('institution-gallery.jpg', 320, 240)),
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['cover', 'gallery']);
+
+    $this->postJson(route('api.client.contributions.persons.store'), [
+        'name' => 'Frontend API Invalid Person Photos',
+        'gender' => 'male',
+        'address' => ['country_id' => ensureFrontendApiMalaysiaCountryExists()],
+        'main' => fakeGeneratedImageUpload('speaker-main.jpg', 600, 800),
+        'profile' => fakeGeneratedImageUpload('speaker-profile.jpg', 640, 640),
+        'contactMethods' => [['type' => 'invalid', 'value' => 'invalid']],
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['main', 'profile', 'contactMethods.0.type']);
 });
 
 it('requires explicit country and still prohibits detailed address fields when creating persons through the frontend api', function () {

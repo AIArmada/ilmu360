@@ -31,6 +31,7 @@ interface ContributionRequestLifecycle
 
     /**
      * @param  array<string, mixed>  $proposedData
+     * @param  (callable(string): void)|null  $stageMedia  Receives the pending request ID within the submission transaction.
      */
     public function submitUpdate(
         string $entityType,
@@ -38,6 +39,7 @@ interface ContributionRequestLifecycle
         string $proposerId,
         array $proposedData,
         ?string $proposerNote = null,
+        ?callable $stageMedia = null,
     ): string;
 
     public function approve(string $requestId, string $reviewerId, ?string $reviewerNote = null): void;

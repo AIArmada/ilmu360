@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use AIArmada\Membership\Enums\MemberRole;
+use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\EntryPoints\Livewire\Pages\Dashboard\Events\Schedule;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Models\EventSubmission;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Database\Seeders\AIArmada\EventRoleSeeder;
+use Database\Seeders\RoleSeeder;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
 it('lets a draft event creator add and edit occurrences and sessions', function (): void {
@@ -17,6 +23,7 @@ it('lets a draft event creator add and edit occurrences and sessions', function 
     $event = Event::factory()->create([
         'title' => 'A Two Day Learning Programme',
         'status' => 'draft',
+        'published_at' => null,
         'created_by_type' => $organizer->getMorphClass(),
         'created_by_id' => $organizer->getKey(),
         'timezone' => 'Asia/Kuala_Lumpur',
@@ -38,6 +45,7 @@ it('lets a draft event creator add and edit occurrences and sessions', function 
         ->assertHasNoErrors();
 
     $occurrence = EventOccurrence::query()
+        ->withoutOwnerScope()
         ->where('event_id', $event->getKey())
         ->where('title', 'Day Two')
         ->firstOrFail();
@@ -58,6 +66,7 @@ it('lets a draft event creator add and edit occurrences and sessions', function 
         ->assertHasNoErrors();
 
     $session = EventSession::query()
+        ->withoutOwnerScope()
         ->where('event_id', $event->getKey())
         ->where('event_occurrence_id', $occurrence->getKey())
         ->where('title', 'Opening Session')
@@ -83,6 +92,7 @@ it('shows the schedule workspace through the authenticated dashboard route', fun
     $event = Event::factory()->create([
         'title' => 'Schedule Route Event',
         'status' => 'draft',
+        'published_at' => null,
         'created_by_type' => $organizer->getMorphClass(),
         'created_by_id' => $organizer->getKey(),
     ]);
@@ -94,6 +104,106 @@ it('shows the schedule workspace through the authenticated dashboard route', fun
         ->assertSee(__('How the schedule is organized'));
 });
 
+it('stages a new occurrence from a published schedule for a different reviewer', function (): void {
+    $this->seed(RoleSeeder::class);
+    $this->seed(EventRoleSeeder::class);
+    $organizer = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole('moderator');
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+    ]);
+    addTestMember($event, $organizer, MemberRole::Owner);
+
+    $component = Livewire::actingAs($organizer)->test(Schedule::class, ['event' => $event]);
+    $component->assertSee(__('Propose an occurrence'))
+        ->assertDontSee(__('Add session'))
+        ->call('openOccurrenceForm')
+        ->set('occurrenceForm.title', 'Additional date')
+        ->set('occurrenceForm.note', 'Requested by the venue')
+        ->call('saveOccurrence')
+        ->assertHasNoErrors();
+
+    $submission = EventSubmission::query()->where('event_id', $event->getKey())->sole();
+    $occurrence = EventOccurrence::query()->findOrFail($submission->event_occurrence_id);
+
+    expect((string) $submission->status)->toBe('pending')
+        ->and($submission->submitter_id)->toBe($organizer->getKey())
+        ->and($submission->submission_data['notes'])->toBe('Requested by the venue')
+        ->and((string) $occurrence->status)->toBe(EventOccurrence::DRAFT)
+        ->and((string) $occurrence->visibility)->toBe('private');
+
+    $component->call('editOccurrence', $occurrence->getKey())->assertForbidden();
+
+    app(OccurrenceSubmissionReviews::class)->approve(
+        (string) $submission->getKey(),
+        $reviewer->getMorphClass(),
+        (string) $reviewer->getKey(),
+    );
+
+    $occurrence->refresh();
+    expect((string) $occurrence->status)->toBe(EventOccurrence::SCHEDULED)
+        ->and((string) $occurrence->visibility)->toBe('public');
+});
+
+it('reviews proposed occurrence and session changes before changing the published schedule', function (): void {
+    $this->seed(RoleSeeder::class);
+    $this->seed(EventRoleSeeder::class);
+    $organizer = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole('moderator');
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+        'delivery_mode' => 'physical',
+    ]);
+    addTestMember($event, $organizer, MemberRole::Owner);
+    $occurrence = $event->occurrences()->where('status', EventOccurrence::SCHEDULED)->firstOrFail();
+
+    $component = Livewire::actingAs($organizer)->test(Schedule::class, ['event' => $event]);
+    $component->call('editOccurrence', $occurrence->getKey())
+        ->set('occurrenceForm.title', 'Proposed occurrence title')
+        ->call('saveOccurrence')
+        ->assertHasNoErrors();
+
+    $first = EventSubmission::query()->where('event_id', $event->getKey())->sole();
+    expect($occurrence->fresh()->title)->not->toBe('Proposed occurrence title');
+    $reviews = app(OccurrenceSubmissionReviews::class);
+    $reviews->approve((string) $first->getKey(), $reviewer->getMorphClass(), (string) $reviewer->getKey());
+    expect($occurrence->fresh()->title)->toBe('Proposed occurrence title');
+
+    $component->call('openSessionForm', $occurrence->getKey())
+        ->set('sessionForm.title', 'Proposed session')
+        ->set('sessionForm.note', 'Spare slot available.')
+        ->call('saveSession')
+        ->assertHasNoErrors();
+
+    $second = EventSubmission::query()->where('event_id', $event->getKey())->where('status', 'pending')->sole();
+    expect($occurrence->sessions()->where('title', 'Proposed session')->exists())->toBeFalse()
+        ->and($second->submission_data['notes'])->toBe('Spare slot available.');
+    $reviews->approve((string) $second->getKey(), $reviewer->getMorphClass(), (string) $reviewer->getKey());
+    $session = $occurrence->sessions()->where('title', 'Proposed session')->sole();
+
+    $component->call('editSession', $session->getKey())
+        ->set('sessionForm.title', 'Proposed replacement')
+        ->call('saveSession')
+        ->assertHasNoErrors();
+
+    $third = EventSubmission::query()->where('event_id', $event->getKey())->where('status', 'pending')->sole();
+    expect($session->fresh()->title)->toBe('Proposed session');
+
+    $session->forceFill(['title' => 'Current title'])->save();
+    expect(fn () => $reviews->approve((string) $third->getKey(), $reviewer->getMorphClass(), (string) $reviewer->getKey()))
+        ->toThrow(ValidationException::class);
+
+    $reviews->reject((string) $third->getKey(), $reviewer->getMorphClass(), (string) $reviewer->getKey(), 'other', 'Schedule changed.');
+    expect($session->fresh()->title)->toBe('Current title')
+        ->and((string) $third->fresh()->status)->toBe('rejected');
+});
+
 it('blocks a user who cannot update the event from the schedule workspace', function (): void {
     $organizer = User::factory()->create();
     $outsider = User::factory()->create();
@@ -101,6 +211,7 @@ it('blocks a user who cannot update the event from the schedule workspace', func
 
     $event = Event::factory()->create([
         'status' => 'draft',
+        'published_at' => null,
         'created_by_type' => $organizer->getMorphClass(),
         'created_by_id' => $organizer->getKey(),
     ]);

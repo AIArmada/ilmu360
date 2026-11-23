@@ -17,6 +17,7 @@ use App\Features\Events\Api\EventCategoryPolicyResolver;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Events\Enums\Terms\DomainTermCode;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Models\Series;
 use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Events\Services\OrganizerResolver;
 use App\Features\Events\Services\SubmitEventOptionsProvider;
@@ -31,6 +32,7 @@ use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Platform\Ui\Forms\Select;
 use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Media\EventMediaForm;
 use Carbon\CarbonInterface;
 use Closure;
 use Filament\Actions\Action;
@@ -39,7 +41,6 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
@@ -219,7 +220,7 @@ final readonly class EventSubmissionFormSchema
                     $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->first());
 
                     if ($termsByTaxonomy->has(EventTaxonomyCode::Domain->value)) {
-                        $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->first());
+                        $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->all());
                     }
                     if ($termsByTaxonomy->has(EventTaxonomyCode::Discipline->value)) {
                         $set('discipline_tags', $termsByTaxonomy->get(EventTaxonomyCode::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
@@ -275,29 +276,20 @@ final readonly class EventSubmissionFormSchema
                         ->searchable()
                         ->preload()
                         ->allowHtml()
-                        ->options(fn (Get $get): array => array_map(e(...), $this->options->taxonomyTermOptionsForDomain(
+                        ->options(fn (Get $get): array => array_map(e(...), $this->options->taxonomyTermOptionsForDomains(
                             EventTaxonomyCode::Discipline,
-                            is_string($domain = $get('domain_tags')) ? $domain : null,
+                            $this->selectedIds($get('domain_tags')),
                         )))
                         ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
                             if (blank($search)) {
                                 return [];
                             }
 
-                            $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
-                            $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
-                            $results = EventTerm::query()
-                                ->where('event_taxonomy_id', $taxonomyId)
-                                ->where('is_active', true)
-                                ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
-                                    $query->whereJsonContains('metadata->domain_ids', $domainId)
-                                        ->orWhereNull('metadata->domain_ids');
-                                }))
-                                ->whereLike('name', "%{$search}%")
-                                ->orderBy('sort_order')
-                                ->limit(20)
-                                ->pluck('name', 'id')
-                                ->toArray();
+                            $results = $this->options->taxonomyTermOptionsForDomains(
+                                EventTaxonomyCode::Discipline,
+                                $get instanceof Get ? $this->selectedIds($get('domain_tags')) : [],
+                                $search,
+                            );
 
                             return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".e(__('Tambah'))." '".e($search)."'</span>"] + array_map(e(...), $results);
                         })
@@ -653,19 +645,14 @@ final readonly class EventSubmissionFormSchema
             ->helperText(__('Wajib dipilih. Bidang ini menentukan soalan tambahan yang akan dipaparkan.'))
             ->placeholder(__('Pilih topik…'))
             ->required()
+            ->multiple()
+            ->closeOnSelect()
             ->live()
             ->afterStateUpdatedJs($this->progressUpdateJs())
             ->searchable(false)
             ->preload()
             ->native(false)
             ->dynamicOptions(false)
-            ->getOptionLabelUsing(function ($value): ?string {
-                if (is_string($value) && ! Str::isUuid($value)) {
-                    return $value;
-                }
-
-                return EventTerm::where('id', $value)->value('name');
-            })
             ->options(fn (): array => $this->options->tagOptions(
                 type: EventTaxonomyCode::Domain,
                 cachePrefix: 'submit_tags_domain',
@@ -727,29 +714,20 @@ final readonly class EventSubmissionFormSchema
                                 ->searchable()
                                 ->preload()
                                 ->allowHtml()
-                                ->options(fn (Get $get): array => array_map(e(...), $this->options->taxonomyTermOptionsForDomain(
+                                ->options(fn (Get $get): array => array_map(e(...), $this->options->taxonomyTermOptionsForDomains(
                                     EventTaxonomyCode::Issue,
-                                    is_string($domain = $get('domain_tags')) ? $domain : null,
+                                    $this->selectedIds($get('domain_tags')),
                                 )))
                                 ->getSearchResultsUsing(function (string $search, ?Get $get = null): array {
                                     if (blank($search)) {
                                         return [];
                                     }
 
-                                    $domainId = $get instanceof Get ? (is_string($d = $get('domain_tags')) ? $d : null) : null;
-                                    $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Issue->value)->value('id');
-                                    $results = EventTerm::query()
-                                        ->where('event_taxonomy_id', $taxonomyId)
-                                        ->where('is_active', true)
-                                        ->when($domainId !== null, fn (Builder $query) => $query->where(function (Builder $query) use ($domainId): void {
-                                            $query->whereJsonContains('metadata->domain_ids', $domainId)
-                                                ->orWhereNull('metadata->domain_ids');
-                                        }))
-                                        ->whereLike('name', "%{$search}%")
-                                        ->orderBy('sort_order')
-                                        ->limit(20)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
+                                    $results = $this->options->taxonomyTermOptionsForDomains(
+                                        EventTaxonomyCode::Issue,
+                                        $get instanceof Get ? $this->selectedIds($get('domain_tags')) : [],
+                                        $search,
+                                    );
 
                                     return ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".e(__('Tambah'))." '".e($search)."'</span>"] + array_map(e(...), $results);
                                 })
@@ -895,17 +873,22 @@ final readonly class EventSubmissionFormSchema
                             TextInput::make('event_url')
                                 ->label(__('Pautan Majlis'))
                                 ->url()
+                                ->rules(['url:http,https'])
                                 ->maxLength(255)
                                 ->placeholder(__('https://example.com/event')),
 
                             TextInput::make('live_url')
                                 ->label(__('Pautan Siaran Langsung'))
                                 ->url()
+                                ->rules(['url:http,https'])
                                 ->maxLength(255)
-                                ->placeholder(__('https://youtube.com/...'))
-                                ->visibleJs(<<<'JS'
-                                    ['online', 'hybrid'].includes($get('event_format'))
-                                    JS),
+                                ->placeholder(__('https://youtube.com/...')),
+
+                            TextInput::make('recording_url')
+                                ->label(__('Pautan Rakaman'))
+                                ->url()
+                                ->rules(['url:http,https'])
+                                ->maxLength(255),
                         ]),
                 ]),
 
@@ -1024,6 +1007,21 @@ final readonly class EventSubmissionFormSchema
                         ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->createOptionForm(app(PersonQuickAdd::class)->formComponents())
                         ->createOptionUsing(fn (array $data, Schema $schema, Set $set, Get $get): string => app(PersonQuickAdd::class)->createOption($data, $schema)),
+
+                    Select::make('series_ids')
+                        ->label(__('Siri'))
+                        ->placeholder(__('Pilih siri'))
+                        ->helperText(__('Applies when the submission creates a new event.'))
+                        ->options(fn (): array => Series::query()
+                            ->where('visibility', 'public')
+                            ->where('status', 'active')
+                            ->orderBy('title')
+                            ->pluck('title', 'id')
+                            ->all())
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->visible($this->context->eventContainer === null),
                 ]),
 
             Section::make(__('Lokasi'))
@@ -1243,47 +1241,7 @@ final readonly class EventSubmissionFormSchema
                         ->columnSpanFull(),
                 ]),
 
-            Section::make(__('Media'))
-                ->schema([
-                    SpatieMediaLibraryFileUpload::make('cover')
-                        ->label(__('Gambar Cover Majlis'))
-                        ->collection('cover')
-                        ->image()
-                        ->imageEditor()
-                        ->imageAspectRatio('16:9')
-                        ->automaticallyOpenImageEditorForAspectRatio()
-                        ->imageEditorAspectRatioOptions(['16:9', null])
-                        ->automaticallyCropImagesToAspectRatio()
-                        ->rules(['dimensions:ratio=16/9'])
-                        ->conversion('thumb')
-                        ->responsiveImages()
-                        ->helperText(__('Untuk paparan laman web dan aplikasi. Wajib 16:9, tanpa maklumat yang terlalu padat.')),
-                    SpatieMediaLibraryFileUpload::make('poster')
-                        ->label(__('Poster Hebahan'))
-                        ->collection('poster')
-                        ->image()
-                        ->imageEditor()
-                        ->imageAspectRatio('3:4')
-                        ->automaticallyOpenImageEditorForAspectRatio()
-                        ->imageEditorAspectRatioOptions(['3:4', null])
-                        ->automaticallyCropImagesToAspectRatio()
-                        ->rules(['dimensions:ratio=3/4'])
-                        ->conversion('poster_thumb')
-                        ->responsiveImages()
-                        ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 3:4 dan boleh mengandungi maklumat penuh.')),
-                    SpatieMediaLibraryFileUpload::make('gallery')
-                        ->label(__('Galeri'))
-                        ->collection('gallery')
-                        ->multiple()
-                        ->reorderable()
-                        ->maxFiles(10)
-                        ->image()
-                        ->imageEditor()
-                        ->conversion('gallery_thumb')
-                        ->responsiveImages()
-                        ->helperText(__('Gambar tambahan untuk galeri majlis.')),
-                ])
-                ->columns(['default' => 1, 'sm' => 2]),
+            EventMediaForm::section(),
         ];
     }
 

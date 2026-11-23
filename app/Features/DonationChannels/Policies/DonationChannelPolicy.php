@@ -27,12 +27,12 @@ class DonationChannelPolicy
 
     public function create(AccountActor $user): bool
     {
-        return $user->hasAnyRole(['super_admin', 'admin', 'moderator']);
+        return $user->hasGlobalAdminAccess();
     }
 
     public function update(AccountActor $user, DonationChannel $donationChannel): bool
     {
-        return $user->hasAnyRole(['super_admin', 'admin', 'moderator']);
+        return $user->hasGlobalAdminAccess();
     }
 
     public function delete(AccountActor $user, DonationChannel $donationChannel): bool

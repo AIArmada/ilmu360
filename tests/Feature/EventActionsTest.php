@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Authz\Models\Role;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventAccessPolicy;
@@ -201,7 +202,10 @@ it('applies direct contribution edits without changing approved event state for 
         'ends_at' => now()->addDays(4)->addHour(),
     ]);
 
-    app(ContributionDirectUpdates::class)->apply($event->getMorphClass(), (string) $event->getKey(), [
+    $actor = User::factory()->create();
+    $actor->assignRole(Role::findOrCreate('admin', 'web'));
+
+    app(ContributionDirectUpdates::class)->apply((string) $actor->getKey(), $event->getMorphClass(), (string) $event->getKey(), [
         'starts_at' => now()->addDays(8)->toDateTimeString(),
         'ends_at' => now()->addDays(8)->addHour()->toDateTimeString(),
     ]);

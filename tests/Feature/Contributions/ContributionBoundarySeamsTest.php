@@ -109,9 +109,10 @@ it('copies staged media from disk into the target collection', function (): void
     );
 
     $media = $institution->refresh()->getFirstMedia('logo');
+    $expectedBaseName = App\Platform\Media\MediaFileNamer::resolveBaseNameFromModel($institution);
 
     expect($media)->not->toBeNull()
-        ->and($media?->file_name)->toBe('staged-logo.png')
+        ->and($media?->file_name)->toMatch('/^'.preg_quote($expectedBaseName, '/').'-[0-9a-z]{8}\.png$/')
         ->and($media?->name)->toStartWith('Logo - ')
         ->and($media?->getCustomProperty('collection'))->toBe('logo')
         ->and($media?->getCustomProperty('original_file_name'))->toBe('staged-logo.png')

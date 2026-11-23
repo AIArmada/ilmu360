@@ -8,10 +8,13 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
+use AIArmada\Events\States\OccurrenceStatus\Scheduled;
+use App\Features\Events\Actions\Authoring\SyncEventAssociationsAction;
 use App\Features\Events\Actions\Scheduling\ResolveInstitutionalPrayerSlotGroupAction;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Support\EventModel;
+use App\Models\User;
 use Illuminate\Support\Arr;
 use RuntimeException;
 
@@ -21,6 +24,7 @@ final readonly class PersistNewEventSubmissionAction
         private EventAuthoring $authoring,
         private ResolveInstitutionalPrayerSlotGroupAction $groupResolver,
         private PersistOccurrenceSubmissionAction $persistOccurrence,
+        private SyncEventAssociationsAction $syncAssociations,
     ) {}
 
     /**
@@ -36,16 +40,16 @@ final readonly class PersistNewEventSubmissionAction
         $groupIdentity = $this->groupResolver->identity($submission);
         $event = $groupIdentity === null ? null : $this->groupResolver->findExisting($groupIdentity);
         $parentCreated = ! $event instanceof PackageEvent;
+        $canPublishUpdate = $submission->submitter instanceof User && $submission->submitter->canPublishDirectoryUpdates();
+        $occurrencePendingReview = ! $parentCreated
+            && (! $submission->autoApproved || ! $canPublishUpdate)
+            && (string) $event->status === 'approved';
 
         if ($parentCreated) {
             $event = $this->createParent($submission, $groupIdentity);
-        } elseif ($groupIdentity !== null) {
+        } elseif ($groupIdentity !== null && ! $occurrencePendingReview) {
             $this->storeGroupIdentity($event, $groupIdentity);
         }
-
-        $occurrencePendingReview = ! $parentCreated
-            && ! $submission->autoApproved
-            && (string) $event->status === 'approved';
 
         $occurrence = $this->persistOccurrence->handle(
             event: $event,
@@ -54,11 +58,13 @@ final readonly class PersistNewEventSubmissionAction
             groupIdentity: $groupIdentity,
         );
 
-        $event->forceFill([
-            'schedule_kind' => $event->occurrences()->count() > 1
-                ? ScheduleKind::CustomChain
-                : ScheduleKind::Single,
-        ])->save();
+        if (! $occurrencePendingReview) {
+            $event->forceFill([
+                'schedule_kind' => $event->occurrences()->whereState('status', Scheduled::class)->count() > 1
+                    ? ScheduleKind::CustomChain
+                    : ScheduleKind::Single,
+            ])->save();
+        }
 
         $submissionData = [
             'submitter_name' => $submission->state['submitter_name'] ?? $submission->submitter?->getAttribute('name'),
@@ -150,6 +156,10 @@ final readonly class PersistNewEventSubmissionAction
             ]);
         } else {
             $this->authoring->syncEventClassifications($event->getMorphClass(), (string) $event->getKey(), $submission->state);
+        }
+
+        if (is_array($state['series_ids'] ?? null) && $state['series_ids'] !== []) {
+            $this->syncAssociations->syncSeries($event, $state['series_ids']);
         }
 
         return $event;

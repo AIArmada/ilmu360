@@ -400,6 +400,24 @@ it('requires a country for a new speaker contribution', function () {
         ->assertHasErrors(['data.address.country_id']);
 });
 
+it('requires a country when updating a speaker who already has one', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create(['status' => 'verified']);
+    $country = ensureTestMalaysiaCountry();
+
+    syncPrimaryAddressForTest($person, ['country_id' => (string) $country->getKey()]);
+
+    Livewire::actingAs($user)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->assertSet('data.address.country_id', (string) $country->getKey())
+        ->set('data.address.country_id', null)
+        ->call('submit')
+        ->assertHasErrors(['data.address.country_id' => 'required']);
+});
+
 it('includes the selected country in the speaker progress calculation', function () {
     $user = User::factory()->create();
 
@@ -644,13 +662,12 @@ it('uses the update form tab structure for new person contributions', function (
         ->toContain(__('Profile Photo & Media'));
 });
 
-it('hides reviewer context fields for direct institution edits', function () {
+it('lets administrators send an institution edit with a reviewer note', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-
-    assignInstitutionOwner($user, $institution);
 
     $this->actingAs($user);
 
@@ -659,8 +676,24 @@ it('hides reviewer context fields for direct institution edits', function () {
         'subjectId' => $institution->slug,
     ]))
         ->assertOk()
-        ->assertDontSee(__('Explain the change'))
-        ->assertDontSee(__('Optional: add context that helps maintainers review your update faster.'));
+        ->assertSee('Kemas Kini')
+        ->assertDontSee('Cadangan Kemas Kini')
+        ->assertSee(__('Explain the change'));
+
+    giveContributionPagesInstitutionMapsPlace($institution);
+
+    Livewire::test(SuggestUpdate::class, [
+        'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+        'subjectId' => $institution->slug,
+    ])
+        ->set('data.name', 'Nama Dicadangkan')
+        ->set('data.proposer_note', 'Please verify the new name.')
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    expect($institution->fresh()->name)->not->toBe('Nama Dicadangkan')
+        ->and(ContributionRequest::query()->sole()->proposer_note)->toBe('Please verify the new name.');
 });
 
 it('renders the action modal stack on event update pages for create-option fields', function () {
@@ -715,6 +748,12 @@ it('renders the suggest update page with translated event form copy when the loc
     ]))
         ->assertOk()
         ->assertSee('Cadangan Kemas Kini')
+        ->assertSeeInOrder([
+            __('Majlis & Topik'),
+            __('Tarikh, Masa & Kehadiran'),
+            __('Format, Penganjur & Lokasi'),
+            __('Penceramah & Media'),
+        ])
         ->assertSee('Terangkan perubahan')
         ->assertSee('Audiens & Bahasa')
         ->assertSee('Penganjur & Lokasi')
@@ -733,11 +772,10 @@ it('renders the suggest update page with translated event form copy when the loc
 
 it('renders the institution suggest update page with translated direct-edit copy when the locale changes', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-
-    assignInstitutionOwner($user, $institution);
 
     app()->setLocale('ms');
     $this->actingAs($user);
@@ -750,7 +788,7 @@ it('renders the institution suggest update page with translated direct-edit copy
         ->assertSee('Kemas Kini')
         ->assertDontSee('Cadangan Kemas Kini')
         ->assertDontSee('Cadangan Komuniti')
-        ->assertDontSee('Terangkan perubahan')
+        ->assertSee('Terangkan perubahan')
         ->assertDontSee('Laksanakan Kemas Kini')
         ->assertDontSee(__('View My Contributions'));
 });
@@ -776,7 +814,7 @@ it('renders the person suggest update page with the compact shared shell', funct
         ->assertDontSee('Cadangkan Kemas Kini');
 });
 
-it('shows the institution media uploads on the suggest update page only for maintainers', function () {
+it('shows the institution media uploads on the suggest update page for visitors and maintainers', function () {
     $owner = User::factory()->create();
     $visitor = User::factory()->create();
     $institution = Institution::factory()->create([
@@ -791,9 +829,9 @@ it('shows the institution media uploads on the suggest update page only for main
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
-        ->assertDontSee(__('Logo'))
-        ->assertDontSee(__('Cover Image'))
-        ->assertDontSee(__('Gallery'));
+        ->assertSee(__('Logo'))
+        ->assertSee(__('Cover Image'))
+        ->assertSee(__('Gallery'));
 
     assignInstitutionOwner($owner, $institution);
     $this->actingAs($owner);
@@ -849,8 +887,8 @@ it('exposes person media upload fields to public contributors for moderated subm
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
         ->assertSee(__('Profile avatar'))
-        ->assertSee(__('Cover Image'))
-        ->assertSee(__('Gallery'));
+        ->assertSee(__('Profile cover image'))
+        ->assertSee(__('Photo gallery'));
 });
 
 it('stages visitor person media on a pending contribution request and applies it on approval', function () {
@@ -1033,7 +1071,7 @@ it('replaces the original reference front cover when a visitor replacement is ap
         ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
-it('lets a visitor submit an event update without the normally required event fields', function () {
+it('requires the creation form language and topic on event updates', function () {
     $visitor = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -1062,10 +1100,9 @@ it('lets a visitor submit an event update without the normally required event fi
         ->set('data.description', 'Updated event description')
         ->set('data.proposer_note', 'Saya mahu kemaskini penerangan')
         ->call('submit')
-        ->assertHasNoFormErrors()
-        ->assertRedirect(route('contributions.index'));
+        ->assertHasFormErrors(['language_ids' => 'required', 'domain_tags' => 'required']);
 
-    expect(ContributionRequest::query()->where('entity_id', $event->getKey())->count())->toBe(1);
+    expect(ContributionRequest::query()->where('entity_id', $event->getKey())->count())->toBe(0);
 });
 
 it('accepts an untouched multi-day event schedule when a visitor updates other fields', function () {
@@ -1095,6 +1132,8 @@ it('accepts an untouched multi-day event schedule when a visitor updates other f
         ])
         ->set('data.description', 'Updated event description')
         ->set('data.proposer_note', 'Saya mahu kemaskini penerangan')
+        ->set('data.language_ids', [languageId('ms')])
+        ->set('data.domain_tags', [submitEventTerm('domain')->getKey()])
         ->call('submit')
         ->assertHasNoFormErrors()
         ->assertRedirect(route('contributions.index'));
@@ -1135,6 +1174,8 @@ it('keeps a prayer-relative event schedule unchanged when a visitor updates othe
         ])
         ->set('data.description', 'Updated event description')
         ->set('data.proposer_note', 'Saya mahu kemaskini penerangan')
+        ->set('data.language_ids', [languageId('ms')])
+        ->set('data.domain_tags', [submitEventTerm('domain')->getKey()])
         ->call('submit')
         ->assertHasNoFormErrors()
         ->assertRedirect(route('contributions.index'));
@@ -1285,8 +1326,9 @@ it('searches affiliated institutions without case-sensitive matching', function 
         ->and($institutionField->getSearchResults('masjid'))->toHaveKey($institution->getKey());
 });
 
-it('applies direct person affiliation edits for owner maintainers from the suggest update page', function () {
+it('applies direct person affiliation edits for administrators from the suggest update page', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $currentInstitution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -1351,6 +1393,7 @@ it('applies direct person affiliation edits for owner maintainers from the sugge
 
 it('syncs person titles from the public update form without exposing alternate names', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
@@ -1397,11 +1440,12 @@ it('syncs person titles from the public update form without exposing alternate n
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
-it('syncs person media collections when a maintainer updates them publicly', function () {
+it('syncs person media collections when an administrator updates them publicly', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
@@ -1435,7 +1479,7 @@ it('syncs person media collections when a maintainer updates them publicly', fun
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
-it('allows owner contributors to submit person media', function () {
+it('stages person media from owner contributors for review', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -1455,10 +1499,14 @@ it('allows owner contributors to submit person media', function () {
             'cover' => UploadedFile::fake()->image('public-cover.jpg', 1600, 900),
         ])
         ->call('submit')
-        ->assertHasNoErrors();
+        ->assertHasNoErrors()
+        ->assertRedirect(route('contributions.index'));
 
-    expect($person->fresh()->getMedia('cover'))->toHaveCount(1)
-        ->and($person->fresh()->getFirstMedia('cover'))->not->toBeNull();
+    $request = ContributionRequest::query()->where('entity_id', $person->getKey())->latest()->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->getMedia('pending_media'))->toHaveCount(1)
+        ->and($person->fresh()->getMedia('cover'))->toBeEmpty();
 });
 
 it('exposes Filament action handlers required by public contribution media uploads', function () {
@@ -1478,8 +1526,9 @@ it('exposes Filament action handlers required by public contribution media uploa
         ])->instance(), 'mountAction'))->toBeTrue();
 });
 
-it('applies direct institution edits for owner maintainers from the suggest update page', function () {
+it('applies direct institution edits for administrators from the suggest update page', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'name' => 'Masjid Lama',
         'status' => 'verified',
@@ -1504,6 +1553,7 @@ it('applies direct institution edits for owner maintainers from the suggest upda
 
 it('applies direct institution edits when an existing phone contact is present on the suggest update page', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'name' => 'Masjid Lama',
         'status' => 'verified',
@@ -1535,8 +1585,9 @@ it('applies direct institution edits when an existing phone contact is present o
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
-it('applies direct institution address edits for owner maintainers from the suggest update page', function () {
+it('applies direct institution address edits for administrators from the suggest update page', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -1558,11 +1609,12 @@ it('applies direct institution address edits for owner maintainers from the sugg
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
-it('applies direct institution cover edits for owner maintainers from the suggest update page', function () {
+it('applies direct institution cover edits for administrators from the suggest update page', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -1586,11 +1638,12 @@ it('applies direct institution cover edits for owner maintainers from the sugges
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
-it('applies direct institution gallery edits for owner maintainers from the suggest update page', function () {
+it('applies direct institution gallery edits for administrators from the suggest update page', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -1613,20 +1666,24 @@ it('applies direct institution gallery edits for owner maintainers from the sugg
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
-it('keeps approved events approved when maintainers apply sensitive ordinary edits from the suggest update page', function () {
+it('keeps approved events approved when administrators apply sensitive ordinary edits from the suggest update page', function () {
     config(['events.features.owner.enabled' => false]);
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
     $event = Event::factory()->for($institution)->create([
         'title' => 'Majlis Sensitif',
         'status' => 'approved',
+        'delivery_mode' => EventFormat::Physical,
         'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
         'starts_at' => now()->addDays(4)->setTime(20, 0),
         'ends_at' => now()->addDays(4)->setTime(21, 0),
     ]);
     $event->setPrimaryOrganizer($institution);
+    $languageId = languageId('ms');
+    $event->syncLanguages([$languageId]);
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -1639,6 +1696,8 @@ it('keeps approved events approved when maintainers apply sensitive ordinary edi
         ->set('data.prayer_time', EventPrayerTime::LainWaktu->value)
         ->set('data.custom_time', '20:00')
         ->set('data.end_time', '21:00')
+        ->assertSet('data.language_ids', [$languageId])
+        ->set('data.domain_tags', [submitEventTerm('domain')->getKey()])
         ->call('submit')
         ->assertHasNoErrors();
 
@@ -1676,7 +1735,7 @@ it('shows the richer event update controls for maintainers', function () {
         ->assertFormFieldVisible('gallery');
 });
 
-it('shows visible aspect ratio options for direct event media edits on the kemas kini page', function () {
+it('enforces the public submission aspect ratios on the event update page', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -1719,7 +1778,13 @@ it('shows visible aspect ratio options for direct event media edits on the kemas
                 ->toHaveCount(2);
 
             return true;
-        });
+        })
+        ->fillForm([
+            'cover' => UploadedFile::fake()->image('square-cover.jpg', 400, 400),
+            'poster' => UploadedFile::fake()->image('square-poster.jpg', 400, 400),
+        ])
+        ->call('submit')
+        ->assertHasErrors(['data.cover', 'data.poster']);
 });
 
 it('uses the canonical 16:9 cover ratio on the public speaker form', function () {
@@ -1803,6 +1868,7 @@ it('normalizes submit-style organizer and location changes on the event update p
 
     config(['events.features.owner.enabled' => false]);
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -1841,6 +1907,8 @@ it('normalizes submit-style organizer and location changes on the event update p
         ->set('data.location_same_as_institution', false)
         ->set('data.location_type', 'venue')
         ->set('data.location_venue_id', $venue->id)
+        ->set('data.language_ids', [languageId('ms')])
+        ->set('data.domain_tags', [submitEventTerm('domain')->getKey()])
         ->call('submit')
         ->assertHasNoErrors();
 
@@ -2390,6 +2458,7 @@ it('keeps person update suggestions on a region-only address form', function () 
 
 it('does not treat unchanged person update forms as changes when current address data exists', function () {
     $owner = User::factory()->create();
+    $owner->assignRole('admin');
     $country = ensureTestMalaysiaCountry();
     $person = Person::factory()->create([
         'status' => 'verified',

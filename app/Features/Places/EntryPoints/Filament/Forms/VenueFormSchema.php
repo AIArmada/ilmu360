@@ -68,7 +68,7 @@ class VenueFormSchema implements VenueQuickAdd
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('banner')
-                ->helperText(__('Primary venue photo — shown prominently on the venue profile page.')),
+                ->helperText(__('Primary venue photo, shown prominently on the venue profile page.')),
 
             SpatieMediaLibraryFileUpload::make('cover')
                 ->label(__('Cover Image'))

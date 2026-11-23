@@ -6,9 +6,6 @@ namespace App\Features\Institutions\Queries;
 
 use AIArmada\Addressing\Rules\ValidAreaAssignmentRoles;
 use AIArmada\Addressing\Support\ModelResolver;
-use AIArmada\Contacting\Enums\ContactMethodType;
-use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Institutions\Api\ContributionProjection;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
@@ -16,6 +13,7 @@ use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Platform\Models\MorphModelResolver;
+use App\Shared\Contributions\Support\ContributionContactRules;
 use BackedEnum;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -82,15 +80,7 @@ final readonly class InstitutionContributionProjection implements ContributionPr
             'address.google_cid' => ['nullable', 'string', 'max:255'],
             'address.google_entity_id' => ['nullable', 'string', 'max:255'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
-            'contactMethods' => ['sometimes', 'array'],
-            'contactMethods.*.type' => ['required_with:contactMethods.*.value', Rule::in($this->enumValues(ContactMethodType::class))],
-            'contactMethods.*.value' => ['required_with:contactMethods.*.type', 'string', 'max:255'],
-            'contactMethods.*.purpose' => ['nullable', Rule::in($this->enumValues(ContactPurpose::class))],
-            'contactMethods.*.is_public' => ['nullable', 'boolean'],
-            'social_media' => ['sometimes', 'array'],
-            'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::in($this->enumValues(SocialPlatform::class))],
-            'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
+            ...ContributionContactRules::rules(),
             'donation_channels' => ['sometimes', 'array'],
             'donation_channels.*.label' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.recipient' => ['required_with:donation_channels.*.method', 'string', 'max:255'],

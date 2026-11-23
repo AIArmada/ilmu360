@@ -6,11 +6,13 @@ use App\Features\Contributions\Api\ContributionEntityState;
 use App\Features\Contributions\Contracts\ContributionRequestGuard;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
+use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionEntityMetadata;
 use App\Features\Contributions\Support\ContributionModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Throwable;
 
 class SubmitContributionUpdateRequestAction
 {
@@ -23,17 +25,19 @@ class SubmitContributionUpdateRequestAction
 
     /**
      * @param  array<string, mixed>  $proposedData
-     * @return \App\Features\Contributions\Models\ContributionRequest
+     * @param  (callable(string): void)|null  $stageMedia
+     * @return ContributionRequest
      */
     public function handle(
         Model $entity,
         Model $proposer,
         array $proposedData,
         ?string $proposerNote = null,
+        ?callable $stageMedia = null,
     ): Model {
         $entityMetadata = ContributionEntityMetadata::for($entity);
 
-        return DB::transaction(function () use ($entity, $entityMetadata, $proposer, $proposedData, $proposerNote): Model {
+        return DB::transaction(function () use ($entity, $entityMetadata, $proposer, $proposedData, $proposerNote, $stageMedia): Model {
             $lockedEntity = $entity->newQuery()
                 ->whereKey($entity->getKey())
                 ->lockForUpdate()
@@ -49,7 +53,8 @@ class SubmitContributionUpdateRequestAction
                 $proposedData,
             );
 
-            return ContributionModel::query('contribution_request')->create([
+            /** @var ContributionRequest $request */
+            $request = ContributionModel::query('contribution_request')->create([
                 'type' => ContributionRequestType::Update,
                 'subject_type' => $entityMetadata['subject_type'],
                 'entity_type' => $entityMetadata['entity_type'],
@@ -60,6 +65,18 @@ class SubmitContributionUpdateRequestAction
                 'original_data' => $originalData,
                 'proposer_note' => $proposerNote,
             ]);
+
+            if ($stageMedia !== null) {
+                try {
+                    $stageMedia((string) $request->getKey());
+                } catch (Throwable $exception) {
+                    $request->clearMediaCollection('pending_media');
+
+                    throw $exception;
+                }
+            }
+
+            return $request;
         });
     }
 }

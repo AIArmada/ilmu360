@@ -35,24 +35,38 @@ it('preloads the title catalog once and reuses its shared cache on the person up
         'subjectId' => $person->slug,
     ]);
 
-    $queries = DB::getQueryLog();
-    $titleCatalogQueries = collect($queries)
+    $fields = collect($component->instance()->getForm('form')->getFlatFields());
+    $titleField = $fields->first(fn (mixed $field): bool => method_exists($field, 'getName') && $field->getName() === 'title_ids');
+    $languageField = $fields->first(fn (mixed $field): bool => method_exists($field, 'getName') && $field->getName() === 'language_ids');
+
+    expect($titleField)->not->toBeNull()
+        ->and($languageField)->not->toBeNull();
+
+    $titleField->getSearchResults('syeikh');
+    $languageField->getOptions();
+
+    $initialQueries = collect(DB::getQueryLog());
+    $titleCatalogQueries = $initialQueries
         ->filter(fn (array $query): bool => str_contains($query['query'], 'from "titles"'));
-    $languageCatalogQueries = collect($queries)
+    $languageCatalogQueries = $initialQueries
         ->filter(fn (array $query): bool => str_contains($query['query'], 'select "id", "code", "name", "native" from "languages"'));
-    $titleField = collect($component->instance()->getForm('form')->getFlatFields())
-        ->first(fn (mixed $field): bool => method_exists($field, 'getName') && $field->getName() === 'title_ids');
+
+    DB::flushQueryLog();
 
     expect($titleCatalogQueries)->toHaveCount(1)
         ->and($languageCatalogQueries)->toHaveCount(1)
-        ->and($titleField)->not->toBeNull()
-        ->and($titleField->getSearchResults('syeikh'))->not->toBeEmpty()
         ->and($titleField->getSearchResults('datuk'))->not->toBeEmpty()
         ->and($titleField->getSearchResults('dato'))->not->toBeEmpty();
+
+    $reuseQueries = collect(DB::getQueryLog());
+
+    expect($reuseQueries->filter(fn (array $query): bool => str_contains($query['query'], 'from "titles"')))->toHaveCount(0)
+        ->and($reuseQueries->filter(fn (array $query): bool => str_contains($query['query'], 'select "id", "code", "name", "native" from "languages"')))->toHaveCount(0);
 });
 
 it('hydrates and saves a selected title from the preloaded title catalog', function (): void {
     $user = User::factory()->create();
+    $user->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);

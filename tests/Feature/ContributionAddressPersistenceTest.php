@@ -3,6 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Support\AddressFormState;
+use AIArmada\Authz\Models\Role;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
@@ -87,7 +88,9 @@ it('preserves area assignments when direct updates omit them', function () {
 
     expect(AddressAreaAssignment::query()->where('address_id', $addressId)->count())->toBe(1);
 
-    app(ContributionDirectUpdates::class)->apply($institution->getMorphClass(), (string) $institution->getKey(), [
+    $user->assignRole(Role::findOrCreate('admin', 'web'));
+
+    app(ContributionDirectUpdates::class)->apply((string) $user->getKey(), $institution->getMorphClass(), (string) $institution->getKey(), [
         'address' => [
             'country_id' => (string) $geo['country']->getKey(),
             'line1' => 'Jalan Baharu',
@@ -117,7 +120,9 @@ it('clears area assignments when direct updates explicitly empty them', function
 
     $addressId = (string) $institution->primaryAddress()->getKey();
 
-    app(ContributionDirectUpdates::class)->apply($institution->getMorphClass(), (string) $institution->getKey(), [
+    $user->assignRole(Role::findOrCreate('admin', 'web'));
+
+    app(ContributionDirectUpdates::class)->apply((string) $user->getKey(), $institution->getMorphClass(), (string) $institution->getKey(), [
         'address' => [
             'country_id' => (string) $geo['country']->getKey(),
             'line1' => 'Jalan Kekal',
@@ -245,7 +250,9 @@ it('rejects a non-uuid country selection on a sparse address update', function (
         ],
     ], $user);
 
-    expect(fn () => app(ContributionDirectUpdates::class)->apply($institution->getMorphClass(), (string) $institution->getKey(), [
+    $user->assignRole(Role::findOrCreate('admin', 'web'));
+
+    expect(fn () => app(ContributionDirectUpdates::class)->apply((string) $user->getKey(), $institution->getMorphClass(), (string) $institution->getKey(), [
         'address' => [
             'country_id' => 123,
             'line1' => 'Jalan Baharu',

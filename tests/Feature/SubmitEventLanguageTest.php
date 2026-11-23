@@ -109,6 +109,7 @@ it('resolves current language identities after a catalog is bulk replaced', func
 
 it('prefills catalog language identities from event-scoped language codes', function (string $queryKey): void {
     $owner = User::factory()->create();
+    $owner->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
     $event = Event::factory()->create([
         'status' => 'draft',
         'created_by_type' => $owner->getMorphClass(),

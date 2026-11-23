@@ -6,9 +6,6 @@ namespace App\Features\Persons\Queries;
 
 use AIArmada\Addressing\Rules\ValidAreaAssignmentRoles;
 use AIArmada\Addressing\Support\ModelResolver;
-use AIArmada\Contacting\Enums\ContactMethodType;
-use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
@@ -16,6 +13,7 @@ use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Api\ContributionProjection;
 use App\Features\Persons\Models\Person;
 use App\Platform\Models\MorphModelResolver;
+use App\Shared\Contributions\Support\ContributionContactRules;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
@@ -36,9 +34,10 @@ final readonly class PersonContributionProjection implements ContributionProject
             'fields' => [
                 $this->field('name', 'string', maxLength: 255),
                 $this->field('family_name', 'string', maxLength: 100),
+                $this->field('middle_name', 'string', maxLength: 100),
                 $this->field('names', 'array'),
                 $this->field('title_assignments', 'array'),
-                $this->field('title_ids', 'array<int>'),
+                $this->field('title_ids', 'array<string>'),
                 $this->field('gender', 'string', allowedValues: $this->enumValues(Gender::class)),
                 $this->field('bio', 'rich_text'),
                 $this->field('language_ids', 'array<string>', catalog: route('api.client.catalogs.languages')),
@@ -76,6 +75,7 @@ final readonly class PersonContributionProjection implements ContributionProject
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'family_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'middle_name' => ['sometimes', 'nullable', 'string', 'max:100'],
             'names' => ['nullable', 'array'],
             'names.*.id' => ['nullable', 'uuid'],
             'names.*.name_type' => ['required', Rule::in($this->enumValues(PersonNameType::class))],
@@ -115,15 +115,7 @@ final readonly class PersonContributionProjection implements ContributionProject
             'address.waze_url' => ['prohibited'],
             'language_ids' => ['sometimes', 'array'],
             'language_ids.*' => ['string', 'exists:languages,id'],
-            'contactMethods' => ['sometimes', 'array'],
-            'contactMethods.*.type' => ['required_with:contactMethods.*.value', Rule::in($this->enumValues(ContactMethodType::class))],
-            'contactMethods.*.value' => ['required_with:contactMethods.*.type', 'string', 'max:255'],
-            'contactMethods.*.purpose' => ['nullable', Rule::in($this->enumValues(ContactPurpose::class))],
-            'contactMethods.*.is_public' => ['nullable', 'boolean'],
-            'social_media' => ['sometimes', 'array'],
-            'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::in($this->enumValues(SocialPlatform::class))],
-            'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
+            ...ContributionContactRules::rules(),
         ];
     }
 

@@ -45,9 +45,26 @@ class MediaFileNamer extends FileNamer
     }
 
     /**
+     * Generate the canonical immutable storage filename: {base}-{8-char-ulid}.{ext}.
+     */
+    public static function generateStorageFileName(?Model $model, string $extension, ?string $baseName = null): string
+    {
+        $base = filled($baseName)
+            ? (self::slugifyBaseName($baseName) ?? 'media')
+            : self::resolveBaseNameFromModel($model);
+
+        $suffix = strtolower(substr((string) Str::ulid(), -8));
+        $normalizedExtension = strtolower(ltrim(trim($extension), '.'));
+
+        return $normalizedExtension !== ''
+            ? "{$base}-{$suffix}.{$normalizedExtension}"
+            : "{$base}-{$suffix}";
+    }
+
+    /**
      * Resolve a human-readable, slug-safe base name from a model.
      *
-     * Used by AppServiceProvider's global SpatieMediaLibraryFileUpload configuration
+     * Used by AppServiceProvider, EloquentMediaCollectionSync, and media workflows
      * to generate slug-based filenames for all media uploads.
      */
     public static function resolveBaseNameFromModel(?Model $model): string
@@ -56,34 +73,35 @@ class MediaFileNamer extends FileNamer
             return 'media';
         }
 
-        // Try slug first (Event, Person, Venue, Institution, Series)
-        $slug = isset($model->slug) ? $model->getAttribute('slug') : null;
-        if (filled($slug) && is_scalar($slug)) {
-            return str((string) $slug)->slug()->toString();
+        // Priority: slug -> name -> title -> label
+        foreach (['slug', 'name', 'title', 'label'] as $attribute) {
+            if (! isset($model->{$attribute})) {
+                continue;
+            }
+
+            $slugged = self::slugifyBaseName($model->getAttribute($attribute));
+
+            if ($slugged !== null) {
+                return $slugged;
+            }
         }
 
-        // Try name (DonationChannel, models with a name attribute)
-        $name = isset($model->name) ? $model->getAttribute('name') : null;
-        if (filled($name) && is_scalar($name)) {
-            return str((string) $name)->slug()->limit(80, '')->toString();
-        }
-
-        // Try title (Reference)
-        $title = isset($model->title) ? $model->getAttribute('title') : null;
-        if (filled($title) && is_scalar($title)) {
-            return str((string) $title)->slug()->limit(80, '')->toString();
-        }
-
-        // Try label (DonationChannel fallback)
-        $label = isset($model->label) ? $model->getAttribute('label') : null;
-        if (filled($label) && is_scalar($label)) {
-            return str((string) $label)->slug()->limit(80, '')->toString();
-        }
-
-        // Fallback: use morph alias or class basename
+        // Fallback: use slugified morph alias or class basename
         $morphMap = array_flip(Relation::morphMap());
+        $fallback = $morphMap[$model::class] ?? class_basename($model);
 
-        return $morphMap[$model::class] ?? str(class_basename($model))->slug()->toString();
+        return self::slugifyBaseName($fallback) ?? 'media';
+    }
+
+    protected static function slugifyBaseName(mixed $value): ?string
+    {
+        if (! filled($value) || ! is_scalar($value)) {
+            return null;
+        }
+
+        $slugged = rtrim(str((string) $value)->slug()->limit(80, '')->toString(), '-');
+
+        return $slugged !== '' ? $slugged : null;
     }
 
     /**

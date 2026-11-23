@@ -15,6 +15,7 @@ use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Platform\Ui\Forms\Select as SelectWithCloseOnSelect;
 use App\Shared\Cache\SelectionCatalogCache;
+use Closure;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -25,7 +26,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class PersonContributionFormSchema implements PersonContributionSchema
 {
@@ -253,65 +257,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
 
         if ($includeMedia) {
             array_splice($components, 3, 0, [
-                Section::make(__('Profile Photo & Media'))
-                    ->description(__('All media fields are optional. If available, add a clear square profile photo first; cover and gallery images are optional.'))
-                    ->schema([
-                        SpatieMediaLibraryFileUpload::make('avatar')
-                            ->label(__('Profile avatar'))
-                            ->collection('avatar')
-                            ->image()
-                            ->imageEditor()
-                            ->circleCropper()
-                            ->avatar()
-                            ->conversion('thumb')
-                            ->helperText(__('Use a clear square profile image for the main avatar, at least 400x400px.')),
-                        SpatieMediaLibraryFileUpload::make('main')
-                            ->label(__('Main Photo'))
-                            ->collection('main')
-                            ->image()
-                            ->imageEditor()
-                            ->imageAspectRatio('1:1')
-                            ->automaticallyOpenImageEditorForAspectRatio()
-                            ->imageEditorAspectRatioOptions(['1:1'])
-                            ->automaticallyCropImagesToAspectRatio()
-                            ->responsiveImages()
-                            ->conversion('thumb')
-                            ->helperText(__('Primary speaker portrait for directory cards, using a 1:1 ratio.')),
-                        SpatieMediaLibraryFileUpload::make('profile')
-                            ->label(__('Profile Photo'))
-                            ->collection('profile')
-                            ->image()
-                            ->imageEditor()
-                            ->imageAspectRatio('3:4')
-                            ->automaticallyOpenImageEditorForAspectRatio()
-                            ->imageEditorAspectRatioOptions(['3:4'])
-                            ->automaticallyCropImagesToAspectRatio()
-                            ->responsiveImages()
-                            ->conversion('profile_thumb')
-                            ->helperText(__('Vertical speaker portrait for the profile page, using a 3:4 ratio.')),
-                        SpatieMediaLibraryFileUpload::make('cover')
-                            ->label(__('Profile cover image'))
-                            ->collection('cover')
-                            ->image()
-                            ->imageEditor()
-                            ->imageAspectRatio('16:9')
-                            ->automaticallyOpenImageEditorForAspectRatio()
-                            ->imageEditorAspectRatioOptions(['16:9', null])
-                            ->automaticallyCropImagesToAspectRatio()
-                            ->responsiveImages()
-                            ->conversion('banner')
-                            ->helperText(__('Wide cover image for the speaker profile, using a 16:9 ratio.')),
-                        SpatieMediaLibraryFileUpload::make('gallery')
-                            ->label(__('Photo gallery'))
-                            ->collection('gallery')
-                            ->multiple()
-                            ->reorderable()
-                            ->image()
-                            ->responsiveImages()
-                            ->conversion('gallery_thumb')
-                            ->helperText(__('Additional photos related to the speaker.')),
-                    ])
-                    ->columns(2),
+                self::mediaSection(),
             ]);
         }
 
@@ -361,6 +307,123 @@ class PersonContributionFormSchema implements PersonContributionSchema
         ]);
 
         return $components;
+    }
+
+    /**
+     * @param  list<string>|null  $mediaFields
+     * @param  (Closure(SpatieMediaLibraryFileUpload): void)|null  $configureMedia
+     */
+    public static function publicTabs(
+        string $id = 'person-contribution-tabs',
+        bool $requireCountryField = true,
+        ?array $mediaFields = null,
+        ?Closure $configureMedia = null,
+    ): Tabs {
+        [$core, $additional, $affiliations, $location, $contact, $social] = self::components(
+            includeMedia: false,
+            addressStatePath: 'address',
+            useTitleMultiSelect: true,
+            splitProfileSections: true,
+            requireCountryField: $requireCountryField,
+            includeWazeUrlField: false,
+        );
+
+        $tabs = [
+            Tab::make(__('Maklumat Utama'))->icon(Heroicon::User)->schema([$core]),
+            Tab::make(__('Maklumat Tambahan'))->icon(Heroicon::AcademicCap)->schema([$additional]),
+            Tab::make(__('Afiliasi'))->icon(Heroicon::BuildingOffice)->schema([$affiliations]),
+            Tab::make(__('Lokasi'))->icon(Heroicon::MapPin)->schema([$location]),
+            Tab::make(__('Hubungan'))->icon(Heroicon::ChatBubbleLeftRight)->schema([$contact, $social]),
+        ];
+
+        if ($mediaFields !== []) {
+            $tabs[] = Tab::make(__('Media'))->icon(Heroicon::Photo)
+                ->schema([self::mediaSection($mediaFields, $configureMedia)]);
+        }
+
+        return Tabs::make($id)->id($id)->columnSpanFull()->tabs($tabs);
+    }
+
+    /**
+     * @param  list<string>|null  $mediaFields
+     * @param  (Closure(SpatieMediaLibraryFileUpload): void)|null  $configureMedia
+     */
+    private static function mediaSection(?array $mediaFields = null, ?Closure $configureMedia = null): Section
+    {
+        $fields = [
+            SpatieMediaLibraryFileUpload::make('avatar')
+                ->label(__('Profile avatar'))
+                ->collection('avatar')
+                ->image()
+                ->imageEditor()
+                ->circleCropper()
+                ->avatar()
+                ->conversion('thumb')
+                ->helperText(__('Use a clear square profile image for the main avatar, at least 400x400px.')),
+            SpatieMediaLibraryFileUpload::make('main')
+                ->label(__('Main Photo'))
+                ->collection('main')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('1:1')
+                ->rules(['dimensions:ratio=1/1'])
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['1:1'])
+                ->automaticallyCropImagesToAspectRatio()
+                ->responsiveImages()
+                ->conversion('thumb')
+                ->helperText(__('Primary speaker portrait for directory cards, using a 1:1 ratio.')),
+            SpatieMediaLibraryFileUpload::make('profile')
+                ->label(__('Profile Photo'))
+                ->collection('profile')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('3:4')
+                ->rules(['dimensions:ratio=3/4'])
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['3:4'])
+                ->automaticallyCropImagesToAspectRatio()
+                ->responsiveImages()
+                ->conversion('profile_thumb')
+                ->helperText(__('Vertical speaker portrait for the profile page, using a 3:4 ratio.')),
+            SpatieMediaLibraryFileUpload::make('cover')
+                ->label(__('Profile cover image'))
+                ->collection('cover')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('16:9')
+                ->rules(['dimensions:ratio=16/9'])
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['16:9', null])
+                ->automaticallyCropImagesToAspectRatio()
+                ->responsiveImages()
+                ->conversion('banner')
+                ->helperText(__('Wide cover image for the speaker profile, using a 16:9 ratio.')),
+            SpatieMediaLibraryFileUpload::make('gallery')
+                ->label(__('Photo gallery'))
+                ->collection('gallery')
+                ->multiple()
+                ->reorderable()
+                ->image()
+                ->responsiveImages()
+                ->conversion('gallery_thumb')
+                ->helperText(__('Additional photos related to the speaker.')),
+        ];
+
+        if ($mediaFields !== null) {
+            $fields = array_filter($fields, fn (SpatieMediaLibraryFileUpload $field): bool => in_array($field->getName(), $mediaFields, true));
+        }
+
+        if ($configureMedia !== null) {
+            foreach ($fields as $field) {
+                $configureMedia($field);
+            }
+        }
+
+        return Section::make(__('Profile Photo & Media'))
+            ->description(__('All media fields are optional. If available, add a clear square profile photo first; cover and gallery images are optional.'))
+            ->schema(array_values($fields))
+            ->columns(['default' => 1, 'sm' => 2]);
     }
 
     /**

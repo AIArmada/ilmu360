@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Authz\Models\Role;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
@@ -700,6 +701,7 @@ it('keeps Media after Address on the institution update page when places is disa
 
 it('submits an institution name update without Maps re-verification', function () {
     $owner = User::factory()->create();
+    $owner->assignRole(Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'name' => 'Masjid Lama',
@@ -832,6 +834,7 @@ it('verifies a Maps reselect and persists provider identifiers on the institutio
     ]));
 
     $owner = User::factory()->create();
+    $owner->assignRole(Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'name' => 'Masjid Reselect',
@@ -983,6 +986,7 @@ it('stores donation channels when submitting a new institution', function () {
 
 it('applies donation channel additions on direct institution edits', function () {
     $owner = User::factory()->create();
+    $owner->assignRole(Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create(['status' => 'verified']);
     giveInstitutionStoredMapsPlace($institution);
     withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
@@ -1012,6 +1016,7 @@ it('applies donation channel additions on direct institution edits', function ()
 
 it('preserves verified donation channels on unrelated institution edits', function () {
     $owner = User::factory()->create();
+    $owner->assignRole(Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create(['status' => 'verified', 'name' => 'Masjid Kekal']);
     giveInstitutionStoredMapsPlace($institution);
     withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
@@ -1328,6 +1333,7 @@ it('attaches donation QR uploads on direct institution edits', function () {
     config()->set('media-library.disk_name', 'public');
 
     $owner = User::factory()->create();
+    $owner->assignRole(Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create(['status' => 'verified']);
     giveInstitutionStoredMapsPlace($institution);
     withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
@@ -1402,7 +1408,7 @@ it('stages visitor donation QR uploads and attaches them on approval', function 
 
 // --- Joint audit hardening: visitor media policy, QR atomicity, sync guards ---
 
-it('hides the institution media section from visitors on the update page', function () {
+it('shows the institution media section to visitors and maintainers on the update page', function () {
     $owner = User::factory()->create();
     $visitor = User::factory()->create();
     $institution = Institution::factory()->create(['status' => 'verified']);
@@ -1414,9 +1420,9 @@ it('hides the institution media section from visitors on the update page', funct
             'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
             'subjectId' => $institution->slug,
         ])
-        ->assertDontSee(__('Logo'))
-        ->assertDontSee(__('Cover Image'))
-        ->assertDontSee(__('Gallery'));
+        ->assertSee(__('Logo'))
+        ->assertSee(__('Cover Image'))
+        ->assertSee(__('Gallery'));
 
     Livewire::actingAs($owner)
         ->test(SuggestUpdate::class, [
@@ -1500,6 +1506,7 @@ it('requires an e-wallet handle or QR payload when submitting donations', functi
 
 it('stores an ewallet channel identified only by its QR payload', function () {
     $owner = User::factory()->create();
+    $owner->assignRole(Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create(['status' => 'verified']);
     giveInstitutionStoredMapsPlace($institution);
     withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
@@ -1529,6 +1536,7 @@ it('deletes the donation channel and its QR media when the row is removed', func
     config()->set('media-library.disk_name', 'public');
 
     $owner = User::factory()->create();
+    $owner->assignRole(Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create(['status' => 'verified']);
     giveInstitutionStoredMapsPlace($institution);
     withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));

@@ -7,11 +7,13 @@ namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Support\PersonBioContent;
 use App\Platform\Ui\Forms\AddressFields;
+use App\Shared\Contributions\Support\RedirectsDirectoryEditsForReview;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
@@ -21,8 +23,23 @@ use Illuminate\Support\Arr;
 
 class EditPerson extends EditRecord
 {
+    use RedirectsDirectoryEditsForReview;
+
     #[\Override]
     protected static string $resource = PersonResource::class;
+
+    #[\Override]
+    protected function authorizeAccess(): void
+    {
+        $this->requireDirectoryPublishingPermission();
+
+        parent::authorizeAccess();
+    }
+
+    protected function contributionSubjectRouteSegment(): string
+    {
+        return ContributionSubjectType::Person->publicRouteSegment();
+    }
 
     public function boot(): void
     {
@@ -33,7 +50,9 @@ class EditPerson extends EditRecord
     public function mount(int|string $record): void
     {
         OwnerContext::withOwner(null, function () use ($record): void {
-            parent::mount($record);
+            if (! $this->redirectDirectoryEditForReview($record)) {
+                parent::mount($record);
+            }
         });
     }
 

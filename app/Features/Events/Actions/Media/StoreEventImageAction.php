@@ -6,6 +6,7 @@ namespace App\Features\Events\Actions\Media;
 
 use App\Features\Events\Api\UploadEventImageInput;
 use App\Features\Events\Models\Event;
+use App\Models\User;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\StagedUploadFactory;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +25,9 @@ final readonly class StoreEventImageAction
      */
     public function handle(UploadEventImageInput $input): array
     {
+        $actor = User::query()->find($input->actorId);
+        abort_unless($actor instanceof User && $actor->canPublishDirectoryUpdates(), 403);
+
         $event = Event::query()->findOrFail($input->eventId);
         try {
             $file = $this->stagedUploads->toUploadedFile($input->file);

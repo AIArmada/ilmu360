@@ -59,12 +59,14 @@ final readonly class ContributionRequestLifecycleService implements Contribution
         string $proposerId,
         array $proposedData,
         ?string $proposerNote = null,
+        ?callable $stageMedia = null,
     ): string {
         $request = $this->submitUpdateRequest->handle(
             $this->requiredEntity($entityType, $entityId),
             $this->account($proposerId),
             $proposedData,
             $proposerNote,
+            $stageMedia,
         );
 
         return (string) $request->getKey();

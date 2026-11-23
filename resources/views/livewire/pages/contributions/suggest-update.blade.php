@@ -1,6 +1,7 @@
 @php
     $pendingUpdateRequest = $this->pendingUpdateRequest;
     $canDirectEdit = $this->canDirectEdit;
+    $isSpeaker = $this->subjectType === \App\Features\Contributions\Api\Enums\ContributionSubjectType::Person->value;
 @endphp
 
 @section('title', ($canDirectEdit ? __('Update Record') : __('Suggest Update')) . ' - ' . config('app.name'))
@@ -8,6 +9,10 @@
 @include('partials.filament-assets', [
     'scripts' => ['filament/support', 'filament/schemas', 'filament/forms', 'filament/actions'],
 ])
+
+@if ($isSpeaker)
+    @include('livewire.pages.contributions.person-form-styles')
+@endif
 
 <div class="bg-white pb-0">
     <div class="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-4 lg:px-8 lg:py-6">
@@ -27,7 +32,7 @@
         </header>
 
         @if(! $pendingUpdateRequest)
-            <form wire:submit="submit" class="space-y-2 sm:space-y-3">
+            <form wire:submit="submit" @class(['space-y-2 sm:space-y-3', 'mi-submit-person-form' => $isSpeaker])>
                 {{ $this->form }}
 
                 @error('data')

@@ -28,6 +28,7 @@ use App\Features\Prayer\Api\RamadanGate;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Platform\Ui\Forms\Select;
 use App\Shared\Cache\SelectionCatalogCache;
+use DateTimeZone;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Radio;
@@ -79,7 +80,7 @@ class EventContributionFormSchema
     /**
      * @return array<int, Component>
      */
-    public static function components(?string $fixedTimezone = null, bool $enforceRequired = true, ?Event $event = null): array
+    public static function components(bool $enforceRequired = true, ?Event $event = null): array
     {
         return [
             Section::make(__('Maklumat Majlis'))
@@ -101,7 +102,12 @@ class EventContributionFormSchema
                     RichEditor::make('description')
                         ->label(__('Keterangan'))
                         ->json()
+                        ->maxLength(5000)
                         ->columnSpanFull(),
+                ])
+                ->columns(['default' => 1, 'sm' => 2]),
+            Section::make(__('Tarikh & Masa'))
+                ->schema([
                     DatePicker::make('event_date')
                         ->label(__('Tarikh'))
                         ->native()
@@ -147,28 +153,17 @@ class EventContributionFormSchema
                         ->native()
                         ->seconds(false)
                         ->minutesStep(5),
-                    self::timezoneField($fixedTimezone, $enforceRequired),
-                    Select::make('event_format')
-                        ->label(__('Format Majlis'))
-                        ->options(EventFormat::class)
-                        ->live()
-                        ->required($enforceRequired),
-                    Select::make('visibility')
-                        ->label(__('Keterlihatan'))
-                        ->options(EventVisibility::class)
-                        ->required($enforceRequired),
-                    TextInput::make('event_url')
-                        ->label(__('Pautan Majlis'))
-                        ->url()
-                        ->maxLength(255),
-                    TextInput::make('live_url')
-                        ->label(__('Pautan Siaran Langsung'))
-                        ->url()
-                        ->maxLength(255),
-                    TextInput::make('recording_url')
-                        ->label(__('Pautan Rakaman'))
-                        ->url()
-                        ->maxLength(255),
+                    Select::make('timezone')
+                        ->label(__('Timezone'))
+                        ->options(static function (): array {
+                            $identifiers = DateTimeZone::listIdentifiers(DateTimeZone::ALL_WITH_BC);
+
+                            return array_combine($identifiers, $identifiers);
+                        })
+                        ->searchable()
+                        ->rules(['timezone'])
+                        ->required($enforceRequired)
+                        ->live(),
                 ])
                 ->columns(['default' => 1, 'sm' => 2]),
             Section::make(__('Audience & Language'))
@@ -215,6 +210,7 @@ class EventContributionFormSchema
                         ->placeholder(__('Pilih bahasa'))
                         ->options(fn (): array => self::languageOptions())
                         ->multiple()
+                        ->required($enforceRequired)
                         ->searchable()
                         ->preload()
                         ->columnSpanFull(),
@@ -223,10 +219,11 @@ class EventContributionFormSchema
             Section::make(__('Kategori & Rujukan'))
                 ->schema([
                     Select::make('domain_tags')
-                        ->label(__('Kategori'))
-                        ->placeholder(__('Pilih kategori…'))
+                        ->label(__('Topik / bidang'))
+                        ->placeholder(__('Pilih topik…'))
                         ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Domain))
                         ->multiple()
+                        ->required($enforceRequired)
                         ->searchable()
                         ->preload()
                         ->closeOnSelect(),
@@ -282,6 +279,43 @@ class EventContributionFormSchema
                 ->columns(['default' => 1, 'sm' => 2]),
             Section::make(__('Organizer & Location'))
                 ->schema([
+                    Select::make('event_format')
+                        ->label(__('Format Majlis'))
+                        ->options(EventFormat::class)
+                        ->disableOptionWhen(function (string $value, Get $get) use ($event): bool {
+                            $storedFormat = $event?->delivery_mode;
+                            $storedFormat = $storedFormat instanceof \BackedEnum ? $storedFormat->value : $storedFormat;
+
+                            if ($value === EventFormat::Physical->value
+                                || (is_string($storedFormat) && $storedFormat !== '' && $value === $storedFormat)) {
+                                return false;
+                            }
+
+                            return app(EventCategoryPolicyResolver::class)->requiresPhysicalDelivery(
+                                app(EventCategoryCatalog::class)->validateTermIds((array) $get('event_category_ids')),
+                            );
+                        })
+                        ->live()
+                        ->required($enforceRequired),
+                    Select::make('visibility')
+                        ->label(__('Keterlihatan'))
+                        ->options(EventVisibility::class)
+                        ->required($enforceRequired),
+                    TextInput::make('event_url')
+                        ->label(__('Pautan Majlis'))
+                        ->url()
+                        ->rules(['url:http,https'])
+                        ->maxLength(255),
+                    TextInput::make('live_url')
+                        ->label(__('Pautan Siaran Langsung'))
+                        ->url()
+                        ->rules(['url:http,https'])
+                        ->maxLength(255),
+                    TextInput::make('recording_url')
+                        ->label(__('Pautan Rakaman'))
+                        ->url()
+                        ->rules(['url:http,https'])
+                        ->maxLength(255),
                     Section::make(__('Penganjur'))
                         ->schema([
                             Hidden::make('primary_organizer_id'),
@@ -590,24 +624,6 @@ class EventContributionFormSchema
                 ])
                 ->columns(1),
         ];
-    }
-
-    private static function timezoneField(?string $fixedTimezone, bool $enforceRequired = true): Component
-    {
-        if (! is_string($fixedTimezone) || $fixedTimezone === '') {
-            return TextInput::make('timezone')
-                ->label(__('Timezone'))
-                ->required($enforceRequired)
-                ->maxLength(64);
-        }
-
-        return Hidden::make('timezone')
-            ->default($fixedTimezone)
-            ->required($enforceRequired)
-            ->afterStateHydrated(static function (Hidden $component) use ($fixedTimezone): void {
-                $component->state($fixedTimezone);
-            })
-            ->dehydrateStateUsing(static fn (): string => $fixedTimezone);
     }
 
     /**

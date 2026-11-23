@@ -10,7 +10,6 @@ use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -54,9 +53,7 @@ final readonly class DonationQrMediaService implements DonationQrWorkflow
             $extension = 'png';
         }
 
-        $suffix = strtolower(substr((string) Str::ulid(), -8));
-
-        return "{$baseName}-{$suffix}.{$extension}";
+        return MediaFileNamer::generateStorageFileName(null, $extension, $baseName);
     }
 
     /** @param array<int|string, array<string, mixed>> $submittedRows
@@ -87,10 +84,12 @@ final readonly class DonationQrMediaService implements DonationQrWorkflow
                 continue;
             }
 
-            $channel->addMediaFromString($file->contents)
+            $media = $channel->addMediaFromString($file->contents)
                 ->usingFileName($this->safeDonationQrFileName($file->guessedExtension, MediaFileNamer::resolveBaseNameFromModel($channel)))
                 ->usingName(MediaFileNamer::resolveDisplayNameFromModel($channel, 'qr', $file->originalFileName))
                 ->toMediaCollection('qr');
+
+            $this->mediaCollectionSync->removeFilesOnRollback($media);
         }
 
         if ($failed !== []) {
@@ -108,9 +107,24 @@ final readonly class DonationQrMediaService implements DonationQrWorkflow
             : null;
 
         if ($channel instanceof HasMedia) {
-            $channel->addMediaFromDisk($staged->getPathRelativeToRoot(), $staged->disk)
-                ->usingFileName($staged->file_name)
+            $originalFileName = is_string($staged->getCustomProperty('original_file_name'))
+                ? $staged->getCustomProperty('original_file_name')
+                : $staged->file_name;
+
+            $media = $channel->addMediaFromDisk($staged->getPathRelativeToRoot(), $staged->disk)
+                ->preservingOriginal()
+                ->usingFileName($this->safeDonationQrFileName(
+                    pathinfo($staged->file_name, PATHINFO_EXTENSION),
+                    MediaFileNamer::resolveBaseNameFromModel($channel),
+                ))
+                ->usingName(MediaFileNamer::resolveDisplayNameFromModel($channel, 'qr', $originalFileName))
+                ->withCustomProperties([
+                    'collection' => 'qr',
+                    'original_file_name' => $originalFileName,
+                ])
                 ->toMediaCollection('qr');
+
+            $this->mediaCollectionSync->removeFilesOnRollback($media);
         }
 
         $this->mediaCollectionSync->deleteMedia($staged);

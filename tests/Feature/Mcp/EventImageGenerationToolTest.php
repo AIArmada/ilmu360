@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
+use AIArmada\CommerceSupport\Support\PublicHttpUrlGuard;
 use AIArmada\Events\Enums\ScheduleKind;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;
@@ -94,34 +95,25 @@ it('uploads and stores an admin 16:9 event cover image via base64 descriptor', f
             ->etc());
 });
 
-it('uploads and stores a member 3:4 event poster only for accessible events', function (): void {
+it('directs members to contribution review for accessible event image updates', function (): void {
     [$member, $institution] = eventImageGenerationMemberContext();
     [$event] = eventImageGenerationEventFixture($institution);
 
-    $imageFixture = fakeGeneratedImageUpload('generated-poster.jpg', 800, 1000);
-    $contents = file_get_contents($imageFixture->getRealPath());
-    expect($contents)->toBeString();
+    $originalCover = $event->getFirstMedia('cover')?->getKey();
+    $originalPoster = $event->getFirstMedia('poster')?->getKey();
 
-    MemberServer::actingAs($member)
-        ->tool(MemberUploadEventPosterImageTool::class, [
-            'event_key' => $event->slug,
-            'image' => [
-                'filename' => 'generated-poster.jpg',
-                'content_base64' => base64_encode((string) $contents),
-                'mime_type' => 'image/jpeg',
-            ],
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('event.route_key', $event->getRouteKey())
-            ->where('collection', 'poster')
-            ->has('media.id')
-            ->etc());
+    foreach ([MemberUploadEventCoverImageTool::class, MemberUploadEventPosterImageTool::class] as $tool) {
+        MemberServer::actingAs($member)
+            ->tool($tool, [
+                'event_key' => $event->slug,
+                'image' => ['filename' => 'image.jpg', 'content_base64' => 'dGVzdA=='],
+            ])
+            ->assertSee('Submit the image for review at')
+            ->assertSee(route('contributions.suggest-update', ['subjectType' => 'majlis', 'subjectId' => $event->getKey()]));
+    }
 
-    $posterMedia = $event->fresh()->getFirstMedia('poster');
-
-    expect($posterMedia)->toBeInstanceOf(Media::class)
-        ->and((string) $posterMedia->collection_name)->toBe('poster');
+    expect($event->fresh()->getFirstMedia('cover')?->getKey())->toBe($originalCover)
+        ->and($event->fresh()->getFirstMedia('poster')?->getKey())->toBe($originalPoster);
 
     MemberServer::actingAs($member)
         ->tool(MemberGetRecordActionsTool::class, [
@@ -153,6 +145,22 @@ it('uploads and stores a member 3:4 event poster only for accessible events', fu
             'image' => ['filename' => 'x.jpg', 'content_base64' => 'dGVzdA==', 'mime_type' => 'image/jpeg'],
         ])
         ->assertSee('Resource not found.');
+});
+
+it('directs moderators with admin MCP access to contribution review for event images', function (): void {
+    $moderator = User::factory()->create();
+    $moderator->assignRole(Role::findOrCreate('moderator', 'web'));
+    [$event] = eventImageGenerationEventFixture();
+    $original = $event->getFirstMedia('cover')?->getKey();
+
+    AdminServer::actingAs($moderator)
+        ->tool(AdminUploadEventCoverImageTool::class, [
+            'event_key' => $event->slug,
+            'image' => ['filename' => 'cover.jpg', 'content_base64' => 'dGVzdA=='],
+        ])
+        ->assertSee('Submit the image for review at');
+
+    expect($event->fresh()->getFirstMedia('cover')?->getKey())->toBe($original);
 });
 
 it('rejects a JSON-encoded string image descriptor', function (): void {
@@ -189,6 +197,10 @@ it('uploads and stores an admin event cover via content_url descriptor', functio
             'Content-Type' => 'image/jpeg',
         ]),
     ]);
+
+    $this->app->instance(PublicHttpUrlGuard::class, new PublicHttpUrlGuard(
+        fn (string $host): array => $host === 'cdn.example.com' ? ['1.1.1.1'] : [],
+    ));
 
     AdminServer::actingAs($admin)
         ->tool(AdminUploadEventCoverImageTool::class, [

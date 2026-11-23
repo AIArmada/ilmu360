@@ -17,6 +17,7 @@ use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\EditEvent;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\ListEvents;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\ViewEvent;
 use App\Features\Events\Models\Event;
+use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -205,6 +206,7 @@ final class EventResource extends PackageEventResource
             ViewAction::make(),
             EditAction::make(),
             Action::make('publish')
+                ->authorize(static fn (): bool => self::canPublishDirectoryUpdates())
                 ->label('Publish')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
@@ -214,6 +216,7 @@ final class EventResource extends PackageEventResource
                 ->visible(fn (?Event $record): bool => $record instanceof Event && in_array((string) $record->status, ['draft', 'pending', 'pending_review', 'needs_changes'], true))
                 ->requiresConfirmation(),
             Action::make('archive')
+                ->authorize(static fn (): bool => self::canPublishDirectoryUpdates())
                 ->label('Archive')
                 ->icon('heroicon-o-archive-box')
                 ->color('warning')
@@ -223,6 +226,7 @@ final class EventResource extends PackageEventResource
                 ->visible(fn (?Event $record): bool => $record instanceof Event && (string) $record->status === 'approved')
                 ->requiresConfirmation(),
             Action::make('cancel')
+                ->authorize(static fn (): bool => self::canPublishDirectoryUpdates())
                 ->label('Cancel')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
@@ -247,6 +251,13 @@ final class EventResource extends PackageEventResource
                 })
                 ->requiresConfirmation(),
         ];
+    }
+
+    private static function canPublishDirectoryUpdates(): bool
+    {
+        $actor = auth()->user();
+
+        return $actor instanceof User && $actor->canPublishDirectoryUpdates();
     }
 
     public static function getPages(): array

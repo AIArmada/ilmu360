@@ -154,23 +154,28 @@ final class SubmitEventOptionsProvider
     }
 
     /**
+     * @param  list<string>  $domainIds
      * @return array<string, string>
      */
-    public function taxonomyTermOptionsForDomain(EventTaxonomyCode $type, ?string $domainId): array
+    public function taxonomyTermOptionsForDomains(EventTaxonomyCode $type, array $domainIds, ?string $search = null): array
     {
         $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->value('id');
 
-        if ($taxonomyId === null || $domainId === null) {
+        if ($taxonomyId === null || ($domainIds === [] && $search === null)) {
             return [];
         }
 
         return EventTerm::query()
             ->where('event_taxonomy_id', $taxonomyId)
             ->where('is_active', true)
-            ->where(function (Builder $query) use ($domainId): void {
-                $query->whereJsonContains('metadata->domain_ids', $domainId)
-                    ->orWhereNull('metadata->domain_ids');
-            })
+            ->when($domainIds !== [], static fn (Builder $query): Builder => $query->where(static function (Builder $query) use ($domainIds): void {
+                $query->whereNull('metadata->domain_ids');
+
+                foreach ($domainIds as $domainId) {
+                    $query->orWhereJsonContains('metadata->domain_ids', $domainId);
+                }
+            }))
+            ->when($search !== null, static fn (Builder $query): Builder => $query->whereLike('name', "%{$search}%")->limit(20))
             ->orderBy('sort_order')
             ->orderBy('name')
             ->pluck('name', 'id')

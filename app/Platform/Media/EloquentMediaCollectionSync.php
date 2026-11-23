@@ -7,12 +7,53 @@ namespace App\Platform\Media;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\Filesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Throwable;
 
 final class EloquentMediaCollectionSync implements MediaCollectionSync
 {
+    public function __construct(private readonly Filesystem $filesystem) {}
+
+    public function cleanUpFailedWrites(HasMedia $model, Closure $write): void
+    {
+        $mediaBefore = $model->media()->pluck('id')->all();
+
+        try {
+            $write();
+        } catch (Throwable $exception) {
+            try {
+                foreach ($model->media()->whereNotIn('id', $mediaBefore)->get() as $media) {
+                    if ($media instanceof Media) {
+                        $this->removeFiles($media);
+                    }
+                }
+            } catch (Throwable $cleanupException) {
+                report($cleanupException);
+            }
+
+            throw $exception;
+        }
+
+        foreach ($model->media()->whereNotIn('id', $mediaBefore)->get() as $media) {
+            if ($media instanceof Media) {
+                $this->removeFilesOnRollback($media);
+            }
+        }
+    }
+
+    public function removeFilesOnRollback(Media $media): void
+    {
+        $connection = $media->getConnection();
+
+        if ($connection->transactionLevel() > 0) {
+            $connection->afterRollBack(function () use ($media): void {
+                $this->removeFiles($media);
+            });
+        }
+    }
+
     public function deleteMedia(Media $media): void
     {
         $media->delete();
@@ -42,9 +83,10 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
         ?string $name = null,
         array $customProperties = [],
     ): Media {
-        $model->clearMediaCollection($collection);
+        $media = $this->addMedia($model, $file, $collection, $name, $customProperties);
+        $model->clearMediaCollectionExcept($collection, [$media]);
 
-        return $this->addMedia($model, $file, $collection, $name, $customProperties);
+        return $media;
     }
 
     /**
@@ -52,17 +94,35 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
      */
     public function syncMultiple(HasMedia $model, ?array $files, string $collection, bool $replace = false): void
     {
-        if ($replace) {
-            $model->clearMediaCollection($collection);
-        }
+        $added = [];
 
-        foreach ($files ?? [] as $file) {
-            if (! $file instanceof UploadedFile) {
-                continue;
+        try {
+            foreach ($files ?? [] as $file) {
+                if (! $file instanceof UploadedFile) {
+                    continue;
+                }
+
+                $added[] = $this->addMedia($model, $file, $collection);
+            }
+        } catch (Throwable $exception) {
+            foreach ($added as $media) {
+                $this->deleteMedia($media);
             }
 
-            $this->addMedia($model, $file, $collection);
+            throw $exception;
         }
+
+        if (! $replace) {
+            return;
+        }
+
+        if ($added === []) {
+            $model->clearMediaCollection($collection);
+
+            return;
+        }
+
+        $model->clearMediaCollectionExcept($collection, $added);
     }
 
     /**
@@ -78,10 +138,10 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
         array $customProperties = [],
     ): void {
         $modelRecord = $model instanceof Model ? $model : null;
-        $fileName ??= basename($path);
         $originalFileName = is_string($customProperties['original_file_name'] ?? null)
             ? $customProperties['original_file_name']
-            : $fileName;
+            : ($fileName ?? basename($path));
+        $fileName ??= MediaFileNamer::generateStorageFileName($modelRecord, pathinfo($path, PATHINFO_EXTENSION));
         $name ??= MediaFileNamer::resolveDisplayNameFromModel($modelRecord, $collection, $originalFileName);
 
         $model
@@ -103,6 +163,8 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
      */
     public function applyStagedMedia(HasMedia $model, iterable $stagedMedia, ?Closure $specialHandler = null): void
     {
+        $copies = [];
+
         foreach ($stagedMedia as $media) {
             if ($specialHandler instanceof Closure && $specialHandler($media) === true) {
                 continue;
@@ -111,16 +173,27 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
             $field = (string) $media->getCustomProperty('contribution_field', 'cover');
             $isSingle = (bool) $media->getCustomProperty('is_single', true);
 
-            if ($isSingle) {
-                $model->clearMediaCollection($field);
-            }
-
-            $model->addMediaFromDisk($media->getPathRelativeToRoot(), $media->disk)
+            $replacement = $model->addMediaFromDisk($media->getPathRelativeToRoot(), $media->disk)
+                ->preservingOriginal()
                 ->usingFileName($media->file_name)
                 ->toMediaCollection($field);
 
-            $this->deleteMedia($media);
+            $copies[] = [$media, $field, $isSingle, $replacement];
         }
+
+        $cleanup = function () use ($model, $copies): void {
+            foreach ($copies as [$media, $field, $isSingle, $replacement]) {
+                if ($isSingle) {
+                    $model->getMedia($field)
+                        ->filter(fn (Media $existing): bool => $existing->getKey() !== $replacement->getKey())
+                        ->each->delete();
+                }
+
+                $media->delete();
+            }
+        };
+
+        $cleanup();
     }
 
     /** @param array<string, mixed> $customProperties */
@@ -132,13 +205,8 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
         array $customProperties = [],
     ): Media {
         $modelRecord = $model instanceof Model ? $model : null;
-        $extension = strtolower((string) ($file->extension() ?: $file->getClientOriginalExtension()));
-        $suffix = strtolower(substr((string) Str::ulid(), -8));
-        $fileName = MediaFileNamer::resolveBaseNameFromModel($modelRecord)."-{$suffix}";
-
-        if ($extension !== '') {
-            $fileName .= ".{$extension}";
-        }
+        $extension = (string) ($file->extension() ?: $file->getClientOriginalExtension());
+        $fileName = MediaFileNamer::generateStorageFileName($modelRecord, $extension);
 
         return $model
             ->addMedia($file)
@@ -154,5 +222,15 @@ final class EloquentMediaCollectionSync implements MediaCollectionSync
                 ...$customProperties,
             ])
             ->toMediaCollection($collection);
+    }
+
+    private function removeFiles(Media $media): void
+    {
+        try {
+            $this->filesystem->removeAllFiles($media);
+            $this->filesystem->removeResponsiveImages($media);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 }

@@ -9,6 +9,7 @@
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventResourceRelationsAction",
       "App\\Features\\Events\\Actions\\Scheduling\\SyncEventScheduleAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",
+      "App\\Features\\Events\\Actions\\Submission\\ReviewOccurrenceSubmissionAction",
       "App\\Features\\Events\\Actions\\Submission\\CompleteEventSubmissionWritesAction",
       "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",
       "App\\Features\\Events\\Actions\\Delete\\DeleteEventAction",
@@ -97,6 +98,7 @@
       "App\\Features\\Events\\Actions\\Authoring\\SyncEventLanguagesAction"
     ],
     "table:event_submissions": [
+      "App\\Features\\Events\\Actions\\Schedule\\SubmitScheduleOccurrenceForReviewAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistNewEventSubmissionAction",
       "App\\Features\\Events\\Actions\\Submission\\PersistSessionSubmissionAction",
       "App\\Features\\Events\\Actions\\Submission\\ClaimGuestSubmissionsAction",

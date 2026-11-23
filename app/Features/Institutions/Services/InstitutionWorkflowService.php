@@ -202,11 +202,12 @@ final readonly class InstitutionWorkflowService implements InstitutionWorkflow
     }
 
     /** @param array<int|string, mixed> $gallery */
-    public function syncContributionMedia(string $institutionId, mixed $cover, ?array $gallery): void
+    public function syncContributionMedia(string $institutionId, mixed $logo, mixed $cover, ?array $gallery): void
     {
         $institution = Institution::query()->findOrFail($institutionId);
         $sync = app(MediaCollectionSync::class);
 
+        $sync->syncSingle($institution, $logo, 'logo');
         $sync->syncSingle($institution, $cover, 'cover');
         $sync->syncMultiple($institution, $gallery, 'gallery');
     }

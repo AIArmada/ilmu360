@@ -34,7 +34,7 @@ class MemberUploadEventPosterImageTool extends AbstractMemberTool
     protected string $title = 'Upload Event Poster Image';
 
     #[\Override]
-    protected string $description = 'Upload and save a 3:4 portrait marketing poster for an accessible Ahli event. Accepts image descriptors via {content_base64} or {content_url}. Use the member-event-poster-image-prompt to get the recommended prompt and reference images before generating.';
+    protected string $description = 'Upload and save a 3:4 portrait marketing poster for an accessible Ahli event. Global administrators can publish directly. Other members can submit images from the Suggest an Update page for the event. Accepts image descriptors via {content_base64} or {content_url}. Use the member-event-poster-image-prompt to get the recommended prompt and reference images before generating.';
 
     public function __construct(
         private readonly MemberResourceRegistry $registry,
@@ -91,6 +91,7 @@ class MemberUploadEventPosterImageTool extends AbstractMemberTool
 
             $result = $this->uploadEventImage(
                 uploads: $this->imageUploads,
+                actor: $actor,
                 eventId: $eventId,
                 collection: EventImageCollection::Poster,
                 descriptor: $imageDescriptor,

@@ -8,6 +8,7 @@ use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Platform\Ui\Forms\AddressFields;
+use Closure;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -264,41 +265,7 @@ class InstitutionContributionFormSchema
 
         if ($includeMedia) {
             array_splice($components, ($mapsSelectionRequired || $shouldRenderReselection) ? 3 : 2, 0, [
-                Section::make(__('Media'))
-                    ->schema([
-                        SpatieMediaLibraryFileUpload::make('logo')
-                            ->label(__('Logo'))
-                            ->collection('logo')
-                            ->image()
-                            ->imageEditor()
-                            ->conversion('thumb')
-                            ->helperText(__('Institution logo'))
-                            ->columnSpanFull(),
-                        SpatieMediaLibraryFileUpload::make('cover')
-                            ->label(__('Cover Image'))
-                            ->collection('cover')
-                            ->image()
-                            ->imageEditor()
-                            ->imageAspectRatio('16:9')
-                            ->automaticallyOpenImageEditorForAspectRatio()
-                            ->imageEditorAspectRatioOptions(['16:9'])
-                            ->automaticallyCropImagesToAspectRatio()
-                            ->conversion('banner')
-                            ->responsiveImages()
-                            ->helperText(__('Header or banner image'))
-                            ->columnSpanFull(),
-                        SpatieMediaLibraryFileUpload::make('gallery')
-                            ->label(__('Gallery'))
-                            ->collection('gallery')
-                            ->multiple()
-                            ->reorderable()
-                            ->image()
-                            ->conversion('gallery_thumb')
-                            ->responsiveImages()
-                            ->helperText(__('Up to 10 photos of the institution'))
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2),
+                self::mediaSection(),
             ]);
         }
 
@@ -317,6 +284,7 @@ class InstitutionContributionFormSchema
         bool $includeMapsReselection = false,
         bool $hideGoogleMapsUrlField = true,
         bool $mapsReselectionRequired = false,
+        ?Closure $configureMedia = null,
     ): array {
         $components = self::components(
             includeMedia: false,
@@ -335,33 +303,27 @@ class InstitutionContributionFormSchema
                 false,
             );
 
-            array_splice($components, $reselectRendered ? 3 : 2, 0, [self::directEditMediaSection($mediaFields)]);
+            array_splice($components, $reselectRendered ? 3 : 2, 0, [self::mediaSection($mediaFields, $configureMedia)]);
         }
 
         return $components;
     }
 
     /**
-     * @param  list<string>  $mediaFields
+     * @param  list<string>|null  $mediaFields
      */
-    public static function directEditMediaSection(array $mediaFields): Section
+    private static function mediaSection(?array $mediaFields = null, ?Closure $configureMedia = null): Section
     {
-        $components = [];
-
-        if (in_array('logo', $mediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('logo')
+        $fields = [
+            SpatieMediaLibraryFileUpload::make('logo')
                 ->label(__('Logo'))
                 ->collection('logo')
                 ->image()
                 ->imageEditor()
                 ->conversion('thumb')
                 ->helperText(__('Institution logo'))
-                ->deletable(false)
-                ->columnSpanFull();
-        }
-
-        if (in_array('cover', $mediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('cover')
+                ->columnSpanFull(),
+            SpatieMediaLibraryFileUpload::make('cover')
                 ->label(__('Cover Image'))
                 ->collection('cover')
                 ->image()
@@ -369,29 +331,43 @@ class InstitutionContributionFormSchema
                 ->imageAspectRatio('16:9')
                 ->automaticallyOpenImageEditorForAspectRatio()
                 ->imageEditorAspectRatioOptions(['16:9'])
+                ->rules(['dimensions:ratio=16/9'])
                 ->automaticallyCropImagesToAspectRatio()
                 ->conversion('banner')
                 ->responsiveImages()
                 ->helperText(__('Header or banner image'))
-                ->deletable(false)
-                ->columnSpanFull();
-        }
-
-        if (in_array('gallery', $mediaFields, true)) {
-            $components[] = SpatieMediaLibraryFileUpload::make('gallery')
+                ->columnSpanFull(),
+            SpatieMediaLibraryFileUpload::make('gallery')
                 ->label(__('Gallery'))
                 ->collection('gallery')
                 ->multiple()
                 ->reorderable()
+                ->maxFiles(10)
                 ->image()
                 ->conversion('gallery_thumb')
                 ->responsiveImages()
                 ->helperText(__('Up to 10 photos of the institution'))
-                ->columnSpanFull();
+                ->columnSpanFull(),
+        ];
+
+        if ($mediaFields !== null) {
+            $fields = array_filter($fields, fn (SpatieMediaLibraryFileUpload $field): bool => in_array($field->getName(), $mediaFields, true));
+
+            foreach ($fields as $field) {
+                if (! $field->isMultiple()) {
+                    $field->deletable(false);
+                }
+            }
+        }
+
+        if ($configureMedia !== null) {
+            foreach ($fields as $field) {
+                $configureMedia($field);
+            }
         }
 
         return Section::make(__('Media'))
-            ->schema($components)
+            ->schema(array_values($fields))
             ->columns(['default' => 1, 'sm' => 2]);
     }
 

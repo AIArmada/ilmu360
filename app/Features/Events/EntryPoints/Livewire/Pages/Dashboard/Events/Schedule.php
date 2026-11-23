@@ -8,10 +8,14 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\Event;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Events\Actions\Schedule\SaveOccurrenceAction;
 use App\Features\Events\Actions\Schedule\SaveSessionAction;
+use App\Features\Events\Actions\Schedule\SubmitScheduleOccurrenceForReviewAction;
 use App\Features\Events\Support\EventModel;
+use App\Models\User;
 use App\Platform\Ui\InteractsWithToasts;
+use App\Shared\Signals\SignalRecorder;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\View\View;
@@ -68,6 +72,7 @@ final class Schedule extends Component
     {
         $event = $this->selectedEvent();
         $this->authorizeSchedule($event);
+        abort_unless($this->canEditSchedule($event) || $this->canProposeSchedule($event), 403);
 
         $this->editingOccurrenceId = null;
         $this->occurrenceForm = $this->defaultOccurrenceForm($event);
@@ -80,7 +85,9 @@ final class Schedule extends Component
     {
         $event = $this->selectedEvent();
         $this->authorizeSchedule($event);
+        abort_unless($this->canEditSchedule($event) || $this->canProposeSchedule($event), 403);
         $occurrence = $this->occurrenceForEvent($event, $occurrenceId);
+        abort_unless($this->canEditSchedule($event) || (string) $occurrence->status === EventOccurrence::SCHEDULED, 403);
         $timezone = $this->validTimezone((string) ($occurrence->timezone ?: $event->timezone));
 
         $this->editingOccurrenceId = (string) $occurrence->getKey();
@@ -103,20 +110,52 @@ final class Schedule extends Component
         $this->resetValidation();
     }
 
-    public function saveOccurrence(SaveOccurrenceAction $saveOccurrence): void
-    {
+    public function saveOccurrence(
+        SaveOccurrenceAction $saveOccurrence,
+        SubmitScheduleOccurrenceForReviewAction $submitForReview,
+        SignalRecorder $signals,
+    ): void {
         $event = $this->selectedEvent();
         $this->authorizeSchedule($event);
+        $propose = ! $this->canEditSchedule($event);
+        abort_if($propose && ! $this->canProposeSchedule($event), 403);
+
         $validated = $this->validate($this->occurrenceRules());
         $data = $validated['occurrenceForm'];
         $timezone = $this->validTimezone((string) $data['timezone']);
         $attributes = [
             'title' => (string) $data['title'],
             'starts_at' => $this->toUtcString((string) $data['starts_at'], $timezone),
-            'ends_at' => $this->toUtcString((string) $data['ends_at'], $timezone),
+            'ends_at' => filled($data['ends_at'] ?? null) ? $this->toUtcString((string) $data['ends_at'], $timezone) : null,
             'timezone' => $timezone,
             'capacity' => filled($data['capacity'] ?? null) ? (int) $data['capacity'] : null,
         ];
+
+        if ($propose) {
+            $actor = auth()->user();
+            abort_unless($actor instanceof User, 403);
+            $note = trim((string) ($data['note'] ?? ''));
+            if ($this->editingOccurrenceId === null) {
+                $occurrence = $submitForReview->handle((string) $event->getKey(), $actor, $attributes, $note === '' ? null : $note);
+                $occurrenceId = (string) $occurrence->getKey();
+            } else {
+                $occurrenceId = $this->editingOccurrenceId;
+                $submitForReview->proposeChange((string) $event->getKey(), $actor, $occurrenceId, false, null, $attributes, $note === '' ? null : $note);
+            }
+
+            $signals->record(
+                eventName: 'event.occurrence_review_requested',
+                eventCategory: 'event_management',
+                actorId: (string) $actor->getKey(),
+                properties: ['event_id' => (string) $event->getKey(), 'event_occurrence_id' => $occurrenceId],
+                request: request(),
+            );
+
+            $this->closeOccurrenceForm();
+            $this->successToast(__('Occurrence submitted for review.'));
+
+            return;
+        }
 
         try {
             if ($this->editingOccurrenceId !== null) {
@@ -145,7 +184,9 @@ final class Schedule extends Component
     {
         $event = $this->selectedEvent();
         $this->authorizeSchedule($event);
+        abort_unless($this->canEditSchedule($event) || $this->canProposeSchedule($event), 403);
         $occurrence = $this->occurrenceForEvent($event, $occurrenceId);
+        abort_unless($this->canEditSchedule($event) || (string) $occurrence->status === EventOccurrence::SCHEDULED, 403);
 
         $this->editingSessionId = null;
         $this->sessionOccurrenceId = (string) $occurrence->getKey();
@@ -159,6 +200,7 @@ final class Schedule extends Component
     {
         $event = $this->selectedEvent();
         $this->authorizeSchedule($event);
+        abort_unless($this->canEditSchedule($event) || $this->canProposeSchedule($event), 403);
         $session = $this->sessionForEvent($event, $sessionId);
         $occurrenceId = (string) ($session->event_occurrence_id ?? '');
 
@@ -167,6 +209,9 @@ final class Schedule extends Component
                 'sessionForm.title' => __('This session is not attached to an occurrence.'),
             ]);
         }
+
+        $occurrence = $this->occurrenceForEvent($event, $occurrenceId);
+        abort_unless($this->canEditSchedule($event) || (string) $occurrence->status === EventOccurrence::SCHEDULED, 403);
 
         $timezone = $this->validTimezone((string) ($session->timezone ?: $event->timezone));
         $this->editingSessionId = (string) $session->getKey();
@@ -193,10 +238,15 @@ final class Schedule extends Component
         $this->resetValidation();
     }
 
-    public function saveSession(SaveSessionAction $saveSession): void
-    {
+    public function saveSession(
+        SaveSessionAction $saveSession,
+        SubmitScheduleOccurrenceForReviewAction $submitForReview,
+        SignalRecorder $signals,
+    ): void {
         $event = $this->selectedEvent();
         $this->authorizeSchedule($event);
+        $propose = ! $this->canEditSchedule($event);
+        abort_if($propose && ! $this->canProposeSchedule($event), 403);
         $validated = $this->validate($this->sessionRules());
         $data = $validated['sessionForm'];
         $timezone = $this->validTimezone((string) $data['timezone']);
@@ -205,10 +255,38 @@ final class Schedule extends Component
             'summary' => filled($data['summary'] ?? null) ? (string) $data['summary'] : null,
             'description' => filled($data['description'] ?? null) ? (string) $data['description'] : null,
             'starts_at' => $this->toUtcString((string) $data['starts_at'], $timezone),
-            'ends_at' => $this->toUtcString((string) $data['ends_at'], $timezone),
+            'ends_at' => filled($data['ends_at'] ?? null) ? $this->toUtcString((string) $data['ends_at'], $timezone) : null,
             'timezone' => $timezone,
             'capacity' => filled($data['capacity'] ?? null) ? (int) $data['capacity'] : null,
         ];
+
+        if ($propose) {
+            $actor = auth()->user();
+            abort_unless($actor instanceof User, 403);
+            $note = trim((string) ($data['note'] ?? ''));
+
+            $submitForReview->proposeChange(
+                (string) $event->getKey(),
+                $actor,
+                $this->sessionOccurrenceId,
+                true,
+                $this->editingSessionId,
+                $attributes,
+                $note === '' ? null : $note,
+            );
+            $signals->record(
+                eventName: 'event_session_review_requested',
+                eventCategory: 'event_management',
+                actorId: (string) $actor->getKey(),
+                properties: ['event_id' => (string) $event->getKey(), 'occurrence_id' => $this->sessionOccurrenceId],
+                request: request(),
+            );
+
+            $this->closeSessionForm();
+            $this->successToast(__('Session submitted for review.'));
+
+            return;
+        }
 
         try {
             if ($this->editingSessionId !== null) {
@@ -255,6 +333,12 @@ final class Schedule extends Component
             'event' => $event,
             'occurrences' => $this->occurrences(),
             'eventTimezone' => $this->validTimezone((string) ($event->timezone ?: config('app.timezone', 'UTC'))),
+            'canEditSchedule' => $this->canEditSchedule($event),
+            'canProposeSchedule' => $this->canProposeSchedule($event),
+            'suggestUpdateUrl' => route('contributions.suggest-update', [
+                'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
+                'subjectId' => $event->slug,
+            ]),
         ]);
     }
 
@@ -264,9 +348,10 @@ final class Schedule extends Component
         return [
             'occurrenceForm.title' => ['required', 'string', 'max:255'],
             'occurrenceForm.starts_at' => ['required', 'date'],
-            'occurrenceForm.ends_at' => ['required', 'date', 'after:occurrenceForm.starts_at'],
+            'occurrenceForm.ends_at' => ['nullable', 'date', 'after:occurrenceForm.starts_at'],
             'occurrenceForm.timezone' => ['required', 'timezone'],
             'occurrenceForm.capacity' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'occurrenceForm.note' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
@@ -279,9 +364,10 @@ final class Schedule extends Component
             'sessionForm.summary' => ['nullable', 'string', 'max:1000'],
             'sessionForm.description' => ['nullable', 'string', 'max:10000'],
             'sessionForm.starts_at' => ['required', 'date'],
-            'sessionForm.ends_at' => ['required', 'date', 'after:sessionForm.starts_at'],
+            'sessionForm.ends_at' => ['nullable', 'date', 'after:sessionForm.starts_at'],
             'sessionForm.timezone' => ['required', 'timezone'],
             'sessionForm.capacity' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'sessionForm.note' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
@@ -297,6 +383,7 @@ final class Schedule extends Component
             'ends_at' => $startsAt->addHours(2)->format('Y-m-d\TH:i'),
             'timezone' => $timezone,
             'capacity' => '',
+            'note' => '',
         ];
     }
 
@@ -317,6 +404,26 @@ final class Schedule extends Component
             'timezone' => $timezone,
             'capacity' => '',
         ];
+    }
+
+    private function canEditSchedule(Event $event): bool
+    {
+        if ($event->published_at === null && (string) $event->status !== 'approved') {
+            return true;
+        }
+
+        $actor = auth()->user();
+
+        return $actor instanceof User && $actor->canPublishDirectoryUpdates();
+    }
+
+    private function canProposeSchedule(Event $event): bool
+    {
+        $actor = auth()->user();
+
+        return (string) $event->status === 'approved'
+            && $actor instanceof User
+            && $actor->canSubmitDirectoryFeedback();
     }
 
     private function authorizeSchedule(Event $event): void
@@ -365,6 +472,10 @@ final class Schedule extends Component
 
     private function toLocalInput(mixed $value, string $timezone): string
     {
+        if ($value === null) {
+            return '';
+        }
+
         if (! $value instanceof CarbonImmutable) {
             $value = CarbonImmutable::parse((string) $value);
         }

@@ -5,12 +5,14 @@ namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Institutions\Api\InstitutionWorkflow;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\InstitutionResource;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
 use App\Models\User;
 use App\Platform\Ui\Forms\AddressFields;
+use App\Shared\Contributions\Support\RedirectsDirectoryEditsForReview;
 use App\Shared\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -19,8 +21,23 @@ use Livewire\Attributes\On;
 
 class EditInstitution extends EditRecord
 {
+    use RedirectsDirectoryEditsForReview;
+
     #[\Override]
     protected static string $resource = InstitutionResource::class;
+
+    #[\Override]
+    protected function authorizeAccess(): void
+    {
+        $this->requireDirectoryPublishingPermission();
+
+        parent::authorizeAccess();
+    }
+
+    protected function contributionSubjectRouteSegment(): string
+    {
+        return ContributionSubjectType::Institution->publicRouteSegment();
+    }
 
     public function boot(): void
     {
@@ -31,7 +48,9 @@ class EditInstitution extends EditRecord
     public function mount(int|string $record): void
     {
         OwnerContext::withOwner(null, function () use ($record): void {
-            parent::mount($record);
+            if (! $this->redirectDirectoryEditForReview($record)) {
+                parent::mount($record);
+            }
         });
     }
 

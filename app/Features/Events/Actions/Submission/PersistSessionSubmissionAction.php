@@ -19,6 +19,7 @@ use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Support\EventModel;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
+use App\Models\User;
 use BackedEnum;
 use Illuminate\Validation\ValidationException;
 
@@ -43,6 +44,13 @@ final readonly class PersistSessionSubmissionAction
         $state = $submission->state;
 
         $event = $this->resolvePersistedContainer($submission);
+
+        if (! $submission->submitter instanceof User || ! $submission->submitter->canPublishDirectoryUpdates()) {
+            throw ValidationException::withMessages([
+                SubmissionValues::prefixedKey('event_id', $submission->validationKeyPrefix) => __('Only administrators can add a session to an existing event. Use the event\'s Suggest an Update page to send changes for review.'),
+            ]);
+        }
+
         $occurrence = $this->resolveTargetOccurrence($event, $submission->occurrenceId, $submission->validationKeyPrefix);
         $occurrenceId = (string) $occurrence->getKey();
 
@@ -88,7 +96,7 @@ final readonly class PersistSessionSubmissionAction
         $this->authoring->syncEventClassifications($session->getMorphClass(), (string) $session->getKey(), $state);
         $this->relationSync->syncSessionReferences($event, $occurrence, $session, $state['references'] ?? null);
 
-        $submissionData = ['submitter_name' => $state['submitter_name'] ?? $submission->submitter?->getAttribute('name')];
+        $submissionData = ['submitter_name' => $state['submitter_name'] ?? $submission->submitter->getAttribute('name')];
 
         if (isset($state['notes'])) {
             $submissionData['notes'] = $state['notes'];
@@ -101,8 +109,8 @@ final readonly class PersistSessionSubmissionAction
             'status' => 'pending',
             'submitted_at' => now(),
             'submission_data' => $submissionData,
-            'submitter_type' => $submission->submitter?->getMorphClass(),
-            'submitter_id' => $submission->submitter?->getKey(),
+            'submitter_type' => $submission->submitter->getMorphClass(),
+            'submitter_id' => $submission->submitter->getKey(),
         ]);
 
         if (! $eventSubmission instanceof PackageEventSubmission) {
@@ -117,7 +125,7 @@ final readonly class PersistSessionSubmissionAction
         $state = $submission->state;
         $scope = ['event_id' => $session->event_id, 'event_occurrence_id' => $session->event_occurrence_id];
 
-        foreach (['event_url' => 'external', 'live_url' => 'streaming'] as $field => $type) {
+        foreach (['event_url' => 'external', 'live_url' => 'streaming', 'recording_url' => 'recording'] as $field => $type) {
             if (filled($state[$field] ?? null)) {
                 $session->links()->create($scope + ['link_type' => $type, 'url' => $state[$field], 'visibility' => 'public']);
             }

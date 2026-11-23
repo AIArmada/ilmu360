@@ -151,7 +151,7 @@ it('dispatches an institution toggle refresh event after adding an eligible memb
 
 it('keeps institution submission public until the toggle is explicitly turned off', function () {
     $admin = User::factory()->create();
-    assignGlobalRole($admin, 'moderator');
+    assignGlobalRole($admin, 'admin');
 
     $institution = Institution::factory()->create([
         'allow_public_event_submission' => true,
@@ -243,7 +243,7 @@ it('saves institution contact phone values on the edit page without nulling the 
         ->not->toBeEmpty();
 });
 
-it('only enables the public submission toggle for global admin, admin, and moderator', function () {
+it('only enables the public submission toggle for global administrators', function () {
     $institution = Institution::factory()->create([
         'allow_public_event_submission' => true,
     ]);
@@ -280,7 +280,10 @@ it('only enables the public submission toggle for global admin, admin, and moder
 
     $this->actingAs($moderator);
     Livewire::test(EditInstitution::class, ['record' => $institution->id])
-        ->assertFormFieldEnabled('allow_public_event_submission');
+        ->assertRedirect(route('contributions.suggest-update', [
+            'subjectType' => 'institusi',
+            'subjectId' => $institution->slug,
+        ]));
 });
 
 it('auto-reopens institution submission when lock credibility drifts', function () {

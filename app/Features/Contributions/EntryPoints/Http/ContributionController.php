@@ -11,6 +11,7 @@ use AIArmada\Contacting\Actions\DiscoverWebsiteSocialProfilesAction;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Persons\Enums\Gender;
+use AIArmada\Persons\Enums\PersonNameType;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\Api\ContributionRequestReader;
@@ -38,8 +39,10 @@ use App\Features\References\Models\Reference;
 use App\Models\User;
 use App\Platform\Http\FrontendController;
 use App\Platform\Media\MediaCollectionSync;
+use App\Platform\Media\MediaFileNamer;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Ui\Forms\AddressFields;
+use App\Shared\Contributions\Support\ContributionContactRules;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -47,6 +50,7 @@ use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Fluent;
 use Illuminate\Validation\Rule;
@@ -115,8 +119,6 @@ class ContributionController extends FrontendController
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
-        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
-
         $validated = $request->validate([
             'type' => ['sometimes', 'nullable', 'string', Rule::in(array_column(InstitutionType::cases(), 'value'))],
             'name' => ['nullable', 'string', 'max:255'],
@@ -143,18 +145,8 @@ class ContributionController extends FrontendController
             'address.google_cid' => ['prohibited'],
             'address.google_entity_id' => ['prohibited'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
-            'contactMethods' => ['nullable', 'array'],
-            'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
-            'contacts.*.value' => ['required_with:contacts', 'string', 'max:255'],
-            'contacts.*.purpose' => ['nullable', 'string', 'max:255'],
-            'contacts.*.is_public' => ['nullable', 'boolean'],
-            'social_media' => ['nullable', 'array'],
-            'social_media.*.platform' => ['required_with:social_media', 'string', 'max:255'],
-            'social_media.*.handle' => ['nullable', 'string', 'max:255'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255'],
-            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
-            'gallery' => ['nullable', 'array'],
-            'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
+            ...ContributionContactRules::rules(),
+            ...$this->mediaValidationRules(ContributionSubjectType::Institution, ['logo', 'cover', 'gallery']),
         ]);
 
         $place = $fetchGooglePlaceDetailsAction->handle(
@@ -272,6 +264,7 @@ class ContributionController extends FrontendController
             (string) $user->getKey(),
             fn (string $institutionId) => app(InstitutionWorkflow::class)->syncContributionMedia(
                 $institutionId,
+                $request->file('logo'),
                 $request->file('cover'),
                 is_array($request->file('gallery')) ? $request->file('gallery') : null,
             ),
@@ -312,10 +305,17 @@ class ContributionController extends FrontendController
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
-        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
-
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'family_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'middle_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'names' => ['nullable', 'array'],
+            'names.*.name_type' => ['required', Rule::enum(PersonNameType::class)],
+            'names.*.full_name' => ['required', 'string', 'max:255'],
+            'names.*.language_code' => ['nullable', 'string', 'max:10'],
+            'names.*.is_primary' => ['nullable', 'boolean'],
+            'title_ids' => ['nullable', 'array'],
+            'title_ids.*' => ['uuid', 'exists:'.config('persons.database.tables.titles', 'titles').',id'],
             'gender' => ['required', Rule::in(array_column(Gender::cases(), 'value'))],
             'bio' => ['nullable'],
             'institutions' => ['nullable', 'array'],
@@ -340,20 +340,9 @@ class ContributionController extends FrontendController
             'address.google_entity_id' => ['prohibited'],
             'address.waze_url' => ['prohibited'],
             'language_ids' => ['nullable', 'array'],
-            'language_ids.*' => ['uuid'],
-            'contactMethods' => ['nullable', 'array'],
-            'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
-            'contacts.*.value' => ['required_with:contacts', 'string', 'max:255'],
-            'contacts.*.purpose' => ['nullable', 'string', 'max:255'],
-            'contacts.*.is_public' => ['nullable', 'boolean'],
-            'social_media' => ['nullable', 'array'],
-            'social_media.*.platform' => ['required_with:social_media', 'string', 'max:255'],
-            'social_media.*.handle' => ['nullable', 'string', 'max:255'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255'],
-            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
-            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
-            'gallery' => ['nullable', 'array'],
-            'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
+            'language_ids.*' => ['string', 'exists:languages,id'],
+            ...ContributionContactRules::rules(),
+            ...$this->mediaValidationRules(ContributionSubjectType::Person, ['avatar', 'main', 'profile', 'cover', 'gallery']),
         ]);
         $validated = $this->normalizeContributionAddressPayload($validated);
 
@@ -364,6 +353,8 @@ class ContributionController extends FrontendController
             fn (string $personId) => app(PersonWorkflow::class)->syncContributionMedia(
                 $personId,
                 $request->file('avatar'),
+                $request->file('main'),
+                $request->file('profile'),
                 $request->file('cover'),
                 is_array($request->file('gallery')) ? $request->file('gallery') : null,
             ),
@@ -404,7 +395,7 @@ class ContributionController extends FrontendController
         title: 'Get editable contribution context',
         description: 'Returns the current editable state, presentation metadata, and permission flags for an existing subject. '
             .'Call this before submitting an update so you know whether the caller can edit directly, which sparse top-level fields are supported, whether the caller has a pending request, and whether any pending request currently blocks updates. '
-            .'Only direct-edit media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `logo`/`cover`/`gallery`, person `avatar`/`cover`/`gallery`, event `cover`/`poster`/`gallery`, and reference `front_cover`/`back_cover`/`gallery`.',
+            .'Media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `logo`/`cover`/`gallery`, person `avatar`/`main`/`profile`/`cover`/`gallery`, event `cover`/`poster`/`gallery`, and reference `front_cover`/`back_cover`/`gallery`.',
     )]
     public function suggestContext(
         string $subjectType,
@@ -421,7 +412,8 @@ class ContributionController extends FrontendController
         /** @var Event|Institution|Person|Reference $entity */
         $entity = MorphModelResolver::resolve($context['entity_type'])::query()->findOrFail($context['entity_id']);
         $initialState = $this->apiInitialState($entity, $context['initial_state']);
-        $canDirectEdit = $user->can('update', $entity);
+        $canDirectEdit = $user->canPublishDirectoryUpdates();
+        $mediaFields = $context['contract']['direct_edit_media_fields'];
 
         abort_unless($user->can('view', $entity), 403);
 
@@ -432,13 +424,9 @@ class ContributionController extends FrontendController
                 'accepts_partial_updates' => $context['contract']['accepts_partial_updates'],
                 'fields' => $context['contract']['fields'],
                 'conditional_rules' => $context['contract']['conditional_rules'],
-                'direct_edit_media_fields' => $canDirectEdit ? $context['contract']['direct_edit_media_fields'] : [],
-                'direct_edit_media_contract' => $canDirectEdit
-                    ? $this->directEditMediaContract($entity, $context['contract']['direct_edit_media_fields'] ?? [])
-                    : [],
-                'current_media' => $canDirectEdit
-                    ? $this->directEditCurrentMediaData($entity, $context['contract']['direct_edit_media_fields'] ?? [])
-                    : [],
+                'direct_edit_media_fields' => $mediaFields,
+                'direct_edit_media_contract' => $this->directEditMediaContract($entity, $mediaFields),
+                'current_media' => $this->directEditCurrentMediaData($entity, $mediaFields),
                 'subject_presentation' => $contributionSubjectPresenter->present($entity),
                 'can_direct_edit' => $canDirectEdit,
                 'pending_update_blocked' => $pendingContributionReader->pendingRequestIdForEntity(
@@ -481,9 +469,9 @@ class ContributionController extends FrontendController
         title: 'Submit a contribution update',
         description: 'Submits a sparse top-level payload for an existing event, institution, person, or reference. '
             .'Fetch `GET /forms/contributions/{subjectType}/{subject}/suggest` first to discover the editable field contract and current values. '
-            .'Only files named in `direct_edit_media_fields` may be uploaded, and only when the current user can edit the subject directly. '
+            .'Only files named in `direct_edit_media_fields` may be uploaded. Proposed files are staged until approval. '
             .'If any pending contribution request already exists for the subject, the update is rejected until that request is reviewed. '
-            .'If the caller can update the subject directly, the changes are applied immediately and the response `mode` is `direct_edit`; otherwise a contribution review request is created and the response `mode` is `review`.',
+            .'An administrator submitting without a reviewer note publishes immediately with `mode` set to `direct_edit`. All other submissions create a request with `mode` set to `review`.',
     )]
     public function suggestUpdate(
         string $subjectType,
@@ -508,13 +496,8 @@ class ContributionController extends FrontendController
         $comparableOriginalData = $entity instanceof Event
             ? $context['initial_state']
             : $publicInitialState;
-        $canDirectEdit = $user->can('update', $entity);
-        $directEditMediaFields = $canDirectEdit
-            ? array_values(array_filter(
-                $context['contract']['direct_edit_media_fields'] ?? [],
-                static fn (string $field): bool => $field !== '',
-            ))
-            : [];
+        $canDirectEdit = $user->canPublishDirectoryUpdates();
+        $mediaFields = $context['contract']['direct_edit_media_fields'];
 
         abort_unless($user->can('view', $entity), 403);
 
@@ -526,15 +509,15 @@ class ContributionController extends FrontendController
         $uploadedFiles = array_keys($request->allFiles());
 
         if ($uploadedFiles !== []) {
-            $unsupportedFileFields = array_values(array_diff($uploadedFiles, $directEditMediaFields));
+            $unsupportedFileFields = array_values(array_diff($uploadedFiles, $mediaFields));
 
             if ($unsupportedFileFields !== []) {
                 throw ValidationException::withMessages([
-                    'files' => [__('This update flow only supports the direct-edit media fields exposed by the contract for this subject.')],
+                    'files' => [__('This update flow only supports the media fields exposed by the contract for this subject.')],
                 ]);
             }
 
-            validator($request->all(), $this->directEditMediaValidationRules($entity, $directEditMediaFields))->validate();
+            validator($request->all(), $this->mediaValidationRules(ContributionSubjectType::from($context['entity_type']), $mediaFields))->validate();
         }
 
         $payload = collect($request->all())
@@ -577,24 +560,26 @@ class ContributionController extends FrontendController
             $comparableSubmissionState,
             $comparableOriginalData + app(EventContributionStateMapper::class)->provenanceOriginals($entity instanceof Event ? (string) $entity->getKey() : null),
         );
-        $hasDirectEditMediaChange = collect($directEditMediaFields)
+        $hasMediaChange = collect($mediaFields)
             ->contains(fn (string $field): bool => $request->hasFile($field));
 
-        if ($changes === [] && ! $hasDirectEditMediaChange) {
+        if ($changes === [] && ! $hasMediaChange) {
             throw ValidationException::withMessages([
                 'data' => __('Make at least one change before continuing.'),
             ]);
         }
 
-        if ($canDirectEdit) {
-            if ($changes !== []) {
-                $directUpdates->apply($entity->getMorphClass(), (string) $entity->getKey(), $changes);
-                $entity->refresh();
-            }
-
-            if ($hasDirectEditMediaChange) {
-                $this->syncDirectEditMediaChanges($entity, $request, $mediaCollectionSync, $directEditMediaFields);
-            }
+        if ($canDirectEdit && $submissionState['proposer_note'] === null) {
+            $directUpdates->apply(
+                (string) $user->getKey(),
+                $entity->getMorphClass(),
+                (string) $entity->getKey(),
+                $changes,
+                $hasMediaChange ? function () use ($entity, $request, $mediaCollectionSync, $mediaFields): void {
+                    $this->syncDirectEditMediaChanges($entity->refresh(), $request, $mediaCollectionSync, $mediaFields);
+                } : null,
+            );
+            $entity->refresh();
 
             return response()->json([
                 'data' => [
@@ -614,6 +599,7 @@ class ContributionController extends FrontendController
             (string) $user->getKey(),
             $changes,
             $submissionState['proposer_note'],
+            $hasMediaChange ? fn (string $requestId) => $this->stageUpdateMedia($requestId, $request, $mediaFields) : null,
         );
 
         $contributionRequest = ContributionRequest::query()
@@ -835,38 +821,42 @@ class ContributionController extends FrontendController
     }
 
     /**
-     * @param  list<string>  $directEditMediaFields
+     * @param  list<string>  $mediaFields
      * @return array<string, mixed>
      */
-    private function directEditMediaValidationRules(Event|Institution|Reference|Person $entity, array $directEditMediaFields): array
+    private function mediaValidationRules(ContributionSubjectType $subjectType, array $mediaFields): array
     {
         $rules = [];
         $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
+        $imageRules = ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"];
 
-        if (in_array('avatar', $directEditMediaFields, true)) {
-            $rules['avatar'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"];
-        }
+        foreach ($mediaFields as $field) {
+            $ratio = $this->mediaAspectRatio($field);
 
-        if (in_array('logo', $directEditMediaFields, true)) {
-            $rules['logo'] = ['nullable', 'image:allow_svg', 'mimes:jpg,jpeg,png,webp,svg', "max:{$maxUploadSizeKb}"];
-        }
+            $rules[$field] = match ($field) {
+                'logo' => ['nullable', 'image:allow_svg', 'mimes:jpg,jpeg,png,webp,svg', "max:{$maxUploadSizeKb}"],
+                'gallery' => in_array($subjectType, [ContributionSubjectType::Event, ContributionSubjectType::Institution], true) ? ['nullable', 'array', 'max:10'] : ['nullable', 'array'],
+                default => $ratio === null
+                    ? ['nullable', ...$imageRules]
+                    : ['nullable', ...$imageRules, 'dimensions:ratio='.str_replace(':', '/', $ratio)],
+            };
 
-        if (in_array('cover', $directEditMediaFields, true)) {
-            $rules['cover'] = $entity instanceof Event
-                ? ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=16/9', "max:{$maxUploadSizeKb}"]
-                : ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"];
-        }
-
-        if (in_array('poster', $directEditMediaFields, true)) {
-            $rules['poster'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=3/4', "max:{$maxUploadSizeKb}"];
-        }
-
-        if (in_array('gallery', $directEditMediaFields, true)) {
-            $rules['gallery'] = ['nullable', 'array'];
-            $rules['gallery.*'] = ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"];
+            if ($field === 'gallery') {
+                $rules['gallery.*'] = $imageRules;
+            }
         }
 
         return $rules;
+    }
+
+    private function mediaAspectRatio(string $field): ?string
+    {
+        return match ($field) {
+            'cover' => '16:9',
+            'main' => '1:1',
+            'poster', 'profile', 'front_cover', 'back_cover' => '3:4',
+            default => null,
+        };
     }
 
     /**
@@ -943,17 +933,20 @@ class ContributionController extends FrontendController
                 'max_file_size_kb' => $maxUploadSizeKb,
             ];
 
+            $ratio = $this->mediaAspectRatio($field);
+            if ($ratio !== null) {
+                $contract[$field]['required_aspect_ratio'] = $ratio;
+            }
+
             if ($entity instanceof Event && $field === 'cover') {
-                $contract[$field]['required_aspect_ratio'] = '16:9';
                 $contract[$field]['media_role'] = 'website_app_cover';
             }
 
             if ($entity instanceof Event && $field === 'poster') {
-                $contract[$field]['required_aspect_ratio'] = '3:4';
                 $contract[$field]['media_role'] = 'external_distribution_poster';
             }
 
-            if ($field === 'gallery') {
+            if ($field === 'gallery' && ($entity instanceof Event || $entity instanceof Institution)) {
                 $contract[$field]['max_files'] = 10;
             }
 
@@ -991,6 +984,31 @@ class ContributionController extends FrontendController
             }
 
             $mediaCollectionSync->syncSingle($entity, $request->file($field), $field);
+        }
+    }
+
+    /** @param list<string> $mediaFields */
+    private function stageUpdateMedia(string $requestId, Request $request, array $mediaFields): void
+    {
+        $contribution = ContributionRequest::query()->findOrFail($requestId);
+
+        foreach ($mediaFields as $field) {
+            $upload = $request->file($field);
+            foreach (Arr::wrap($upload) as $file) {
+                if (! $file instanceof UploadedFile) {
+                    continue;
+                }
+
+                $contribution->addMedia($file)
+                    ->usingFileName(MediaFileNamer::generateStorageFileName($contribution, $file->extension()))
+                    ->withCustomProperties([
+                        'collection' => 'pending_media',
+                        'original_file_name' => $file->getClientOriginalName(),
+                        'contribution_field' => $field,
+                        'is_single' => $field !== 'gallery',
+                    ])
+                    ->toMediaCollection('pending_media');
+            }
         }
     }
 

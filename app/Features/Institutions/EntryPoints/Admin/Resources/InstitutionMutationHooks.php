@@ -162,6 +162,8 @@ final readonly class InstitutionMutationHooks implements AdminMutationHooks
 
     public function update(string $resourceClass, Model $record, array $validated, User $actor): ?Model
     {
+        abort_unless($actor->canPublishDirectoryUpdates(), 403, __('Submit directory updates for review through the contribution form.'));
+
         if (! $this->supports($resourceClass)) {
             return null;
         }

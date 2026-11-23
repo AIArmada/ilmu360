@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Submission;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
 use AIArmada\Events\Models\EventSubmissionLog;
@@ -13,8 +14,12 @@ use AIArmada\Events\States\EventModerationStatus\Pending as SubmissionPending;
 use AIArmada\Events\States\EventModerationStatus\Rejected as SubmissionRejected;
 use AIArmada\Events\States\OccurrenceStatus\Archived;
 use AIArmada\Events\States\OccurrenceStatus\Scheduled;
+use App\Features\Events\Actions\Schedule\SaveOccurrenceAction;
+use App\Features\Events\Actions\Schedule\SaveSessionAction;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\EventModel;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -25,6 +30,11 @@ use Illuminate\Validation\ValidationException;
  */
 final readonly class ReviewOccurrenceSubmissionAction
 {
+    public function __construct(
+        private SaveOccurrenceAction $saveOccurrence,
+        private SaveSessionAction $saveSession,
+    ) {}
+
     /**
      * @return array{event_id: string, submission_id: string, occurrence_id: string}
      */
@@ -37,23 +47,39 @@ final readonly class ReviewOccurrenceSubmissionAction
         [$submission, $event, $occurrence] = $this->lockedSubmission($submissionId);
         $this->assertPendingForApprovedParent($submission, $event, $occurrence);
 
-        if ((string) $occurrence->status !== EventOccurrence::DRAFT) {
-            throw ValidationException::withMessages([
-                'submission' => __('This occurrence is no longer awaiting review.'),
-            ]);
+        if ($submission->submitter_type === $performedByType
+            && (string) $submission->submitter_id === $performedById) {
+            throw new AuthorizationException(__('A different reviewer must approve this update.'));
         }
 
-        $requestedVisibility = data_get(
-            $occurrence->metadata,
-            'public_submission.requested_visibility',
-            $event->visibility instanceof \BackedEnum ? $event->visibility->value : (string) $event->visibility,
-        );
-        $visibility = in_array($requestedVisibility, [Event::PUBLIC, Event::UNLISTED, Event::PRIVATE], true)
-            ? $requestedVisibility
-            : Event::PUBLIC;
+        $change = data_get($submission->submission_data, 'schedule_change');
 
-        $occurrence->status->transitionTo(Scheduled::class);
-        $occurrence->forceFill(['visibility' => $visibility])->save();
+        if (is_array($change)) {
+            $this->applyScheduleChange($event, $occurrence, $change);
+        } else {
+            if ((string) $occurrence->status !== EventOccurrence::DRAFT) {
+                throw ValidationException::withMessages([
+                    'submission' => __('This occurrence is no longer awaiting review.'),
+                ]);
+            }
+
+            $requestedVisibility = data_get(
+                $occurrence->metadata,
+                'public_submission.requested_visibility',
+                $event->visibility instanceof \BackedEnum ? $event->visibility->value : (string) $event->visibility,
+            );
+            $visibility = in_array($requestedVisibility, [Event::PUBLIC, Event::UNLISTED, Event::PRIVATE], true)
+                ? $requestedVisibility
+                : Event::PUBLIC;
+
+            $occurrence->status->transitionTo(Scheduled::class);
+            $occurrence->forceFill(['visibility' => $visibility])->save();
+
+            if ($event->occurrences()->whereState('status', Scheduled::class)->count() > 1) {
+                $event->forceFill(['schedule_kind' => ScheduleKind::CustomChain])->save();
+            }
+        }
+
         $submission->status->transitionTo(SubmissionApproved::class);
         $submission->forceFill([
             'reviewed_at' => now(),
@@ -86,14 +112,17 @@ final readonly class ReviewOccurrenceSubmissionAction
         [$submission, $event, $occurrence] = $this->lockedSubmission($submissionId);
         $this->assertPendingForApprovedParent($submission, $event, $occurrence);
 
-        if ((string) $occurrence->status !== EventOccurrence::DRAFT) {
-            throw ValidationException::withMessages([
-                'submission' => __('This occurrence is no longer awaiting review.'),
-            ]);
+        if (! is_array(data_get($submission->submission_data, 'schedule_change'))) {
+            if ((string) $occurrence->status !== EventOccurrence::DRAFT) {
+                throw ValidationException::withMessages([
+                    'submission' => __('This occurrence is no longer awaiting review.'),
+                ]);
+            }
+
+            $occurrence->status->transitionTo(Archived::class);
+            $occurrence->forceFill(['status_reason' => $note])->save();
         }
 
-        $occurrence->status->transitionTo(Archived::class);
-        $occurrence->forceFill(['status_reason' => $note])->save();
         $submission->status->transitionTo(SubmissionRejected::class);
         $submission->forceFill([
             'reviewed_at' => now(),
@@ -113,6 +142,44 @@ final readonly class ReviewOccurrenceSubmissionAction
         );
 
         return $this->result($submission, $event, $occurrence);
+    }
+
+    /** @param array<string, mixed> $change */
+    private function applyScheduleChange(Event $event, EventOccurrence $occurrence, array $change): void
+    {
+        $values = $change['values'] ?? null;
+        $kind = $change['kind'] ?? null;
+        $sessionId = $change['session_id'] ?? null;
+
+        if (! is_array($values) || ! in_array($kind, ['occurrence', 'session'], true)
+            || (string) $occurrence->status !== EventOccurrence::SCHEDULED) {
+            throw ValidationException::withMessages(['submission' => __('This schedule change cannot be applied.')]);
+        }
+
+        $target = $kind === 'occurrence' ? $occurrence : null;
+
+        if ($kind === 'session' && is_string($sessionId)) {
+            $target = $occurrence->sessions()->whereKey($sessionId)->lockForUpdate()->firstOrFail();
+        }
+
+        if ($target !== null && Arr::only($target->getRawOriginal(), array_keys($values)) != ($change['original'] ?? null)) {
+            throw ValidationException::withMessages([
+                'submission' => __('The schedule changed after this request was submitted. Ask the contributor to submit it again.'),
+            ]);
+        }
+
+        if ($kind === 'occurrence') {
+            $this->saveOccurrence->handle($event, $values, (string) $occurrence->getKey());
+
+            return;
+        }
+
+        if ($sessionId === null) {
+            $values['visibility'] = (string) $occurrence->visibility;
+            $values['delivery_mode'] = (string) $occurrence->delivery_mode;
+        }
+
+        $this->saveSession->handle($event, (string) $occurrence->getKey(), $values, is_string($sessionId) ? $sessionId : null);
     }
 
     /**

@@ -70,11 +70,13 @@ final class SubmitEventPrefill
             'is_muslim_only' => (bool) $event->is_muslim_only,
             'event_url' => $event->event_url,
             'live_url' => $event->live_url,
+            'recording_url' => $event->recording_url,
             'domain_tags' => $classifications
                 ->where('taxonomy_code', EventTaxonomyCode::Domain->value)
                 ->pluck('event_term_id')
                 ->filter()
-                ->first(),
+                ->values()
+                ->all(),
             'discipline_tags' => $classifications
                 ->where('taxonomy_code', EventTaxonomyCode::Discipline->value)
                 ->pluck('event_term_id')
@@ -170,10 +172,13 @@ final class SubmitEventPrefill
             'is_muslim_only' => (bool) $duplicateEvent->is_muslim_only,
             'event_url' => $duplicateEvent->event_url,
             'live_url' => $duplicateEvent->live_url,
+            'recording_url' => $duplicateEvent->recording_url,
             'domain_tags' => $duplicateEvent->classifications
                 ->where('taxonomy_code', EventTaxonomyCode::Domain->value)
                 ->pluck('event_term_id')
-                ->first(),
+                ->filter()
+                ->values()
+                ->all(),
             'discipline_tags' => $duplicateEvent->classifications
                 ->where('taxonomy_code', EventTaxonomyCode::Discipline->value)
                 ->pluck('event_term_id')

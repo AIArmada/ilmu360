@@ -34,7 +34,7 @@ class AdminUploadEventPosterImageTool extends AbstractAdminTool
     protected string $title = 'Upload Event Poster Image';
 
     #[\Override]
-    protected string $description = 'Upload and save a 3:4 portrait marketing poster for an admin-accessible event. Accepts image descriptors via {content_base64} or {content_url}. Use the admin-event-poster-image-prompt to get the recommended prompt and reference images before generating.';
+    protected string $description = 'Upload and save a 3:4 portrait marketing poster for an admin-accessible event. Global administrators can publish directly. Accepts image descriptors via {content_base64} or {content_url}. Use the admin-event-poster-image-prompt to get the recommended prompt and reference images before generating.';
 
     public function __construct(
         private readonly AdminResourceRegistry $registry,
@@ -91,6 +91,7 @@ class AdminUploadEventPosterImageTool extends AbstractAdminTool
 
             $result = $this->uploadEventImage(
                 uploads: $this->imageUploads,
+                actor: $actor,
                 eventId: $eventId,
                 collection: EventImageCollection::Poster,
                 descriptor: $imageDescriptor,
