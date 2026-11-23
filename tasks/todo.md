@@ -1087,3 +1087,11 @@ Review: the audit found no AI vocabulary, filler phrases, or "not just X but Y" 
 - Media file removal is already commit-deferred at the framework boundary: `app/Platform/Media/AuditedMediaObserver.php` implements `ShouldHandleEventsAfterCommit`, so Spatie's `deleted` file removal runs only after the transaction commits; a rolled-back delete restores the row with its file. Regression tests now pin that behavior in `MediaCollectionSyncTest` (rolled-back media delete) and `DirectoryPublishingPermissionTest` (replacement stored, later failure rolls back), alongside the failed-write cleanup test that still removes only newly created files.
 - Verification: audit suite `ContributionPagesTest`, `DirectoryPublishingPermissionTest`, `EventScheduleWorkspaceTest`, `ModerationQueueTest`, `Mcp/EventImageGenerationToolTest` — **123 passed / 890 assertions**; `FrontendApiParityTest` **113 passed / 829**; `MediaConversionsTest`, `MediaCollectionSyncTest`, `DirectoryPublishingPermissionTest` **67 passed**; `ContributionPagesTest`, `InstitutionContributionLocationPickerTest`, `ContributionBoundarySeamsTest` **146 passed / 950**. Architecture **0 violations / 28 features**, ownership PHPStan **0**, scoped PHPStan clean, Pint passed. The full PHPStan run currently reports one unrelated error in concurrently edited `app/Shared/Cache/SelectionCatalogCache.php`.
 - Test environment note: run with staging exports removed and `FILAMENT_ADMIN_DOMAIN=`/`FILAMENT_AHLI_DOMAIN=` empty; otherwise PHPUnit ignores its `<env>` values and the moderation-queue routes resolve to the production admin domain.
+
+## Test database isolation
+
+- [x] Trace the staging export bypass and the serial and parallel boot paths.
+- [x] Pin the test environment before framework boot and isolate local SQLite and CI PostgreSQL.
+- [x] Reproduce inherited staging settings against a disposable database and verify the sentinel survives.
+
+Review: 11 focused Pest tests passed in parallel with inherited staging settings and database recreation and cleanup enabled. The disposable SQLite sentinel was unchanged byte-for-byte. The CI opt-in resolved to loopback PostgreSQL `test` without opening a connection. Pint, PHPStan, and the architecture checks passed.

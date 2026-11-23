@@ -15,12 +15,13 @@ use App\Platform\Location\PublicGeolocationPermission;
 use App\Platform\Time\Http\Middleware\SetFilamentTimezone;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Bootstrap\LoadConfiguration;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-return Application::configure(basePath: dirname(__DIR__))
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
@@ -100,3 +101,28 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->respond(static fn ($response, Throwable $exception, Request $request) => app(ApiJsonResponseNormalizer::class)->normalize($request, $response));
     })->create();
+
+if (($_SERVER['ILMU360_TEST_SUITE'] ?? null) === '1') {
+    $app->afterBootstrapping(LoadConfiguration::class, static function (Application $app): void {
+        if (! $app->environment('testing') || $app['config_loaded_from_cache']) {
+            throw new RuntimeException('The test suite requires uncached configuration in the testing environment.');
+        }
+
+        $config = $app['config'];
+        $useCiPostgres = getenv('GITHUB_ACTIONS') === 'true' && getenv('ILMU360_TEST_POSTGRES') === '1';
+        $driver = $useCiPostgres ? 'pgsql' : 'sqlite';
+        $connection = $config->get("database.connections.{$driver}");
+        $connection['url'] = null;
+        $connection['database'] = $useCiPostgres ? 'test' : ':memory:';
+
+        if ($useCiPostgres) {
+            $connection['host'] = '127.0.0.1';
+            $connection['port'] = 5432;
+        }
+
+        $config->set('database.default', $driver);
+        $config->set('database.connections', [$driver => $connection]);
+    });
+}
+
+return $app;

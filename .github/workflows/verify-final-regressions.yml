@@ -33,6 +33,7 @@ jobs:
           --health-retries 5
     env:
       APP_ENV: testing
+      ILMU360_TEST_POSTGRES: '1'
       APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       DB_CONNECTION: pgsql
       DB_HOST: localhost

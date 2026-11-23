@@ -142,11 +142,9 @@
             "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan horizon:listen\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,horizon,logs,vite --kill-others"
         ],
         "test": [
-            "@php artisan config:clear --ansi",
             "./pest --parallel --tia --compact --exclude-group=real-driver"
         ],
         "test:drivers": [
-            "@php artisan config:clear --ansi",
             "./pest --compact --group=real-driver"
         ],
         "tunnel": [
