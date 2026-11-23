@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces\RelationManagers;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Places\Api\InstitutionSpaceLinks;
 use App\Platform\Admin\AdminResourceLink;
 use Filament\Actions\AttachAction;
@@ -20,6 +21,11 @@ class InstitutionsRelationManager extends RelationManager
 {
     #[\Override]
     protected static string $relationship = 'institutions';
+
+    public function booted(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     #[\Override]
     public static function getRelatedResource(): ?string

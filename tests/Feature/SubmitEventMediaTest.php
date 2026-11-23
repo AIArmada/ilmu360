@@ -24,13 +24,13 @@ beforeEach(function () {
 });
 
 /**
- * @return array{event_date: string, domain_tag_ids: string, discipline_tag_ids: array<int, string>, person_ids: array<int, string>, institution_id: string}
+ * @return array{event_date: string, domain_tag_ids: array<int, string>, discipline_tag_ids: array<int, string>, person_ids: array<int, string>, institution_id: string}
  */
 function submitEventMediaFixtures(): array
 {
     return [
         'event_date' => now()->addDay()->toDateString(),
-        'domain_tag_ids' => submitEventTerm('domain')->id,
+        'domain_tag_ids' => [submitEventTerm('domain')->id],
         'discipline_tag_ids' => [submitEventTerm('discipline')->id],
         'person_ids' => Person::factory()->count(2)->create()->pluck('id')->all(),
         'institution_id' => Institution::factory()->create(['status' => 'verified'])->id,
@@ -38,7 +38,7 @@ function submitEventMediaFixtures(): array
 }
 
 /**
- * @param  array{event_date: string, domain_tag_ids: string, discipline_tag_ids: array<int, string>, person_ids: array<int, string>, institution_id: string}  $fixtures
+ * @param  array{event_date: string, domain_tag_ids: array<int, string>, discipline_tag_ids: array<int, string>, person_ids: array<int, string>, institution_id: string}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventMediaFormData(array $fixtures, array $overrides = []): array

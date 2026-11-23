@@ -895,7 +895,7 @@ it('records guest submissions without a submitter id', function () {
         ->set('data.event_category_ids', eventCategoryId('kuliah_ceramah'))
         ->set('data.gender', EventGenderRestriction::All->value)
         ->set('data.age_group', [EventAgeGroup::AllAges->value])
-        ->set('data.domain_tags', $domainTag->id)
+        ->set('data.domain_tags', [$domainTag->id])
         ->set('data.discipline_tags', [$disciplineTag->id])
         ->set('data.persons', [$person->id])
         ->set('data.primary_organizer_kind', 'institution')

@@ -39,7 +39,7 @@ it('preserves omitted address fields in the shared address payload', function ()
         ->and($payload)->not->toHaveKey('waze_url');
 });
 
-it('ignores hidden institution slug injections and preserves coordinates across admin and member scopes', function (): void {
+it('ignores hidden institution slug injections for admins and forbids member directory writes', function (): void {
     $country = ensureTestMalaysiaCountry();
     $admin = securityChecklistAdminUser();
     $adminInstitution = Institution::factory()->create([
@@ -75,6 +75,7 @@ it('ignores hidden institution slug injections and preserves coordinates across 
     $memberAddress = $memberInstitution->fresh()?->primaryAddress();
     $memberLat = (float) ($memberAddress?->lat ?? 0.0);
     $memberLng = (float) ($memberAddress?->lng ?? 0.0);
+    $memberName = (string) $memberInstitution->name;
 
     MemberServer::actingAs($member)
         ->tool(MemberUpdateRecordTool::class, [
@@ -91,9 +92,10 @@ it('ignores hidden institution slug injections and preserves coordinates across 
                 ],
             ],
         ])
-        ->assertOk();
+        ->assertHasErrors(['Forbidden.']);
 
     expect($memberInstitution->fresh()?->slug)->not->toBe('attempted-member-institution-injection')
+        ->and($memberInstitution->fresh()?->name)->toBe($memberName)
         ->and(abs(((float) ($memberInstitution->fresh()?->primaryAddress()?->lat ?? 0.0)) - $memberLat))->toBeLessThan(0.000001)
         ->and(abs(((float) ($memberInstitution->fresh()?->primaryAddress()?->lng ?? 0.0)) - $memberLng))->toBeLessThan(0.000001);
 });

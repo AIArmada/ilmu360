@@ -60,8 +60,13 @@ it('renders the inline signal event hooks used by the package tracker', function
     $this->get(route('events.index'))
         ->assertSuccessful()
         ->assertSee('data-signal-change-event="filter.changed"', false)
-        ->assertSee('data-signal-change-event="filter.sort_changed"', false)
         ->assertSee('data-signal-event="search.nearby_requested"', false);
+
+    // The sort control lives inside the filter form, which is mounted lazily
+    // when the panel opens; the tracker binds via document-level delegation.
+    $this->get(route('events.index', ['filters_panel' => 'open']))
+        ->assertSuccessful()
+        ->assertSee('data-signal-change-event="filter.sort_changed"', false);
 });
 
 it('renders event detail conversion tracking hooks', function () {

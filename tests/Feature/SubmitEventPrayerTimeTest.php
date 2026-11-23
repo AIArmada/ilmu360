@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Prayer\Api\EventPrayerTime;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -18,23 +19,29 @@ afterEach(function () {
 });
 
 it('shows base prayer time options without selecting a date', function () {
-    $component = Livewire::test(Create::class);
-
-    // Base options should always be visible
-    $component->assertSee('Selepas Subuh')
-        ->assertSee('Selepas Zuhur')
-        ->assertSee('Selepas Asar')
-        ->assertSee('Selepas Maghrib')
-        ->assertSee('Selepas Isyak')
-        ->assertSee('Lain Waktu');
+    // Base options should always be available
+    assertSubmitEventPrayerOptions(
+        Livewire::test(Create::class),
+        [
+            EventPrayerTime::SelepasSubuh,
+            EventPrayerTime::SelepasZuhur,
+            EventPrayerTime::SelepasAsar,
+            EventPrayerTime::SelepasMaghrib,
+            EventPrayerTime::SelepasIsyak,
+            EventPrayerTime::LainWaktu,
+        ],
+    );
 });
 
 it('hides conditional prayer time options without a date', function () {
-    $component = Livewire::test(Create::class);
-
     // Jumaat and Tarawih require a qualifying date to appear
-    $component->assertDontSee('Sebelum Jumaat')
-        ->assertDontSee('Selepas Jumaat')
-        ->assertSee('Sebelum Maghrib')
-        ->assertDontSee('Selepas Tarawih');
+    assertSubmitEventPrayerOptions(
+        Livewire::test(Create::class),
+        [EventPrayerTime::SebelumMaghrib],
+        [
+            EventPrayerTime::SebelumJumaat,
+            EventPrayerTime::SelepasJumaat,
+            EventPrayerTime::SelepasTarawih,
+        ],
+    );
 });

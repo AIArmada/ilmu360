@@ -85,8 +85,9 @@ it('shows formatted person names in submit event person selectors', function () 
         'status' => 'verified',
     ]);
 
-    Livewire::test(Create::class)
-        ->assertSee($person->formatted_name);
+    $options = submitEventFieldOptions(Livewire::test(Create::class), 'persons');
+
+    expect($options)->toContain($person->formatted_name);
 });
 
 it('uses the organizer person slug when no explicit persons are selected', function () {

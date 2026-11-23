@@ -5,7 +5,9 @@ use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Events\Models\Event;
+use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Language\Models\Language;
+use App\Shared\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Livewire;
@@ -23,10 +25,12 @@ it('hydrates the events index language cache into the current safe payload forma
     Livewire::test(Index::class)
         ->assertSee('Temui majlis ilmu yang');
 
-    expect(Cache::get('event_filter_languages_v4'))
-        ->toBeArray()
-        ->and(Cache::get('event_filter_languages_v4'))
-        ->toHaveKey('ms');
+    $options = app(SelectionCatalogCache::class)->languageOptions(
+        'code',
+        MalaysiaLanguageCatalog::labels(),
+    );
+
+    expect($options)->toBeArray()->toHaveKey('ms');
 });
 
 it('hydrates the submit event safe option caches into the current payload format', function () {

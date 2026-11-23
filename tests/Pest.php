@@ -45,6 +45,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\TitleCategorySeeder;
 use Database\Seeders\TitleSeeder;
+use Filament\Forms\Components\Select;
 use Illuminate\Cache\Repository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -716,6 +717,45 @@ function submitEventPrayerFormData(array $overrides = []): array
         'submitter_email' => 'guest@example.com',
         'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
     ], $overrides);
+}
+
+/**
+ * Resolve a Filament select's current server-side options from a Livewire test.
+ *
+ * Filament 5.12 renders non-native select options client-side, so rendered
+ * HTML no longer carries option labels. Assert the schema contract instead.
+ *
+ * @return array<array-key, mixed>
+ */
+function submitEventFieldOptions(mixed $component, string $fieldName): array
+{
+    $options = [];
+
+    $component->assertFormFieldExists($fieldName, function (Select $field) use (&$options): bool {
+        $options = $field->getOptions();
+
+        return true;
+    });
+
+    return $options;
+}
+
+/**
+ * @param  list<EventPrayerTime>  $present
+ * @param  list<EventPrayerTime>  $absent
+ */
+function assertSubmitEventPrayerOptions(mixed $component, array $present, array $absent = []): void
+{
+    $options = submitEventFieldOptions($component, 'prayer_time');
+
+    foreach ($present as $prayerTime) {
+        expect($options)->toHaveKey($prayerTime->value)
+            ->and($options[$prayerTime->value])->toBe($prayerTime->getLabel());
+    }
+
+    foreach ($absent as $prayerTime) {
+        expect($options)->not->toHaveKey($prayerTime->value);
+    }
 }
 
 /**

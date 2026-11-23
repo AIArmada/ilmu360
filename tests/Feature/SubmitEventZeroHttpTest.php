@@ -24,7 +24,11 @@ beforeEach(function () {
 it('submits with zero live HTTP on a cold cache and records hardcoded provenance', function () {
     Http::preventStrayRequests();
 
-    setSubmitEventFormState(Livewire::test(Create::class), submitEventPrayerFormData(['title' => 'Zero HTTP Submit Event']))
+    // Build the fixtures before the form renders: taxonomy option lookups are
+    // cached on first render, and a term created afterwards would miss it.
+    $form = submitEventPrayerFormData(['title' => 'Zero HTTP Submit Event']);
+
+    setSubmitEventFormState(Livewire::test(Create::class), $form)
         ->call('submit')
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));

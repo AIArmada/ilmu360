@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
+use App\Features\Prayer\Api\EventPrayerTime;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
@@ -17,60 +18,74 @@ afterEach(function () {
 test('base prayer time options are visible without date selected', function () {
     $component = Livewire::test(Create::class);
 
-    $component->assertSee('Selepas Subuh')
-        ->assertSee('Selepas Zuhur')
-        ->assertSee('Selepas Asar')
-        ->assertSee('Selepas Maghrib')
-        ->assertSee('Selepas Isyak')
-        ->assertSee('Lain Waktu')
-        ->assertDontSee('Sebelum Jumaat')
-        ->assertDontSee('Selepas Jumaat')
-        ->assertDontSee('Selepas Tarawih');
+    assertSubmitEventPrayerOptions(
+        $component,
+        [
+            EventPrayerTime::SelepasSubuh,
+            EventPrayerTime::SelepasZuhur,
+            EventPrayerTime::SelepasAsar,
+            EventPrayerTime::SelepasMaghrib,
+            EventPrayerTime::SelepasIsyak,
+            EventPrayerTime::LainWaktu,
+        ],
+        [
+            EventPrayerTime::SebelumJumaat,
+            EventPrayerTime::SelepasJumaat,
+            EventPrayerTime::SelepasTarawih,
+        ],
+    );
 });
 
 test('selepas jumaat appears on friday', function () {
     // Feb 6, 2026 is a Friday
-    Livewire::test(Create::class)
-        ->set('data.event_date', '2026-02-06')
-        ->assertSee('Sebelum Jumaat')
-        ->assertSee('Selepas Jumaat');
+    assertSubmitEventPrayerOptions(
+        Livewire::test(Create::class)->set('data.event_date', '2026-02-06'),
+        [EventPrayerTime::SebelumJumaat, EventPrayerTime::SelepasJumaat],
+    );
 });
 
 test('selepas jumaat does not appear on non-friday', function () {
     // Feb 5, 2026 is a Thursday
-    Livewire::test(Create::class)
-        ->set('data.event_date', '2026-02-05')
-        ->assertDontSee('Sebelum Jumaat')
-        ->assertDontSee('Selepas Jumaat');
+    assertSubmitEventPrayerOptions(
+        Livewire::test(Create::class)->set('data.event_date', '2026-02-05'),
+        [],
+        [EventPrayerTime::SebelumJumaat, EventPrayerTime::SelepasJumaat],
+    );
 });
 
 test('selepas tarawih appears during ramadhan', function () {
     // Feb 25, 2026 is during Ramadhan (Feb 18 - Mar 19, 2026)
-    Livewire::test(Create::class)
-        ->set('data.event_date', '2026-02-25')
-        ->assertSee('Sebelum Maghrib')
-        ->assertSee('Selepas Tarawih');
+    assertSubmitEventPrayerOptions(
+        Livewire::test(Create::class)->set('data.event_date', '2026-02-25'),
+        [EventPrayerTime::SebelumMaghrib, EventPrayerTime::SelepasTarawih],
+    );
 });
 
 test('selepas tarawih does not appear outside ramadhan', function () {
     // Apr 1, 2026 is after Ramadhan
-    Livewire::test(Create::class)
-        ->set('data.event_date', '2026-04-01')
-        ->assertSee('Sebelum Maghrib')
-        ->assertDontSee('Selepas Tarawih');
+    assertSubmitEventPrayerOptions(
+        Livewire::test(Create::class)->set('data.event_date', '2026-04-01'),
+        [EventPrayerTime::SebelumMaghrib],
+        [EventPrayerTime::SelepasTarawih],
+    );
 });
 
 test('both selepas jumaat and tarawih appear on friday during ramadhan', function () {
     // Feb 27, 2026 is a Friday during Ramadhan
-    Livewire::test(Create::class)
-        ->set('data.event_date', '2026-02-27')
-        ->assertSee('Selepas Jumaat')
-        ->assertSee('Selepas Tarawih');
+    assertSubmitEventPrayerOptions(
+        Livewire::test(Create::class)->set('data.event_date', '2026-02-27'),
+        [EventPrayerTime::SelepasJumaat, EventPrayerTime::SelepasTarawih],
+    );
 });
 
 test('zohor is now spelled as zuhur', function () {
-    Livewire::test(Create::class)
-        ->set('data.event_date', '2026-03-01')
-        ->assertSee('Selepas Zuhur')
-        ->assertDontSee('Selepas Zohor');
+    $options = submitEventFieldOptions(
+        Livewire::test(Create::class)->set('data.event_date', '2026-03-01'),
+        'prayer_time',
+    );
+
+    expect($options)
+        ->toHaveKey(EventPrayerTime::SelepasZuhur->value)
+        ->and($options[EventPrayerTime::SelepasZuhur->value])->toBe('Selepas Zuhur')
+        ->and($options)->not->toContain('Selepas Zohor');
 });
