@@ -12,9 +12,9 @@ use Spatie\MediaLibrary\MediaCollections\Filesystem;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Throwable;
 
-final class EloquentMediaCollectionSync implements MediaCollectionSync
+final readonly class EloquentMediaCollectionSync implements MediaCollectionSync
 {
-    public function __construct(private readonly Filesystem $filesystem) {}
+    public function __construct(private Filesystem $filesystem) {}
 
     public function cleanUpFailedWrites(HasMedia $model, Closure $write): void
     {

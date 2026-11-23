@@ -64,7 +64,7 @@ final class EventMediaForm
             }
         }
 
-        if ($configureMedia !== null) {
+        if ($configureMedia instanceof Closure) {
             foreach ($fields as $field) {
                 $configureMedia($field);
             }

@@ -815,15 +815,13 @@ it('holds appends to approved parents for occurrence review without changing the
         ->and($occurrence->metadata['public_submission']['requested_visibility'])->toBe(EventVisibility::Public->value)
         ->and($firstOccurrence->title)->toBe('Approved Parent Date')
         ->and($second['event']->fresh()->registration_mode)->toBe($registrationMode)
-        ->and($second['event']->fresh()->accessPolicy()->firstOrFail()->only(['registration_required', 'walk_in_allowed']))->toBe($accessPolicy);
-
-    expect(fn () => app(OccurrenceSubmissionReviews::class)->approve(
-        (string) $submission->getKey(),
-        $submitter->getMorphClass(),
-        (string) $submitter->getKey(),
-    ))->toThrow(AuthorizationException::class);
-
-    expect((string) $submission->fresh()->status)->toBe('pending')
+        ->and($second['event']->fresh()->accessPolicy()->firstOrFail()->only(['registration_required', 'walk_in_allowed']))->toBe($accessPolicy)
+        ->and(fn () => app(OccurrenceSubmissionReviews::class)->approve(
+            (string) $submission->getKey(),
+            $submitter->getMorphClass(),
+            (string) $submitter->getKey(),
+        ))->toThrow(AuthorizationException::class)
+        ->and((string) $submission->fresh()->status)->toBe('pending')
         ->and((string) $occurrence->fresh()->status)->toBe(EventOccurrence::DRAFT);
 
     $firstOccurrence->forceFill(['starts_at' => now()->subDays(1)])->save();

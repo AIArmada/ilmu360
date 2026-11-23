@@ -59,7 +59,7 @@ final readonly class ApplyDirectContributionUpdateAction implements Contribution
                 $this->writeChanges($entityType, $entityId, $changes);
             }
 
-            if ($writeMedia === null) {
+            if (! $writeMedia instanceof Closure) {
                 return;
             }
 

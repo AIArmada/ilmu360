@@ -60,8 +60,8 @@ it('preloads the title catalog once and reuses its shared cache on the person up
 
     $reuseQueries = collect(DB::getQueryLog());
 
-    expect($reuseQueries->filter(fn (array $query): bool => str_contains($query['query'], 'from "titles"')))->toHaveCount(0)
-        ->and($reuseQueries->filter(fn (array $query): bool => str_contains($query['query'], 'select "id", "code", "name", "native" from "languages"')))->toHaveCount(0);
+    expect($reuseQueries->filter(fn (array $query): bool => str_contains($query['query'], 'from "titles"')))->toBeEmpty()
+        ->and($reuseQueries->filter(fn (array $query): bool => str_contains($query['query'], 'select "id", "code", "name", "native" from "languages"')))->toBeEmpty();
 });
 
 it('hydrates and saves a selected title from the preloaded title catalog', function (): void {

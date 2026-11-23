@@ -1021,7 +1021,7 @@ final readonly class EventSubmissionFormSchema
                         ->multiple()
                         ->searchable()
                         ->preload()
-                        ->visible($this->context->eventContainer === null),
+                        ->visible(! $this->context->eventContainer instanceof Event),
                 ]),
 
             Section::make(__('Lokasi'))
