@@ -65,7 +65,7 @@ final class VenueAddressResolver
             $addressId = $summary['address_id'] ?? null;
             $address = is_string($addressId) ? $records->get($addressId) : null;
             $this->addresses[$scope][$venueId] = $address instanceof Address ? $address : null;
-            $this->names[$scope][$venueId] = isset($summary['name']) ? $summary['name'] : null;
+            $this->names[$scope][$venueId] = $summary['name'] ?? null;
         }
     }
 

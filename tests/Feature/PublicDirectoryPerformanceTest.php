@@ -180,7 +180,7 @@ function seedPublicDirectoryPerformanceData(): array
             ]);
         }
 
-        return compact('user', 'institutions', 'persons', 'references', 'events');
+        return ['user' => $user, 'institutions' => $institutions, 'persons' => $persons, 'references' => $references, 'events' => $events];
     });
 }
 
@@ -238,9 +238,8 @@ it('serves public directory pages without lazy-loading violations and within bou
         ->and($guest['/institusi']['count'])->toBeLessThanOrEqual(15)
         ->and($auth['/institusi']['count'])->toBeLessThanOrEqual(20)
         ->and($guest['/rujukan']['count'])->toBeLessThanOrEqual(16)
-        ->and($auth['/rujukan']['count'])->toBeLessThanOrEqual(22);
-
-    expect($violations)->toBe([]);
+        ->and($auth['/rujukan']['count'])->toBeLessThanOrEqual(22)
+        ->and($violations)->toBeEmpty();
 
     $countAggregate = static fn (string $query, string $table): bool => str_contains($query, 'from "'.$table.'"')
         && str_contains($query, 'count(*) as "aggregate"');
@@ -324,8 +323,8 @@ it('serves webp assets with picture fallbacks, hero prioritization, and no dupli
         $webp = public_path($relativePath.'.webp');
         $png = public_path($relativePath.'.png');
 
-        expect(is_file($webp))->toBeTrue()
-            ->and(is_file($png))->toBeTrue()
+        expect($webp)->toBeFile()
+            ->and($png)->toBeFile()
             ->and(filesize($webp))->toBeLessThan(filesize($png));
     }
 

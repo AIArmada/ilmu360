@@ -901,12 +901,9 @@ it('shows the nearest upcoming public majlis on state-filtered cards with one ba
         ->and($listingSql)->not->toContain('as "next_event_slug"')
         ->and($listingSql)->not->toContain('as "next_event_title"')
         ->and($listingSql)->not->toContain('as "next_event_starts_at"')
-        ->and($listingSql)->not->toContain('as "events_count"');
-
-    expect($queries->filter(
-        static fn (string $query): bool => str_contains($query, 'from "institutions"')
-            && str_contains($query, 'count(*) as "aggregate"'),
-    ))->toBeEmpty();
+        ->and($listingSql)->not->toContain('as "events_count"')
+        ->and($queries->filter(static fn (string $query): bool => str_contains($query, 'from "institutions"')
+        && str_contains($query, 'count(*) as "aggregate"')))->toBeEmpty();
 
     $factsQueries = $queries->filter(
         static fn (string $query): bool => str_contains($query, 'event_occurrences')

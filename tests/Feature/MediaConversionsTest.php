@@ -701,9 +701,8 @@ it('renames staged contribution donation QR media to the target DonationChannel 
         );
 
         throw new RuntimeException('Approval failed after copying the QR.');
-    }))->toThrow(RuntimeException::class, 'Approval failed after copying the QR.');
-
-    expect($channel->fresh()->getFirstMedia('qr'))->toBeNull()
+    }))->toThrow(RuntimeException::class, 'Approval failed after copying the QR.')
+        ->and($channel->fresh()->getFirstMedia('qr'))->toBeNull()
         ->and(Storage::disk('public')->allFiles())->toBe($filesBefore);
 
     $workflow->attachStagedDonationQr(
@@ -737,13 +736,13 @@ it('uses direct public CDN URLs for public S3 media when AWS_URL is configured a
     $generator->setMedia($media);
 
     // 1. Public S3 with AWS_URL configured -> direct CDN URL (no temporary URL)
-    config()->set('media-library.s3_use_temporary_urls', null);
-    config()->set('filesystems.disks.s3.visibility', null);
+    config()->set('media-library.s3_use_temporary_urls');
+    config()->set('filesystems.disks.s3.visibility');
     config()->set('filesystems.disks.s3.url', 'https://cdn.ilmu360.com');
     expect($generator->exposeShouldUseTemporaryUrl())->toBeFalse();
 
     // 2. Public S3 without AWS_URL -> falls back to temporary presigned URL
-    config()->set('filesystems.disks.s3.url', null);
+    config()->set('filesystems.disks.s3.url');
     expect($generator->exposeShouldUseTemporaryUrl())->toBeTrue();
 
     // 3. Explicit override via MEDIA_S3_USE_TEMPORARY_URLS=false -> direct URL even without AWS_URL
