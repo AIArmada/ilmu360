@@ -19,9 +19,15 @@ it('builds the public s3 url when a bucket is configured', function () {
         ->toBe('https://ilmu360.s3.ap-southeast-5.amazonaws.com/social-media-icons/whatsapp.svg');
 });
 
-it('falls back to the local storage link when no bucket is configured', function () {
+it('falls back to the bundled public icons when no bucket is configured', function () {
     config(['filesystems.disks.s3.bucket' => '']);
 
     expect(SocialIcon::url('whatsapp.svg'))
-        ->toBe(asset('storage/social-media-icons/whatsapp.svg'));
+        ->toBe(asset('images/social-media-icons/whatsapp.svg'));
+});
+
+it('ships the bundled fallback icons under public_path', function () {
+    foreach (['whatsapp.svg', 'telegram.svg', 'facebook.svg', 'threads.svg', 'link.svg'] as $file) {
+        expect(public_path('images/social-media-icons/'.$file))->toBeFile();
+    }
 });
