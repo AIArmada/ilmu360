@@ -413,7 +413,7 @@ it('requires a country when updating a speaker who already has one', function ()
             'subjectId' => $person->slug,
         ])
         ->assertSet('data.address.country_id', (string) $country->getKey())
-        ->set('data.address.country_id', null)
+        ->set('data.address.country_id')
         ->call('submit')
         ->assertHasErrors(['data.address.country_id' => 'required']);
 });

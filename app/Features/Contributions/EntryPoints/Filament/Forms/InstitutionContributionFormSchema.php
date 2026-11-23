@@ -360,7 +360,7 @@ class InstitutionContributionFormSchema
             }
         }
 
-        if ($configureMedia !== null) {
+        if ($configureMedia instanceof Closure) {
             foreach ($fields as $field) {
                 $configureMedia($field);
             }

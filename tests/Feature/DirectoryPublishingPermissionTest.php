@@ -95,9 +95,8 @@ it('restores a direct contribution when a later media write fails', function ():
                 throw new RuntimeException('Could not write a second image.');
             },
         );
-    })->toThrow(RuntimeException::class, 'Could not write a second image.');
-
-    expect($institution->fresh()->name)->toBe('Original Name')
+    })->toThrow(RuntimeException::class, 'Could not write a second image.')
+        ->and($institution->fresh()->name)->toBe('Original Name')
         ->and($institution->fresh()->getFirstMedia('cover')?->getKey())->toBe($original->getKey())
         ->and($replacementPath)->toBeString();
 
@@ -132,9 +131,8 @@ it('restores the original media when a later write fails after the replacement i
                 throw new RuntimeException('Could not finish the update.');
             },
         );
-    })->toThrow(RuntimeException::class, 'Could not finish the update.');
-
-    expect($institution->fresh()->name)->toBe('Original Name')
+    })->toThrow(RuntimeException::class, 'Could not finish the update.')
+        ->and($institution->fresh()->name)->toBe('Original Name')
         ->and($institution->fresh()->getFirstMedia('cover')?->getKey())->toBe($original->getKey())
         ->and(Storage::disk('public')->exists($originalPath))->toBeTrue();
 });
@@ -180,9 +178,8 @@ it('keeps a staged institution update pending if its gallery would exceed capaci
         ->toMediaCollection('pending_media');
 
     expect(fn () => app(ApproveContributionRequestAction::class)->handle($request, $reviewer))
-        ->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->getMedia('gallery'))->toHaveCount(10)
+        ->toThrow(ValidationException::class)
+        ->and($institution->fresh()->getMedia('gallery'))->toHaveCount(10)
         ->and($institution->fresh()->name)->toBe($institution->name)
         ->and($request->fresh()->status)->toBe(ContributionRequestStatus::Pending)
         ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(1);
@@ -213,9 +210,8 @@ it('preserves the published cover and staged replacements when approval cannot c
     $reviewer = User::factory()->create();
 
     expect(fn () => app(ApproveContributionRequestAction::class)->handle($request, $reviewer))
-        ->toThrow(Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist::class);
-
-    expect($institution->fresh()->name)->toBe('Original institution')
+        ->toThrow(Spatie\MediaLibrary\MediaCollections\Exceptions\FileDoesNotExist::class)
+        ->and($institution->fresh()->name)->toBe('Original institution')
         ->and($institution->fresh()->getFirstMedia('cover')?->getKey())->toBe($original->getKey())
         ->and($request->fresh()->status)->toBe(ContributionRequestStatus::Pending)
         ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(2);

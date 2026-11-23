@@ -616,10 +616,10 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             addressStatePath: 'address',
             includeLocationPicker: true,
             mediaFields: $this->directEditMediaFields,
-            configureMedia: $this->configureVisitorMedia(...),
             includeWazeUrlField: false,
             includeMapsReselection: true,
             mapsReselectionRequired: ! is_string($storedPlaceId) || trim($storedPlaceId) === '',
+            configureMedia: $this->configureVisitorMedia(...),
         );
     }
 
@@ -755,7 +755,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $field = $this->directEditMediaField($fieldName);
 
             foreach ($files as $file) {
-                if ($field === null || ! $file->exists()) {
+                if (! $field instanceof SpatieMediaLibraryFileUpload || ! $file->exists()) {
                     throw ValidationException::withMessages(["data.{$fieldName}" => __('Upload the image again and retry.')]);
                 }
 

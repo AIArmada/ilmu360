@@ -79,7 +79,7 @@ class ReferenceContributionFormSchema
                 $fields = array_filter($fields, fn (SpatieMediaLibraryFileUpload $field): bool => in_array($field->getName(), $mediaFields, true));
             }
 
-            if ($configureMedia !== null) {
+            if ($configureMedia instanceof Closure) {
                 foreach ($fields as $field) {
                     $configureMedia($field);
                 }
