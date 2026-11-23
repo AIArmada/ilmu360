@@ -377,7 +377,7 @@ return [
             'channel_push' => 'Push',
             'manage_devices' => 'Manage devices',
             'channel_unavailable' => 'Verify in profile',
-            'channel_push_unavailable' => 'Coming soon — the mobile app is still in development.',
+            'channel_push_unavailable' => 'Coming soon: the mobile app is still in development.',
             'groups_heading' => 'What you receive',
             'groups_description' => 'Turn on what is useful. Turn off what is not.',
             'discovery_heading' => 'New events for you',

@@ -148,8 +148,8 @@
                                 <div>
                                     <label for="offline-payment-state" class="text-sm font-semibold text-slate-800">{{ __('Payment status') }}</label>
                                     <select id="offline-payment-state" wire:model.live="paymentState" class="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100">
-                                        <option value="confirmed">{{ __('Payment received — issue pass now') }}</option>
-                                        <option value="pending">{{ __('Not received yet — keep pending') }}</option>
+                                        <option value="confirmed">{{ __('Payment received: issue pass now') }}</option>
+                                        <option value="pending">{{ __('Not received yet: keep pending') }}</option>
                                     </select>
                                     @error('paymentState')<p class="mt-1 text-xs font-semibold text-rose-700">{{ $message }}</p>@enderror
                                 </div>

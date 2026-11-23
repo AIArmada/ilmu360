@@ -205,12 +205,12 @@ final class RewardMemberPresenter
             ],
             'submitted' => [
                 'state' => 'processing',
-                'label' => 'Sent — waiting for provider confirmation',
+                'label' => 'Sent, waiting for provider confirmation',
                 'paid_at' => null,
             ],
             'unknown' => [
                 'state' => 'unknown',
-                'label' => 'Being verified — funds are not confirmed yet',
+                'label' => 'Being verified, funds are not confirmed yet',
                 'paid_at' => null,
             ],
             'requested', 'approved' => [
@@ -220,7 +220,7 @@ final class RewardMemberPresenter
             ],
             'failed' => [
                 'state' => 'failed',
-                'label' => 'Failed — the team will retry or contact you',
+                'label' => 'Failed, the team will retry or contact you',
                 'paid_at' => null,
             ],
             'cancelled' => [
@@ -230,7 +230,7 @@ final class RewardMemberPresenter
             ],
             default => [
                 'state' => 'unknown',
-                'label' => 'Being verified — funds are not confirmed yet',
+                'label' => 'Being verified, funds are not confirmed yet',
                 'paid_at' => null,
             ],
         };

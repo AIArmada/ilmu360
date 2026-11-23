@@ -1002,3 +1002,11 @@ Source: `ilmu360-orm-audit-2026-11-21-1834.md`, reviewed at
 - [x] Push and verify the final Quality CI run. Never force-push.
   Code + ledger SHA `664b2ce1` passed all 26 jobs in
   [run 44897003682](https://github.com/AIArmada/ilmu360/actions/runs/44897003682).
+
+## Copy unslop pass (2026-11-22)
+
+- [x] Replace curly quotes and apostrophes with straight quotes across the JSON locales (en, ms, id, jv, ms_MY) and the en/ms PHP lang files, including the `:search` keys and all callers.
+- [x] Remove prose em dashes from About, notifications, venue helper text, reward payout labels, referral notice, session-submission guidance, console dry-run warnings, MCP tool descriptions, and the contribution/offline-admission progress strings.
+- [x] Keep native punctuation in Chinese (`——`) and Tamil copy, and keep `—` where it is an empty-cell placeholder, a value separator, or a select label.
+
+Review: the audit found no AI vocabulary, filler phrases, or "not just X but Y" padding in the shipping copy, so the change is limited to rule 13 (em dashes) and rule 19 (curly quotes). Em dashes in data separators and `—` placeholders were left alone because they are structural, not prose. Verification: targeted Pest selection `AboutPageTest`, `LegalPagesTest`, `PersonIndexTest`, `ReferralMemberSurfaceTest`, `PublicMenuTranslationsTest`, `IndonesianLocaleTest`, `RewardMemberWebTest`, `ContributionPagesTest` remainder — 85 passed / 370 assertions; JSON parses for all five locales; `php -l` clean on every changed PHP file; Blade cache compiles; architecture 0 violations / 28 features; Pint passed. The 10 `ContributionPagesTest` person-affiliation failures reproduce on the untouched baseline and are unrelated.

@@ -8,8 +8,8 @@ return [
     'hero' => [
         'eyebrow' => 'A shared home for majlis ilmu',
         'title' => 'Knowledge is closer than you think.',
-        'emphasis' => 'Let’s make it easier to find.',
-        'intro' => 'Across Malaysia, masjids and suraus host classes, talks and study circles—from a Maghrib lesson in your own neighbourhood to the weekend class you have been meaning to attend. ilmu360° brings those details together, so they are easier to discover, check and share.',
+        'emphasis' => 'Let\'s make it easier to find.',
+        'intro' => 'Across Malaysia, masjids and suraus host classes, talks and study circles, from a Maghrib lesson in your own neighbourhood to the weekend class you have been meaning to attend. ilmu360° brings those details together, so they are easier to discover, check and share.',
         'primary' => 'Explore majlis ilmu',
         'secondary' => 'Share a gathering',
         'image_alt' => 'A community listens to an evening lesson in a welcoming Malaysian surau.',
@@ -65,7 +65,7 @@ return [
     ],
     'closing' => [
         'title' => 'Your next gathering may be closer than you think.',
-        'body' => 'See what is coming up around you. If you organise a gathering, share the details here—so the invitation has a chance to travel further.',
+        'body' => 'See what is coming up around you. If you organise a gathering, share the details here, so the invitation has a chance to travel further.',
         'primary' => 'Find a majlis nearby',
         'secondary' => 'Share a gathering',
         'image_alt' => 'Evening light falling through an open window in a surau.',

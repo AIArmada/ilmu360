@@ -270,7 +270,7 @@ new
     <div class="mb-6">
         <h2 class="font-heading text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             @if($activeSearch !== '')
-                {{ __('Search results for “:search”', ['search' => $activeSearch]) }}
+                {{ __('Search results for ":search"', ['search' => $activeSearch]) }}
             @else
                 {{ __('Venue directory') }}
             @endif

@@ -41,7 +41,7 @@
         <div>
             <h2 class="font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
                 @if($activeSearch !== '')
-                    {{ __('Search results for “:search”', ['search' => $activeSearch]) }}
+                    {{ __('Search results for ":search"', ['search' => $activeSearch]) }}
                 @else
                     {{ __('Institution directory') }}
                 @endif

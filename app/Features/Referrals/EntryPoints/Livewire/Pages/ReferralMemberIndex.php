@@ -98,7 +98,7 @@ class ReferralMemberIndex extends Component
         } catch (LogicException $exception) {
             $message = $exception->getMessage();
             $this->notice = str_contains($message, 'invite cap')
-                ? 'You have reached this programme’s invite limit.'
+                ? 'You have reached this programme\'s invite limit.'
                 : 'This programme is not accepting invitations right now.';
 
             return;

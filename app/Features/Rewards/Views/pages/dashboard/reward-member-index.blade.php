@@ -65,10 +65,10 @@
                 <strong>{{ $row['detail']['title'] }}</strong>
                 <span class="text-slate-600">({{ $row['detail']['mode'] }}, {{ $row['detail']['status'] }})</span>
                 @if (($row['detail']['enrollment']['status'] ?? null) !== null)
-                    <span class="text-slate-600">— enrolled: {{ $row['detail']['enrollment']['status'] }}</span>
+                    <span class="text-slate-600">Enrolled: {{ $row['detail']['enrollment']['status'] }}</span>
                 @endif
                 @if (($row['detail']['enrollment']['acceptance']['current'] ?? true) === false)
-                    <span class="font-medium text-amber-800">— terms changed, please reaccept</span>
+                    <span class="font-medium text-amber-800">Terms changed, please reaccept</span>
                 @endif
                 <div class="mt-2 flex flex-wrap items-center gap-2">
                     @if ($row['can_enroll'] && ($row['detail']['enrollment'] ?? null) === null)

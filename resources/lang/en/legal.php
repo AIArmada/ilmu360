@@ -21,7 +21,7 @@ return [
             [
                 'title' => 'Who we are',
                 'paragraphs' => [
-                    '“ilmu360°”, “we” and “us” refer to the ilmu360° service and the party operating it.',
+                    '"ilmu360°", "we" and "us" refer to the ilmu360° service and the party operating it.',
                 ],
             ],
             [
@@ -73,7 +73,7 @@ return [
                 'title' => 'Your choices and rights',
                 'paragraphs' => [
                     'You may request access to or correction of your personal data, withdraw consent where processing relies on it, or ask us to stop direct marketing. You may also ask to close your account and delete data; some records may need to be kept for legal, transaction or security reasons. Other rights available under law, including data portability where applicable, also apply.',
-                    'To make a privacy request, use the email address on the Contact Us page and include the subject “Privacy Request”. We may ask for information to verify your identity.',
+                    'To make a privacy request, use the email address on the Contact Us page and include the subject "Privacy Request". We may ask for information to verify your identity.',
                 ],
             ],
             [
@@ -127,20 +127,20 @@ return [
             [
                 'title' => 'Content you submit',
                 'paragraphs' => [
-                    'You keep ownership of the content you submit and are responsible for having the right to share it. You allow ilmu360° to store, display, format and promote it as needed to operate the service. We may reject or remove content that breaks the law, infringes someone’s rights or breaches these terms. Publication does not mean ilmu360° endorses the content or organiser.',
+                    'You keep ownership of the content you submit and are responsible for having the right to share it. You allow ilmu360° to store, display, format and promote it as needed to operate the service. We may reject or remove content that breaks the law, infringes someone\'s rights or breaches these terms. Publication does not mean ilmu360° endorses the content or organiser.',
                 ],
             ],
             [
                 'title' => 'Unacceptable use',
                 'paragraphs' => [
-                    'Do not use the platform to break the law or violate others’ rights, impersonate or harass users, send spam or malware, gain unauthorised access, disrupt the service or collect data automatically without our written permission.',
+                    'Do not use the platform to break the law or violate others\' rights, impersonate or harass users, send spam or malware, gain unauthorised access, disrupt the service or collect data automatically without our written permission.',
                 ],
             ],
             [
                 'title' => 'ilmu360° property and access',
                 'paragraphs' => [
                     'The design, trademarks, software and content of ilmu360° belong to us or our licensors. Do not copy or use them without permission. We may maintain or change platform features, or restrict access for security, legal compliance or a breach of these terms. We work to keep the platform available but cannot promise uninterrupted access or error-free content supplied by others.',
-                    'Organisers are responsible for their events. These terms do not exclude ilmu360°’s own responsibilities or consumer rights that cannot be excluded under Malaysian law.',
+                    'Organisers are responsible for their events. These terms do not exclude ilmu360°\'s own responsibilities or consumer rights that cannot be excluded under Malaysian law.',
                 ],
             ],
             [

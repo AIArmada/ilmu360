@@ -9,7 +9,7 @@ return [
         'eyebrow' => 'Papan bebarengan kanggo majelis ilmu',
         'title' => 'Ngèlmu tansah cedhak.',
         'emphasis' => 'Ayo digampangake supaya ketemu.',
-        'intro' => 'Ing saindenging Malaysia, masjid lan surau nganakake kuliah, kelas, lan majelis—wiwit kuliah Maghrib ing lingkungan dhewe nganti pengajian akhir minggu sing wis suwe arep koktekani. ilmu360° nglumpukake katrangan kasebut supaya luwih gampang digoleki, dipriksa, lan dibagekake.',
+        'intro' => 'Ing saindenging Malaysia, masjid lan surau nganakake kuliah, kelas, lan majelis, wiwit kuliah Maghrib ing lingkungan dhewe nganti pengajian akhir minggu sing wis suwe arep koktekani. ilmu360° nglumpukake katrangan kasebut supaya luwih gampang digoleki, dipriksa, lan dibagekake.',
         'primary' => 'Temokake majelis ilmu',
         'secondary' => 'Bagekake majelis',
         'image_alt' => 'Jamaah ngrungokake pengajian sore ing surau Malaysia sing prasaja lan nyenengake.',

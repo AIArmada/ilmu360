@@ -377,7 +377,7 @@ return [
             'channel_push' => 'Push',
             'manage_devices' => 'Urus peranti',
             'channel_unavailable' => 'Sahkan di profil',
-            'channel_push_unavailable' => 'Akan datang — aplikasi mudah alih masih dalam pembangunan.',
+            'channel_push_unavailable' => 'Akan datang: aplikasi mudah alih masih dalam pembangunan.',
             'groups_heading' => 'Apa yang anda terima',
             'groups_description' => 'Hidupkan yang berguna. Matikan yang tidak.',
             'discovery_heading' => 'Majlis baharu untuk anda',

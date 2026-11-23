@@ -34,7 +34,7 @@ class PruneShareCards extends Command
         $this->info("Pruning share-card files older than {$days} days...");
 
         if ($dryRun) {
-            $this->warn('DRY RUN — no files will be deleted.');
+            $this->warn('DRY RUN: no files will be deleted.');
         }
 
         $prunedFiles = $shareCardCache->pruneOlderThan($threshold, $dryRun);

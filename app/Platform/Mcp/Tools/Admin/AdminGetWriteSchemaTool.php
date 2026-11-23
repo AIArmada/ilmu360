@@ -25,7 +25,7 @@ class AdminGetWriteSchemaTool extends AbstractAdminWriteTool
     protected string $title = 'Inspect Admin Write Schema';
 
     #[\Override]
-    protected string $description = 'Use this when you need to see the full field contract for creating or updating an admin resource before composing a payload. Read-only — does not create or mutate any records.';
+    protected string $description = 'Use this when you need to see the full field contract for creating or updating an admin resource before composing a payload. This tool is read-only: it does not create or mutate any records.';
 
     public function __construct(
         private readonly AdminResourceService $resourceService,

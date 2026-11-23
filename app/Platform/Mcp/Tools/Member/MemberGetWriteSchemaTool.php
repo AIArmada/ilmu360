@@ -24,7 +24,7 @@ class MemberGetWriteSchemaTool extends AbstractMemberWriteTool
     protected string $title = 'Inspect Member Write Schema';
 
     #[\Override]
-    protected string $description = 'Use this when you need the full field contract for updating an Ahli-scoped resource record before composing a payload. Read-only — does not apply any changes.';
+    protected string $description = 'Use this when you need the full field contract for updating an Ahli-scoped resource record before composing a payload. This tool is read-only: it does not apply any changes.';
 
     public function __construct(
         private readonly MemberResourceService $resourceService,

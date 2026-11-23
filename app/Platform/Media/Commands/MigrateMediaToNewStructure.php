@@ -31,7 +31,7 @@ class MigrateMediaToNewStructure extends Command
         $this->info("Found {$media->count()} media record(s) to process.");
 
         if ($dryRun) {
-            $this->warn('DRY RUN — no files will be moved.');
+            $this->warn('DRY RUN: no files will be moved.');
         }
 
         $rows = [];

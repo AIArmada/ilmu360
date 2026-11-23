@@ -3,13 +3,13 @@
 return [
     'meta' => [
         'title' => 'Ilmu di Sekeliling Kita | ilmu360°',
-        'description' => 'Terokai peluang ilmu di sekeliling anda bersama ilmu360° — platform komuniti yang menghubungkan pencari ilmu, institusi, pengajar dan penceramah di seluruh Malaysia.',
+        'description' => 'Terokai peluang ilmu di sekeliling anda bersama ilmu360°, platform komuniti yang menghubungkan pencari ilmu, institusi, pengajar dan penceramah di seluruh Malaysia.',
     ],
     'hero' => [
         'eyebrow' => 'Ruang bersama untuk majlis ilmu',
         'title' => 'Ilmu sentiasa dekat.',
         'emphasis' => 'Biar jalannya mudah ditemui.',
-        'intro' => 'Di seluruh Malaysia, masjid dan surau menganjurkan kuliah, kelas dan majlis—daripada kuliah Maghrib di kejiranan sendiri hingga pengajian hujung minggu yang lama ingin anda hadiri. ilmu360° menghimpunkan maklumat itu supaya lebih mudah dicari, disemak dan dikongsi.',
+        'intro' => 'Di seluruh Malaysia, masjid dan surau menganjurkan kuliah, kelas dan majlis, daripada kuliah Maghrib di kejiranan sendiri hingga pengajian hujung minggu yang lama ingin anda hadiri. ilmu360° menghimpunkan maklumat itu supaya lebih mudah dicari, disemak dan dikongsi.',
         'primary' => 'Temui majlis ilmu',
         'secondary' => 'Kongsi sebuah majlis',
         'image_alt' => 'Jemaah mendengar pengajian petang di sebuah surau Malaysia yang sederhana dan mesra.',
@@ -27,13 +27,13 @@ return [
     'discovery' => [
         'eyebrow' => 'Cari mengikut kehidupan sebenar',
         'title' => 'Mulakan dengan perkara yang penting bagi anda.',
-        'intro' => 'Cari mengikut kawasan, tarikh, topik atau asatizah. Tapis juga majlis bersemuka, dalam talian dan hibrid—supaya pilihan sesuai dengan hari anda.',
+        'intro' => 'Cari mengikut kawasan, tarikh, topik atau asatizah. Tapis juga majlis bersemuka, dalam talian dan hibrid, supaya pilihan sesuai dengan hari anda.',
         'filters_title' => 'Terokai mengikut',
         'filters' => ['Kawasan', 'Tarikh', 'Topik', 'Asatizah'],
         'formats_title' => 'Pilih cara untuk hadir',
         'formats' => ['Bersemuka', 'Dalam talian', 'Hibrid'],
         'prayer_title' => 'Waktu yang memahami rentak setempat',
-        'prayer_body' => 'Sesetengah majlis dijadualkan berasaskan waktu solat—bukan jam semata-mata.',
+        'prayer_body' => 'Sesetengah majlis dijadualkan berasaskan waktu solat, bukan jam semata-mata.',
         'prayer_examples' => ['Selepas Subuh', 'Selepas Maghrib'],
     ],
     'steps' => [
@@ -65,7 +65,7 @@ return [
     ],
     'closing' => [
         'title' => 'Mungkin majlis seterusnya lebih dekat daripada sangkaan.',
-        'body' => 'Lihat apa yang bakal berlangsung di sekitar anda. Jika anda menguruskan sebuah majlis, kongsikan maklumatnya di sini—supaya jemputan itu berpeluang sampai lebih jauh.',
+        'body' => 'Lihat apa yang bakal berlangsung di sekitar anda. Jika anda menguruskan sebuah majlis, kongsikan maklumatnya di sini, supaya jemputan itu berpeluang sampai lebih jauh.',
         'primary' => 'Cari majlis berdekatan',
         'secondary' => 'Kongsi sebuah majlis',
         'image_alt' => 'Cahaya petang menembusi tingkap terbuka sebuah surau.',
@@ -73,14 +73,14 @@ return [
     'reference' => [
         'hero' => [
             'title' => 'Ilmu di Sekeliling Kita.',
-            'intro' => 'Di mana jua kita berada — di bandar atau di desa, berjalan, menunggang, berbasikal ataupun memandu — majlis ilmu sentiasa ada di sekeliling kita.',
+            'intro' => 'Di mana jua kita berada, di bandar atau di desa, berjalan, menunggang, berbasikal ataupun memandu, majlis ilmu sentiasa ada di sekeliling kita.',
             'quote' => 'Ilmu ada di mana-mana, 360°.',
             'image_alt' => 'Sebuah keluarga melihat matahari terbenam di atas bandar dan masjid.',
         ],
         'story' => [
             'title' => 'Bukan Mewujudkan, Tetapi Menyerlahkan.',
             'paragraphs' => [
-                'Majlis ilmu sebenarnya sudah lama wujud. Setiap hari, ada kuliah, tazkirah, kelas dan daurah yang berlangsung di pelbagai masjid dan surau — di hadapan kita, di belakang, di kiri dan di kanan.',
+                'Majlis ilmu sebenarnya sudah lama wujud. Setiap hari, ada kuliah, tazkirah, kelas dan daurah yang berlangsung di pelbagai masjid dan surau: di hadapan kita, di belakang, di kiri dan di kanan.',
                 'Masalahnya bukanlah ketiadaan majlis ilmu, tetapi laluan untuk menemuinya sering tidak jelas kerana maklumatnya berselerak, tidak terkumpul di satu tempat.',
             ],
             'quote' => 'Kami bukan mencipta peluang ilmu. Kami membuka jalan supaya lebih ramai dapat menemuinya.',
@@ -158,7 +158,7 @@ return [
         ],
         'journey' => [
             'title' => 'Kesan Yang Boleh Terus Mengalir.',
-            'body' => 'Satu majlis ilmu boleh menjadi permulaan kepada perubahan yang lebih besar — bermula pada diri, kemudian keluarga, jiran dan masyarakat di sekeliling kita.',
+            'body' => 'Satu majlis ilmu boleh menjadi permulaan kepada perubahan yang lebih besar, bermula pada diri, kemudian keluarga, jiran dan masyarakat di sekeliling kita.',
             'items' => ['Temui', 'Hadir', 'Belajar', 'Berubah', 'Berkongsi'],
             'note' => 'Daripada satu majlis, lahir lebih ramai yang mengenal, memahami dan mengamalkan kebaikan.',
         ],

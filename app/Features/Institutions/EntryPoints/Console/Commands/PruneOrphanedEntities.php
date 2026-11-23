@@ -28,7 +28,7 @@ class PruneOrphanedEntities extends Command
         $this->info("Pruning orphaned entities older than {$hours} hours...");
 
         if ($dryRun) {
-            $this->warn('DRY RUN — no records will be deleted.');
+            $this->warn('DRY RUN: no records will be deleted.');
         }
 
         $totalPruned = 0;

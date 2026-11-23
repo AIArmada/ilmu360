@@ -673,7 +673,7 @@ new
                             @if(filled($search) && mb_strlen(trim((string) $search)) < 3)
                                 {{ __('Type at least 3 characters to search.') }}
                             @elseif(filled($search))
-                                {{ __('No profile matches “:search”. Try a different spelling or the full name.', ['search' => $search]) }}
+                                {{ __('No profile matches ":search". Try a different spelling or the full name.', ['search' => $search]) }}
                             @elseif($this->followed_only === true)
                                 {{ __('You are not following any speakers yet. Follow a speaker to see them here.') }}
                             @elseif($activeFilterCount > 0)
@@ -730,7 +730,7 @@ new
                     <div>
                         <h2 class="font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
                             @if(filled($search))
-                                {{ __('Search results for “:search”', ['search' => $search]) }}
+                                {{ __('Search results for ":search"', ['search' => $search]) }}
                             @else
                                 {{ __('Speaker directory') }}
                             @endif

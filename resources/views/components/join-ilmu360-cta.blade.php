@@ -14,7 +14,7 @@
             <ul class="mt-4 space-y-2.5">
                 <li class="flex items-start gap-2 text-sm text-slate-600">
                     <svg class="mt-0.5 size-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    {{ __('Tak terlepas majlis penting — simpan & tandakan kehadiran') }}
+                    {{ __('Tak terlepas majlis penting: simpan & tandakan kehadiran') }}
                 </li>
                 <li class="flex items-start gap-2 text-sm text-slate-600">
                     <svg class="mt-0.5 size-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

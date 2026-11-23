@@ -118,7 +118,7 @@ it('surfaces self-invite, per-referrer cap and already-claimed contact outcomes'
         ->set('inviteeContact', 'second-friend@example.test')
         ->call('createInvite')
         ->assertOk()
-        ->assertSee('You have reached this programme’s invite limit.');
+        ->assertSee('You have reached this programme\'s invite limit.');
 
     $secondReferrer = User::factory()->create();
     Livewire::actingAs($secondReferrer)

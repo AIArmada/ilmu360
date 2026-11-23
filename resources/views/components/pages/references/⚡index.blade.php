@@ -496,7 +496,7 @@ new
                 <div class="mb-6">
                     <h2 class="font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
                         @if(filled($search))
-                            {{ __('Search results for “:search”', ['search' => $search]) }}
+                            {{ __('Search results for ":search"', ['search' => $search]) }}
                         @else
                             {{ __('Reference directory') }}
                         @endif

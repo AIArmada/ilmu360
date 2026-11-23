@@ -657,7 +657,7 @@ it('shows the empty state when person search has no public matches', function ()
     get('/penceramah?search=ammar')
         ->assertSuccessful()
         ->assertSee(__('No speakers found'))
-        ->assertSee(__('No profile matches “:search”. Try a different spelling or the full name.', ['search' => 'ammar']))
+        ->assertSee(__('No profile matches ":search". Try a different spelling or the full name.', ['search' => 'ammar']))
         ->assertDontSee('0 penceramah ditemui');
 });
 
