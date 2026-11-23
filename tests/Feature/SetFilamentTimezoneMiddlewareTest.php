@@ -217,7 +217,7 @@ it('applies the fresh session timezone on the shared livewire update endpoint', 
 
     $snapshot = json_encode(Livewire::test(NotificationBell::class)->snapshot, JSON_THROW_ON_ERROR);
 
-    FilamentTimezone::set(null);
+    FilamentTimezone::set();
     FreshTimezoneCapture::$timezone = null;
 
     $this->withCookie((string) config('session.cookie'), freshTimezoneSessionId(['user_timezone' => 'Asia/Tokyo']))
