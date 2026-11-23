@@ -54,10 +54,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             SetLocale::class,
             TrackShareAttribution::class,
+            SetFilamentTimezone::class,
         ]);
 
-        // Set default Filament timezone for every request (fixes Octane state persistence)
-        $middleware->append(SetFilamentTimezone::class);
         $middleware->append(SetExplicitGlobalOwnerContext::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

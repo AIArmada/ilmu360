@@ -13,6 +13,7 @@ use App\Platform\Admin\EntryPoints\Filament\Pages\AhliDashboard;
 use App\Platform\Admin\FilamentPageRegistry;
 use App\Platform\Admin\FilamentResourceRegistry;
 use App\Platform\Admin\FilamentWidgetRegistry;
+use App\Platform\Time\Http\Middleware\SetFilamentTimezone;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -70,6 +71,7 @@ class AhliPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
+                SetFilamentTimezone::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
                 PreventRequestForgery::class,

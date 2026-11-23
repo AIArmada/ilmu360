@@ -39,7 +39,6 @@ use App\Platform\Language\Models\Language;
 use App\Platform\Location\Ui\Concerns\InteractsWithLocationPickerSelection;
 use App\Platform\Ui\Forms\Select as InstitutionSelect;
 use App\Shared\Signals\SignalRecorder;
-use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -53,8 +52,9 @@ use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Concerns\RestrictsFileUploadsToSchemaComponents;
 use Filament\Schemas\Schema;
 use Filament\Support\Components\Attributes\Unexposed;
-use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
@@ -360,7 +360,7 @@ class Create extends Component implements HasActions, HasForms
 
     public function extractEventFromMedia(EventMediaExtraction $eventMediaExtraction): void
     {
-        $this->assertSubmissionNotRateLimited('extract', 'event_source_attachment');
+        $this->assertSubmissionNotRateLimited('event-media-extraction', 'event_source_attachment');
 
         $maxFileSizeKb = (int) config('events.media_extraction.max_file_size_kb', 10240);
         $acceptedMimeTypes = config('events.media_extraction.accepted_mime_types', [
@@ -853,7 +853,7 @@ class Create extends Component implements HasActions, HasForms
 
     public function submit(): mixed
     {
-        $this->assertSubmissionNotRateLimited('submit', 'data.captcha_token');
+        $this->assertSubmissionNotRateLimited('event-submission', 'data.captcha_token');
 
         if (
             is_string($this->scopedInstitutionId) && $this->scopedInstitutionId !== ''
@@ -954,28 +954,17 @@ class Create extends Component implements HasActions, HasForms
         return redirect()->route('submit-event.success');
     }
 
-    /**
-     * Method-level throttle for the Livewire submit and AI-extraction paths,
-     * which the GET route throttle does not cover. Limits reuse the
-     * configured `event-submission` limiter so web and API stay aligned.
-     */
-    protected function assertSubmissionNotRateLimited(string $action, string $field): void
+    protected function assertSubmissionNotRateLimited(string $limiterName, string $field): void
     {
-        $limiter = RateLimiter::limiter('event-submission');
-        $limit = $limiter instanceof Closure ? $limiter(request()) : null;
-        $maxAttempts = $limit instanceof Limit ? (int) $limit->maxAttempts : 5;
-        $decaySeconds = $limit instanceof Limit ? (int) $limit->decaySeconds : 3600;
-        $key = 'submit-event:'.$action.':'.request()->ip();
-
-        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+        try {
+            app(ThrottleRequests::class)->handle(request(), static fn () => response()->noContent(), $limiterName);
+        } catch (ThrottleRequestsException $exception) {
             throw ValidationException::withMessages([
                 $field => __('Terlalu banyak percubaan. Sila cuba semula dalam :seconds saat.', [
-                    'seconds' => RateLimiter::availableIn($key),
+                    'seconds' => $exception->getHeaders()['Retry-After'],
                 ]),
             ]);
         }
-
-        RateLimiter::hit($key, $decaySeconds);
     }
 
     protected function selectedEventContainer(): ?Event

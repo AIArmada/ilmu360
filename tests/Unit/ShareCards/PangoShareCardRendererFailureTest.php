@@ -99,7 +99,7 @@ it('rejects undecodable or blank required labels without echoing input', functio
         ->and($result->pngBytes)->toBeNull()
         ->and($result->width)->toBe(1200)
         ->and($result->height)->toBe(630)
-        ->and($result->rendererRevision)->toBe('scr-001')
+        ->and($result->rendererRevision)->toBe('scr-002')
         ->and($result->errorMessage)->not->toContain('MARKER-should-never-echo');
 })->with([
     'undecodable title' => ['title', "\xFF\xFE", true],

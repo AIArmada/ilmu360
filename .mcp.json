@@ -5,7 +5,11 @@
             "args": [
                 "artisan",
                 "boost:mcp"
-            ]
+            ],
+            "env": {
+                "APP_ENV": "local",
+                "APP_CONFIG_CACHE": "bootstrap/cache/config.mcp.php"
+            }
         },
         "chrome-devtools": {
             "command": "npx",

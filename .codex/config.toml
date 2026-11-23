@@ -1,7 +1,7 @@
 [mcp_servers.laravel-boost]
 command = "php"
 args = ["artisan", "boost:mcp"]
-cwd = "/Users/Saiffil/Herd/ilmu360"
+env = { APP_ENV = "local", APP_CONFIG_CACHE = "bootstrap/cache/config.mcp.php" }
 
 [mcp_servers.laravel-boost.tools.search-docs]
 approval_mode = "approve"

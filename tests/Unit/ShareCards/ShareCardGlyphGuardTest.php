@@ -33,7 +33,7 @@ it('refuses emoji with a typed unsupported-text error instead of tofu', function
         ->and($result->pngBytes)->toBeNull()
         ->and($result->width)->toBe(1200)
         ->and($result->height)->toBe(630)
-        ->and($result->rendererRevision)->toBe('scr-001')
+        ->and($result->rendererRevision)->toBe('scr-002')
         ->and($result->errorMessage)->not->toContain('MARKER-should-never-echo');
 })->with([
     'grinning face in title' => ['Kuliah Maghrib 😀 MARKER-should-never-echo-glyph', null],
@@ -148,9 +148,9 @@ it('keeps the unsupported-text failure contract truthful for future fallback', f
         ->and($result->pngBytes)->toBeNull()
         ->and($result->width)->toBe(1200)
         ->and($result->height)->toBe(630)
-        ->and($result->rendererRevision)->toBe('scr-001')
+        ->and($result->rendererRevision)->toBe('scr-002')
         ->and($result->fontRevision)->toBe($readiness->fontRevision)
-        ->and($result->cacheRevision())->toBe('scr-001:'.$readiness->fontRevision)
+        ->and($result->cacheRevision())->toBe('scr-002:'.$readiness->fontRevision)
         ->and($result->errorMessage)->toBeString()
         ->and($result->errorMessage)->not->toContain('MARKER-should-never-echo')
         ->and($result->errorMessage)->not->toContain('🎉');

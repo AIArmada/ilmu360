@@ -21,7 +21,6 @@ use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Offlin
 use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Participants as EventParticipants;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Refunds as EventRefunds;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Refund as EventRefund;
-use App\Features\ShareTracking\EntryPoints\Http\Middleware\TrackShareAttribution;
 use App\Features\ShareTracking\EntryPoints\Http\ShareClaimController;
 use App\Features\ShareTracking\EntryPoints\Http\ShareController;
 use App\Features\ShareTracking\EntryPoints\Http\ShareRedirectController;
@@ -44,7 +43,7 @@ Route::view('/terma', 'pages.legal', ['pageKey' => 'terms'])->name('terms');
 Route::view('/hubungi-kami', 'pages.legal', ['pageKey' => 'contact'])->name('contact');
 
 Route::get('/jemputan/{token}', ReferralInviteLandingController::class)
-    ->middleware(['throttle:share-tracking', TrackShareAttribution::class])
+    ->middleware('throttle:share-tracking')
     ->where('token', '[A-Za-z0-9]+')
     ->name('referrals.invite.landing');
 

@@ -19,7 +19,6 @@ use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
@@ -189,56 +188,58 @@ it('fails closed on invalid or deleted container ids', function () {
         ->assertNotFound();
 });
 
-it('throttles repeated submissions from the same client', function () {
-    $user = User::factory()->create();
-    $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
-    $venue = Venue::factory()->create(['status' => 'verified']);
-
-    for ($attempt = 1; $attempt <= 5; $attempt++) {
-        setSubmitEventFormState(
-            Livewire::actingAs($user)->test(Create::class),
-            submitSecurityPayload($this->domainTag, $this->disciplineTag, [
-                'title' => "Throttled Submission {$attempt}",
-                'primary_organizer_id' => $person->getKey(),
-                'persons' => [$person->getKey()],
-                'location_type' => 'venue',
-                'location_venue_id' => $venue->getKey(),
-                'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
-            ]),
-        )
-            ->call('submit')
-            ->assertHasNoErrors()
-            ->assertRedirect();
+it('counts submissions and enforces the hourly limit per ip', function (bool $authenticated, int $limit) {
+    if ($authenticated) {
+        Livewire::actingAs(User::factory()->create());
     }
 
-    $throttled = setSubmitEventFormState(
-        Livewire::actingAs($user)->test(Create::class),
-        submitSecurityPayload($this->domainTag, $this->disciplineTag, [
-            'title' => 'Throttled Submission 6',
-            'primary_organizer_id' => $person->getKey(),
-            'persons' => [$person->getKey()],
-            'location_type' => 'venue',
-            'location_venue_id' => $venue->getKey(),
-            'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
-        ]),
-    )
+    $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
+    $venue = Venue::factory()->create(['status' => 'verified']);
+    $url = route('api.client.submit-event.store');
+
+    for ($attempt = 1; $attempt < $limit; $attempt++) {
+        $this->postJson($url)->assertUnprocessable();
+    }
+
+    $payload = submitSecurityPayload($this->domainTag, $this->disciplineTag, [
+        'primary_organizer_id' => $person->getKey(),
+        'persons' => [$person->getKey()],
+        'location_type' => 'venue',
+        'location_venue_id' => $venue->getKey(),
+        'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
+    ]);
+
+    setSubmitEventFormState(Livewire::test(Create::class), $payload)
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('submit-event.success'));
+
+    $payload['title'] = 'Throttled Submission';
+    $throttled = setSubmitEventFormState(Livewire::test(Create::class), $payload)
         ->call('submit')
         ->assertHasErrors(['data.captcha_token']);
 
     expect(implode(' ', (array) $throttled->errors()->get('data.captcha_token')))
         ->toContain('Terlalu banyak')
-        ->and(Event::query()->where('title', 'Throttled Submission 6')->exists())->toBeFalse();
-});
+        ->and(Event::query()->where('title', $payload['title'])->exists())->toBeFalse();
+})->with([
+    'guest' => [false, 5],
+    'authenticated' => [true, 20],
+]);
 
 it('throttles AI extraction before running the extractor', function () {
     $user = User::factory()->create();
 
-    for ($hit = 0; $hit < 5; $hit++) {
-        RateLimiter::hit('submit-event:extract:127.0.0.1', 3600);
+    Livewire::actingAs($user);
+    $component = Livewire::test(Create::class);
+
+    for ($attempt = 1; $attempt <= 5; $attempt++) {
+        $component->call('extractEventFromMedia')
+            ->assertHasErrors(['event_source_attachment']);
+        expect($component->errors()->first('event_source_attachment'))->not->toContain('Terlalu banyak');
     }
 
-    $throttled = Livewire::actingAs($user)->test(Create::class)
-        ->call('extractEventFromMedia')
+    $throttled = $component->call('extractEventFromMedia')
         ->assertHasErrors(['event_source_attachment']);
 
     expect(implode(' ', (array) $throttled->errors()->get('event_source_attachment')))

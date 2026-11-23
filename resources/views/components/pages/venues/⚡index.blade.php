@@ -282,36 +282,14 @@ new
             </p>
 
             <div class="mx-auto mt-8 max-w-xl">
-                <div class="group relative">
-                    <label for="venue-search" class="sr-only">{{ __('Search venues') }}</label>
-                    <input
-                        type="text"
-                        id="venue-search"
-                        wire:model.live.debounce.300ms="search"
-                        wire:keydown.escape="clearSearch"
-                        placeholder="{{ __('Search venues...') }}"
-                        autocomplete="off"
-                        data-directory-search-input
-                        aria-controls="venue-results"
-                        class="h-14 w-full rounded-2xl border-2 border-slate-200 bg-white py-0 pl-12 pr-4 font-medium text-slate-900 shadow-lg shadow-slate-200/60 transition-all placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
-                    >
-                    <svg class="absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    @if(filled($search))
-                        <button
-                            type="button"
-                            wire:click="clearSearch"
-                            aria-label="{{ __('Clear search') }}"
-                            class="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-500 shadow-sm transition hover:border-red-300 hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-4 focus:ring-red-500/10"
-                        >
-                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
-                            </svg>
-                            <span class="sr-only">{{ __('Clear search') }}</span>
-                        </button>
-                    @endif
-                </div>
+                <x-ui.search-bar
+                    input-id="venue-search"
+                    model="search"
+                    :value="$search"
+                    :placeholder="__('Search venues...')"
+                    :label="__('Search venues')"
+                    aria-controls="venue-results"
+                />
 
                 <div class="mt-4 grid grid-cols-1 gap-3 text-left md:grid-cols-2 xl:grid-cols-3">
                     @if(! filled($countryId) || $states !== [])

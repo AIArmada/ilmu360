@@ -10,7 +10,7 @@ final readonly class ShareCardRenderSpec
 
     public const int HEIGHT = 630;
 
-    public const string RENDERER_REVISION = 'scr-001';
+    public const string RENDERER_REVISION = 'scr-002';
 
     public const string FONT_MANIFEST_FILE = 'fonts.json';
 

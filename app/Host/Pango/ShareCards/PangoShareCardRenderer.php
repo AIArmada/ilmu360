@@ -48,19 +48,7 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
 
     private const int MARGIN = 64;
 
-    private const int COLUMN_WIDTH = 640;
-
-    private const int ART_X = 768;
-
-    private const int ART_Y = 64;
-
-    private const int ART_WIDTH = 368;
-
-    private const int ART_HEIGHT = 502;
-
-    private const int ART_HEIGHT_WITH_RIBBON = 466;
-
-    private const int BORDER = 3;
+    private const int COLUMN_WIDTH = 816;
 
     private const int RIBBON_HEIGHT = 84;
 
@@ -68,19 +56,24 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
 
     private const int BRAND_SIZE = 30;
 
-    private const int TITLE_SIZE = 50;
+    private const int TITLE_SIZE = 62;
 
-    private const int SCHEDULE_SIZE = 30;
+    private const int DENSE_TITLE_SIZE = 50;
 
-    private const int META_SIZE = 26;
+    private const int SCHEDULE_SIZE = 35;
+
+    private const int META_SIZE = 27;
 
     private const int STATUS_SIZE = 32;
 
     /** @var array{int, int, int} Deep emerald canvas (theme emerald-900 family). */
     private const array COLOR_BG = [23, 60, 52];
 
-    /** @var array{int, int, int} Darker emerald art panel. */
-    private const array COLOR_PANEL = [14, 42, 37];
+    /** @var array{int, int, int} */
+    private const array COLOR_FOOTER = [249, 244, 236];
+
+    /** @var array{int, int, int} */
+    private const array COLOR_SCRIM = [9, 38, 33];
 
     /** @var array{int, int, int} Gold brand accents (theme gold family). */
     private const array COLOR_GOLD = [242, 200, 103];
@@ -239,7 +232,7 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
                 return $this->failure(ShareCardError::RasterRejected, 'Cover bytes are not a bounded JPEG, PNG or WebP image.');
             }
 
-            if ($this->coverFitExceedsBudget($raster, $status !== null)) {
+            if ($this->coverFitExceedsBudget($raster)) {
                 return $this->failure(ShareCardError::RasterRejected, 'Cover dimensions cannot cover-fit within budget.');
             }
         }
@@ -331,7 +324,7 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
             /** @var array<string, string> $stripPaths */
             $stripPaths = $strips['paths'];
 
-            $pngBytes = $this->composite($stripPaths, $status !== null, $raster);
+            $pngBytes = $this->composite($stripPaths, $align === 'right', $raster);
 
             if ($pngBytes === null) {
                 return $this->failure(ShareCardError::RenderFailed, 'Card content exceeds the fixed layout.', $fontRevision);
@@ -570,14 +563,14 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
 
         /** @var list<array{key: string, text: string, font: string, color: string, width: int, lines: int, align: string}> $specs */
         $specs = [
-            ['key' => 'brand', 'text' => $brand, 'font' => $fontRegular(self::BRAND_SIZE), 'color' => '#F2C867', 'width' => self::COLUMN_WIDTH, 'lines' => 1, 'align' => 'left'],
-            ['key' => 'title', 'text' => $title, 'font' => $fontBold(self::TITLE_SIZE), 'color' => '#FFFFFF', 'width' => self::COLUMN_WIDTH, 'lines' => $titleLines, 'align' => $align],
-            ['key' => 'schedule', 'text' => $schedule, 'font' => $fontRegular(self::SCHEDULE_SIZE), 'color' => '#F2C867', 'width' => self::COLUMN_WIDTH, 'lines' => 1, 'align' => $align],
+            ['key' => 'brand', 'text' => $brand, 'font' => $fontRegular(self::BRAND_SIZE), 'color' => '#F2C867', 'width' => self::COLUMN_WIDTH, 'lines' => 1, 'align' => $align],
+            ['key' => 'title', 'text' => $title, 'font' => $fontBold($titleLines === 2 ? self::DENSE_TITLE_SIZE : self::TITLE_SIZE), 'color' => '#FFFFFF', 'width' => self::COLUMN_WIDTH, 'lines' => $titleLines, 'align' => $align],
+            ['key' => 'schedule', 'text' => $schedule, 'font' => $fontBold(self::SCHEDULE_SIZE), 'color' => '#173C34', 'width' => self::RIBBON_STRIP_WIDTH, 'lines' => 1, 'align' => $align],
         ];
 
         foreach ([['venue', $venue], ['speaker', $speaker], ['verified', $verified]] as [$key, $label]) {
             if ($label !== null) {
-                $specs[] = ['key' => $key, 'text' => $label, 'font' => $fontRegular(self::META_SIZE), 'color' => '#E9E4D4', 'width' => self::COLUMN_WIDTH, 'lines' => 1, 'align' => $align];
+                $specs[] = ['key' => $key, 'text' => $label, 'font' => $fontRegular(self::META_SIZE), 'color' => '#383F38', 'width' => self::RIBBON_STRIP_WIDTH, 'lines' => 1, 'align' => $align];
             }
         }
 
@@ -816,27 +809,20 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
      * Pre-compute the cover-fit upscale so degenerate aspect ratios fail as
      * RasterRejected up front instead of painting an empty panel.
      */
-    private function coverFitExceedsBudget(GdImage $raster, bool $withRibbon): bool
+    private function coverFitExceedsBudget(GdImage $raster): bool
     {
         $srcW = imagesx($raster);
         $srcH = imagesy($raster);
 
-        $dstW = self::ART_WIDTH - self::BORDER * 2;
-        $dstH = ($withRibbon ? self::ART_HEIGHT_WITH_RIBBON : self::ART_HEIGHT) - self::BORDER * 2;
-        $scale = max($dstW / $srcW, $dstH / $srcH);
+        $scale = max(self::WIDTH / $srcW, self::HEIGHT / $srcH);
 
         return (int) ceil($srcW * $scale) * (int) ceil($srcH * $scale) > self::MAX_UPSCALE_PIXELS;
     }
 
     /**
-     * Composite strips and art onto the fixed canvas. Returns null when the
-     * flowed text would overlap the ribbon or art, so the caller fails
-     * explicitly instead of painting unreadable collisions.
-     *
      * @param  array<string, string>  $stripPaths
-     * @return string|null Raw PNG bytes, or null on layout overflow.
      */
-    private function composite(array $stripPaths, bool $withRibbon, ?GdImage $raster): ?string
+    private function composite(array $stripPaths, bool $rightAligned, ?GdImage $raster): ?string
     {
         $canvas = imagecreatetruecolor(self::WIDTH, self::HEIGHT);
 
@@ -845,119 +831,108 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
         }
 
         $bg = $this->allocate($canvas, self::COLOR_BG);
-        $panel = $this->allocate($canvas, self::COLOR_PANEL);
+        $footer = $this->allocate($canvas, self::COLOR_FOOTER);
         $gold = $this->allocate($canvas, self::COLOR_GOLD);
         $red = $this->allocate($canvas, self::COLOR_RED);
 
-        if ($bg === null || $panel === null || $gold === null || $red === null) {
+        if ($bg === null || $footer === null || $gold === null || $red === null) {
             return null;
         }
 
-        imagefill($canvas, 0, 0, $bg);
-
-        $contentLimit = $withRibbon
-            ? self::HEIGHT - self::RIBBON_HEIGHT - 16
-            : self::HEIGHT - self::MARGIN;
-
-        $images = [];
+        $strips = [];
 
         foreach ($stripPaths as $key => $path) {
-            if ($key === 'status') {
-                continue;
-            }
-
             $strip = @imagecreatefrompng($path);
 
             if (! $strip instanceof GdImage) {
                 return null;
             }
 
-            $images[$key] = $strip;
+            $strips[$key] = $strip;
         }
 
-        // Flow pass: measure first so overflow fails before painting.
-        $order = ['brand', 'title', 'schedule', 'venue', 'speaker', 'verified'];
-        $y = self::MARGIN;
-        /** @var array<string, int> $placed */
-        $placed = [];
+        $details = array_intersect_key($strips, array_flip(['schedule', 'venue', 'speaker', 'verified']));
+        $footerPadding = count($details) === 4 && isset($strips['status']) ? 16 : 22;
+        $detailHeight = 2 * $footerPadding + 8 * (count($details) - 1);
 
-        foreach ($order as $key) {
-            if (! isset($images[$key])) {
-                continue;
-            }
-
-            $height = imagesy($images[$key]);
-
-            if ($key === 'brand') {
-                $placed[$key] = $y;
-                $y += $height + 14;
-
-                continue;
-            }
-
-            if ($key === 'title') {
-                $placed[$key] = $y;
-                $y += $height + 18;
-                // Gold rule under the title, then breathing room.
-                $y += 4 + 22;
-
-                continue;
-            }
-
-            $placed[$key] = $y;
-            $y += $height + 10;
+        foreach ($details as $strip) {
+            $detailHeight += imagesy($strip);
         }
 
-        if ($y > $contentLimit + 10) {
+        $ribbonTop = isset($strips['status']) ? self::HEIGHT - self::RIBBON_HEIGHT : self::HEIGHT;
+        $footerTop = $ribbonTop - $detailHeight;
+        $brandTop = 36;
+        $titleAreaTop = $brandTop + imagesy($strips['brand']) + 28;
+        $titleSpace = $footerTop - 32 - $titleAreaTop;
+        $titleHeight = imagesy($strips['title']);
+
+        if ($titleSpace <= 0) {
             return null;
         }
 
-        // Paint pass.
-        foreach ($placed as $key => $top) {
-            imagecopy($canvas, $images[$key], self::MARGIN, $top, 0, 0, imagesx($images[$key]), imagesy($images[$key]));
-        }
+        imagefill($canvas, 0, 0, $bg);
 
-        // Gold rule under the title (recomputed from placed geometry).
-        if (isset($placed['title'], $stripPaths['title'])) {
-            $titleSize = getimagesize($stripPaths['title']);
-
-            if ($titleSize !== false) {
-                $ruleY = $placed['title'] + $titleSize[1] + 18;
-                imagefilledrectangle($canvas, self::MARGIN, $ruleY, self::MARGIN + self::COLUMN_WIDTH, $ruleY + 4, $gold);
-            }
-        }
-
-        $this->paintArtPanel($canvas, $panel, $gold, $withRibbon, $raster);
-
-        if ($withRibbon && isset($stripPaths['status'])) {
-            $ribbonY = self::HEIGHT - self::RIBBON_HEIGHT;
-            imagefilledrectangle($canvas, 0, $ribbonY, self::WIDTH, self::HEIGHT, $red);
-
-            $statusStrip = @imagecreatefrompng($stripPaths['status']);
-
-            if (! $statusStrip instanceof GdImage) {
-                return null;
-            }
-
-            $stripWidth = min(imagesx($statusStrip), self::RIBBON_STRIP_WIDTH);
-            $stripHeight = min(imagesy($statusStrip), self::RIBBON_HEIGHT);
-            $stripX = self::MARGIN + (int) floor((self::RIBBON_STRIP_WIDTH - $stripWidth) / 2);
-            $stripY = $ribbonY + (int) floor((self::RIBBON_HEIGHT - $stripHeight) / 2);
-            imagecopy($canvas, $statusStrip, $stripX, $stripY, 0, 0, $stripWidth, $stripHeight);
+        if ($raster instanceof GdImage) {
+            $this->paintCoverFit($canvas, $raster, 0, 0, self::WIDTH, self::HEIGHT, $bg);
+            $this->paintCoverScrim($canvas, $rightAligned, $footerTop);
         } else {
-            $baseY = self::HEIGHT - 30;
-            imagefilledrectangle($canvas, self::MARGIN, $baseY, self::MARGIN + self::COLUMN_WIDTH, $baseY + 4, $gold);
+            $this->paintBrandMotif($canvas, $rightAligned, $footerTop);
+        }
+
+        $titleX = $rightAligned ? self::WIDTH - self::MARGIN - self::COLUMN_WIDTH : self::MARGIN;
+        $this->copyStrip($canvas, $strips['brand'], $titleX, $brandTop);
+
+        $title = $strips['title'];
+        $fittedHeight = min($titleHeight, $titleSpace);
+        $fittedWidth = max(1, intdiv(imagesx($title) * $fittedHeight, $titleHeight));
+        $titleTop = $titleAreaTop + intdiv($titleSpace - $fittedHeight, 2);
+        $fittedX = $rightAligned ? $titleX + imagesx($title) - $fittedWidth : $titleX;
+
+        imagecopyresampled(
+            $canvas,
+            $title,
+            $fittedX,
+            $titleTop,
+            0,
+            0,
+            $fittedWidth,
+            $fittedHeight,
+            imagesx($title),
+            $titleHeight,
+        );
+
+        imagefilledrectangle($canvas, 0, $footerTop, self::WIDTH - 1, $ribbonTop - 1, $footer);
+        $ruleX = $rightAligned ? self::WIDTH - self::MARGIN - 80 : self::MARGIN;
+        imagefilledrectangle($canvas, $ruleX, $footerTop - 3, $ruleX + 79, $footerTop + 1, $gold);
+
+        $detailTop = $footerTop + $footerPadding;
+
+        foreach ($details as $strip) {
+            $this->copyStrip($canvas, $strip, self::MARGIN, $detailTop);
+            $detailTop += imagesy($strip) + 8;
+        }
+
+        if (isset($strips['status'])) {
+            imagefilledrectangle($canvas, 0, $ribbonTop, self::WIDTH - 1, self::HEIGHT - 1, $red);
+            $status = $strips['status'];
+            $this->copyStrip(
+                $canvas,
+                $status,
+                intdiv(self::WIDTH - imagesx($status), 2),
+                $ribbonTop + intdiv(self::RIBBON_HEIGHT - imagesy($status), 2),
+            );
         }
 
         ob_start();
         $encoded = imagepng($canvas);
         $bytes = ob_get_clean();
 
-        if ($encoded === false || ! is_string($bytes) || $bytes === '') {
-            return null;
-        }
+        return $encoded && is_string($bytes) && $bytes !== '' ? $bytes : null;
+    }
 
-        return $bytes;
+    private function copyStrip(GdImage $canvas, GdImage $strip, int $x, int $y): void
+    {
+        imagecopy($canvas, $strip, $x, $y, 0, 0, imagesx($strip), imagesy($strip));
     }
 
     /**
@@ -970,27 +945,44 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
         return $color === false ? null : $color;
     }
 
-    private function paintArtPanel(GdImage $canvas, int $panel, int $gold, bool $withRibbon, ?GdImage $raster): void
+    private function paintCoverScrim(GdImage $canvas, bool $rightAligned, int $height): void
     {
-        $height = $withRibbon ? self::ART_HEIGHT_WITH_RIBBON : self::ART_HEIGHT;
-        $x2 = self::ART_X + self::ART_WIDTH;
-        $y2 = self::ART_Y + $height;
+        [$red, $green, $blue] = self::COLOR_SCRIM;
+        $textEnd = self::MARGIN + self::COLUMN_WIDTH;
 
-        imagefilledrectangle($canvas, self::ART_X, self::ART_Y, $x2, $y2, $panel);
+        for ($x = 0; $x < self::WIDTH; $x++) {
+            $offset = $rightAligned ? self::WIDTH - 1 - $x : $x;
+            $alpha = (int) round(
+                $offset <= $textEnd
+                    ? 6 + 24 * $offset / $textEnd
+                    : 30 + 72 * ($offset - $textEnd) / (self::WIDTH - $textEnd),
+            );
+            $color = imagecolorallocatealpha($canvas, $red, $green, $blue, $alpha);
 
-        $innerX = self::ART_X + self::BORDER;
-        $innerY = self::ART_Y + self::BORDER;
-        $innerW = self::ART_WIDTH - self::BORDER * 2;
-        $innerH = $height - self::BORDER * 2;
-
-        if ($raster instanceof GdImage) {
-            $this->paintCoverFit($canvas, $raster, $innerX, $innerY, $innerW, $innerH, $panel);
-        } else {
-            $this->paintPlaceholder($canvas, $gold, $innerX, $innerY, $innerW, $innerH);
+            if ($color !== false) {
+                imageline($canvas, $x, 0, $x, $height - 1, $color);
+            }
         }
+    }
 
-        imagerectangle($canvas, self::ART_X, self::ART_Y, $x2, $y2, $gold);
-        imagerectangle($canvas, self::ART_X + 1, self::ART_Y + 1, $x2 - 1, $y2 - 1, $gold);
+    private function paintBrandMotif(GdImage $canvas, bool $rightAligned, int $height): void
+    {
+        $centerX = $rightAligned ? 112 : self::WIDTH - 112;
+        $centerY = intdiv($height, 2);
+        $colors = [[35, 77, 63], [46, 91, 73], [61, 108, 85]];
+
+        foreach ([310, 245, 180] as $index => $radius) {
+            $color = $this->allocate($canvas, $colors[$index]);
+
+            if ($color !== null) {
+                imagefilledpolygon($canvas, [
+                    $centerX, $centerY - $radius,
+                    $centerX + $radius, $centerY,
+                    $centerX, $centerY + $radius,
+                    $centerX - $radius, $centerY,
+                ], $color);
+            }
+        }
     }
 
     private function paintCoverFit(GdImage $canvas, GdImage $raster, int $dstX, int $dstY, int $dstW, int $dstH, int $panel): void
@@ -1018,27 +1010,6 @@ final readonly class PangoShareCardRenderer implements ShareCardRenderer
         $srcX = (int) floor(($tmpW - $dstW) / 2);
         $srcY = (int) floor(($tmpH - $dstH) / 2);
         imagecopy($canvas, $scaled, $dstX, $dstY, $srcX, $srcY, $dstW, $dstH);
-    }
-
-    /**
-     * Honest no-image placeholder: a purely graphical gold motif. No words, so
-     * the panel never pretends a missing cover is content and never makes a
-     * translation claim.
-     */
-    private function paintPlaceholder(GdImage $canvas, int $gold, int $x, int $y, int $w, int $h): void
-    {
-        $cx = $x + (int) floor($w / 2);
-        $cy = $y + (int) floor($h / 2);
-
-        imageellipse($canvas, $cx, $cy, 132, 132, $gold);
-        imageellipse($canvas, $cx, $cy, 108, 108, $gold);
-        imagefilledellipse($canvas, $cx, $cy, 26, 26, $gold);
-
-        $diamond = [$cx, $cy - 88, $cx + 14, $cy - 74, $cx, $cy - 60, $cx - 14, $cy - 74];
-        imagefilledpolygon($canvas, $diamond, $gold);
-
-        $diamond2 = [$cx, $cy + 60, $cx + 14, $cy + 74, $cx, $cy + 88, $cx - 14, $cy + 74];
-        imagefilledpolygon($canvas, $diamond2, $gold);
     }
 
     /**

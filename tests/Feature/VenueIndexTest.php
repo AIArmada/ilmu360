@@ -66,7 +66,10 @@ it('renders the public venue index hero and search copy', function () {
         ->assertSuccessful()
         ->assertSee(__('Places for'))
         ->assertSee(__('Knowledge & Community'))
-        ->assertSee(__('Search venues...'));
+        ->assertSee(__('Search venues...'))
+        ->assertSee('data-ui="search-bar"', false)
+        ->assertSee('data-directory-search-input', false)
+        ->assertSee('aria-controls="venue-results"', false);
 });
 
 it('renders venue facilities from canonical relation rows', function () {
@@ -161,6 +164,22 @@ it('shows the venue empty state and clear icon button', function () {
         ->assertSee(__('No venues found'))
         ->assertSee(__('We couldn\'t find any venues matching your search or location filters.'))
         ->assertSee('aria-label="Clear search"', false);
+});
+
+it('clears venue search while preserving the selected state', function () {
+    $stateId = (string) Str::uuid();
+
+    Livewire::withQueryParams(['search' => 'dewan', 'state_id' => $stateId])
+        ->test('pages.venues.index')
+        ->call('clearSearch')
+        ->assertSet('search', null)
+        ->assertDontSee('aria-label="Clear search"', false)
+        ->assertDispatched('venue-filters-updated', filters: [
+            'search' => null,
+            'country_id' => null,
+            'state_id' => $stateId,
+            'areas' => [],
+        ]);
 });
 
 it('shows the total venue count at the bottom of the index', function () {

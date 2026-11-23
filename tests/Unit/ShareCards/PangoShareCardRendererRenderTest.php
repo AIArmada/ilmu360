@@ -157,9 +157,9 @@ it('renders a 1200x630 png with matching revision tokens', function (): void {
         ->and($result->error)->toBeNull()
         ->and($result->width)->toBe(1200)
         ->and($result->height)->toBe(630)
-        ->and($result->rendererRevision)->toBe('scr-001')
+        ->and($result->rendererRevision)->toBe('scr-002')
         ->and($result->fontRevision)->toBe($readiness->fontRevision)
-        ->and($result->cacheRevision())->toBe('scr-001:'.$readiness->fontRevision);
+        ->and($result->cacheRevision())->toBe('scr-002:'.$readiness->fontRevision);
 
     $size = getimagesizefromstring((string) $result->pngBytes);
 
@@ -271,6 +271,25 @@ it('normalizes locale case before shaping', function (): void {
 
     expect($result->ok)->toBeTrue();
 });
+
+it('fits a long multilingual title alongside a full footer and status ribbon', function (string $locale, string $title): void {
+    $result = shareCardRenderer()->render(new ShareCardRenderInput(
+        title: $title,
+        locale: $locale,
+        brandLine: 'ilmu360°',
+        scheduleLabel: $title,
+        venueLabel: $title,
+        speakerLabel: $title,
+        verifiedLabel: $title,
+        statusLabel: 'Ditunda',
+    ));
+
+    expect($result->ok)->toBeTrue()
+        ->and($result->pngBytes)->toStartWith("\x89PNG\r\n\x1A\n");
+})->with([
+    'Arabic' => ['ar', 'محاضرة تفسير سورة الكهف في المسجد الكبير مع الشيخ أحمد القارئ'],
+    'Javanese' => ['jv', str_repeat('ꦥꦼꦔꦗꦶꦪꦤ꧀ ꦩꦭꦼꦩ꧀ꦗꦸꦩꦸꦮꦃ ', 3)],
+]);
 
 it('paints trusted raster covers and keeps the honest placeholder otherwise', function (string $format): void {
     $renderer = shareCardRenderer();
