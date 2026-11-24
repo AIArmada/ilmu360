@@ -112,7 +112,7 @@ final readonly class SyncInstitutionDonationChannelsAction
     private function assertExistingChannelsAllowedForProfile(Collection $existing, DonationChannelCountryProfile $profile, string $message): void
     {
         foreach ($existing as $channel) {
-            $method = is_string($channel->getAttribute('method')) ? mb_strtolower((string) $channel->getAttribute('method')) : null;
+            $method = is_string($channel->getAttribute('method')) ? mb_strtolower($channel->getAttribute('method')) : null;
             $bankCode = $channel->getAttribute('bank_code');
 
             $bankAllowed = $method !== 'bank_account'

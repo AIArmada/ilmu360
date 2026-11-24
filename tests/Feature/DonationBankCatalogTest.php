@@ -35,9 +35,8 @@ it('exposes the malaysia bank catalogue without routing codes and identifies unc
         ->and($malaysia->options())->toHaveKey('MB2U0227')
         ->and($malaysia->name('mb2u0227'))->toBe('Maybank2u')
         ->and($malaysia->has('NOT-A-BANK'))->toBeFalse()
-        ->and($malaysia->supports_routing_codes)->toBeFalse();
-
-    expect($catalogs->forCountryCode('US')->covers())->toBeFalse()
+        ->and($malaysia->supports_routing_codes)->toBeFalse()
+        ->and($catalogs->forCountryCode('US')->covers())->toBeFalse()
         ->and($catalogs->forCountryCode(null)->covers())->toBeFalse();
 });
 
@@ -124,9 +123,8 @@ it('rejects a supplied bank name that does not match the selected bank', functio
         'bank_code' => 'MB2U0227',
         'bank_name' => 'Westminster Bank',
         'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
 
 it('rejects an unknown bank code for a covered country', function () {
@@ -139,9 +137,8 @@ it('rejects an unknown bank code for a covered country', function () {
         'method' => 'bank_account',
         'bank_code' => 'NOT-A-BANK',
         'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
 
 it('rejects a bank account for an owner in a country without catalogue coverage', function () {
@@ -150,20 +147,18 @@ it('rejects a bank account for an owner in a country without catalogue coverage'
     $profile = app(DonationChannelCountryProfiles::class)->forOwner($institution);
 
     expect($profile->country_code)->toBe('US')
-        ->and($profile->methods)->toBe([])
+        ->and($profile->methods)->toBeEmpty()
         ->and($profile->banks->covers())->toBeFalse()
-        ->and($profile->supports_routing_codes)->toBeFalse();
-
-    expect(fn () => app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'institution',
-        'donatable_id' => (string) $institution->getKey(),
-        'recipient' => 'Yayasan Internasional',
-        'method' => 'bank_account',
-        'bank_code' => 'MB2U0227',
-        'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+        ->and($profile->supports_routing_codes)->toBeFalse()
+        ->and(fn () => app(SaveDonationChannelAction::class)->handle([
+            'donatable_type' => 'institution',
+            'donatable_id' => (string) $institution->getKey(),
+            'recipient' => 'Yayasan Internasional',
+            'method' => 'bank_account',
+            'bank_code' => 'MB2U0227',
+            'account_number' => '123456789',
+        ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
 
 it('rejects a bank account for an owner without a country instead of defaulting', function () {
@@ -178,9 +173,8 @@ it('rejects a bank account for an owner without a country instead of defaulting'
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
         'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
 
 it('keeps the stored bank while the bank name is derived on updates', function () {
@@ -233,9 +227,8 @@ it('rejects a bank code from another country catalogue', function () {
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
         'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
 
 it('rejects routing codes for malaysian banks', function () {
@@ -249,9 +242,8 @@ it('rejects routing codes for malaysian banks', function () {
         'bank_code' => 'MB2U0227',
         'routing_code' => '014',
         'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
 
 it('removes a retired bank from new selection while keeping the stored channel payout', function () {
@@ -276,16 +268,15 @@ it('removes a retired bank from new selection while keeping the stored channel p
 
     expect($catalog->has('MB2U0227'))->toBeFalse()
         ->and($catalog->retains('MB2U0227'))->toBeTrue()
-        ->and($catalog->options())->not->toHaveKey('MB2U0227');
-
-    expect(fn () => app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'institution',
-        'donatable_id' => (string) $institution->getKey(),
-        'recipient' => 'Masjid Baharu',
-        'method' => 'bank_account',
-        'bank_code' => 'MB2U0227',
-        'account_number' => '987654321',
-    ]))->toThrow(ValidationException::class);
+        ->and($catalog->options())->not->toHaveKey('MB2U0227')
+        ->and(fn () => app(SaveDonationChannelAction::class)->handle([
+            'donatable_type' => 'institution',
+            'donatable_id' => (string) $institution->getKey(),
+            'recipient' => 'Masjid Baharu',
+            'method' => 'bank_account',
+            'bank_code' => 'MB2U0227',
+            'account_number' => '987654321',
+        ]))->toThrow(ValidationException::class);
 
     $updated = app(SaveDonationChannelAction::class)->handle([
         'recipient' => 'Masjid Al-Hidayah Baharu',
@@ -316,7 +307,6 @@ it('does not resurrect a deleted bank through the catalog', function () {
         'method' => 'bank_account',
         'bank_code' => 'BCBB0235',
         'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });

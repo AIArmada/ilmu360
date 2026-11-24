@@ -24,7 +24,7 @@ class DonationBankFactory extends Factory
     public function definition(): array
     {
         return [
-            'country_id' => fn (): string => $this->defaultCountryId(),
+            'country_id' => $this->defaultCountryId(...),
             'code' => fn (): string => mb_strtoupper(fake()->unique()->bothify('TST####')),
             'name' => fn (): string => fake()->unique()->company().' Bank',
             'source_url' => fn (): string => 'https://example.com/banks/'.fake()->unique()->slug(2),

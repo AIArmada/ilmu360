@@ -172,7 +172,7 @@ final readonly class EloquentMediaCollectionSync implements MediaCollectionSync
 
             $field = (string) $media->getCustomProperty('contribution_field', 'cover');
 
-            if ($model->getMediaCollection($field) === null) {
+            if (! $model->getMediaCollection($field) instanceof \Spatie\MediaLibrary\MediaCollections\MediaCollection) {
                 $this->deleteMedia($media);
 
                 continue;

@@ -396,7 +396,7 @@ final class Workspace extends Component
             'label' => '',
             'recipient' => '',
             'method' => (string) (array_key_first($this->donationMethodOptions()) ?? ''),
-            'currency' => (string) ($this->donationProfile()->default_currency ?? ''),
+            'currency' => $this->donationProfile()->default_currency ?? '',
             'bank_code' => null,
             'account_number' => '',
             'iban' => '',

@@ -140,20 +140,15 @@ it('locks the identity of a referenced bank while allowing renames', function ()
         'name' => 'Maybank (personal)',
     ], $bank);
 
-    expect($renamed->name)->toBe('Maybank (personal)');
-
-    expect(fn () => app(SaveDonationBankAction::class)->handle([
-        'country_id' => (string) $indonesia->getKey(),
-    ], $renamed))->toThrow(ValidationException::class);
-
-    expect(fn () => app(SaveDonationBankAction::class)->handle([
-        'code' => 'MBB0227',
-    ], $renamed))->toThrow(ValidationException::class);
-
-    expect(fn () => app(DeleteDonationBankAction::class)->handle($renamed))
-        ->toThrow(ValidationException::class);
-
-    expect(DonationBank::query()->whereKey($bank->getKey())->exists())->toBeTrue();
+    expect($renamed->name)->toBe('Maybank (personal)')
+        ->and(fn () => app(SaveDonationBankAction::class)->handle([
+            'country_id' => (string) $indonesia->getKey(),
+        ], $renamed))->toThrow(ValidationException::class)
+        ->and(fn () => app(SaveDonationBankAction::class)->handle([
+            'code' => 'MBB0227',
+        ], $renamed))->toThrow(ValidationException::class)
+        ->and(fn () => app(DeleteDonationBankAction::class)->handle($renamed))->toThrow(ValidationException::class)
+        ->and(DonationBank::query()->whereKey($bank->getKey())->exists())->toBeTrue();
 });
 
 it('retires and reactivates a bank through the catalog workflow', function () {
@@ -206,9 +201,8 @@ it('deletes an unused bank and blocks deleting a referenced one', function () {
     ]);
 
     expect(fn () => app(DeleteDonationBankAction::class)->handle($referenced))
-        ->toThrow(ValidationException::class);
-
-    expect(DonationBank::query()->whereKey($referenced->getKey())->exists())->toBeTrue();
+        ->toThrow(ValidationException::class)
+        ->and(DonationBank::query()->whereKey($referenced->getKey())->exists())->toBeTrue();
 });
 
 it('denies catalog writes to moderators', function () {
@@ -224,15 +218,10 @@ it('denies catalog writes to moderators', function () {
 
     expect(fn () => app(SaveDonationBankAction::class)->handle([
         'name' => 'Moderator Rename',
-    ], $bank))->toThrow(AuthorizationException::class);
-
-    expect(fn () => app(TransitionDonationBankStatusAction::class)->handle($bank, DonationBankStatus::Retired))
-        ->toThrow(AuthorizationException::class);
-
-    expect(fn () => app(DeleteDonationBankAction::class)->handle($bank))
-        ->toThrow(AuthorizationException::class);
-
-    expect($bank->fresh()->name)->toBe('Maybank2u')
+    ], $bank))->toThrow(AuthorizationException::class)
+        ->and(fn () => app(TransitionDonationBankStatusAction::class)->handle($bank, DonationBankStatus::Retired))->toThrow(AuthorizationException::class)
+        ->and(fn () => app(DeleteDonationBankAction::class)->handle($bank))->toThrow(AuthorizationException::class)
+        ->and($bank->fresh()->name)->toBe('Maybank2u')
         ->and($bank->fresh()->status)->toBe(DonationBankStatus::Active);
 });
 

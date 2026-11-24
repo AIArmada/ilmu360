@@ -57,16 +57,15 @@ it('resolves the organization donation country from the canonical primary addres
     $profiles = app(DonationChannelCountryProfiles::class);
 
     expect($profiles->forOwner($organization)->country_code)->toBeNull()
-        ->and($profiles->forOwner($organization)->methods)->toBe([]);
-
-    expect(fn () => app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'organization',
-        'donatable_id' => (string) $organization->getKey(),
-        'recipient' => 'Rumah Amal Ujian',
-        'method' => 'bank_account',
-        'bank_code' => 'MB2U0227',
-        'account_number' => '1234567890',
-    ]))->toThrow(ValidationException::class);
+        ->and($profiles->forOwner($organization)->methods)->toBeEmpty()
+        ->and(fn () => app(SaveDonationChannelAction::class)->handle([
+            'donatable_type' => 'organization',
+            'donatable_id' => (string) $organization->getKey(),
+            'recipient' => 'Rumah Amal Ujian',
+            'method' => 'bank_account',
+            'bank_code' => 'MB2U0227',
+            'account_number' => '1234567890',
+        ]))->toThrow(ValidationException::class);
 
     $countryId = testMalaysiaCountryId();
 
@@ -107,18 +106,16 @@ it('rejects organization channels outside catalogue coverage', function () {
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
         'account_number' => '1234567890',
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn () => app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'organization',
-        'donatable_id' => (string) $organization->getKey(),
-        'recipient' => 'Yayasan Ujian',
-        'method' => 'duitnow',
-        'duitnow_type' => 'business',
-        'duitnow_value' => '12345678',
-    ]))->toThrow(ValidationException::class);
-
-    expect(organizationDonationChannels($organization))->toBe([]);
+    ]))->toThrow(ValidationException::class)
+        ->and(fn () => app(SaveDonationChannelAction::class)->handle([
+            'donatable_type' => 'organization',
+            'donatable_id' => (string) $organization->getKey(),
+            'recipient' => 'Yayasan Ujian',
+            'method' => 'duitnow',
+            'duitnow_type' => 'business',
+            'duitnow_value' => '12345678',
+        ]))->toThrow(ValidationException::class)
+        ->and(organizationDonationChannels($organization))->toBeEmpty();
 });
 
 it('rejects an organization country change that leaves a wrong-country bank behind', function () {
@@ -142,9 +139,8 @@ it('rejects an organization country change that leaves a wrong-country bank behi
         (string) $owner->getKey(),
         (string) $organization->getKey(),
         ['country_id' => $indonesiaId, 'line1' => 'Jalan Baru 1'],
-    ))->toThrow(ValidationException::class);
-
-    expect(app(OrganizationProfileService::class)->countryIdFor((string) $organization->getKey()))->toBe($malaysiaId);
+    ))->toThrow(ValidationException::class)
+        ->and(app(OrganizationProfileService::class)->countryIdFor((string) $organization->getKey()))->toBe($malaysiaId);
 
     app(DonationChannelWorkflow::class)->delete([(string) $channel->getKey()]);
 
@@ -155,7 +151,7 @@ it('rejects an organization country change that leaves a wrong-country bank behi
     );
 
     expect(app(OrganizationProfileService::class)->countryIdFor((string) $organization->getKey()))->toBe($indonesiaId)
-        ->and(organizationDonationChannels($organization))->toBe([]);
+        ->and(organizationDonationChannels($organization))->toBeEmpty();
 });
 
 it('lets organization administrators manage the address and channels from the workspace', function () {
@@ -201,7 +197,7 @@ it('lets organization administrators manage the address and channels from the wo
         ->call('removeChannel', (string) $channel->getKey())
         ->assertHasNoErrors();
 
-    expect(organizationDonationChannels($organization))->toBe([]);
+    expect(organizationDonationChannels($organization))->toBeEmpty();
 });
 
 it('rejects saving a donation channel that belongs to a different organization', function () {
@@ -239,16 +235,13 @@ it('keeps viewers read only and forbids non-members on the organization workspac
         ->assertSee(__('Donation channels'))
         ->assertDontSee(__('Add channel'));
 
-    expect($component->instance()->canManageDonations())->toBeFalse();
-
-    expect(fn () => app(SaveOrganizationAddressAction::class)->handle(
-        (string) $viewer->getKey(),
-        (string) $organization->getKey(),
-        ['country_id' => testMalaysiaCountryId(), 'line1' => 'Jalan Penonton 1'],
-    ))->toThrow(AuthorizationException::class);
-
-    expect(app(OrganizationProfileService::class)->addressStateFor((string) $organization->getKey())['line1'] ?? null)
-        ->toBe('Jalan Amal 1');
+    expect($component->instance()->canManageDonations())->toBeFalse()
+        ->and(fn () => app(SaveOrganizationAddressAction::class)->handle(
+            (string) $viewer->getKey(),
+            (string) $organization->getKey(),
+            ['country_id' => testMalaysiaCountryId(), 'line1' => 'Jalan Penonton 1'],
+        ))->toThrow(AuthorizationException::class)
+        ->and(app(OrganizationProfileService::class)->addressStateFor((string) $organization->getKey())['line1'] ?? null)->toBe('Jalan Amal 1');
 });
 
 it('exposes only verified donation channels on the public organization profile', function () {
@@ -323,9 +316,8 @@ it('rejects a wrong-country bank code for an international organization', functi
         'method' => 'bank_account',
         'bank_code' => 'CENAIDJA',
         'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect(organizationDonationChannels($organization))->toBe([]);
+    ]))->toThrow(ValidationException::class)
+        ->and(organizationDonationChannels($organization))->toBeEmpty();
 });
 
 it('rejects routing codes for countries whose banks do not use them', function () {
@@ -340,9 +332,8 @@ it('rejects routing codes for countries whose banks do not use them', function (
         'bank_code' => 'MB2U0227',
         'routing_code' => '014',
         'account_number' => '1234567890',
-    ]))->toThrow(ValidationException::class);
-
-    expect(organizationDonationChannels($organization))->toBe([]);
+    ]))->toThrow(ValidationException::class)
+        ->and(organizationDonationChannels($organization))->toBeEmpty();
 });
 
 it('requires reverification when only the routing code changes', function () {
