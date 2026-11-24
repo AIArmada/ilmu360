@@ -49,7 +49,7 @@ it('includes biography, cover image, and affiliation rows in person create optio
         ->values()
         ->all();
 
-    expect($fieldNames)->toContain('bio', 'cover', 'institutions');
+    expect($fieldNames)->toContain('bio', 'square', 'institutions');
 });
 
 it('stores biography and institution pivot position when creating a person via create option', function () {

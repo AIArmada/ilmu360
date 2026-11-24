@@ -3,12 +3,12 @@
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Features\Events\Api\EventMedia;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\EventMediaService;
 use App\Features\Institutions\Models\Institution;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 beforeEach(function (): void {
@@ -104,7 +104,7 @@ it('applies staged single and gallery media with the exact platform chain', func
         ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
-it('delegates staged donation QR media to the DonationChannels boundary and discards it', function (): void {
+it('rejects staged donation QR media that matches no donation channel instead of discarding it', function (): void {
     $institution = Institution::factory()->create(['status' => 'verified']);
     $event = Event::factory()->for($institution)->create();
 
@@ -116,32 +116,23 @@ it('delegates staged donation QR media to the DonationChannels boundary and disc
         'proposed_data' => [],
     ]);
 
-    $fingerprint = 'sha256:'.hash('sha256', 'ewallet|tng|0912345678|');
+    $fingerprint = 'sha256:'.hash('sha256', '["ewallet","tng","0912345678",""]');
     $staged = stageEventMedia($request, 'event-qr.png', [
         'contribution_field' => 'donation_qr',
         'donation_fingerprint' => $fingerprint,
         'is_single' => true,
     ]);
 
-    $donationMedia = app(DonationQrWorkflow::class);
-
-    $this->mock(DonationQrWorkflow::class, function ($mock) use ($event, $staged, $donationMedia): void {
-        $mock->shouldReceive('attachStagedDonationQr')
-            ->once()
-            ->withArgs(fn (string $subjectType, string $subjectId, string $mediaId): bool => $subjectType === $event->getMorphClass() && $subjectId === (string) $event->getKey() && $mediaId === (string) $staged->getKey())
-            ->andReturnUsing(fn (string $subjectType, string $subjectId, string $mediaId) => $donationMedia->attachStagedDonationQr($subjectType, $subjectId, $mediaId));
-    });
-
-    app(EventMedia::class)->applyStagedMedia(
+    expect(fn () => app(EventMedia::class)->applyStagedMedia(
         (string) $event->getKey(),
         $request->getMorphClass(),
         (string) $request->getKey(),
         [(string) $staged->getKey()],
-    );
+    ))->toThrow(ValidationException::class);
 
     expect($event->refresh()->getMedia('donation_qr'))->toBeEmpty()
-        ->and(Media::query()->whereKey($staged->getKey())->exists())->toBeFalse()
-        ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
+        ->and(Media::query()->whereKey($staged->getKey())->exists())->toBeTrue()
+        ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(1);
 });
 
 it('rejects media staged by a different contribution request', function (): void {

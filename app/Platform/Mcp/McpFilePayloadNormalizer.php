@@ -30,6 +30,7 @@ final class McpFilePayloadNormalizer
         'evidence',
         'qr',
         'main',
+        'square',
     ];
 
     /**

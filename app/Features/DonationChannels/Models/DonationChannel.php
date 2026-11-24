@@ -46,6 +46,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     #[\Override]
     protected $hidden = [
         'account_number',
+        'iban',
         'duitnow_value',
     ];
 
@@ -59,9 +60,13 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
         'label',
         'recipient',
         'method',
+        'currency',
         'bank_code',
         'bank_name',
         'account_number',
+        'iban',
+        'swift_bic',
+        'routing_code',
         'duitnow_type',
         'duitnow_value',
         'ewallet_provider',
@@ -77,6 +82,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     {
         return [
             'account_number' => 'encrypted',
+            'iban' => 'encrypted',
             'status' => DonationChannelStatus::class,
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
@@ -186,7 +192,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     public function getPaymentDetailsAttribute(): string
     {
         return match ($this->method) {
-            'bank_account' => "{$this->bank_name} - {$this->account_number}",
+            'bank_account' => "{$this->bank_name} - ".($this->iban ?: $this->account_number).($this->routing_code ? " (Routing: {$this->routing_code})" : ''),
             'duitnow' => "{$this->duitnow_type}: {$this->duitnow_value}",
             'ewallet' => "{$this->ewallet_provider}: {$this->ewallet_handle}",
             default => '',

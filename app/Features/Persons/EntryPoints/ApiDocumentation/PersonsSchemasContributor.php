@@ -168,9 +168,9 @@ final readonly class PersonsSchemasContributor implements DocumentSchemaContribu
     {
         return (new ObjectType)
             ->addProperty('avatar_url', new StringType)
-            ->addProperty('cover_url', (new StringType)->nullable(true))
-            ->addProperty('share_image_url', (new StringType)->nullable(true))
-            ->setRequired(['avatar_url', 'cover_url', 'share_image_url']);
+            ->addProperty('main_url', new StringType)
+            ->addProperty('share_image_url', new StringType)
+            ->setRequired(['avatar_url', 'main_url', 'share_image_url']);
     }
 
     private function personGalleryListType(): ArrayType

@@ -18,6 +18,7 @@ final class McpWriteSchemaFormatter
         'back_cover',
         'gallery',
         'main',
+        'square',
         'qr',
         'evidence',
     ];
@@ -34,6 +35,7 @@ final class McpWriteSchemaFormatter
         'clear_back_cover',
         'clear_gallery',
         'clear_main',
+        'clear_square',
         'clear_qr',
         'clear_evidence',
     ];

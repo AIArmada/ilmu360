@@ -83,7 +83,7 @@ abstract class AbstractAdminWriteTool extends AbstractAdminTool
     {
         $errors = [];
 
-        foreach (['clear_logo', 'clear_cover', 'clear_avatar', 'clear_poster', 'clear_front_cover', 'clear_back_cover', 'clear_gallery', 'clear_main', 'clear_qr', 'clear_evidence'] as $field) {
+        foreach (['clear_logo', 'clear_cover', 'clear_avatar', 'clear_poster', 'clear_front_cover', 'clear_back_cover', 'clear_gallery', 'clear_main', 'clear_square', 'clear_qr', 'clear_evidence'] as $field) {
             if (! array_key_exists($field, $payload) || ! $this->hasMeaningfulMediaValue($payload[$field])) {
                 continue;
             }

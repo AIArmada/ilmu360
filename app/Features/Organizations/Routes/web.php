@@ -9,6 +9,13 @@ use Illuminate\Support\Facades\Route;
 // The page classes live in this feature and compose Directory, Events and
 // Identity through their public APIs. The feature owns the URLs, names and
 // auth boundary; Livewire's component aliases resolve the classes below.
+Route::middleware(['web'])->group(function (): void {
+    // Public donor-facing organization profile: active, public organizations
+    // only, with verified donation channels.
+    Route::livewire('/organisasi-awam/{organization:slug}', 'pages.organizations.show')
+        ->name('organizations.show');
+});
+
 Route::middleware(['web', 'auth'])->group(function (): void {
     Route::livewire('/organisasi', 'pages.dashboard.organizations.index')
         ->name('dashboard.organizations.index');

@@ -40,6 +40,7 @@ final class LivewireComponentAliasServiceProvider extends ServiceProvider
         'pages.dashboard.person-dashboard' => \App\Features\Persons\EntryPoints\Livewire\Pages\PersonDashboard::class,
         'pages.dashboard.referral-member-index' => \App\Features\Referrals\EntryPoints\Livewire\Pages\ReferralMemberIndex::class,
         'pages.dashboard.user-dashboard' => \App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard\UserDashboard::class,
+        'pages.organizations.show' => \App\Features\Organizations\EntryPoints\Livewire\Pages\Show::class,
         'pages.events.checkout' => \App\Features\Registration\EntryPoints\Livewire\Pages\Checkout::class,
         'pages.events.index' => \App\Features\Events\EntryPoints\Livewire\Pages\Index::class,
         'pages.events.refund' => \App\Features\Registration\EntryPoints\Livewire\Pages\Refund::class,

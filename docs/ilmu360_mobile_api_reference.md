@@ -733,7 +733,7 @@ Assignment behavior:
   - `address.google_maps_url`
   - `address.google_place_id`
   - `address.waze_url`
-- Public speaker create accepts media fields `avatar`, `cover`, and `gallery`.
+- Public speaker create accepts media fields `avatar`, `square`, `profile`, and `gallery`.
 - If the same normalized speaker identity already exists in the same country, create will fail with HTTP `422` on `name`. The duplicate check compares normalized `name`, `gender`, `honorific`, `pre_nominal`, effective `post_nominal`, and country values.
 
 #### `GET /forms/contributions/{subjectType}/{subject}/suggest`
@@ -745,7 +745,7 @@ Assignment behavior:
 - Current direct-edit media sets are:
   - Events: `['cover', 'poster', 'gallery']`
   - Institutions: `['cover', 'gallery']`
-  - Speakers: `['avatar', 'cover', 'gallery']`
+  - Speakers: `['avatar', 'square', 'profile', 'gallery']`
   - References and non-maintainers: `[]`
 
 Public upload metadata:
@@ -998,10 +998,16 @@ Nested collection item contracts for institutions:
 ### Donation-channel-specific update rules
 
 - Donation channel `PUT` still requires `donatable_type`, `donatable_id`, `recipient`, `method`, and `status`.
-- `donatable_type` is normalized to the canonical owner morph value. The raw HTTP admin API accepts alias inputs like `institutions`, `persons`, `events`, and the model class names, but stored output is canonicalized.
-- `label`, `reference_note`, `bank_code`, `ewallet_handle`, and `ewallet_qr_payload` are trimmed optional scalars: omit to preserve, send `null` or `""` to clear.
-- Switching `method` clears unrelated method-specific fields. Example: changing from `bank_account` to `duitnow` clears the bank and ewallet fields before persisting the DuitNow payload.
+- `donatable_type` is normalized to the canonical owner morph value (`institution`, `person`, `event`, or `organization`). The raw HTTP admin API accepts alias inputs like `institutions`, `persons`, `events`, and the model class names, but stored output is canonicalized.
+- `label`, `reference_note`, `iban`, `swift_bic`, `routing_code`, `ewallet_handle`, and `ewallet_qr_payload` are trimmed optional scalars: omit to preserve, send `null` or `""` to clear.
+- `currency` is a three-letter ISO code from the supported currency catalog. It defaults to the owner country currency on new bank accounts and to `MYR` for DuitNow and e-wallet channels.
+- A `bank_account` channel requires `bank_code` from the owner country bank catalog (`GET /api/v1/catalogs/donation-banks?country_id=...`, or the admin `GET /api/v1/admin/catalogs/donation-banks?owner_type=...&owner_id=...`) plus an `account_number` or `iban`; `swift_bic` is optional. The stored `bank_name` is derived from the catalog, and a supplied `bank_name` that does not match the selected bank is rejected. Countries without catalog coverage cannot create bank-account channels. DuitNow and e-wallet channels are accepted only for owners whose address country is Malaysia.
+- The installed bank catalogs currently cover Malaysia, Indonesia (BI-FAST participant banks, `code` = participant BIC) and Singapore (MAS local banks, `code` = FAST / GIRO bank code). The catalog response `meta` carries `country_code`, `covered`, and `supports_routing_codes`; a `bank_code` from another country's catalog is rejected.
+- `routing_code` is the optional local clearing or branch code that routes the transfer next to the account number. It is accepted for countries whose catalog reports `supports_routing_codes` (Indonesia, Singapore) and rejected for the others; it participates in destination-change detection and QR matching like the other bank fields.
+- Changing the payout destination (different bank, account, IBAN, SWIFT, routing code, DuitNow, or e-wallet identity) resets the channel to `pending` for re-verification and clears its stored QR image unless a replacement QR is uploaded in the same write. Formatting-only edits (spacing, casing) keep the existing verification.
+- Switching `method` clears unrelated method-specific fields. Example: changing from `bank_account` to `duitnow` clears the bank, IBAN, SWIFT, routing, and ewallet fields before persisting the DuitNow payload.
 - `clear_qr=true` is supported on the raw HTTP admin API when you need to remove the stored QR media without uploading a replacement.
+- Organizations are first-class donation owners. A public organization exposes its verified `donation_channels` on `GET /api/v1/organizations/{slug}` and renders them on the public organization profile page at `GET /organisasi-awam/{slug}`; the organization country comes from its address in the organization workspace.
 
 ### Inspiration-specific update rules
 

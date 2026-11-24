@@ -1095,3 +1095,234 @@ Review: the audit found no AI vocabulary, filler phrases, or "not just X but Y" 
 - [x] Reproduce inherited staging settings against a disposable database and verify the sentinel survives.
 
 Review: 11 focused Pest tests passed in parallel with inherited staging settings and database recreation and cleanup enabled. The disposable SQLite sentinel was unchanged byte-for-byte. The CI opt-in resolved to loopback PostgreSQL `test` without opening a connection. Pint, PHPStan, and the architecture checks passed.
+
+## International donation channel audit
+
+- [x] Trace country, currency, and payment details through contribution and admin writes, public display, and QR attachments.
+- [x] Check the schema and runtime paths against the clean-cutover requirement.
+- [x] Verify the current international donation tests on isolated SQLite. Nine passed, including two that preserve behavior the cutover must remove.
+- [x] Implement the findings: original migration hard cut, owner-country enforcement inside DonationChannels, shared payout normalization, reverification/stale QR, atomic sync, staged QR rejection, admin rule consistency, public routing/SWIFT exposure, mobile contract alignment, targeted regressions.
+
+Review: resolve the primary address country once and enforce the same donation policy for every writer. Share payment destination normalization across validation, reconciliation, and QR matching. Require reverification when the destination changes. Edit the original donation channel migration and remove the additive migration, grandfathering branches, and old fingerprint contract.
+
+### Implementation review — international donation channel audit
+
+- Schema hard cut: `currency` (nullable, no MYR default), `iban`, and `swift_bic` now live in the original `2026_01_10_000012_create_donation_channels_table.php`; the additive `2026_11_24_000001_add_international_fields_to_donation_channels.php` migration was deleted. No backfill, default, or compatibility path remains.
+- Country ownership: `DonationChannelCountryProfiles::forOwner()` resolves the owner's canonical primary address `country_id` through the configured `AddressCountryResolver`. `SaveDonationChannelAction` and `SyncInstitutionDonationChannelsAction` resolve country from the owner model, so no caller can pass or bypass one. Unknown/unresolvable countries resolve to the international profile (bank transfer only).
+- Institution sync: `syncInstitution($id, null)` validates the existing channel set without writing; an array syncs atomically in `DB::transaction`. A country move that leaves DuitNow/e-wallet channels untouched is rejected, while removing or replacing them in the same edit is allowed. `SyncInstitutionRelationsAction` invokes the sync whenever an address or channel payload is present, so country changes validate even when channels are omitted.
+- Shared payout normalization: `App\Shared\Normalization\DonationPayoutNormalizer` owns canonical row projection, identity fingerprints (formatted IBAN parity), and ISO 7064 mod-97 IBAN checksums. Comparison projection (`SubmittedFieldNormalizer`), persistence, institution reconciliation, and QR matching all use it. The legacy account-number-only fingerprint branch was removed.
+- Reverification: `SaveDonationChannelAction` compares stored and resulting payout identity; a real destination change resets a verified channel to pending and clears its stored QR unless a replacement QR is uploaded in the same write. Formatting-only changes (casing, whitespace, grouped IBAN) keep verification and the QR.
+- Currencies: explicit overrides must exist in the currency catalog; new bank channels default to the country-designated currency; DuitNow/e-wallet force MYR; unknown-country bank channels default to empty instead of MYR. The institution form no longer reinserts unsupported stored methods.
+- Admin/API consistency: mutation-hook rules and Filament forms share the "account number or IBAN" requirement; institution relation manager create/edit route through `DonationChannelWorkflow::save`; schemas no longer claim `account_number` is always required.
+- Public and mobile exposure: the institution page shows bank name, labeled routing/sort code, SWIFT/BIC, IBAN/account, and currency for verified channels. The institution create contract and endpoint accept `donation_channels` with identity rules; the suggest-update contract documents the item schema. The mobile API reference documents the payout rules.
+- Organizations: the package-backed Organizations capability owns no address or donation surface, so donation ownership stays with Institution/Person/Event owners and the canonical country lives on the owner's primary address; no guessed country or redundant storage was introduced.
+- Final review: address and channel writes now share a transaction, and the rollback test performs the country change through the workflow. SWIFT/BIC participates in payout identity. Reverification clears the old verification metadata and reloads QR media before removing it. The institution relation manager uses its relationship to reload the saved channel.
+- Verification: the 522-test regression selection had three failures, all covered by passing focused reruns after fixes. The final donation suite passed 18 tests, the focused API rerun passed three tests, and the architecture boundary scan reported zero violations. The full PHPStan check identified one error in the separate Person media migration.
+
+## Person media cutover audit
+
+- [x] Review the working-tree person-media changes against HEAD and trace uploads, approvals, API contracts, and event-image prompts.
+- [x] Apply the audit findings with CommandCode DeepSeek V4 Flash.
+- [x] Remove the media backfill and verify the current upload paths and portrait behavior.
+
+Review: The active person-media contract uses Square Photo for 1:1 uploads and Profile Photo for 3:4 directory portraits. The cutover ships without a data migration or backfill.
+
+## Organization donations + country-scoped bank catalog (2026-11-24)
+
+Continues the uncommitted international donation hard cut. Organizations become
+first-class donation owners with their canonical addressing country; the bank on
+a bank-account channel must come from a trusted country-scoped bank catalog
+(reused from the installed `aiarmada/chip` FPX bank enum for Malaysia), and the
+bank display name is derived server-side for every writer.
+
+- [x] Add the donation bank catalog contract, data objects, and the Malaysia FPX
+      implementation; expose the catalog through `DonationChannelCountryProfile`.
+- [x] Enforce the catalog in `SaveDonationChannelAction` (canonical `bank_code`,
+      derived `bank_name`, supplied-name mismatch rejection) and scope country
+      availability to catalog coverage.
+- [x] Generalize the institution country-change guard to catalog/method coverage;
+      drop `bank_name` from payout identity fingerprints.
+- [x] Update Filament admin form, mutation hooks/MCP schema, admin bank catalog
+      endpoint, contribution form, frontend contract, and mobile reference docs.
+- [x] Add an organization owner-country extension contract plus the Organizations
+      canonical address service/action/extension (no vendor model changes).
+- [x] Add a donation-channel read contract for member workspaces and the public
+      organization API; wire the organization workspace management surface.
+- [x] Add/refresh focused regressions: catalog validation, supplied-name
+      rejection/derivation, cross-country and unknown bank rejection, country
+      change, organization authorization, management, and public display.
+- [x] Self-review the diff (`php -l`, `git diff --check`); the parent runs Pint,
+      Pest on isolated SQLite, PHPStan, and architecture checks after handoff.
+
+### Implementation review — organization donations + bank catalog
+
+- Bank catalog: `DonationBankCatalogs` resolves a `DonationBankCatalog`
+  (country code + `code => name` map, `covers/has/name/find`). The Malaysia
+  implementation reuses the installed CHIP FPX bank enum (retail channels only,
+  23 banks, no invented entries). No other country has catalog data installed,
+  so `forCountryCode()` returns an empty catalog there.
+- Country policy: `DonationChannelCountryProfile` now carries the catalog, and
+  `methodsForCountryCode()` derives the method set from catalog coverage
+  (MY → bank_account/duitnow/ewallet; covered non-MY → bank_account; uncovered
+  or unknown → no methods). Organizations without an address resolve to a null
+  country and no methods instead of defaulting to MY.
+- Single write authority: `SaveDonationChannelAction` requires a catalog bank
+  for bank-account channels, rejects uncovered countries and unknown codes,
+  derives `bank_name` from the catalog, and only accepts a supplied name that
+  matches the catalog name. Admin Filament, admin API/MCP mutation hooks,
+  institution contribution sync and the organization workspace all flow through
+  this action.
+- Canonical identity: `DonationPayoutNormalizer::identityFingerprint()` no
+  longer includes `bank_name` (it is derived from `bank_code`), so resubmitted
+  rows without a name still match stored channels and keep verification.
+- Country changes: `SyncInstitutionDonationChannelsAction` now validates the
+  whole channel set against the resolved profile (methods + catalog codes) when
+  a country change omits channels and pre-checks submitted rows; a country move
+  that leaves an unsupported bank or Malaysian-only channel is rejected unless
+  the channel is removed/replaced in the same edit. Organizations use the new
+  `DonationChannelCountryPolicy` contract from `SaveOrganizationAddressAction`,
+  so clearing and re-adding a country also validates existing channels.
+- Admin/API/MCP surfaces: the Filament owner select accepts organizations, the
+  bank input is a catalog select (bank name is no longer free text), mutation
+  hooks require `bank_code` for bank channels and document `bank_name` as
+  server-derived (`derived_from`), and a new admin catalog endpoint
+  `GET /api/v1/admin/catalogs/donation-banks?owner_type=&owner_id=` serves the
+  owner-scoped options referenced from the schema `catalogs` metadata.
+- Frontend contract: the institution submission/suggest contracts document a
+  catalog-backed `bank_code` plus derived `bank_name`, the public client catalog
+  `GET /api/v1/catalogs/donation-banks?country_id=` exposes the options, the
+  contribution HTTP layer requires `bank_code` for bank rows, IBAN/SWIFT stay
+  optional, and the donation section hides for uncovered countries.
+- Organizations: because the package aggregate is vendor-owned and has no
+  address relation, `OrganizationProfileService` owns canonical
+  `Address`/`Addressable` reads for the `organization` morph target and
+  `SaveOrganizationAddressAction` writes the primary address under package
+  authorization (`organization.update`) and the package owner guards. The
+  `OrganizationDonationOwnerCountry` extension (registered through the
+  `donation-channel.owner-country` slot) resolves the donation country without
+  DonationChannels importing Organizations. No vendor model/morph-map changes.
+- Management/donor surfaces: the organization workspace gains location and
+  donation-channel management (members with `organization.update`; viewers get
+  read-only lists) and the public organization detail API exposes verified
+  donation channels only. The public institution page no longer renders the
+  catalog identifier as a routing number; it shows the derived bank name.
+- Translations: added the new donation/organization strings to en/ms/ms_MY/id
+  and removed the two superseded donation strings. Concurrent speaker-media
+  copy changes in those files were preserved.
+- Regressions: new `DonationBankCatalogTest` (catalog coverage, derivation,
+  supplied-name rejection, unknown/wrong-country rejection, no-country default)
+  and `OrganizationDonationsTest` (org country resolution, uncovered-country
+  rejection, country-change guard, workspace management, viewer/non-member
+  authorization, verified-only public display). Updated
+  `DonationChannelInternationalTest` to the catalog policy, plus
+  SaveDonationChannel/AdminApi/MCP/FrontendApi/location-picker/show-page/
+  media-conversion fixtures to catalog banks.
+- Write governance: `SaveOrganizationAddressAction` writes the addressing
+  package `Address`/`Addressable` models (the vendor Organization model cannot
+  use `HasAddresses`), so `tools/architecture.json` now carries two exact,
+  expiry-dated `architecture.writeLocation` exceptions for that file and those
+  models (owner Organizations), mirroring the existing Platform
+  `EntityRelationSync` Address exception. No inline suppressions were added.
+- Catalog coverage includes the Malaysian CHIP FPX banks, Indonesia’s Bank Indonesia BI-FAST banks, and the Singaporean local banks with verified clearing codes. Other countries need a trusted catalog before bank transfer channels become available.
+- The public organization profile and API expose verified channels for active, public organizations. Workspace saves recheck channel ownership against the selected organization.
+- Verification: the affected regression selection passed all 501 tests. The final focused reruns passed 12 organization donation tests and 13 bank catalog tests. Pint and `composer arch:check` passed, including PHPStan.
+
+## Bank catalog admin management (2026-11-24)
+
+Continues the uncommitted country-scoped bank catalog. The MY/ID/SG catalog
+moves out of the in-memory `NationalDonationBankCatalogs` into a
+`donation_banks` table whose schema is added to the original donation creation
+migration; the table is the sole runtime source, seeded once as install
+bootstrap data. Global admins manage entries in Filament: search and country
+filter, stable code scoped to the canonical country UUID, display name,
+authoritative source URL, retirement/reactivation, and deletion only for
+entries no donation channel references.
+
+- [x] Add the `donation_banks` schema to the original donation creation migration.
+- [x] Add the `DonationBank` model and status enum plus save/transition/delete
+      actions with global-admin authorization, reference guard, duplicate and
+      identity rules.
+- [x] Replace `NationalDonationBankCatalogs` with a database-backed
+      `DonationBankCatalogs` implementation: active rows drive selection,
+      retired rows stay resolvable for stored channel references.
+- [x] Add the global-admin-only Filament resource (searchable list, country and
+      status filters, create/edit, retire/reactivate actions, guarded delete,
+      audit relation).
+- [x] Move the MY/ID/SG catalog data into `DonationBankCatalogSeeder` with
+      source URLs; wire it into `DatabaseSeeder`/`ProductionSeeder`; keep it
+      insert-only with per-country initialization (no overwrite, no resurrection).
+- [x] Add `config/donation-channels.php` for country routing support.
+- [x] Update catalog consumers and existing tests; add admin authorization,
+      duplicate, rename/retire and seed regressions.
+- [x] Self-review the diff; the parent runs Pest, Pint, PHPStan and the
+      architecture checks after handoff.
+
+### Implementation review — bank catalog admin management
+
+- Schema: `donation_banks` (uuid id, `country_id`, `code`, `name`, `source_url`,
+  `status` active|retired, `retired_at`, `reactivated_at`,
+  `last_state_change_at`, unique `country_id + code`, index
+  `country_id + status`) lives in the original
+  `2026_01_10_000012_create_donation_channels_table.php`. No backfill, no
+  additive migration, no compatibility path.
+- Runtime source: `EloquentDonationBankCatalogs` reads the table per country and
+  replaces the deleted in-memory `NationalDonationBankCatalogs`; there is no
+  fallback list, so a retired or deleted entry never reappears through a
+  resolver. `DonationBankCatalog` keeps `options()/covers()/has()/find()` for
+  selectable (active) entries and adds `hasEntries()`, `retains()` and
+  `reference()` so stored channel references stay resolvable while new
+  selection excludes retired entries.
+- Country routing support moved to `config/donation-channels.php`
+  (`routing_code_countries` = ID, SG); the catalog/profile DTOs keep exposing
+  `supports_routing_codes`, so validators, forms and API clients are unchanged.
+- Writes: `SaveDonationBankAction` (create/rename with normalized uppercase
+  code, required http(s) source, per-country duplicate rejection),
+  `TransitionDonationBankStatusAction` (retire/reactivate plus lifecycle
+  timestamps) and `DeleteDonationBankAction` (unreferenced only) each call
+  `Gate::authorize` against `DonationBankPolicy`, whose every ability requires
+  `hasGlobalAdminAccess()`; moderators and guests are rejected in the workflow,
+  not only in the UI.
+- Identity protection: a bank referenced by a stored `bank_account` channel may
+  be renamed but not re-identified (country/code) and not deleted; the admin
+  form disables both identity fields for referenced rows and the table offers
+  deletion only for unreferenced entries.
+- Selection vs stored references: `SaveDonationChannelAction` resolves active
+  entries only, except when the submitted code is exactly the channel's stored
+  code, where a retired entry keeps resolving. Institution sync validates
+  submitted rows against active entries or a resubmitted stored payout
+  identity, and stored channels against the resolved country (retired
+  same-country references pass, country changes still fail). A retirement never
+  rewrites a channel row, its verification state or its QR media.
+- Seeder: `DonationBankCatalogSeeder` carries the MY (CHIP FPX retail), ID
+  (BI-FAST participant BIC) and SG (FAST / GIRO) data with per-entry source
+  URLs, and only initializes a country that has no rows, so re-running it never
+  overwrites admin edits and never resurrects a removed entry. It is wired into
+  `DatabaseSeeder` and `ProductionSeeder`.
+- Filament: global-admin-only `DonationBankResource` (searchable country/code/
+  name list, country and status filters, create/edit, retire/reactivate/delete
+  record actions, audits relation, `System` navigation group) is registered by
+  the feature provider and marked `ExcludedFromAdminApi`, so the admin API/MCP
+  surface and its manifests are unchanged.
+- Tests: `DonationBankAdminTest` covers list authorization (moderator 403),
+  Filament create/edit, duplicate codes per country, identity lock, retire/
+  reactivate, delete rules, moderator write denial and seeder idempotence;
+  `DonationBankCatalogTest` adds retired-selection and deleted-bank behavior.
+  Because the table is the runtime source, the suite installs the bootstrap
+  catalog through a `tests/Pest.php` helper (global before-each plus
+  foreign-country fixtures in the donation and organization tests).
+- Assumptions: (1) country routing-code support is configuration, not catalog
+  data; (2) "referenced" is code-scoped because `donation_channels` does not
+  store the entry country and catalog codes are unique per country in practice;
+  (3) retiring every entry of a country stops new bank selection there while
+  stored channels stay valid and editable; (4) the catalog is platform
+  reference data, so it stays out of the admin API/MCP; (5) non-admin surfaces
+  render a stored retired code as-is, while the admin forms label it
+  "(retired)"; (6) the source URL is required for catalog entries.
+- Fresh schema/bootstrap: the table comes from the edited original migration
+  (fresh schema only), and `php artisan db:seed` installs the MY/ID/SG catalog
+  once through `DonationBankCatalogSeeder`; re-running the seeder is a no-op for
+  initialized countries. No migrations, Pest runs, Pint, PHPStan or live
+  database actions were executed in this session — the parent runs the
+  sanitized parallel Pest selection, Pint, architecture and PHPStan after
+  handoff.
+- Final review: a per-country initialization record keeps deliberately empty catalogs empty after a reseed. The admin edit page checks references even when its record lacks the preloaded reference flag. The affected run passed 516 of 518 tests, and both failures passed in the 26-test focused rerun after corrections. Pint and architecture/PHPStan passed. No existing database was migrated or seeded.

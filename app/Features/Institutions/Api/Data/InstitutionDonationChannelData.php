@@ -23,6 +23,10 @@ final readonly class InstitutionDonationChannelData
         public bool $is_default,
         public ?string $qr_url,
         public ?string $qr_full_url,
+        public ?string $currency,
+        public ?string $iban,
+        public ?string $swift_bic,
+        public ?string $routing_code,
     ) {}
 
     /**

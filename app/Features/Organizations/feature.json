@@ -5,6 +5,9 @@
   "extensions": {
     "membership.subject-records": [
       "App\\Features\\Organizations\\Extensions\\OrganizationMemberSubjectReader"
+    ],
+    "donation-channel.owner-country": [
+      "App\\Features\\Organizations\\Extensions\\OrganizationDonationOwnerCountry"
     ]
   }
 }

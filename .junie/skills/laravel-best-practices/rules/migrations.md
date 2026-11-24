@@ -96,7 +96,7 @@ public function down(): void
 }
 ```
 
-For intentionally irreversible migrations (e.g., destructive data backfills), leave a clear comment and require a forward fix migration instead of pretending rollback is supported.
+For intentionally irreversible migrations, leave a clear comment and require a forward fix migration instead of pretending rollback is supported.
 
 ## Keep Migrations Focused
 

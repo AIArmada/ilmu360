@@ -60,7 +60,7 @@ it('keeps donation channel lifecycle fields behind transition methods', function
         'donatable_id' => $institution->getKey(),
         'recipient' => 'Lifecycle Test Account',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank',
+        'bank_name' => 'Maybank2u',
         'account_number' => '1234567890',
         'status' => DonationChannelStatus::Verified,
         'verified_at' => $forgedAt,

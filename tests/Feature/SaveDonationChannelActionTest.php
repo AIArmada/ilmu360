@@ -16,8 +16,8 @@ it('creates a bank account donation channel', function () {
         'donatable_id' => (string) $institution->getKey(),
         'recipient' => 'Masjid Al-Hidayah',
         'method' => 'bank_account',
-        'bank_code' => 'MBB',
-        'bank_name' => 'Maybank',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '123456789',
     ]);
 
@@ -25,8 +25,8 @@ it('creates a bank account donation channel', function () {
         ->and($channel->donatable_type)->toBe($institution->getMorphClass())
         ->and($channel->donatable_id)->toBe((string) $institution->getKey())
         ->and($channel->method)->toBe('bank_account')
-        ->and($channel->bank_code)->toBe('MBB')
-        ->and($channel->bank_name)->toBe('Maybank')
+        ->and($channel->bank_code)->toBe('MB2U0227')
+        ->and($channel->bank_name)->toBe('Maybank2u')
         ->and($channel->account_number)->toBe('123456789')
         ->and($channel->duitnow_type)->toBeNull()
         ->and($channel->ewallet_provider)->toBeNull()
@@ -83,26 +83,30 @@ it('creates an ewallet donation channel', function () {
         ->and($channel->duitnow_type)->toBeNull();
 });
 
-it('updates an existing donation channel', function () {
+it('updates an existing donation channel and requires reverification when its bank destination changes', function () {
     $institution = Institution::factory()->create();
 
     $channel = DonationChannel::factory()->bankAccount()->create([
         'donatable_type' => $institution->getMorphClass(),
         'donatable_id' => (string) $institution->getKey(),
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
+        'status' => DonationChannelStatus::Verified,
     ]);
 
     $updated = app(SaveDonationChannelAction::class)->handle([
         'recipient' => 'Updated Recipient',
         'method' => 'bank_account',
-        'bank_code' => 'CIMB',
+        'bank_code' => 'BCBB0235',
         'bank_name' => 'CIMB Bank',
         'account_number' => $channel->account_number,
         'status' => 'verified',
     ], $channel);
 
     expect($updated->fresh()->recipient)->toBe('Updated Recipient')
-        ->and($updated->fresh()->bank_code)->toBe('CIMB')
-        ->and($updated->fresh()->status)->toBe(DonationChannelStatus::Verified);
+        ->and($updated->fresh()->bank_code)->toBe('BCBB0235')
+        ->and($updated->fresh()->bank_name)->toBe('CIMB Bank')
+        ->and($updated->fresh()->status)->toBe(DonationChannelStatus::Pending);
 });
 
 it('assigns a channel to a person owner', function () {
@@ -113,8 +117,8 @@ it('assigns a channel to a person owner', function () {
         'donatable_id' => (string) $person->getKey(),
         'recipient' => 'Ustaz Ahmad',
         'method' => 'bank_account',
-        'bank_code' => 'MBB',
-        'bank_name' => 'Maybank',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '987654321',
         'status' => 'pending',
     ]);
@@ -141,8 +145,8 @@ it('rejects an invalid owner type', function () {
         'donatable_id' => 'some-id',
         'recipient' => 'Test',
         'method' => 'bank_account',
-        'bank_code' => 'MBB',
-        'bank_name' => 'Maybank',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '123456789',
         'status' => 'pending',
     ]);
@@ -156,8 +160,8 @@ it('rejects empty recipient', function () {
         'donatable_id' => (string) $institution->getKey(),
         'recipient' => '',
         'method' => 'bank_account',
-        'bank_code' => 'MBB',
-        'bank_name' => 'Maybank',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '123456789',
         'status' => 'pending',
     ]);

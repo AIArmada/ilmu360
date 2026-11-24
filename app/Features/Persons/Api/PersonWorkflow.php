@@ -159,5 +159,5 @@ interface PersonWorkflow
      * freshly created person inside the same transaction.
      */
     /** @param array<int|string, mixed> $gallery */
-    public function syncContributionMedia(string $personId, mixed $avatar, mixed $main, mixed $profile, mixed $cover, ?array $gallery): void;
+    public function syncContributionMedia(string $personId, mixed $avatar, mixed $square, mixed $profile, ?array $gallery): void;
 }

@@ -47,10 +47,14 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
             'defaults' => $defaults,
             'current_media' => $record instanceof DonationChannel ? $this->mediaState($record, ['qr']) : null,
             'fields' => $this->fields(),
-            'catalogs' => [],
+            'catalogs' => [
+                $this->catalog('bank_code', route('api.admin.catalogs.donation-banks', [], false), [
+                    'owner_type' => '{donatable_type}',
+                    'owner_id' => '{donatable_id}',
+                ]),
+            ],
             'conditional_rules' => [
-                ['field' => 'bank_name', 'required_when' => ['method' => ['bank_account']]],
-                ['field' => 'account_number', 'required_when' => ['method' => ['bank_account']]],
+                ['field' => 'bank_code', 'required_when' => ['method' => ['bank_account']]],
                 ['field' => 'duitnow_type', 'required_when' => ['method' => ['duitnow']]],
                 ['field' => 'duitnow_value', 'required_when' => ['method' => ['duitnow']]],
                 ['field' => 'ewallet_provider', 'required_when' => ['method' => ['ewallet']]],
@@ -73,9 +77,13 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
             'label' => ['nullable', 'string', 'max:255'],
             'recipient' => [$required, 'string', 'max:255'],
             'method' => [$required, Rule::in(['bank_account', 'duitnow', 'ewallet'])],
-            'bank_code' => ['nullable', 'string', 'max:32'],
-            'bank_name' => ['nullable', 'string', 'max:255', 'required_if:method,bank_account'],
-            'account_number' => ['nullable', 'string', 'max:64', 'required_if:method,bank_account'],
+            'currency' => ['nullable', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'bank_code' => ['nullable', 'string', 'max:32', 'required_if:method,bank_account'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'account_number' => ['nullable', 'string', 'max:64'],
+            'iban' => ['nullable', 'string', 'max:34'],
+            'swift_bic' => ['nullable', 'string', 'max:11'],
+            'routing_code' => ['nullable', 'string', 'max:20'],
             'duitnow_type' => ['nullable', 'string', 'max:64', 'required_if:method,duitnow'],
             'duitnow_value' => ['nullable', 'string', 'max:255', 'required_if:method,duitnow'],
             'ewallet_provider' => ['nullable', 'string', 'max:64', 'required_if:method,ewallet'],
@@ -161,9 +169,13 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
             'label' => null,
             'recipient' => '',
             'method' => 'bank_account',
+            'currency' => null,
             'bank_code' => null,
             'bank_name' => null,
             'account_number' => null,
+            'iban' => null,
+            'swift_bic' => null,
+            'routing_code' => null,
             'duitnow_type' => null,
             'duitnow_value' => null,
             'ewallet_provider' => null,
@@ -188,9 +200,13 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
             'label' => $record->label,
             'recipient' => $record->recipient,
             'method' => (string) $record->method,
+            'currency' => $record->currency,
             'bank_code' => $record->bank_code,
             'bank_name' => $record->bank_name,
             'account_number' => $record->account_number,
+            'iban' => $record->iban,
+            'swift_bic' => $record->swift_bic,
+            'routing_code' => $record->routing_code,
             'duitnow_type' => $record->duitnow_type,
             'duitnow_value' => $record->duitnow_value,
             'ewallet_provider' => $record->ewallet_provider,
@@ -221,6 +237,7 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
             $this->ownerType('institution'),
             $this->ownerType('person'),
             $this->ownerType('event'),
+            $this->ownerType('organization'),
         ];
     }
 
@@ -234,7 +251,7 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
     /** @return class-string<Model> */
     private function ownerModelClass(string $ownerType): string
     {
-        foreach (['institution', 'person', 'event'] as $alias) {
+        foreach (['institution', 'person', 'event', 'organization'] as $alias) {
             if ($this->ownerType($alias) === $ownerType) {
                 return MorphAliasModel::classFor($alias);
             }
@@ -261,13 +278,29 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
                 'mutation_semantics' => 'replace_scalar_with_method_partition_reset',
                 'switch_clears_fields' => [
                     'bank_account' => ['duitnow_type', 'duitnow_value', 'ewallet_provider', 'ewallet_handle', 'ewallet_qr_payload'],
-                    'duitnow' => ['bank_code', 'bank_name', 'account_number', 'ewallet_provider', 'ewallet_handle', 'ewallet_qr_payload'],
-                    'ewallet' => ['bank_code', 'bank_name', 'account_number', 'duitnow_type', 'duitnow_value'],
+                    'duitnow' => ['bank_code', 'bank_name', 'account_number', 'iban', 'swift_bic', 'routing_code', 'ewallet_provider', 'ewallet_handle', 'ewallet_qr_payload'],
+                    'ewallet' => ['bank_code', 'bank_name', 'account_number', 'iban', 'swift_bic', 'routing_code', 'duitnow_type', 'duitnow_value'],
                 ],
             ]),
-            $this->field('bank_code', 'string', required: false, maxLength: 32, meta: $this->trimmedStringMutationMeta()),
-            $this->field('bank_name', 'string', required: false, maxLength: 255),
+            $this->field('currency', 'string', required: false, maxLength: 3, meta: $this->trimmedStringMutationMeta()),
+            $this->field('bank_code', 'string', required: false, maxLength: 32, meta: [
+                ...$this->trimmedStringMutationMeta(),
+                'canonical_bank_identifier' => true,
+                'catalog' => 'bank_code',
+            ]),
+            $this->field('bank_name', 'string', required: false, maxLength: 255, meta: [
+                'mutation_semantics' => 'derived_server_side',
+                'derived_from' => 'bank_code',
+                'accepted_when' => 'omitted_or_matches_the_catalog_name',
+            ]),
             $this->field('account_number', 'string', required: false, maxLength: 64),
+            $this->field('iban', 'string', required: false, maxLength: 34, meta: $this->trimmedStringMutationMeta()),
+            $this->field('swift_bic', 'string', required: false, maxLength: 11, meta: $this->trimmedStringMutationMeta()),
+            $this->field('routing_code', 'string', required: false, maxLength: 20, meta: [
+                ...$this->trimmedStringMutationMeta(),
+                'used_when' => 'bank_account',
+                'supported_when' => 'owner_country_catalog_supports_routing_codes',
+            ]),
             $this->field('duitnow_type', 'string', required: false, maxLength: 64),
             $this->field('duitnow_value', 'string', required: false, maxLength: 255),
             $this->field('ewallet_provider', 'string', required: false, maxLength: 64),

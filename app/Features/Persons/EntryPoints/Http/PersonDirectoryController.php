@@ -318,8 +318,6 @@ final class PersonDirectoryController extends FrontendController
      */
     private function personDetailData(Person $person, ?User $user): array
     {
-        $coverUrl = $person->getFirstMediaUrl('cover', 'banner') ?: $person->getFirstMediaUrl('cover');
-
         return new PersonDetailData(
             id: (string) $person->id,
             slug: (string) $person->slug,
@@ -339,10 +337,9 @@ final class PersonDirectoryController extends FrontendController
             media: new PersonDetailMediaData(
                 avatar_url: (string) $person->public_avatar_url,
                 main_url: (string) $person->public_main_url,
-                cover_url: $coverUrl,
                 share_image_url: $person->hasMedia('avatar')
                     ? (string) $person->public_avatar_url
-                    : ($coverUrl !== '' ? $coverUrl : (string) $person->default_avatar_url),
+                    : (string) $person->default_avatar_url,
             )->toArray(),
             gallery: $this->personGalleryData($person),
             institutions: $this->institutionCards->personAffiliations((string) $person->id),

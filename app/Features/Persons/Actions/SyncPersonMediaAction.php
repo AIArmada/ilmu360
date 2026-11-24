@@ -30,8 +30,7 @@ final readonly class SyncPersonMediaAction
 
         foreach ([
             'clear_avatar' => 'avatar',
-            'clear_cover' => 'cover',
-            'clear_main' => 'main',
+            'clear_square' => 'square',
             'clear_gallery' => 'gallery',
         ] as $flag => $collection) {
             if (($data[$flag] ?? false) === true) {
@@ -40,13 +39,11 @@ final readonly class SyncPersonMediaAction
         }
 
         $avatar = $data['avatar'] ?? null;
-        $main = $data['main'] ?? null;
-        $cover = $data['cover'] ?? null;
+        $square = $data['square'] ?? null;
         $gallery = $data['gallery'] ?? null;
 
         $this->mediaSync->syncSingle($person, $avatar instanceof UploadedFile ? $avatar : null, 'avatar');
-        $this->mediaSync->syncSingle($person, $main instanceof UploadedFile ? $main : null, 'main');
-        $this->mediaSync->syncSingle($person, $cover instanceof UploadedFile ? $cover : null, 'cover');
+        $this->mediaSync->syncSingle($person, $square instanceof UploadedFile ? $square : null, 'square');
         $this->mediaSync->syncMultiple(
             $person,
             is_array($gallery) ? $gallery : null,

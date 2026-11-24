@@ -10,7 +10,7 @@ final readonly class PersonDetailData
      * @param  array<string, mixed>|string|null  $bio
      * @param  array{country_id: ?string, state_id: ?string, city_id: ?string, area_assignments: array<string, string>}|null  $address
      * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
-     * @param  array{avatar_url: string, cover_url: string, share_image_url: string}  $media
+     * @param  array{avatar_url: string, main_url: string, share_image_url: string}  $media
      * @param  list<array{id: string, name: string, url: string, thumb_url: string}>  $gallery
      * @param  list<array<string, mixed>>  $institutions
      * @param  list<array<string, mixed>>  $contacts

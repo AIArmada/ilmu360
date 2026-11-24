@@ -677,14 +677,16 @@
                                         'ewallet' => 'border-amber-200 bg-amber-50 text-amber-800',
                                         default => 'border-slate-200 bg-slate-50 text-slate-700',
                                     };
+                                    $bankIdentifier = filled($channel->iban) ? (string) $channel->iban : (string) $channel->account_number;
+                                    $channelCurrency = filled($channel->currency) ? strtoupper((string) $channel->currency) : null;
                                     $copyValue = match ($method) {
-                                        'bank_account' => (string) $channel->account_number,
+                                        'bank_account' => $bankIdentifier,
                                         'duitnow' => (string) $channel->duitnow_value,
                                         'ewallet' => (string) ($channel->ewallet_handle ?: $channel->ewallet_qr_payload),
                                         default => (string) ($channel->account_number ?: $channel->duitnow_value ?: $channel->ewallet_handle),
                                     };
                                     $copyLabel = match ($method) {
-                                        'bank_account' => __('No. Akaun'),
+                                        'bank_account' => filled($channel->iban) ? 'IBAN' : __('No. Akaun'),
                                         'duitnow' => __('ID DuitNow'),
                                         'ewallet' => __('ID E-Dompet'),
                                         default => __('No. Akaun'),
@@ -697,7 +699,8 @@
                                         'boost' => 'Boost',
                                         default => \Illuminate\Support\Str::headline((string) $channel->ewallet_provider),
                                     } : null;
-                                    $bankDisplay = $channel->bank_name ?: $channel->bank_code;
+                                    $bankName = filled($channel->bank_name) ? (string) $channel->bank_name : null;
+                                    $bankDisplay = $bankName;
                                     $qrThumb = $channel->getFirstMedia('qr')?->getAvailableUrl(['thumb']) ?: $channel->getFirstMediaUrl('qr');
                                     $qrFull = $channel->getFirstMediaUrl('qr') ?: $qrThumb;
                                 @endphp
@@ -726,11 +729,32 @@
                                             <p class="truncate font-semibold leading-5 text-slate-900" title="{{ $channel->recipient }}">{{ $channel->recipient }}</p>
 
                                             @if($method === 'bank_account' && filled($bankDisplay))
-                                                <p class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
+                                                <p class="flex flex-wrap items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
                                                     <span class="inline-flex h-5 w-5 items-center justify-center rounded-md bg-white ring-1 ring-slate-200">
                                                         <svg class="h-3 w-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12 4 4.5h16L21.75 12M3 12h18M4.5 12V19.5A2.25 2.25 0 0 0 6.75 21.75h10.5A2.25 2.25 0 0 0 19.5 19.5V12M9 16.5h6" /></svg>
                                                     </span>
                                                     {{ $bankDisplay }}
+                                                    @if($channelCurrency)
+                                                        <span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-black tracking-wide text-slate-600">{{ $channelCurrency }}</span>
+                                                    @endif
+                                                </p>
+                                            @endif
+
+                                            @if($method === 'bank_account' && filled($channel->swift_bic))
+                                                <p class="text-xs font-semibold text-slate-600">
+                                                    {{ __('SWIFT / BIC') }}: <span class="font-mono">{{ $channel->swift_bic }}</span>
+                                                </p>
+                                            @endif
+
+                                            @if($method === 'bank_account' && filled($channel->routing_code))
+                                                <p class="text-xs font-semibold text-slate-600">
+                                                    {{ __('Routing / sort code') }}: <span class="font-mono">{{ $channel->routing_code }}</span>
+                                                </p>
+                                            @endif
+
+                                            @if($method === 'bank_account' && filled($channel->iban) && filled($channel->account_number))
+                                                <p class="text-xs font-semibold text-slate-600">
+                                                    {{ __('No. Akaun') }}: <span class="font-mono">{{ $channel->account_number }}</span>
                                                 </p>
                                             @endif
 

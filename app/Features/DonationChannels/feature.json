@@ -10,6 +10,11 @@
       "App\\Features\\DonationChannels\\Actions\\DetachDonationChannelVerifierAction",
       "App\\Features\\DonationChannels\\Actions\\RestoreDonationChannelVerifierAction",
       "App\\Features\\DonationChannels\\Actions\\DeleteDonationChannelAction"
+    ],
+    "table:donation_banks": [
+      "App\\Features\\DonationChannels\\Actions\\SaveDonationBankAction",
+      "App\\Features\\DonationChannels\\Actions\\TransitionDonationBankStatusAction",
+      "App\\Features\\DonationChannels\\Actions\\DeleteDonationBankAction"
     ]
   },
   "aliases": {

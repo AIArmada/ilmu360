@@ -317,6 +317,11 @@ final readonly class InstitutionsSchemasContributor implements DocumentSchemaCon
                 ->addProperty('ewallet_handle', (new StringType)->nullable(true))
                 ->addProperty('is_default', new BooleanType)
                 ->addProperty('qr_url', (new StringType)->nullable(true))
+                ->addProperty('qr_full_url', (new StringType)->nullable(true))
+                ->addProperty('currency', (new StringType)->nullable(true))
+                ->addProperty('iban', (new StringType)->nullable(true))
+                ->addProperty('swift_bic', (new StringType)->nullable(true))
+                ->addProperty('routing_code', (new StringType)->nullable(true))
                 ->setRequired([
                     'id',
                     'label',
@@ -333,6 +338,11 @@ final readonly class InstitutionsSchemasContributor implements DocumentSchemaCon
                     'ewallet_handle',
                     'is_default',
                     'qr_url',
+                    'qr_full_url',
+                    'currency',
+                    'iban',
+                    'swift_bic',
+                    'routing_code',
                 ]),
         );
     }

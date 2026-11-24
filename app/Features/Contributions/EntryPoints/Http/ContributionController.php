@@ -119,7 +119,7 @@ class ContributionController extends FrontendController
     ): JsonResponse {
         $user = $this->requireUser($request);
         $this->ensureDirectoryFeedbackAllowed($user);
-        $validated = $request->validate([
+        $validator = validator($request->all(), [
             'type' => ['sometimes', 'nullable', 'string', Rule::in(array_column(InstitutionType::cases(), 'value'))],
             'name' => ['nullable', 'string', 'max:255'],
             'names' => ['nullable', 'array'],
@@ -147,7 +147,12 @@ class ContributionController extends FrontendController
             'address.waze_url' => ['nullable', 'url', 'max:255'],
             ...ContributionContactRules::rules(),
             ...$this->mediaValidationRules(ContributionSubjectType::Institution, ['logo', 'cover', 'gallery']),
+            ...$this->donationChannelValidationRules(),
         ]);
+
+        $this->addDonationChannelIdentityRules($validator, $request->all());
+
+        $validated = $validator->validate();
 
         $place = $fetchGooglePlaceDetailsAction->handle(
             $validated['address']['google_place_id'],
@@ -342,7 +347,7 @@ class ContributionController extends FrontendController
             'language_ids' => ['nullable', 'array'],
             'language_ids.*' => ['string', 'exists:languages,id'],
             ...ContributionContactRules::rules(),
-            ...$this->mediaValidationRules(ContributionSubjectType::Person, ['avatar', 'main', 'profile', 'cover', 'gallery']),
+            ...$this->mediaValidationRules(ContributionSubjectType::Person, ['avatar', 'square', 'profile', 'gallery']),
         ]);
         $validated = $this->normalizeContributionAddressPayload($validated);
 
@@ -353,9 +358,8 @@ class ContributionController extends FrontendController
             fn (string $personId) => app(PersonWorkflow::class)->syncContributionMedia(
                 $personId,
                 $request->file('avatar'),
-                $request->file('main'),
+                $request->file('square'),
                 $request->file('profile'),
-                $request->file('cover'),
                 is_array($request->file('gallery')) ? $request->file('gallery') : null,
             ),
         );
@@ -395,7 +399,7 @@ class ContributionController extends FrontendController
         title: 'Get editable contribution context',
         description: 'Returns the current editable state, presentation metadata, and permission flags for an existing subject. '
             .'Call this before submitting an update so you know whether the caller can edit directly, which sparse top-level fields are supported, whether the caller has a pending request, and whether any pending request currently blocks updates. '
-            .'Media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `logo`/`cover`/`gallery`, person `avatar`/`main`/`profile`/`cover`/`gallery`, event `cover`/`poster`/`gallery`, and reference `front_cover`/`back_cover`/`gallery`.',
+            .'Media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `logo`/`cover`/`gallery`, person `avatar`/`square`/`profile`/`gallery`, event `cover`/`poster`/`gallery`, and reference `front_cover`/`back_cover`/`gallery`.',
     )]
     public function suggestContext(
         string $subjectType,
@@ -853,17 +857,46 @@ class ContributionController extends FrontendController
     {
         return match ($field) {
             'cover' => '16:9',
-            'main' => '1:1',
+            'square' => '1:1',
             'poster', 'profile', 'front_cover', 'back_cover' => '3:4',
             default => null,
         };
     }
 
     /**
+     * Shared donation channel field rules for institution submissions.
+     *
+     * @return array<string, mixed>
+     */
+    private function donationChannelValidationRules(): array
+    {
+        return [
+            'donation_channels' => ['nullable', 'array'],
+            'donation_channels.*.label' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.recipient' => ['required_with:donation_channels.*.method', 'string', 'max:255'],
+            'donation_channels.*.method' => ['required_with:donation_channels.*.recipient', Rule::in(['bank_account', 'duitnow', 'ewallet'])],
+            'donation_channels.*.currency' => ['nullable', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'donation_channels.*.bank_name' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.bank_code' => ['nullable', 'string', 'max:32'],
+            'donation_channels.*.account_number' => ['nullable', 'string', 'max:2000'],
+            'donation_channels.*.iban' => ['nullable', 'string', 'max:34'],
+            'donation_channels.*.swift_bic' => ['nullable', 'string', 'max:11'],
+            'donation_channels.*.routing_code' => ['nullable', 'string', 'max:20'],
+            'donation_channels.*.duitnow_type' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.duitnow_value' => ['nullable', 'string', 'max:2000'],
+            'donation_channels.*.ewallet_provider' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.ewallet_handle' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.ewallet_qr_payload' => ['nullable', 'string', 'max:2000'],
+            'donation_channels.*.reference_note' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.is_default' => ['nullable', 'boolean'],
+        ];
+    }
+
+    /**
      * Require per-method donation identity fields that the base
      * `sometimes`/`nullable` rules cannot express per item: a submitted
      * channel must carry enough identity to sync. Mirrors
-     * ContributionEntityStateService::normalizeDonationChannelRow().
+     * SyncInstitutionDonationChannelsAction::normalizeRow().
      *
      * @param  array<string, mixed>  $payload
      */
@@ -884,9 +917,19 @@ class ContributionController extends FrontendController
 
             if ($method === 'bank_account') {
                 $validator->sometimes(
+                    "donation_channels.{$index}.bank_code",
+                    ['required', 'string', 'max:32'],
+                    fn (): bool => true,
+                );
+                $validator->sometimes(
                     "donation_channels.{$index}.account_number",
                     ['required', 'string', 'max:2000'],
-                    fn (): bool => true,
+                    fn (Fluent $input): bool => blank($input->get("donation_channels.{$index}.iban")),
+                );
+                $validator->sometimes(
+                    "donation_channels.{$index}.iban",
+                    ['required', 'string', 'max:34'],
+                    fn (Fluent $input): bool => blank($input->get("donation_channels.{$index}.account_number")),
                 );
             }
 

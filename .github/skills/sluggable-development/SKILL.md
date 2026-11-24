@@ -117,7 +117,7 @@ return new class extends Migration
 };
 ```
 
-For a new table, include the slug column in the `create` call instead. Use `->nullable()` when backfilling existing rows so the migration does not fail on the first run, then drop the nullability in a follow-up once every row has a slug.
+For a new table, include the slug column in the `create` call instead, with the intended nullability and unique index.
 
 For translatable slugs the column must hold JSON: use `$table->json('slug')` instead of `string`.
 
@@ -262,7 +262,6 @@ return [
 ## Common pitfalls
 
 - Setting `selfHealing: true` on the attribute without `use HasSlug;` throws `SelfHealingRequiresTrait`. Add the trait.
-- When adding the slug column to a populated table, make it `->nullable()` first and backfill before enforcing a unique index.
 - Translatable slugs require the slug column to be JSON, not `string`.
 - The attribute cannot carry closures. Features that need them (callables for sources, dynamic scopes, custom suffix generators, skip conditions) require the trait.
 - Implicit route binding falls back to the primary key. Point the parameter at the slug column with `{post:slug}` or override `getRouteKeyName()`.

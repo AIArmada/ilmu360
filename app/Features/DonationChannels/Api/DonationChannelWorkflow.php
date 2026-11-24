@@ -16,6 +16,10 @@ interface DonationChannelWorkflow
 
     public function transition(string $channelId, string $status, ?string $verifierId = null): void;
 
+    /**
+     * Sync the institution channel set; null leaves the set untouched and
+     * validates the existing set against the owner's current country.
+     */
     public function syncInstitution(string $institutionId, mixed $payload): void;
 
     public function demoteDefault(string $channelId): void;

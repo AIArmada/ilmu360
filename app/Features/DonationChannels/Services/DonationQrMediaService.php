@@ -9,6 +9,7 @@ use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Platform\Media\MediaCollectionSync;
 use App\Platform\Media\MediaFileNamer;
 use App\Platform\Models\MorphModelResolver;
+use App\Shared\Normalization\DonationPayoutNormalizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
@@ -21,28 +22,7 @@ final readonly class DonationQrMediaService implements DonationQrWorkflow
     /** @param array<string, mixed> $row */
     public function donationChannelFingerprint(array $row): ?string
     {
-        $method = is_string($row['method'] ?? null) ? trim($row['method']) : null;
-
-        if (! in_array($method, ['bank_account', 'duitnow', 'ewallet'], true)) {
-            return null;
-        }
-
-        $parts = match ($method) {
-            'bank_account' => [$row['bank_code'] ?? null, $row['bank_name'] ?? null, $row['account_number'] ?? null],
-            'duitnow' => [$row['duitnow_type'] ?? null, $row['duitnow_value'] ?? null],
-            default => [$row['ewallet_provider'] ?? null, $row['ewallet_handle'] ?? null, $row['ewallet_qr_payload'] ?? null],
-        };
-
-        $normalized = array_map(
-            static fn (mixed $value): string => is_string($value) && trim($value) !== '' ? mb_strtolower(trim($value)) : '',
-            $parts,
-        );
-
-        if (array_filter($normalized) === []) {
-            return null;
-        }
-
-        return 'sha256:'.hash('sha256', $method.'|'.implode('|', $normalized));
+        return DonationPayoutNormalizer::identityFingerprint($row);
     }
 
     public function safeDonationQrFileName(string $guessedExtension, string $baseName = 'media'): string
@@ -106,27 +86,30 @@ final readonly class DonationQrMediaService implements DonationQrWorkflow
             ? $this->findDonationChannelByFingerprint($entity, $fingerprint)
             : null;
 
-        if ($channel instanceof HasMedia) {
-            $originalFileName = is_string($staged->getCustomProperty('original_file_name'))
-                ? $staged->getCustomProperty('original_file_name')
-                : $staged->file_name;
-
-            $media = $channel->addMediaFromDisk($staged->getPathRelativeToRoot(), $staged->disk)
-                ->preservingOriginal()
-                ->usingFileName($this->safeDonationQrFileName(
-                    pathinfo($staged->file_name, PATHINFO_EXTENSION),
-                    MediaFileNamer::resolveBaseNameFromModel($channel),
-                ))
-                ->usingName(MediaFileNamer::resolveDisplayNameFromModel($channel, 'qr', $originalFileName))
-                ->withCustomProperties([
-                    'collection' => 'qr',
-                    'original_file_name' => $originalFileName,
-                ])
-                ->toMediaCollection('qr');
-
-            $this->mediaCollectionSync->removeFilesOnRollback($media);
+        if (! $channel instanceof HasMedia) {
+            throw ValidationException::withMessages([
+                'data.donation_channels' => __('The saved QR image no longer matches a donation channel. Upload it again.'),
+            ]);
         }
 
+        $originalFileName = is_string($staged->getCustomProperty('original_file_name'))
+            ? $staged->getCustomProperty('original_file_name')
+            : $staged->file_name;
+
+        $media = $channel->addMediaFromDisk($staged->getPathRelativeToRoot(), $staged->disk)
+            ->preservingOriginal()
+            ->usingFileName($this->safeDonationQrFileName(
+                pathinfo($staged->file_name, PATHINFO_EXTENSION),
+                MediaFileNamer::resolveBaseNameFromModel($channel),
+            ))
+            ->usingName(MediaFileNamer::resolveDisplayNameFromModel($channel, 'qr', $originalFileName))
+            ->withCustomProperties([
+                'collection' => 'qr',
+                'original_file_name' => $originalFileName,
+            ])
+            ->toMediaCollection('qr');
+
+        $this->mediaCollectionSync->removeFilesOnRollback($media);
         $this->mediaCollectionSync->deleteMedia($staged);
     }
 
@@ -163,6 +146,9 @@ final readonly class DonationQrMediaService implements DonationQrWorkflow
             'bank_code' => $channel->getAttribute('bank_code'),
             'bank_name' => $channel->getAttribute('bank_name'),
             'account_number' => $channel->getAttribute('account_number'),
+            'iban' => $channel->getAttribute('iban'),
+            'swift_bic' => $channel->getAttribute('swift_bic'),
+            'routing_code' => $channel->getAttribute('routing_code'),
             'duitnow_type' => $channel->getAttribute('duitnow_type'),
             'duitnow_value' => $channel->getAttribute('duitnow_value'),
             'ewallet_provider' => $channel->getAttribute('ewallet_provider'),

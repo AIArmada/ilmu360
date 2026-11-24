@@ -112,9 +112,9 @@ class PersonForm
                                             ->avatar()
                                             ->conversion('thumb')
                                             ->helperText(__('Person photo (recommended: 400x400)')),
-                                        SpatieMediaLibraryFileUpload::make('main')
-                                            ->label(__('Main Photo'))
-                                            ->collection('main')
+                                        SpatieMediaLibraryFileUpload::make('square')
+                                            ->label(__('Square Photo'))
+                                            ->collection('square')
                                             ->image()
                                             ->imageEditor()
                                             ->imageAspectRatio('1:1')
@@ -123,7 +123,7 @@ class PersonForm
                                             ->automaticallyCropImagesToAspectRatio()
                                             ->responsiveImages()
                                             ->conversion('thumb')
-                                            ->helperText(__('Primary portrait (1:1 ratio).')),
+                                            ->helperText(__('Square speaker photo (1:1 ratio).')),
                                         SpatieMediaLibraryFileUpload::make('profile')
                                             ->label(__('Profile Photo'))
                                             ->collection('profile')
@@ -135,19 +135,7 @@ class PersonForm
                                             ->automaticallyCropImagesToAspectRatio()
                                             ->responsiveImages()
                                             ->conversion('profile_thumb')
-                                            ->helperText(__('Speaker portrait (3:4 ratio).')),
-                                        SpatieMediaLibraryFileUpload::make('cover')
-                                            ->collection('cover')
-                                            ->label(__('Cover Image'))
-                                            ->image()
-                                            ->imageEditor()
-                                            ->imageAspectRatio('16:9')
-                                            ->automaticallyOpenImageEditorForAspectRatio()
-                                            ->imageEditorAspectRatioOptions(['16:9', null])
-                                            ->automaticallyCropImagesToAspectRatio()
-                                            ->responsiveImages()
-                                            ->conversion('banner')
-                                            ->helperText(__('Cover featured image')),
+                                            ->helperText(__('Primary speaker portrait for directory cards and the profile page (3:4 ratio).')),
                                         SpatieMediaLibraryFileUpload::make('gallery')
                                             ->label(__('Gallery'))
                                             ->collection('gallery')

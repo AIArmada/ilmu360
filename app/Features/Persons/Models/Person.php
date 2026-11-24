@@ -578,14 +578,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             ->useFallbackUrl(asset('images/placeholders/person.png'))
             ->singleFile();
 
-        $this->addMediaCollection('main')
-            ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->useFallbackUrl(asset('images/placeholders/person.png'))
-            ->withResponsiveImages()
-            ->singleFile();
-
-        $this->addMediaCollection('cover')
+        $this->addMediaCollection('square')
             ->useDisk(config('media-library.disk_name'))
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->useFallbackUrl(asset('images/placeholders/person.png'))
@@ -628,15 +621,10 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             ->format('webp');
 
         $this->addMediaConversion('thumb')
-            ->performOnCollections('main')
+            ->performOnCollections('square')
             ->width(1080)
             ->height(1080)
             ->sharpen(10)
-            ->format('webp');
-
-        $this->addMediaConversion('banner')
-            ->performOnCollections('cover')
-            ->fit(Fit::Crop, 1920, 1080)
             ->format('webp');
 
         $this->addMediaConversion('gallery_thumb')

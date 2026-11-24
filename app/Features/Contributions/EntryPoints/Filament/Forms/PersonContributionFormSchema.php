@@ -360,9 +360,9 @@ class PersonContributionFormSchema implements PersonContributionSchema
                 ->avatar()
                 ->conversion('thumb')
                 ->helperText(__('Use a clear square profile image for the main avatar, at least 400x400px.')),
-            SpatieMediaLibraryFileUpload::make('main')
-                ->label(__('Main Photo'))
-                ->collection('main')
+            SpatieMediaLibraryFileUpload::make('square')
+                ->label(__('Square Photo'))
+                ->collection('square')
                 ->image()
                 ->imageEditor()
                 ->imageAspectRatio('1:1')
@@ -372,7 +372,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('thumb')
-                ->helperText(__('Primary speaker portrait for directory cards, using a 1:1 ratio.')),
+                ->helperText(__('Square speaker photo, using a 1:1 ratio.')),
             SpatieMediaLibraryFileUpload::make('profile')
                 ->label(__('Profile Photo'))
                 ->collection('profile')
@@ -385,20 +385,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('profile_thumb')
-                ->helperText(__('Vertical speaker portrait for the profile page, using a 3:4 ratio.')),
-            SpatieMediaLibraryFileUpload::make('cover')
-                ->label(__('Profile cover image'))
-                ->collection('cover')
-                ->image()
-                ->imageEditor()
-                ->imageAspectRatio('16:9')
-                ->rules(['dimensions:ratio=16/9'])
-                ->automaticallyOpenImageEditorForAspectRatio()
-                ->imageEditorAspectRatioOptions(['16:9', null])
-                ->automaticallyCropImagesToAspectRatio()
-                ->responsiveImages()
-                ->conversion('banner')
-                ->helperText(__('Wide cover image for the speaker profile, using a 16:9 ratio.')),
+                ->helperText(__('Primary speaker portrait for directory cards and the profile page, using a 3:4 ratio.')),
             SpatieMediaLibraryFileUpload::make('gallery')
                 ->label(__('Photo gallery'))
                 ->collection('gallery')
@@ -421,7 +408,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
         }
 
         return Section::make(__('Profile Photo & Media'))
-            ->description(__('All media fields are optional. If available, add a clear square profile photo first; cover and gallery images are optional.'))
+            ->description(__('All media fields are optional. If available, add a clear 3:4 profile portrait first; square and gallery images are optional.'))
             ->schema(array_values($fields))
             ->columns(['default' => 1, 'sm' => 2]);
     }

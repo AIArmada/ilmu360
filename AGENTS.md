@@ -90,7 +90,7 @@ The application is being rebranded to **ilmu360°** (ilmu360 with a degree sign 
 ## Actions
 
 - Extract reusable Actions for orchestration spanning transactions, side effects, normalization, or multiple entrypoints; keep trivial single-step handlers inline.
-- Reuse existing Actions before creating new ones; merge Action/Service duplicates (one Backfill/Sync implementation, not two).
+- Reuse existing Actions before creating new ones; merge Action/Service duplicates into one implementation, not two.
 
 ## Services
 
@@ -247,7 +247,7 @@ Never run destructive git commands (`clean -fdx`, `reset --hard`, `checkout -- .
 
 ## Migration Pattern
 
-- Phase 1: add nullable `status` + `*_at`, backfill. Phase 2: drop old booleans (`is_active`, `is_public`). Phase 3: make `status` NOT NULL.
+- Phase 1: add nullable `status` + `*_at`. Phase 2: drop old booleans (`is_active`, `is_public`). Phase 3: make `status` NOT NULL.
 
 ## Verification
 

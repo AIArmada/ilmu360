@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Organizations\EntryPoints\Http;
 
 use AIArmada\Organizations\Models\Organization;
+use App\Features\DonationChannels\Api\Data\DonationChannelSummary;
+use App\Features\DonationChannels\Api\DonationChannelDirectory;
+use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\Organizations\Api\OrganizationAccess;
 use App\Features\Organizations\Api\OrganizationCommands;
 use App\Features\Organizations\Api\OrganizationMember;
@@ -51,7 +54,7 @@ final class OrganizationController extends Controller
 
     #[Endpoint(
         title: 'Get a public organization',
-        description: 'Returns one active, public organization by its slug.',
+        description: 'Returns one active, public organization by its slug, including its verified donation channels.',
     )]
     public function show(string $organizationKey): JsonResponse
     {
@@ -60,7 +63,12 @@ final class OrganizationController extends Controller
             ->where('slug', $organizationKey)
             ->firstOrFail();
 
-        return response()->json(['data' => $this->publicPayload($organization)]);
+        return response()->json([
+            'data' => [
+                ...$this->publicPayload($organization),
+                'donation_channels' => $this->publicDonationChannels($organization),
+            ],
+        ]);
     }
 
     #[Endpoint(
@@ -132,6 +140,39 @@ final class OrganizationController extends Controller
             'description' => $organization->description,
             'visibility' => $organization->visibility->value,
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function publicDonationChannels(Organization $organization): array
+    {
+        return collect(app(DonationChannelDirectory::class)->forOwner('organization', (string) $organization->getKey()))
+            ->filter(static fn (DonationChannelSummary $channel): bool => $channel->status === DonationChannelStatus::Verified)
+            ->map(static fn (DonationChannelSummary $channel): array => [
+                'id' => $channel->id,
+                'label' => $channel->label,
+                'method' => $channel->method,
+                'method_display' => $channel->method_display,
+                'recipient' => $channel->recipient,
+                'payment_details' => $channel->payment_details,
+                'bank_name' => $channel->bank_name,
+                'bank_code' => $channel->bank_code,
+                'account_number' => $channel->account_number,
+                'duitnow_type' => $channel->duitnow_type,
+                'duitnow_value' => $channel->duitnow_value,
+                'ewallet_provider' => $channel->ewallet_provider,
+                'ewallet_handle' => $channel->ewallet_handle,
+                'is_default' => $channel->is_default,
+                'qr_url' => $channel->qr_url,
+                'qr_full_url' => $channel->qr_full_url,
+                'currency' => $channel->currency,
+                'iban' => $channel->iban,
+                'swift_bic' => $channel->swift_bic,
+                'routing_code' => $channel->routing_code,
+            ])
+            ->values()
+            ->all();
     }
 
     /** @return array<string, mixed> */

@@ -43,6 +43,7 @@ use App\Features\Prayer\Services\PrayerProviderRegistry;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
+use Database\Seeders\DonationBankCatalogSeeder;
 use Database\Seeders\TitleCategorySeeder;
 use Database\Seeders\TitleSeeder;
 use Filament\Forms\Components\Select;
@@ -225,6 +226,14 @@ pest()->extend(TestCase::class)
             app(TitleSeeder::class)->run();
         } catch (Throwable) {
             // idempotent
+        }
+
+        // Install the bootstrap donation bank catalog for the countries that
+        // exist in the test database; the catalog table is the runtime source.
+        try {
+            seedDonationBankCatalogForTests();
+        } catch (Throwable) {
+            // table already initialized by a concurrent worker
         }
 
         // Seed common languages for tests that use the submit event form
@@ -882,6 +891,20 @@ function ensureTestMalaysiaCountry(): AddressCountry
 function testMalaysiaCountryId(): string
 {
     return (string) ensureTestMalaysiaCountry()->getKey();
+}
+
+/**
+ * Initialize the admin-managed donation bank catalog for every country that
+ * currently exists in the test database.
+ *
+ * The catalog table is the runtime source, so tests that exercise bank
+ * validation need the bootstrap data installed. The seeder only initializes a
+ * country without entries, so calling it again after creating another country
+ * never overwrites earlier seeds.
+ */
+function seedDonationBankCatalogForTests(): void
+{
+    app(DonationBankCatalogSeeder::class)->run();
 }
 
 function createTestAddressArea(

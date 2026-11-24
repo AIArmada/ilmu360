@@ -1,6 +1,8 @@
 - A Filament sidebar navigation group can span independently owned feature modules. Navigation grouping is presentation metadata: it must not be used to justify a catch-all `app/Features/Directory` runtime domain or its storage ownership. Move each writer and its consumers to the owning feature, preserving routes and persisted aliases.
 # Lessons
 
+- User correction (2026-11-24, international donation channels): put the final schema in the original creation migration. Audit country rules across every write path and remove grandfathered methods, old QR fingerprint rules, and the tests that preserve them.
+
 - User correction (2026-11-14, architecture migration hard cuts): do not add backward-compatibility behavior, legacy paths, data backfills, or superseded leftovers. Define one current contract, cut all current callers over, and delete the old implementation in the same slice. Do not retain old values through aliases or fallback maps; keep only identifiers that remain part of the active contract.
 - User correction (2026-11-14, delegated verification): parallel implementation agents hand off code only. The orchestrator runs the exact affected Pest selection after implementation, serially, so concurrent workers do not multiply test CPU and duration.
 - Architecture audit follow-up (2026-11-14): inspect writes inside read accessors and seeders, not only named backfill commands. Derived metadata must not be persisted during reads, and seeders must not repair existing domain relations or snapshots.
@@ -1341,3 +1343,5 @@ Do not turn organizer identity selection into speaker/institution membership onb
 
 - Incident (2026-11-23, test environment): a subagent ran Pest without removing the shell's staging exports (`APP_ENV=staging`, `DB_CONNECTION=pgsql`, `DB_DATABASE=ilmu360_staging`), so `RefreshDatabase` ran `migrate:fresh` against the staging database and wiped its data. Always run tests with the staging DB/queue/cache exports removed and panel-domain overrides empty, and keep subagent test runs read-only or on the sanitized command. No local staging backup was available.
 - Framework-boundary lesson (2026-11-23, media rollback): before adding a custom deferred file remover, check the registered observer; `AuditedMediaObserver implements ShouldHandleEventsAfterCommit`, so Laravel already runs Spatie's `deleted` file removal after commit. A redundant remover also deferred explicit failed-write cleanup called directly through `Filesystem::removeAllFiles()`, leaving orphans on rollback.
+
+- User correction (2026-11-24, person media hard cut): apply “no backward compatibility, legacy, or leftovers” to deploy-time code too. Use the new contract for current writes and reads without adding a one-time rename, data backfill, or cleanup migration.

@@ -110,5 +110,214 @@
                 @endif
             </div>
         </div>
+
+        <section class="rounded-3xl border border-[#eadfca] bg-white p-6 shadow-sm sm:p-8">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{{ __('Donations') }}</p>
+                    <h2 class="mt-2 font-heading text-2xl font-bold text-[#0b2a42]">{{ __('Donation channels') }}</h2>
+                    <p class="mt-2 max-w-3xl text-sm text-slate-500">{{ __('Your organization location decides which donation methods are available. Verified channels appear on the public organization profile.') }}</p>
+                </div>
+                @if($canManageDonations && ! $channelFormOpen && $donationMethodOptions !== [])
+                    <button type="button" wire:click="startChannel" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">{{ __('Add channel') }}</button>
+                @endif
+                @if($donationPublicUrl)
+                    <a href="{{ $donationPublicUrl }}" class="rounded-xl border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">{{ __('View public profile') }}</a>
+                @endif
+            </div>
+
+            <div class="mt-6 grid gap-8 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Location') }}</p>
+                    @if($addressState)
+                        <div class="mt-3 space-y-1 text-sm leading-7 text-slate-700">
+                            @if($addressState['line1'])<p>{{ $addressState['line1'] }}</p>@endif
+                            @if($addressState['line2'])<p>{{ $addressState['line2'] }}</p>@endif
+                            @if($addressState['postcode'] || $addressState['city'])<p>{{ trim(($addressState['postcode'] ?? '').' '.($addressState['city'] ?? '')) }}</p>@endif
+                            @if($addressState['state'])<p>{{ $addressState['state'] }}</p>@endif
+                            @if($addressState['country'])<p>{{ $addressState['country'] }}</p>@endif
+                        </div>
+                    @else
+                        <p class="mt-3 text-sm text-slate-500">{{ __('No location yet. Add the organization country so donation methods can be offered.') }}</p>
+                    @endif
+
+                    @if($canManageDonations)
+                        <form wire:submit="saveAddress" class="mt-4 grid gap-3 rounded-2xl bg-[#fbf8f1] p-4">
+                            <div>
+                                <label for="organization-country" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Country') }}</label>
+                                <select id="organization-country" wire:model.live="addressCountryId" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    <option value="">{{ __('Select a country') }}</option>
+                                    @foreach($countryOptions as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @error('addressCountryId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            @if($addressStateOptions !== [])
+                                <div>
+                                    <label for="organization-state" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('State / region') }}</label>
+                                    <select id="organization-state" wire:model="addressStateId" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                        <option value="">{{ __('Not specified') }}</option>
+                                        @foreach($addressStateOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('addressStateId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+                            <div>
+                                <label for="organization-line1" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Address line') }}</label>
+                                <input id="organization-line1" type="text" wire:model="addressLine1" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                @error('addressLine1') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                    <label for="organization-line2" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Address line 2') }}</label>
+                                    <input id="organization-line2" type="text" wire:model="addressLine2" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                </div>
+                                <div>
+                                    <label for="organization-postcode" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Postcode') }}</label>
+                                    <input id="organization-postcode" type="text" wire:model="addressPostcode" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="submit" class="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">{{ __('Save location') }}</button>
+                                @if($addressState)
+                                    <button type="button" wire:click="clearAddress" wire:confirm="{{ __('Clear the organization location?') }}" class="rounded-xl border border-red-100 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">{{ __('Clear') }}</button>
+                                @endif
+                            </div>
+                            @error('donation_channels') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        </form>
+                    @endif
+                </div>
+
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Channels') }}</p>
+                    <div class="mt-3 space-y-3">
+                        @forelse($donationChannels as $channel)
+                            <div wire:key="organization-donation-{{ $channel->id }}" class="rounded-2xl border {{ $channel->is_default ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-100' }} p-4">
+                                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="font-semibold text-slate-900">{{ $channel->label ?: $channel->recipient }}</p>
+                                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600">{{ $channel->method_display }}</span>
+                                            <span class="rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] {{ $channel->status->value === 'verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">{{ $channel->status->value }}</span>
+                                            @if($channel->is_default)<span class="rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-white">{{ __('Default') }}</span>@endif
+                                        </div>
+                                        <p class="mt-2 text-sm text-slate-600">{{ $channel->payment_details }}</p>
+                                        <p class="mt-1 text-xs text-slate-400">{{ $channel->recipient }}</p>
+                                    </div>
+                                    @if($canManageDonations)
+                                        <div class="flex shrink-0 gap-2">
+                                            <button type="button" wire:click="editChannel('{{ $channel->id }}')" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">{{ __('Edit') }}</button>
+                                            <button type="button" wire:click="removeChannel('{{ $channel->id }}')" wire:confirm="{{ __('Remove this donation channel?') }}" class="rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50">{{ __('Remove') }}</button>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-slate-500">{{ __('No donation channels yet.') }}</p>
+                        @endforelse
+                    </div>
+
+                    @if($channelFormOpen)
+                        <form wire:submit="saveChannel" class="mt-4 grid gap-3 rounded-2xl bg-[#fbf8f1] p-4 sm:grid-cols-2">
+                            <div>
+                                <label for="channel-label" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Label') }}</label>
+                                <input id="channel-label" type="text" wire:model="channelForm.label" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" placeholder="{{ __('e.g. Tabung Masjid') }}">
+                            </div>
+                            <div>
+                                <label for="channel-recipient" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Recipient') }}</label>
+                                <input id="channel-recipient" type="text" wire:model="channelForm.recipient" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                @error('channelForm.recipient') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label for="channel-method" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Method') }}</label>
+                                <select id="channel-method" wire:model.live="channelForm.method" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    @foreach($donationMethodOptions as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @if(($channelForm['method'] ?? null) === 'bank_account')
+                                <div>
+                                    <label for="channel-bank" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Bank') }}</label>
+                                    <select id="channel-bank" wire:model="channelForm.bank_code" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                        <option value="">{{ __('Select a bank') }}</option>
+                                        @foreach($donationBankOptions as $code => $name)
+                                            <option value="{{ $code }}">{{ $name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('channelForm.bank_code') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="channel-account" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Account Number') }}</label>
+                                    <input id="channel-account" type="text" wire:model="channelForm.account_number" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    @error('channelForm.account_number') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="channel-iban" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">IBAN</label>
+                                    <input id="channel-iban" type="text" wire:model="channelForm.iban" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    @error('channelForm.iban') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="channel-swift" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('SWIFT / BIC') }}</label>
+                                    <input id="channel-swift" type="text" wire:model="channelForm.swift_bic" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                </div>
+                                @if($donationRoutingSupported)
+                                    <div>
+                                        <label for="channel-routing" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Routing / sort code') }}</label>
+                                        <input id="channel-routing" type="text" maxlength="20" wire:model="channelForm.routing_code" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm uppercase outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" placeholder="{{ __('e.g. 014 or 081') }}">
+                                        @error('channelForm.routing_code') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                @endif
+                                <div>
+                                    <label for="channel-currency" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('Currency') }}</label>
+                                    <input id="channel-currency" type="text" maxlength="3" wire:model="channelForm.currency" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm uppercase outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                </div>
+                            @endif
+                            @if(($channelForm['method'] ?? null) === 'duitnow')
+                                <div>
+                                    <label for="channel-duitnow-type" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('DuitNow type') }}</label>
+                                    <input id="channel-duitnow-type" type="text" wire:model="channelForm.duitnow_type" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    @error('channelForm.duitnow_type') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="channel-duitnow-value" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('DuitNow value') }}</label>
+                                    <input id="channel-duitnow-value" type="text" wire:model="channelForm.duitnow_value" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    @error('channelForm.duitnow_value') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+                            @if(($channelForm['method'] ?? null) === 'ewallet')
+                                <div>
+                                    <label for="channel-ewallet-provider" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('E-wallet provider') }}</label>
+                                    <input id="channel-ewallet-provider" type="text" wire:model="channelForm.ewallet_provider" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    @error('channelForm.ewallet_provider') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label for="channel-ewallet-handle" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('E-wallet handle') }}</label>
+                                    <input id="channel-ewallet-handle" type="text" wire:model="channelForm.ewallet_handle" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    @error('channelForm.ewallet_handle') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+                            <div>
+                                <label for="channel-qr" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('QR image') }}</label>
+                                <input id="channel-qr" type="file" wire:model="channelQr" accept="image/jpeg,image/png,image/webp" class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                @error('channelQr') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                <div wire:loading wire:target="channelQr" class="mt-1 text-xs text-slate-500">{{ __('Uploading…') }}</div>
+                            </div>
+                            <label class="flex items-center gap-2 self-end text-sm font-semibold text-slate-700">
+                                <input type="checkbox" wire:model="channelForm.is_default" class="size-4 rounded border-slate-300 text-emerald-600">
+                                {{ __('Default channel') }}
+                            </label>
+                            <div class="flex flex-wrap gap-2 sm:col-span-2">
+                                <button type="submit" class="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">{{ __('Save channel') }}</button>
+                                <button type="button" wire:click="cancelChannel" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white">{{ __('Cancel') }}</button>
+                            </div>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        </section>
     </div>
 </main>

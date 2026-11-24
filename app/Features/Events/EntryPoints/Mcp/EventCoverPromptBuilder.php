@@ -60,8 +60,9 @@ class EventCoverPromptBuilder
             'gallery' => ['gallery_thumb'],
         ],
         Person::class => [
-            'avatar' => ['profile', 'thumb'],
-            'cover' => ['banner'],
+            'avatar' => ['thumb'],
+            'profile' => ['profile_thumb'],
+            'square' => ['thumb'],
             'gallery' => ['gallery_thumb'],
         ],
         Venue::class => [
@@ -295,9 +296,9 @@ class EventCoverPromptBuilder
                 $selected,
                 $seen,
                 $keyPerson->person,
-                'cover',
-                ['banner', 'thumb'],
-                "person_cover:{$role}",
+                'profile',
+                ['profile_thumb', 'thumb'],
+                "person_profile:{$role}",
                 "Use as the primary likeness/context reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}).",
                 1,
             );
@@ -306,10 +307,21 @@ class EventCoverPromptBuilder
                 $selected,
                 $seen,
                 $keyPerson->person,
+                'square',
+                ['thumb'],
+                "person_square:{$role}",
+                "Use as a secondary likeness reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}) when no portrait is available.",
+                1,
+            );
+
+            $this->pushMediaCandidates(
+                $selected,
+                $seen,
+                $keyPerson->person,
                 'avatar',
-                ['profile', 'thumb'],
+                ['thumb'],
                 "person_avatar:{$role}",
-                "Use as fallback likeness reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}) when person cover is unavailable.",
+                "Use as a small identity fallback for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}) when no portrait is available.",
                 1,
             );
         }

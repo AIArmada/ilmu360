@@ -25,6 +25,7 @@ class ProductionSeeder extends Seeder
             VenueSpaceTypeSeeder::class,
             SpaceSeeder::class,
             InspirationSeeder::class,
+            DonationBankCatalogSeeder::class,
         ]);
     }
 }

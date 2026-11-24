@@ -9,7 +9,6 @@ final readonly class PersonDetailMediaData
     public function __construct(
         public string $avatar_url,
         public string $main_url,
-        public string $cover_url,
         public string $share_image_url,
     ) {}
 

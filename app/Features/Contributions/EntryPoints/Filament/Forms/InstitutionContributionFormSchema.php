@@ -5,6 +5,7 @@ namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
 use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
+use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Platform\Ui\Forms\AddressFields;
@@ -179,6 +180,7 @@ class InstitutionContributionFormSchema
                 ]),
             Section::make(__('Donation Channels'))
                 ->description(__('Share official donation accounts for this institution.'))
+                ->visible(fn (Get $get): bool => self::donationCountryId($get) === null || self::donationMethodOptions($get) !== [])
                 ->schema([
                     Repeater::make('donation_channels')
                         ->label(__('Donation Channels'))
@@ -194,26 +196,51 @@ class InstitutionContributionFormSchema
                                 ->maxLength(255),
                             Select::make('method')
                                 ->label(__('Method'))
-                                ->options([
-                                    'bank_account' => __('Bank Account'),
-                                    'duitnow' => 'DuitNow',
-                                    'ewallet' => __('E-Wallet'),
-                                ])
+                                ->options(fn (Get $get): array => self::donationMethodOptions($get))
+                                ->helperText(__('Available methods follow the institution country bank catalog. DuitNow and e-wallet channels are available for Malaysian institutions only.'))
                                 ->required()
                                 ->live(),
-                            TextInput::make('bank_name')
-                                ->label(__('Bank Name'))
-                                ->maxLength(255)
+                            Select::make('currency')
+                                ->label(__('Currency'))
+                                ->options(fn (): array => self::countryProfiles()->currencyOptions())
+                                ->default(fn (Get $get): ?string => self::countryProfiles()
+                                    ->forCountryId(self::donationCountryId($get))
+                                    ->default_currency)
+                                ->searchable()
                                 ->visible(fn (Get $get): bool => $get('method') === 'bank_account')
-                                ->required(fn (Get $get): bool => $get('method') === 'bank_account'),
-                            TextInput::make('bank_code')
-                                ->label(__('Bank Code'))
-                                ->maxLength(255)
-                                ->visible(fn (Get $get): bool => $get('method') === 'bank_account'),
+                                ->helperText(__('Defaults to the institution country currency. Change it if the account uses another currency.'))
+                                ->native(false),
+                            Select::make('bank_code')
+                                ->label(__('Bank'))
+                                ->options(fn (Get $get): array => self::donationBankOptions($get))
+                                ->searchable()
+                                ->native(false)
+                                ->visible(fn (Get $get): bool => $get('method') === 'bank_account')
+                                ->required(fn (Get $get): bool => $get('method') === 'bank_account')
+                                ->helperText(__('Select a bank from the institution country bank catalog. The stored bank name is derived from it.')),
                             TextInput::make('account_number')
                                 ->label(__('Account Number'))
                                 ->visible(fn (Get $get): bool => $get('method') === 'bank_account')
-                                ->required(fn (Get $get): bool => $get('method') === 'bank_account'),
+                                ->required(fn (Get $get): bool => $get('method') === 'bank_account'
+                                    && blank($get('iban'))),
+                            TextInput::make('iban')
+                                ->label('IBAN')
+                                ->maxLength(34)
+                                ->visible(fn (Get $get): bool => $get('method') === 'bank_account')
+                                ->required(fn (Get $get): bool => $get('method') === 'bank_account'
+                                    && blank($get('account_number')))
+                                ->helperText(__('Use an IBAN when the account does not use a local account number.')),
+                            TextInput::make('swift_bic')
+                                ->label(__('SWIFT / BIC'))
+                                ->maxLength(11)
+                                ->visible(fn (Get $get): bool => $get('method') === 'bank_account')
+                                ->helperText(__('8 or 11 characters. Needed for international transfers.')),
+                            TextInput::make('routing_code')
+                                ->label(__('Routing / sort code'))
+                                ->maxLength(20)
+                                ->visible(fn (Get $get): bool => $get('method') === 'bank_account'
+                                    && self::donationRoutingSupported($get))
+                                ->helperText(__('Local clearing or branch code used by some international banks, for example an Indonesian bank code or a Singapore branch code.')),
                             TextInput::make('duitnow_type')
                                 ->label(__('DuitNow Type'))
                                 ->maxLength(255)
@@ -400,5 +427,47 @@ class InstitutionContributionFormSchema
         return collect(InstitutionNameType::cases())
             ->mapWithKeys(fn (InstitutionNameType $type): array => [$type->value => __($type->label())])
             ->all();
+    }
+
+    private static function countryProfiles(): DonationChannelCountryProfiles
+    {
+        return app(DonationChannelCountryProfiles::class);
+    }
+
+    private static function donationCountryId(Get $get): ?string
+    {
+        $countryId = $get('../../address.country_id');
+
+        return is_string($countryId) && $countryId !== '' ? $countryId : null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function donationMethodOptions(Get $get): array
+    {
+        $labels = [
+            'bank_account' => __('Bank Account'),
+            'duitnow' => 'DuitNow',
+            'ewallet' => __('E-Wallet'),
+        ];
+
+        return array_intersect_key(
+            $labels,
+            array_flip(self::countryProfiles()->forCountryId(self::donationCountryId($get))->methods),
+        );
+    }
+
+    /**
+     * @return array<array-key, string>
+     */
+    private static function donationBankOptions(Get $get): array
+    {
+        return self::countryProfiles()->forCountryId(self::donationCountryId($get))->banks->options();
+    }
+
+    private static function donationRoutingSupported(Get $get): bool
+    {
+        return self::countryProfiles()->forCountryId(self::donationCountryId($get))->supports_routing_codes;
     }
 }

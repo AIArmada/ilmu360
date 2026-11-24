@@ -183,18 +183,14 @@ class PersonInfolist
                                     ->columns(3),
                                 Section::make('Imej')
                                     ->schema([
-                                        SpatieMediaLibraryImageEntry::make('main')
-                                            ->label('Gambar Utama')
-                                            ->collection('main')
+                                        SpatieMediaLibraryImageEntry::make('square')
+                                            ->label('Gambar Segi Empat')
+                                            ->collection('square')
                                             ->conversion('thumb'),
                                         SpatieMediaLibraryImageEntry::make('profile')
                                             ->label('Gambar Profil')
                                             ->collection('profile')
                                             ->conversion('profile_thumb'),
-                                        SpatieMediaLibraryImageEntry::make('cover')
-                                            ->label('Gambar Sampul')
-                                            ->collection('cover')
-                                            ->conversion('banner'),
                                         SpatieMediaLibraryImageEntry::make('gallery')
                                             ->label('Galeri')
                                             ->collection('gallery')

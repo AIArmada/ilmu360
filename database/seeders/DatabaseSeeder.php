@@ -74,6 +74,7 @@ class DatabaseSeeder extends Seeder
             AdvancedEventSeeder::class,
             ReferenceSeeder::class,
             InspirationSeeder::class,
+            DonationBankCatalogSeeder::class,
             DonationChannelSeeder::class,
             MediaLinkSeeder::class,
         ]);

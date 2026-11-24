@@ -5,4 +5,4 @@
 - Generic admin API/MCP access to reward resources is read-only. Do not add reward-specific MCP tools or generic admin write support.
 - Cross-feature analytics use `ShareTracking\Api\ShareAnalytics` and scalar member identifiers. Do not import ShareTracking readers, models, or query builders into Rewards.
 - Keep the public route URIs and names as the active contracts. Register them only from `Routes/`; do not leave root duplicates, aliases, wrappers, old paths, or abandoned response shapes.
-- Do not add backward-compatibility code, legacy paths, data backfills, or migration leftovers. Change source directly and remove superseded code in the same cutover.
+- Do not add backward-compatibility code, legacy paths, or migration leftovers. Change source directly and remove superseded code in the same cutover.

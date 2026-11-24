@@ -12,6 +12,7 @@ use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
+use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
@@ -195,7 +196,8 @@ it('exposes corrected frontend contract metadata', function () {
         ->not->toContain('address.line1')
         ->not->toContain('address.google_maps_url')
         ->not->toContain('position')
-        ->toContain('main', 'profile', 'family_name', 'middle_name', 'names', 'title_ids');
+        ->toContain('square', 'profile', 'family_name', 'middle_name', 'names', 'title_ids')
+        ->not->toContain('cover', 'main');
 
     $institutionContract = $this->getJson(route('api.client.forms.contributions.institutions'))
         ->assertOk()
@@ -203,10 +205,11 @@ it('exposes corrected frontend contract metadata', function () {
     $institutionFields = collect($institutionContract['fields'] ?? [])->pluck('name')->all();
     $institutionPlaceField = collect($institutionContract['fields'] ?? [])->firstWhere('name', 'address.google_place_id');
 
-    expect($institutionFields)->toContain('address.google_place_id', 'logo')
+    expect($institutionFields)->toContain('address.google_place_id', 'logo', 'donation_channels')
         ->and($institutionPlaceField['required'] ?? null)->toBeTrue()
         ->and($institutionFields)->not->toContain('address.google_maps_url')
-        ->and(collect($institutionContract['fields'])->firstWhere('name', 'gallery')['max_files'])->toBe(10);
+        ->and(collect($institutionContract['fields'])->firstWhere('name', 'gallery')['max_files'])->toBe(10)
+        ->and(data_get(collect($institutionContract['fields'])->firstWhere('name', 'donation_channels'), 'item_schema.type'))->toBe('object');
 
     Sanctum::actingAs(User::factory()->create());
 
@@ -720,7 +723,7 @@ it('exposes speaker media fields for visitors and maintainers', function () {
         'status' => 'verified',
     ]);
     $person->addMedia(UploadedFile::fake()->image('context-avatar.jpg', 1200, 1200))->toMediaCollection('avatar');
-    $person->addMedia(UploadedFile::fake()->image('context-cover.jpg', 1200, 1500))->toMediaCollection('cover');
+    $person->addMedia(UploadedFile::fake()->image('context-square.jpg', 1200, 1200))->toMediaCollection('square');
     $person->addMedia(UploadedFile::fake()->image('context-gallery.jpg', 1600, 900))->toMediaCollection('gallery');
 
     assignPersonOwnerForFrontendApi($owner, $person);
@@ -740,11 +743,11 @@ it('exposes speaker media fields for visitors and maintainers', function () {
     ]))->assertOk();
 
     expect($visitorResponse->json('data.can_direct_edit'))->toBeFalse()
-        ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe(['avatar', 'main', 'profile', 'cover', 'gallery'])
+        ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe(['avatar', 'square', 'profile', 'gallery'])
         ->and($ownerResponse->json('data.can_direct_edit'))->toBeFalse()
-        ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['avatar', 'main', 'profile', 'cover', 'gallery'])
+        ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['avatar', 'square', 'profile', 'gallery'])
         ->and($ownerResponse->json('data.current_media.avatar.0.url'))->not->toBeNull()
-        ->and($ownerResponse->json('data.current_media.cover.0.url'))->not->toBeNull()
+        ->and($ownerResponse->json('data.current_media.square.0.url'))->not->toBeNull()
         ->and($ownerResponse->json('data.current_media.gallery.0.thumb_url'))->not->toBeNull();
 });
 
@@ -867,7 +870,8 @@ it('rejects partially filled donation channels on public contribution update sug
             [
                 'recipient' => 'Jawatankuasa Masjid',
                 'method' => 'bank_account',
-                'bank_name' => 'Maybank',
+                'bank_code' => 'MB2U0227',
+                'bank_name' => 'Maybank2u',
                 'account_number' => '12345678',
             ],
             [
@@ -881,6 +885,74 @@ it('rejects partially filled donation channels on public contribution update sug
         ->assertJsonValidationErrors(['donation_channels.1.ewallet_handle']);
 
     expect($institution->fresh()->donationChannels()->count())->toBe(0);
+});
+
+it('documents donation channel item fields in the institution suggest contract', function () {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    assignInstitutionOwnerForFrontendApi($owner, $institution);
+    Sanctum::actingAs($owner);
+
+    $contract = $this->getJson(route('api.client.forms.contributions.suggest', [
+        'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+        'subject' => $institution->slug,
+    ]))->assertOk()->json('data');
+
+    $field = collect($contract['fields'])->firstWhere('name', 'donation_channels');
+    $itemFields = collect(data_get($field, 'item_schema.fields', []))->pluck('name')->all();
+
+    expect(data_get($field, 'item_schema.type'))->toBe('object')
+        ->and($itemFields)->toContain('recipient', 'method', 'currency', 'bank_name', 'bank_code', 'account_number', 'iban', 'swift_bic', 'routing_code', 'is_default');
+});
+
+it('stores donation channels on mobile institution contributions', function () {
+    $user = User::factory()->create();
+    ensureFrontendApiMalaysiaCountryExists();
+    config()->set('services.google.maps_api_key', 'test-maps-key');
+    config()->set('services.google.places_enabled', true);
+    config()->set('services.google.place_link_resolution_enabled', true);
+    config()->set('services.google.places_server_api_key', 'test-server-key');
+
+    Http::fake([
+        'https://places.googleapis.com/v1/places/*' => Http::response([
+            'id' => 'api_place_donation',
+            'name' => 'places/api_place_donation',
+            'displayName' => ['text' => 'Masjid Donasi API'],
+            'primaryType' => 'mosque',
+            'types' => ['mosque', 'place_of_worship'],
+            'formattedAddress' => 'Jalan Donasi, Malaysia',
+            'addressComponents' => [
+                ['longText' => 'Malaysia', 'shortText' => 'MY', 'types' => ['country', 'political']],
+            ],
+            'location' => ['latitude' => 3.14, 'longitude' => 101.68],
+        ], 200),
+    ]);
+
+    Sanctum::actingAs($user);
+
+    $this->postJson(route('api.client.contributions.institutions.store'), [
+        'type' => 'masjid',
+        'name' => 'Masjid Donasi API',
+        'address' => ['google_place_id' => 'api_place_donation'],
+        'donation_channels' => [[
+            'label' => 'Tabung API',
+            'recipient' => 'Masjid Donasi API',
+            'method' => 'bank_account',
+            'bank_code' => 'MB2U0227',
+            'account_number' => '1234567890',
+        ]],
+    ])->assertCreated();
+
+    $institution = Institution::query()->where('name', 'Masjid Donasi API')->firstOrFail();
+    $channel = $institution->donationChannels()->firstOrFail();
+
+    expect($channel->label)->toBe('Tabung API')
+        ->and($channel->currency)->toBe('MYR')
+        ->and($channel->status)->toBe(DonationChannelStatus::Pending)
+        ->and($channel->account_number)->toBe('1234567890');
 });
 
 it('returns only region address keys in the person suggest context state', function () {
@@ -1043,11 +1115,11 @@ it('allows direct person avatar uploads on public contribution update suggestion
         ->and($person?->public_avatar_url)->not->toBe('');
 });
 
-it('allows direct person cover uploads on public contribution update suggestions', function () {
+it('allows direct person square uploads on public contribution update suggestions', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
-    $coverUpload = fakeGeneratedImageUpload('person-cover.png', 1600, 900);
+    $squareUpload = fakeGeneratedImageUpload('person-square.png', 1200, 1200);
 
     $owner = User::factory()->create();
     $person = Person::factory()->create([
@@ -1062,7 +1134,7 @@ it('allows direct person cover uploads on public contribution update suggestions
         'subjectType' => 'penceramah',
         'subject' => $person->slug,
     ]), [
-        'cover' => $coverUpload,
+        'square' => $squareUpload,
     ], [
         'Accept' => 'application/json',
     ])
@@ -1071,8 +1143,8 @@ it('allows direct person cover uploads on public contribution update suggestions
 
     $person = $person->fresh(['media']);
 
-    expect($person?->hasMedia('cover'))->toBeTrue()
-        ->and($person?->getFirstMediaUrl('cover'))->not->toBe('');
+    expect($person?->hasMedia('square'))->toBeTrue()
+        ->and($person?->getFirstMediaUrl('square'))->not->toBe('');
 });
 
 it('allows direct person gallery uploads on public contribution update suggestions', function () {
@@ -1993,8 +2065,8 @@ it('serializes institution detail payloads with address and donation metadata fo
         'label' => 'Tabung Utama',
         'recipient' => 'Masjid Detail DTO',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank',
-        'bank_code' => 'MBB',
+        'bank_name' => 'Maybank2u',
+        'bank_code' => 'MB2U0227',
         'account_number' => '1234567890',
         'is_default' => true,
     ]);
@@ -2034,6 +2106,9 @@ it('serializes institution detail payloads with address and donation metadata fo
         ->and(data_get($item, 'donation_channels'))->toHaveCount(1)
         ->and(data_get($item, 'donation_channels.0.label'))->toBe('Tabung Utama')
         ->and(data_get($item, 'donation_channels.0.method_display'))->toBe('Bank Account')
+        ->and(data_get($item, 'donation_channels.0.currency'))->toBe('MYR')
+        ->and(data_get($item, 'donation_channels.0.iban'))->toBeNull()
+        ->and(data_get($item, 'donation_channels.0.swift_bic'))->toBeNull()
         ->and(data_get($item, 'donation_channels.0.is_default'))->toBeTrue()
         ->and(data_get($item, 'donation_channels.0.qr_url'))->toBeString()->not->toBe('')
         ->and(data_get($item, 'waze_url'))->toContain('waze.com');
@@ -2065,7 +2140,7 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
 
     $channel = $institution->donationChannels()->create([
         'method' => 'bank_account',
-        'bank_code' => 'BIMB',
+        'bank_code' => 'BIMB0340',
         'bank_name' => 'Bank Islam',
         'account_number' => '123456789012',
         'recipient' => 'Tabung Masjid Detail',
@@ -2328,7 +2403,7 @@ it('creates person contribution requests with explicit country and institution f
             'gender' => 'male',
             'middle_name' => 'Abdul',
             'family_name' => 'Rahman',
-            'main' => fakeGeneratedImageUpload('speaker-main.jpg', 640, 640),
+            'square' => fakeGeneratedImageUpload('speaker-square.jpg', 640, 640),
             'profile' => fakeGeneratedImageUpload('speaker-profile.jpg', 600, 800),
             'institutions' => [[
                 'institution_id' => (string) $institution->getKey(),
@@ -2353,7 +2428,7 @@ it('creates person contribution requests with explicit country and institution f
         ->and($person->institutions->firstWhere('id', $institution->getKey())?->pivot?->position)->toBe('Ustaz')
         ->and($person->institutions->firstWhere('id', $institution->getKey())?->pivot?->is_primary)->toBeTruthy()
         ->and($person->slug)->toEndWith('-sg')
-        ->and($person->getMedia('main'))->toHaveCount(1)
+        ->and($person->getMedia('square'))->toHaveCount(1)
         ->and($person->getMedia('profile'))->toHaveCount(1)
         ->and(ContributionRequest::query()->where('entity_id', $person->getKey())->exists())->toBeTrue();
 });
@@ -2372,11 +2447,11 @@ it('applies the contribution update media constraints to frontend creation', fun
         'name' => 'Frontend API Invalid Person Photos',
         'gender' => 'male',
         'address' => ['country_id' => ensureFrontendApiMalaysiaCountryExists()],
-        'main' => fakeGeneratedImageUpload('speaker-main.jpg', 600, 800),
+        'square' => fakeGeneratedImageUpload('speaker-square.jpg', 600, 800),
         'profile' => fakeGeneratedImageUpload('speaker-profile.jpg', 640, 640),
         'contactMethods' => [['type' => 'invalid', 'value' => 'invalid']],
     ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['main', 'profile', 'contactMethods.0.type']);
+        ->assertJsonValidationErrors(['square', 'profile', 'contactMethods.0.type']);
 });
 
 it('requires explicit country and still prohibits detailed address fields when creating persons through the frontend api', function () {
@@ -3655,7 +3730,7 @@ it('mirrors public detail media and public contact payloads', function () {
         'url' => 'https://person.example.test',
     ]);
     $person->addMedia(fakeGeneratedImageUpload('person-avatar.jpg'))->toMediaCollection('avatar');
-    $person->addMedia(fakeGeneratedImageUpload('person-cover.jpg'))->toMediaCollection('cover');
+    $person->addMedia(fakeGeneratedImageUpload('person-square.jpg'))->toMediaCollection('square');
 
     $venue = Venue::factory()->create([
         'status' => 'verified',
@@ -3688,6 +3763,7 @@ it('mirrors public detail media and public contact payloads', function () {
     $personContactValues = collect($personResponse->json('data.person.contacts'))->pluck('value')->all();
 
     expect($personResponse->json('data.person.media.avatar_url'))->not->toBeEmpty()
+        ->and($personResponse->json('data.person.media.main_url'))->toBe($person->public_main_url)
         ->and($personContactValues)->toContain('public-person@example.test')
         ->and($personContactValues)->not->toContain('+6011222333')
         ->and($personResponse->json('data.person.social_media.0.resolved_url'))->toBe('https://person.example.test')
@@ -3695,7 +3771,7 @@ it('mirrors public detail media and public contact payloads', function () {
         ->and($referenceResponse->json('data.reference.media.front_cover_url'))->not->toBeEmpty()
         ->and($referenceResponse->json('data.reference.social_media.0.resolved_url'))->toBe('https://reference.example.test');
 
-    // main_url and cover_url may be present as empty string; drop strict path-missing checks
+    $personResponse->assertJsonMissingPath('data.person.media.cover_url');
 });
 
 it('serializes venue and reference detail payloads with core metadata for mobile clients', function () {
@@ -3831,7 +3907,7 @@ it('mirrors the public person page payload for app clients', function () {
         ],
     ]);
     $person->addMedia(fakeGeneratedImageUpload('person-avatar.jpg'))->toMediaCollection('avatar');
-    $person->addMedia(fakeGeneratedImageUpload('person-cover.jpg'))->toMediaCollection('cover');
+    $person->addMedia(fakeGeneratedImageUpload('person-square.jpg'))->toMediaCollection('square');
     $person->addMedia(fakeGeneratedImageUpload('person-gallery-1.jpg'))->toMediaCollection('gallery');
     $person->addMedia(fakeGeneratedImageUpload('person-gallery-2.jpg'))->toMediaCollection('gallery');
 

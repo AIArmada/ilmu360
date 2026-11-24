@@ -7,6 +7,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Authz\Models\Role;
+use AIArmada\CommerceSupport\Models\Currency;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
@@ -965,8 +966,8 @@ it('stores donation channels when submitting a new institution', function () {
             'label' => 'Tabung Masjid',
             'recipient' => 'Masjid Jamik Ungku Ahmad',
             'method' => 'bank_account',
-            'bank_name' => 'Maybank',
-            'bank_code' => 'MBB',
+            'bank_name' => 'Maybank2u',
+            'bank_code' => 'MB2U0227',
             'account_number' => '1234567890',
             'reference_note' => 'Dana am',
             'is_default' => true,
@@ -980,8 +981,44 @@ it('stores donation channels when submitting a new institution', function () {
     expect($institution->donationChannels()->count())->toBe(1)
         ->and($channel->method)->toBe('bank_account')
         ->and($channel->account_number)->toBe('1234567890')
+        ->and($channel->bank_name)->toBe('Maybank2u')
         ->and($channel->status)->toBe(DonationChannelStatus::Pending)
         ->and($channel->is_default)->toBeTrue();
+});
+
+it('rejects bank channels when submitting a non-malaysian institution without catalogue coverage', function () {
+    ensureCountryForLocationPicker('ID', 'Indonesia');
+    Currency::query()->firstOrCreate(['code' => 'IDR'], ['name' => 'Indonesian Rupiah']);
+    configureVerifiedGoogleMaps();
+    fakeVerifiedInstitutionPlace(verifiedInstitutionPlace('place_donation_international', [
+        'formattedAddress' => 'Jalan Jenderal Sudirman, Jakarta, Indonesia',
+        'addressComponents' => [
+            ['longText' => 'Jalan Jenderal Sudirman', 'shortText' => 'Jalan Jenderal Sudirman', 'types' => ['route']],
+            ['longText' => '10110', 'shortText' => '10110', 'types' => ['postal_code']],
+            ['longText' => 'Jakarta', 'shortText' => 'Jakarta', 'types' => ['locality', 'political']],
+            ['longText' => 'Indonesia', 'shortText' => 'ID', 'types' => ['country', 'political']],
+        ],
+        'websiteUri' => null,
+    ]));
+
+    Livewire::actingAs(User::factory()->create())
+        ->test(SubmitInstitution::class)
+        ->call('applyPlaceSelection', 'data.address', ['placeId' => 'place_donation_international'])
+        ->assertHasNoErrors()
+        ->set('data.type', 'masjid')
+        ->set('data.donation_channels', [[
+            'label' => 'Dana Antarabangsa',
+            'recipient' => 'Yayasan Internasional',
+            'method' => 'bank_account',
+            'currency' => 'IDR',
+            'bank_code' => 'MB2U0227',
+            'iban' => 'ID90 1234 5678 9012',
+            'swift_bic' => 'BMRIIDJA',
+        ]])
+        ->call('submit')
+        ->assertHasErrors();
+
+    expect(Institution::query()->where('name', 'Masjid Jamik Ungku Ahmad')->exists())->toBeFalse();
 });
 
 it('applies donation channel additions on direct institution edits', function () {
@@ -1025,7 +1062,8 @@ it('preserves verified donation channels on unrelated institution edits', functi
         'label' => 'Tabung Masjid',
         'recipient' => 'Masjid Kekal',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '0987654321',
         'is_default' => true,
     ]);
@@ -1313,7 +1351,8 @@ it('stores donation QR uploads when submitting a new institution', function () {
             'label' => 'Tabung Masjid',
             'recipient' => 'Masjid Jamik Ungku Ahmad',
             'method' => 'bank_account',
-            'bank_name' => 'Maybank',
+            'bank_name' => 'Maybank2u',
+            'bank_code' => 'MB2U0227',
             'account_number' => '1234567890',
         ]])
         ->upload('data.donation_channels.0.qr_upload', [File::fake()->image('donation-qr.png', 600, 600)], true)
@@ -1395,7 +1434,7 @@ it('stages visitor donation QR uploads and attaches them on approval', function 
 
     expect($staged)->toHaveCount(1)
         ->and($staged->first()->getCustomProperty('contribution_field'))->toBe('donation_qr')
-        ->and($staged->first()->getCustomProperty('donation_fingerprint'))->toBe('sha256:'.hash('sha256', 'ewallet|tng|0912345678|'));
+        ->and($staged->first()->getCustomProperty('donation_fingerprint'))->toBe('sha256:'.hash('sha256', '["ewallet","tng","0912345678",""]'));
 
     app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
 
@@ -1602,7 +1641,8 @@ it('refuses to wipe all donation channels when every submitted row is invalid', 
         $institution->donationChannels()->create([
             'recipient' => 'Jawatankuasa Masjid',
             'method' => 'bank_account',
-            'bank_name' => 'Maybank',
+            'bank_code' => 'MB2U0227',
+            'bank_name' => 'Maybank2u',
             'account_number' => '12345678',
         ]);
     });

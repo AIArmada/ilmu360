@@ -1431,8 +1431,8 @@ it('exposes donation channel write schema and creates and updates donation chann
                 'label' => 'Tabung MCP',
                 'recipient' => 'Masjid MCP',
                 'method' => 'bank_account',
-                'bank_code' => 'CIMB',
-                'bank_name' => 'CIMB',
+                'bank_code' => 'BCBB0235',
+                'bank_name' => 'CIMB Bank',
                 'account_number' => '9876543210',
                 'status' => 'verified',
                 'is_default' => true,
@@ -1452,7 +1452,8 @@ it('exposes donation channel write schema and creates and updates donation chann
     expect($donationChannel->donatable_type)->toBe('institution')
         ->and($donationChannel->donatable_id)->toBe($institution->getKey())
         ->and($donationChannel->method)->toBe('bank_account')
-        ->and($donationChannel->bank_name)->toBe('CIMB')
+        ->and($donationChannel->bank_code)->toBe('BCBB0235')
+        ->and($donationChannel->bank_name)->toBe('CIMB Bank')
         ->and($donationChannel->duitnow_type)->toBeNull()
         ->and($donationChannel->getMedia('qr'))->toHaveCount(1);
 
@@ -2182,7 +2183,8 @@ it('surfaces event series and donation channel update semantics through admin MC
         'donatable_id' => (string) $institution->getKey(),
         'recipient' => 'Schema Donation Channel',
         'method' => 'bank_account',
-        'bank_name' => 'CIMB',
+        'bank_code' => 'BCBB0235',
+        'bank_name' => 'CIMB Bank',
         'account_number' => '1234567890',
         'status' => 'verified',
     ]);
@@ -2237,12 +2239,19 @@ it('surfaces event series and donation channel update semantics through admin MC
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.schema.resource_key', 'donation-channels')
+            ->where('data.schema.catalogs', fn ($catalogs): bool => collect($catalogs)->contains(
+                fn ($catalog): bool => data_get($catalog, 'field') === 'bank_code'
+                    && str_ends_with((string) data_get($catalog, 'endpoint'), '/donation-banks')
+            ))
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
 
                 return data_get($fieldMap->get('donatable_type'), 'mutation_semantics') === 'replace_scalar_with_canonical_owner_type'
                     && data_get($fieldMap->get('donatable_type'), 'accepted_aliases') === null
-                    && data_get($fieldMap->get('method'), 'switch_clears_fields.ewallet') === ['bank_code', 'bank_name', 'account_number', 'duitnow_type', 'duitnow_value']
+                    && data_get($fieldMap->get('bank_code'), 'canonical_bank_identifier') === true
+                    && data_get($fieldMap->get('bank_name'), 'derived_from') === 'bank_code'
+                    && data_get($fieldMap->get('routing_code'), 'supported_when') === 'owner_country_catalog_supports_routing_codes'
+                    && data_get($fieldMap->get('method'), 'switch_clears_fields.ewallet') === ['bank_code', 'bank_name', 'account_number', 'iban', 'swift_bic', 'routing_code', 'duitnow_type', 'duitnow_value']
                     && data_get($fieldMap->get('label'), 'clear_semantics.explicit_null') === 'clear_to_null'
                     && data_get($fieldMap->get('reference_note'), 'normalization.empty_string_at_mutation_layer') === 'null';
             })

@@ -49,17 +49,23 @@ class DonationChannelFactory extends Factory
      */
     protected function bankAccountFields(): array
     {
+        /** @var array{0: string, 1: string} $bank */
+        $bank = fake()->randomElement([
+            ['MB2U0227', 'Maybank2u'],
+            ['BCBB0235', 'CIMB Bank'],
+            ['BIMB0340', 'Bank Islam'],
+            ['RHB0218', 'RHB Bank'],
+            ['PBB0233', 'Public Bank'],
+            ['BKRM0602', 'Bank Rakyat'],
+        ]);
+
         return [
-            'bank_code' => fake()->randomElement(['MBB', 'CIMB', 'BIMB', 'RHB', 'PBB', 'BKRM']),
-            'bank_name' => fake()->randomElement([
-                'Maybank',
-                'CIMB',
-                'Bank Islam',
-                'RHB',
-                'Public Bank',
-                'Bank Rakyat',
-            ]),
+            'currency' => 'MYR',
+            'bank_code' => $bank[0],
+            'bank_name' => $bank[1],
             'account_number' => fake()->numerify('############'),
+            'iban' => null,
+            'swift_bic' => null,
             // Ensure other method fields are null
             'duitnow_type' => null,
             'duitnow_value' => null,
@@ -78,6 +84,7 @@ class DonationChannelFactory extends Factory
         $type = fake()->randomElement(['mobile', 'nric', 'business']);
 
         return [
+            'currency' => 'MYR',
             'duitnow_type' => $type,
             'duitnow_value' => match ($type) {
                 'mobile' => fake()->numerify('01#-#######'),
@@ -89,6 +96,9 @@ class DonationChannelFactory extends Factory
             'bank_code' => null,
             'bank_name' => null,
             'account_number' => null,
+            'iban' => null,
+            'swift_bic' => null,
+            'routing_code' => null,
             'ewallet_provider' => null,
             'ewallet_handle' => null,
             'ewallet_qr_payload' => null,
@@ -103,6 +113,7 @@ class DonationChannelFactory extends Factory
         $provider = fake()->randomElement(['tng', 'grab', 'shopee', 'boost']);
 
         return [
+            'currency' => 'MYR',
             'ewallet_provider' => $provider,
             'ewallet_handle' => fake()->numerify('01#-#######'),
             'ewallet_qr_payload' => null,
@@ -110,6 +121,9 @@ class DonationChannelFactory extends Factory
             'bank_code' => null,
             'bank_name' => null,
             'account_number' => null,
+            'iban' => null,
+            'swift_bic' => null,
+            'routing_code' => null,
             'duitnow_type' => null,
             'duitnow_value' => null,
         ];

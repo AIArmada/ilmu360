@@ -171,6 +171,13 @@ final readonly class EloquentMediaCollectionSync implements MediaCollectionSync
             }
 
             $field = (string) $media->getCustomProperty('contribution_field', 'cover');
+
+            if ($model->getMediaCollection($field) === null) {
+                $this->deleteMedia($media);
+
+                continue;
+            }
+
             $isSingle = (bool) $media->getCustomProperty('is_single', true);
 
             $replacement = $model->addMediaFromDisk($media->getPathRelativeToRoot(), $media->disk)

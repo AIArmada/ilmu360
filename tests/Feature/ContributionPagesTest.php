@@ -887,7 +887,7 @@ it('exposes person media upload fields to public contributors for moderated subm
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
         ->assertSee(__('Profile avatar'))
-        ->assertSee(__('Profile cover image'))
+        ->assertSee(__('Square Photo'))
         ->assertSee(__('Photo gallery'));
 });
 
@@ -902,9 +902,9 @@ it('stages visitor person media on a pending contribution request and applies it
 
     // The upload endpoint attaches the visitor's file to the entity, then submit
     // stages it for moderation (mirrors SuggestUpdate::stageDirectEditMediaChanges).
-    $person->addMedia(fakeGeneratedImageUpload('visitor-cover.jpg'))
-        ->toMediaCollection('cover');
-    $cover = $person->getFirstMedia('cover');
+    $person->addMedia(fakeGeneratedImageUpload('visitor-square.jpg'))
+        ->toMediaCollection('square');
+    $square = $person->getFirstMedia('square');
 
     $request = ContributionRequest::factory()->create([
         'status' => ContributionRequestStatus::Pending,
@@ -914,23 +914,23 @@ it('stages visitor person media on a pending contribution request and applies it
         'proposed_data' => ['biography' => 'Updated biography'],
     ]);
 
-    $request->addMediaFromDisk($cover->getPathRelativeToRoot(), $cover->disk)
-        ->usingFileName($cover->file_name)
+    $request->addMediaFromDisk($square->getPathRelativeToRoot(), $square->disk)
+        ->usingFileName($square->file_name)
         ->withCustomProperties([
-            'contribution_field' => 'cover',
+            'contribution_field' => 'square',
             'is_single' => true,
         ])
         ->toMediaCollection('pending_media');
-    $cover->delete();
+    $square->delete();
 
     expect($request->fresh()->getMedia('pending_media'))->toHaveCount(1)
-        ->and($person->fresh()->getFirstMedia('cover'))->toBeNull();
+        ->and($person->fresh()->getFirstMedia('square'))->toBeNull();
 
     app(ApproveContributionRequestAction::class)->handle($request->fresh(), $reviewer);
 
-    expect($person->fresh()->getFirstMedia('cover'))
+    expect($person->fresh()->getFirstMedia('square'))
         ->not->toBeNull()
-        ->and($person->fresh()->getFirstMedia('cover')->file_name)->toBe('visitor-cover.jpg')
+        ->and($person->fresh()->getFirstMedia('square')->file_name)->toBe('visitor-square.jpg')
         ->and($request->fresh()->getMedia('pending_media'))->toBeEmpty();
 });
 
@@ -1449,11 +1449,11 @@ it('syncs person media collections when an administrator updates them publicly',
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
-    $person->addMedia(fakeGeneratedImageUpload('old-cover.jpg'))
-        ->toMediaCollection('cover');
+    $person->addMedia(fakeGeneratedImageUpload('old-square.jpg'))
+        ->toMediaCollection('square');
     $person->addMedia(fakeGeneratedImageUpload('old-gallery.jpg'))
         ->toMediaCollection('gallery');
-    $oldCoverUuid = $person->getFirstMedia('cover')?->uuid;
+    $oldSquareUuid = $person->getFirstMedia('square')?->uuid;
     $oldGalleryUuid = $person->getFirstMedia('gallery')?->uuid;
 
     assignPersonOwner($user, $person);
@@ -1464,7 +1464,7 @@ it('syncs person media collections when an administrator updates them publicly',
             'subjectId' => $person->slug,
         ])
         ->fillForm([
-            'cover' => UploadedFile::fake()->image('new-cover.jpg', 1600, 900),
+            'square' => UploadedFile::fake()->image('new-square.jpg', 1000, 1000),
             'gallery' => [UploadedFile::fake()->image('new-gallery.jpg')],
         ])
         ->call('submit')
@@ -1472,8 +1472,8 @@ it('syncs person media collections when an administrator updates them publicly',
 
     $person = $person->fresh();
 
-    expect($person->getMedia('cover'))->toHaveCount(1)
-        ->and($person->getFirstMedia('cover')?->uuid)->not->toBe($oldCoverUuid)
+    expect($person->getMedia('square'))->toHaveCount(1)
+        ->and($person->getFirstMedia('square')?->uuid)->not->toBe($oldSquareUuid)
         ->and($person->getMedia('gallery'))->toHaveCount(1)
         ->and($person->getFirstMedia('gallery')?->uuid)->not->toBe($oldGalleryUuid)
         ->and(ContributionRequest::query()->count())->toBe(0);
@@ -1496,7 +1496,7 @@ it('stages person media from owner contributors for review', function () {
             'subjectId' => $person->slug,
         ])
         ->fillForm([
-            'cover' => UploadedFile::fake()->image('public-cover.jpg', 1600, 900),
+            'square' => UploadedFile::fake()->image('public-square.jpg', 1000, 1000),
         ])
         ->call('submit')
         ->assertHasNoErrors()
@@ -1506,7 +1506,7 @@ it('stages person media from owner contributors for review', function () {
 
     expect($request)->not->toBeNull()
         ->and($request->getMedia('pending_media'))->toHaveCount(1)
-        ->and($person->fresh()->getMedia('cover'))->toBeEmpty();
+        ->and($person->fresh()->getMedia('square'))->toBeEmpty();
 });
 
 it('exposes Filament action handlers required by public contribution media uploads', function () {
@@ -1787,19 +1787,14 @@ it('enforces the public submission aspect ratios on the event update page', func
         ->assertHasErrors(['data.cover', 'data.poster']);
 });
 
-it('uses the canonical 16:9 cover ratio on the public speaker form', function () {
+it('uses the canonical 1:1 square ratio on the public speaker form', function () {
     Livewire::test(SubmitPerson::class)
-        ->assertFormFieldExists('cover', function (FileUpload $upload): bool {
-            $aspectRatioOptions = array_keys($upload->getImageEditorAspectRatioOptionsForJs());
-
-            expect($upload->getImageAspectRatio())
-                ->toBe('16:9')
-                ->and($aspectRatioOptions)
-                ->toContain('16:9')
-                ->toHaveCount(2);
+        ->assertFormFieldExists('square', function (FileUpload $upload): bool {
+            expect($upload->getImageAspectRatio())->toBe('1:1');
 
             return true;
-        });
+        })
+        ->assertFormFieldDoesNotExist('cover');
 });
 
 it('renders the submit-style waktu field on the event update page', function () {

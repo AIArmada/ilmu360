@@ -49,7 +49,6 @@
         "Tests\\Feature\\Auth\\AuthenticationTest": 3.3894,
         "Tests\\Feature\\Auth\\EmailLifecycleTest": 0.3748,
         "Tests\\Feature\\AuthzUserResourceTest": 7.4072,
-        "Tests\\Feature\\BackfillSlugJobsTest": 3.1647,
         "Tests\\Feature\\BlazeIntegrationTest": 0.7822,
         "Tests\\Feature\\CalendarServiceTest": 6.4709,
         "Tests\\Feature\\Communications\\DeliveryTest": 0.663,

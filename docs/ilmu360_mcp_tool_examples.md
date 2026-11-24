@@ -64,7 +64,7 @@ Then upload the generated result:
 
 The upload tool saves the image as a 16:9 `cover` in the Event media collection. Use `admin-event-poster-image-prompt` and `admin-upload-event-poster-image` when the intended asset is the 3:4 external-distribution poster.
 
-When reference media is enabled, speaker context selection follows this fallback order: speaker `cover`, then speaker `avatar`, then organizer institution media from `event->organizer`.
+When reference media is enabled, speaker context selection follows this fallback order: speaker `profile`, then speaker `square`, then speaker `avatar`, then organizer institution media from `event->organizer`.
 
 If attaching reference media fails, retry the prompt without reference media:
 
@@ -117,7 +117,7 @@ Use the returned prompt and reference images with ChatGPT native image generatio
 
 The upload tool saves the image as a 3:4 `poster` in the Event media collection.
 
-When reference media is enabled, speaker context selection follows this fallback order: speaker `cover`, then speaker `avatar`, then organizer institution media from `event->organizer`.
+When reference media is enabled, speaker context selection follows this fallback order: speaker `profile`, then speaker `square`, then speaker `avatar`, then organizer institution media from `event->organizer`.
 
 ### Filter an event list
 
@@ -554,7 +554,7 @@ Use the returned prompt and reference images with ChatGPT native image generatio
 
 The upload tool saves the image as a 16:9 `cover` in the accessible Event media collection.
 
-When reference media is enabled, speaker context selection follows this fallback order: speaker `cover`, then speaker `avatar`, then organizer institution media from `event->organizer`.
+When reference media is enabled, speaker context selection follows this fallback order: speaker `profile`, then speaker `square`, then speaker `avatar`, then organizer institution media from `event->organizer`.
 
 ### Generate an accessible event poster image
 
@@ -591,7 +591,7 @@ Use the returned prompt and reference images with ChatGPT native image generatio
 
 The upload tool saves the image as a 3:4 `poster` in the accessible Event media collection. Use `member-event-cover-image-prompt` and `member-upload-event-cover-image` when the intended asset is the 16:9 website/app cover.
 
-When reference media is enabled, speaker context selection follows this fallback order: speaker `cover`, then speaker `avatar`, then organizer institution media from `event->organizer`.
+When reference media is enabled, speaker context selection follows this fallback order: speaker `profile`, then speaker `square`, then speaker `avatar`, then organizer institution media from `event->organizer`.
 
 ### Preview a write
 

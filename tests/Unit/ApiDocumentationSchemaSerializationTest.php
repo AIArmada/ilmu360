@@ -222,7 +222,7 @@ function samplePersonSchema(): Person
         is_following: true,
         media: [
             'avatar_url' => 'https://example.test/person-avatar.jpg',
-            'cover_url' => 'https://example.test/person-cover.jpg',
+            'main_url' => 'https://example.test/person-main.jpg',
             'share_image_url' => 'https://example.test/person-share.jpg',
         ],
         gallery: [['url' => 'https://example.test/gallery-1.jpg']],

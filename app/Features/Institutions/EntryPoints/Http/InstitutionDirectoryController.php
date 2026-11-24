@@ -525,6 +525,10 @@ final class InstitutionDirectoryController extends FrontendController
             is_default: (bool) $channel->is_default,
             qr_url: $channel->getFirstMediaUrl('qr', 'thumb') ?: $channel->getFirstMediaUrl('qr') ?: null,
             qr_full_url: $channel->getFirstMediaUrl('qr') ?: null,
+            currency: $channel->currency,
+            iban: $channel->iban,
+            swift_bic: $channel->swift_bic,
+            routing_code: $channel->routing_code,
         )->toArray();
     }
 }

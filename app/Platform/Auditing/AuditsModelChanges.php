@@ -25,6 +25,7 @@ trait AuditsModelChanges
         'remember_token' => FixedValueRedactor::class,
         'token' => FixedValueRedactor::class,
         'account_number' => FixedValueRedactor::class,
+        'iban' => FixedValueRedactor::class,
         'duitnow_value' => FixedValueRedactor::class,
         'two_factor_secret' => FixedValueRedactor::class,
         'two_factor_recovery_codes' => FixedValueRedactor::class,

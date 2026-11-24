@@ -300,6 +300,24 @@
     },
     {
       "rule": "architecture.writeLocation",
+      "file": "app/Features/Organizations/Actions/SaveOrganizationAddressAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Addressing\\Models\\Address",
+      "reason": "Organizations keeps the canonical primary address for the vendor-owned Organization aggregate through the Addressing Address model; the package aggregate cannot carry the HasAddresses trait and Addressing exposes no address-record persistence action.",
+      "owner": "Organizations",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/Organizations/Actions/SaveOrganizationAddressAction.php",
+      "target": "table:unknown",
+      "model": "AIArmada\\Addressing\\Models\\Addressable",
+      "reason": "The organization primary-address attachment is the canonical Addressing addressables pivot; the vendor Organization model cannot use HasAddresses, so the owning action writes the pivot through the package models and guards.",
+      "owner": "Organizations",
+      "expires": "2027-06-30"
+    },
+    {
+      "rule": "architecture.writeLocation",
       "file": "app/Features/Contributions/EntryPoints/Livewire/Pages/SuggestUpdate.php",
       "target": "table:media",
       "model": "Spatie\\MediaLibrary\\MediaCollections\\Models\\Media",

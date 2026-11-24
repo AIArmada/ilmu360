@@ -12,7 +12,7 @@
 
 ## Actions
 - Extract reusable Actions for orchestration spanning transactions, side effects, normalization, or multiple entrypoints; keep trivial single-step handlers inline.
-- Reuse existing Actions before creating new ones; merge Action/Service duplicates (one Backfill/Sync implementation, not two).
+- Reuse existing Actions before creating new ones; merge Action/Service duplicates into one implementation, not two.
 
 ## Services
 - Every service needs a clear role and (usually) a contract — contract-less or numerous services are catch-all smells; split them into Actions behind a thin service facade.

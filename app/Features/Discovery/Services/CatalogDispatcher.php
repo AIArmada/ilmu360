@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Discovery\Services;
 
 use App\Features\Contributions\Api\SubmissionCatalog;
+use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;
 use App\Features\Events\Api\AdvancedBuilderContext;
 use App\Features\Events\Api\TaxonomyCatalog;
 use App\Features\Institutions\Api\InstitutionCatalog;
@@ -30,7 +31,33 @@ final readonly class CatalogDispatcher
         private PrayerInstitutionCatalog $prayerInstitutions,
         private InstitutionCatalog $institutions,
         private AdvancedBuilderContext $advancedBuilder,
+        private DonationChannelCountryProfiles $donationProfiles,
     ) {}
+
+    /**
+     * @return list<array{code: string, name: string}>
+     */
+    public function donationBanks(?string $countryId): array
+    {
+        return collect($this->donationProfiles->forCountryId($countryId)->banks->options())
+            ->map(static fn (string $name, int|string $code): array => ['code' => (string) $code, 'name' => $name])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{country_code: string|null, covered: bool, supports_routing_codes: bool}
+     */
+    public function donationBanksMeta(?string $countryId): array
+    {
+        $profile = $this->donationProfiles->forCountryId($countryId);
+
+        return [
+            'country_code' => $profile->country_code,
+            'covered' => $profile->banks->covers(),
+            'supports_routing_codes' => $profile->supports_routing_codes,
+        ];
+    }
 
     /** @return list<array{id: string, label: string, iso2: string, key: string|null}> */
     public function countries(): array

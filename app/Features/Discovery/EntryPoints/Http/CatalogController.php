@@ -105,6 +105,21 @@ class CatalogController extends FrontendController
         ]);
     }
 
+    #[QueryParameter('country_id', 'Address country UUID whose bank catalog should be returned.', required: false, type: 'string', infer: false)]
+    #[Endpoint(
+        title: 'List donation banks catalog',
+        description: 'Returns the trusted bank catalog for the given country UUID. An empty list means the country has no bank catalog coverage, so bank-account donation channels are unavailable there.',
+    )]
+    public function donationBanks(Request $request): JsonResponse
+    {
+        $countryId = $request->filled('country_id') ? $request->string('country_id')->toString() : null;
+
+        return response()->json([
+            'data' => $this->catalogs->donationBanks($countryId),
+            'meta' => $this->catalogs->donationBanksMeta($countryId),
+        ]);
+    }
+
     #[Endpoint(
         title: 'List taxonomy terms catalog',
         description: 'Returns package EventTerm options for a taxonomy code (domain, discipline, source, issue).',

@@ -12,14 +12,14 @@ use Dedoc\Scramble\Attributes\SchemaName;
  * @phpstan-import-type AddressSelectionArray from AddressSelection
  * @phpstan-import-type CountryArray from Country
  *
- * @phpstan-type PersonMediaArray array{avatar_url: string, cover_url: ?string, share_image_url: ?string}
+ * @phpstan-type PersonMediaArray array{avatar_url: string, main_url: string, share_image_url: string}
  * @phpstan-type PersonArray array{id: string, slug: string, name: string, middle_name: string|null, family_name: string|null, gender: string|null, formatted_name: string, bio: ?string, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: PersonMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
  */
 #[SchemaName('Person')]
 final readonly class Person
 {
     /**
-     * @param  array{avatar_url: string, cover_url: ?string, share_image_url: ?string}  $media
+     * @param  array{avatar_url: string, main_url: string, share_image_url: string}  $media
      * @param  list<array<string, mixed>>  $gallery
      * @param  list<array<string, mixed>>  $institutions
      * @param  list<array<string, mixed>>  $contacts

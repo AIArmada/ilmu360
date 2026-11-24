@@ -57,7 +57,7 @@ final readonly class PersonContributionProjection implements ContributionProject
                 $this->field('social_media', 'array<object>'),
             ],
             'conditional_rules' => [],
-            'direct_edit_media_fields' => ['avatar', 'main', 'profile', 'cover', 'gallery'],
+            'direct_edit_media_fields' => ['avatar', 'square', 'profile', 'gallery'],
         ];
     }
 

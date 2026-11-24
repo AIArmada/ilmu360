@@ -3,6 +3,7 @@
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Authz\Models\Role;
+use AIArmada\CommerceSupport\Models\Currency;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Models\EventTaxonomy;
@@ -10,6 +11,8 @@ use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Moderation\Enums\ModerationActionType;
+use AIArmada\Organizations\Actions\CreateOrganizationAction;
+use AIArmada\Organizations\Models\Organization;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
@@ -34,6 +37,7 @@ use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Moderation\Models\ModerationReview;
+use App\Features\Organizations\Actions\SaveOrganizationAddressAction;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
 use App\Features\Places\Models\Space;
@@ -705,7 +709,7 @@ it('previews admin person updates without persisting the record', function () {
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
-        'clear_cover' => true,
+        'clear_square' => true,
     ])->assertOk();
 
     $response
@@ -713,8 +717,8 @@ it('previews admin person updates without persisting the record', function () {
         ->assertJsonPath('data.preview.validate_only', true)
         ->assertJsonPath('data.preview.operation', 'update')
         ->assertJsonPath('data.preview.current_record.route_key', $personRouteKey)
-        ->assertJsonPath('data.preview.destructive_media_fields.0', 'clear_cover')
-        ->assertJsonPath('data.preview.warnings.0.field', 'clear_cover');
+        ->assertJsonPath('data.preview.destructive_media_fields.0', 'clear_square')
+        ->assertJsonPath('data.preview.warnings.0.field', 'clear_square');
 
     expect(Person::query()->findOrFail($person->getKey())->name)->toBe($originalName);
 });
@@ -1540,6 +1544,8 @@ it('exposes donation channel write schema and can create and update donation cha
     $admin = adminApiUser('super_admin');
     $institution = Institution::factory()->create();
 
+    Currency::query()->firstOrCreate(['code' => 'USD'], ['name' => 'US Dollar']);
+
     Sanctum::actingAs($admin);
 
     $schema = $this->getJson('/api/v1/admin/donation-channels/schema?operation=create')
@@ -1552,7 +1558,7 @@ it('exposes donation channel write schema and can create and update donation cha
         ->json('data.schema');
 
     expect(collect($schema['fields'] ?? [])->pluck('name')->all())
-        ->toContain('donatable_type', 'donatable_id', 'recipient', 'method', 'status', 'qr', 'clear_qr');
+        ->toContain('donatable_type', 'donatable_id', 'recipient', 'method', 'currency', 'iban', 'swift_bic', 'routing_code', 'status', 'qr', 'clear_qr');
 
     $statusField = collect($schema['fields'] ?? [])->firstWhere('name', 'status');
 
@@ -1564,7 +1570,8 @@ it('exposes donation channel write schema and can create and update donation cha
         'donatable_id' => (string) $institution->getKey(),
         'recipient' => 'Rejected Status',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '123456789012',
         'status' => 'unverified',
     ])->assertUnprocessable()
@@ -1576,9 +1583,12 @@ it('exposes donation channel write schema and can create and update donation cha
         'label' => 'Tabung Jumaat API',
         'recipient' => 'Masjid API',
         'method' => 'bank_account',
-        'bank_code' => 'MBB',
-        'bank_name' => 'Maybank',
+        'currency' => 'usd',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '123456789012',
+        'iban' => 'GB82WEST12345698765432',
+        'swift_bic' => 'WESTGB2L',
         'reference_note' => 'Primary donation channel.',
         'status' => 'verified',
         'is_default' => true,
@@ -1593,8 +1603,12 @@ it('exposes donation channel write schema and can create and update donation cha
         ->and($donationChannel->label)->toBe('Tabung Jumaat API')
         ->and($donationChannel->recipient)->toBe('Masjid API')
         ->and($donationChannel->method)->toBe('bank_account')
-        ->and($donationChannel->bank_name)->toBe('Maybank')
+        ->and($donationChannel->currency)->toBe('USD')
+        ->and($donationChannel->bank_code)->toBe('MB2U0227')
+        ->and($donationChannel->bank_name)->toBe('Maybank2u')
         ->and($donationChannel->account_number)->toBe('123456789012')
+        ->and($donationChannel->iban)->toBe('GB82WEST12345698765432')
+        ->and($donationChannel->swift_bic)->toBe('WESTGB2L')
         ->and($donationChannel->duitnow_type)->toBeNull()
         ->and($donationChannel->ewallet_provider)->toBeNull()
         ->and($donationChannel->is_default)->toBeTrue()
@@ -1650,7 +1664,8 @@ it('surfaces donation channel update semantics through the admin api schema', fu
         'donatable_id' => (string) $institution->getKey(),
         'recipient' => 'Schema Donation Channel',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '1234567890',
         'status' => 'verified',
     ]);
@@ -1682,8 +1697,8 @@ it('uses canonical donation channel owner types and clears method-specific strin
         'label' => 'Canonical Donation Channel',
         'recipient' => 'Canonical Recipient',
         'method' => 'bank_account',
-        'bank_code' => 'MBB',
-        'bank_name' => 'Maybank',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
         'account_number' => '1234567890',
         'reference_note' => 'Canonical note',
         'status' => 'verified',
@@ -1725,16 +1740,45 @@ it('rejects non-canonical donation channel owner type aliases through the admin 
 
     Sanctum::actingAs($admin);
 
-    foreach ([Institution::class, Person::class, Event::class, 'institutions', 'persons', 'events'] as $ownerType) {
+    foreach ([Institution::class, Person::class, Event::class, Organization::class, 'institutions', 'persons', 'events', 'organizations'] as $ownerType) {
         $this->postJson('/api/v1/admin/donation-channels', [
             'donatable_type' => $ownerType,
             'donatable_id' => (string) $institution->getKey(),
             'recipient' => 'Donation Recipient',
             'method' => 'bank_account',
-            'bank_name' => 'Maybank',
+            'bank_code' => 'MB2U0227',
             'account_number' => '1234567890',
         ])->assertUnprocessable()->assertJsonValidationErrors('donatable_type');
     }
+});
+
+it('accepts the canonical organization owner type through the admin api', function () {
+    $admin = adminApiUser('super_admin');
+    $organization = CreateOrganizationAction::make()->handle($admin, ['name' => 'Rumah Amal Admin']);
+
+    app(SaveOrganizationAddressAction::class)->handle(
+        (string) $admin->getKey(),
+        (string) $organization->getKey(),
+        ['country_id' => testMalaysiaCountryId(), 'line1' => 'Jalan Amal 1'],
+    );
+
+    Sanctum::actingAs($admin);
+
+    $createResponse = $this->postJson('/api/v1/admin/donation-channels', [
+        'donatable_type' => 'organization',
+        'donatable_id' => (string) $organization->getKey(),
+        'recipient' => 'Rumah Amal Admin',
+        'method' => 'bank_account',
+        'bank_code' => 'MB2U0227',
+        'account_number' => '1234567890',
+        'status' => 'pending',
+    ])->assertCreated();
+
+    $channel = DonationChannel::query()->findOrFail((string) $createResponse->json('data.record.route_key'));
+
+    expect($channel->donatable_type)->toBe('organization')
+        ->and($channel->donatable_id)->toBe((string) $organization->getKey())
+        ->and($channel->bank_name)->toBe('Maybank2u');
 });
 
 it('exposes membership claim review schema and can approve claims through the admin workflow endpoints', function () {

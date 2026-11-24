@@ -2,6 +2,8 @@
 
 namespace App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Schemas;
 
+use AIArmada\Organizations\Models\Organization;
+use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Models\Event;
@@ -32,6 +34,7 @@ class DonationChannelForm
                             Institution::class => 'Institution',
                             Person::class => 'Person',
                             Event::class => 'Event',
+                            Organization::class => 'Organization',
                         ])
                         ->required()
                         ->live()
@@ -40,11 +43,12 @@ class DonationChannelForm
                         ->label('Recipient Entity')
                         ->searchable()
                         ->required()
+                        ->live()
                         ->getSearchResultsUsing(function (string $search, Get $get): array {
                             $type = $get('donatable_type');
                             $column = match ($type) {
                                 Event::class => 'title',
-                                Institution::class, Person::class => 'name',
+                                Institution::class, Person::class, Organization::class => 'name',
                                 default => null,
                             };
 
@@ -75,7 +79,7 @@ class DonationChannelForm
                             $type = $get('donatable_type');
                             $column = match ($type) {
                                 Event::class => 'title',
-                                Institution::class, Person::class => 'name',
+                                Institution::class, Person::class, Organization::class => 'name',
                                 default => null,
                             };
 
@@ -110,14 +114,38 @@ class DonationChannelForm
         $components[] = Section::make('Payment Info')
             ->schema([
                 // Bank Account Fields
-                TextInput::make('bank_name')
+                Select::make('currency')
+                    ->label('Currency')
+                    ->options(fn (): array => app(DonationChannelCountryProfiles::class)->currencyOptions())
+                    ->searchable()
                     ->visible(fn (Get $get) => $get('method') === 'bank_account')
-                    ->required(fn (Get $get) => $get('method') === 'bank_account'),
-                TextInput::make('bank_code')
-                    ->visible(fn (Get $get) => $get('method') === 'bank_account'),
+                    ->native(false),
+                Select::make('bank_code')
+                    ->label('Bank')
+                    ->options(fn (Get $get, ?DonationChannel $record = null, mixed $livewire = null): array => self::bankOptions($get, $record, $livewire))
+                    ->searchable()
+                    ->native(false)
+                    ->visible(fn (Get $get) => $get('method') === 'bank_account')
+                    ->required(fn (Get $get) => $get('method') === 'bank_account')
+                    ->helperText('Select a bank from the owner country bank catalog. The stored bank name is derived from the selection.'),
                 TextInput::make('account_number')
                     ->visible(fn (Get $get) => $get('method') === 'bank_account')
-                    ->required(fn (Get $get) => $get('method') === 'bank_account'),
+                    ->required(fn (Get $get) => $get('method') === 'bank_account' && blank($get('iban'))),
+                TextInput::make('iban')
+                    ->label('IBAN')
+                    ->maxLength(34)
+                    ->visible(fn (Get $get) => $get('method') === 'bank_account')
+                    ->required(fn (Get $get) => $get('method') === 'bank_account' && blank($get('account_number'))),
+                TextInput::make('swift_bic')
+                    ->label('SWIFT / BIC')
+                    ->maxLength(11)
+                    ->visible(fn (Get $get) => $get('method') === 'bank_account'),
+                TextInput::make('routing_code')
+                    ->label('Routing / sort code')
+                    ->maxLength(20)
+                    ->visible(fn (Get $get, ?DonationChannel $record = null, mixed $livewire = null): bool => $get('method') === 'bank_account'
+                        && self::supportsRoutingCodes($get, $record, $livewire))
+                    ->helperText('Local clearing or branch code used by some international banks, for example an Indonesian bank code or a Singapore branch code.'),
 
                 // DuitNow Fields
                 TextInput::make('duitnow_type')
@@ -248,5 +276,78 @@ class DonationChannelForm
         }
 
         return $ownerType;
+    }
+
+    /**
+     * @return array<array-key, string>
+     */
+    private static function bankOptions(Get $get, ?DonationChannel $record = null, mixed $livewire = null): array
+    {
+        $owner = self::resolveOwnerModel($get, $record, $livewire);
+
+        if (! $owner instanceof Model) {
+            return [];
+        }
+
+        $banks = app(DonationChannelCountryProfiles::class)->forOwner($owner)->banks;
+
+        $options = $banks->options();
+        $storedCode = $record instanceof DonationChannel ? $record->getAttribute('bank_code') : null;
+
+        if (is_string($storedCode) && $storedCode !== '' && ! array_key_exists($storedCode, $options)) {
+            $name = $banks->reference($storedCode)?->name;
+            $options[$storedCode] = $name === null ? $storedCode : $name.' (retired)';
+        }
+
+        return $options;
+    }
+
+    private static function supportsRoutingCodes(Get $get, ?DonationChannel $record = null, mixed $livewire = null): bool
+    {
+        $owner = self::resolveOwnerModel($get, $record, $livewire);
+
+        return $owner instanceof Model
+            && app(DonationChannelCountryProfiles::class)->forOwner($owner)->supports_routing_codes;
+    }
+
+    private static function resolveOwnerModel(Get $get, ?DonationChannel $record = null, mixed $livewire = null): ?Model
+    {
+        if (is_object($livewire) && method_exists($livewire, 'getOwnerRecord')) {
+            $ownerRecord = $livewire->getOwnerRecord();
+
+            if ($ownerRecord instanceof Model) {
+                return $ownerRecord;
+            }
+        }
+
+        [$ownerType, $ownerId] = self::resolveOwnerContext($get, $record, $livewire);
+
+        if (blank($ownerType) || blank($ownerId)) {
+            return null;
+        }
+
+        $modelClass = self::ownerModelClass($ownerType);
+
+        if ($modelClass === null) {
+            return null;
+        }
+
+        $owner = $modelClass::query()->find($ownerId);
+
+        return $owner instanceof Model ? $owner : null;
+    }
+
+    /**
+     * @return class-string<Model>|null
+     */
+    private static function ownerModelClass(string $ownerType): ?string
+    {
+        foreach ([Institution::class, Person::class, Event::class, Organization::class] as $candidate) {
+            if ($ownerType === $candidate || $ownerType === (new $candidate)->getMorphClass()) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 }

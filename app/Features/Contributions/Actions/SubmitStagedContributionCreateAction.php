@@ -76,7 +76,7 @@ final readonly class SubmitStagedContributionCreateAction implements StagedContr
     {
         return match ($subjectType) {
             ContributionSubjectType::Institution => ['logo', 'cover', 'gallery'],
-            ContributionSubjectType::Person => ['avatar', 'main', 'profile', 'cover', 'gallery'],
+            ContributionSubjectType::Person => ['avatar', 'square', 'profile', 'gallery'],
             ContributionSubjectType::Reference => ['front_cover', 'back_cover', 'gallery'],
             default => [],
         };

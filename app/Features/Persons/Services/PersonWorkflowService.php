@@ -251,15 +251,14 @@ final readonly class PersonWorkflowService implements PersonWorkflow
     }
 
     /** @param array<int|string, mixed> $gallery */
-    public function syncContributionMedia(string $personId, mixed $avatar, mixed $main, mixed $profile, mixed $cover, ?array $gallery): void
+    public function syncContributionMedia(string $personId, mixed $avatar, mixed $square, mixed $profile, ?array $gallery): void
     {
         $person = Person::query()->findOrFail($personId);
         $sync = app(MediaCollectionSync::class);
 
         $sync->syncSingle($person, $avatar, 'avatar');
-        $sync->syncSingle($person, $main, 'main');
+        $sync->syncSingle($person, $square, 'square');
         $sync->syncSingle($person, $profile, 'profile');
-        $sync->syncSingle($person, $cover, 'cover');
         $sync->syncMultiple($person, $gallery, 'gallery');
     }
 

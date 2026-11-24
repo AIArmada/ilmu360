@@ -284,24 +284,24 @@ it('registers media conversions for Person model', function () {
         ->and($avatarMedia->getMediaConversionNames())->not->toContain('profile');
 });
 
-it('registers media conversions for Person cover, gallery, and profile collections', function () {
+it('registers media conversions for Person square, gallery, and profile collections', function () {
     $person = Person::factory()->create();
 
-    $person->addMedia(fakeGeneratedImageUpload('cover.png', 100, 100))
-        ->toMediaCollection('cover');
+    $person->addMedia(fakeGeneratedImageUpload('square.png', 100, 100))
+        ->toMediaCollection('square');
     $person->addMedia(fakeGeneratedImageUpload('gallery.png', 100, 100))
         ->toMediaCollection('gallery');
     $person->addMedia(fakeGeneratedImageUpload('profile.png', 800, 1200))
         ->toMediaCollection('profile');
 
-    $coverMedia = $person->getFirstMedia('cover');
+    $squareMedia = $person->getFirstMedia('square');
     $galleryMedia = $person->getFirstMedia('gallery');
     $profileMedia = $person->getFirstMedia('profile');
 
-    expect($coverMedia)->not->toBeNull()
+    expect($squareMedia)->not->toBeNull()
         ->and($galleryMedia)->not->toBeNull()
         ->and($profileMedia)->not->toBeNull()
-        ->and($coverMedia->getMediaConversionNames())->toContain('banner')
+        ->and($squareMedia->getMediaConversionNames())->toContain('thumb')
         ->and($galleryMedia->getMediaConversionNames())->toContain('gallery_thumb')
         ->and($profileMedia->getMediaConversionNames())->toContain('profile_thumb');
 });
@@ -717,6 +717,51 @@ it('renames staged contribution donation QR media to the target DonationChannel 
         ->and($qrMedia?->file_name)->toMatch('/^tabung-masjid-[0-9a-z]{8}\.png$/')
         ->and($qrMedia?->getCustomProperty('original_file_name'))->toBe('duitnow-qr.png')
         ->and($qrMedia?->getCustomProperty('collection'))->toBe('qr');
+});
+
+it('attaches staged donation QR media to an iban-only bank channel', function () {
+    $institution = Institution::factory()->create();
+    $channel = DonationChannel::factory()->bankAccount()->create([
+        'donatable_type' => $institution->getMorphClass(),
+        'donatable_id' => (string) $institution->getKey(),
+        'label' => 'Dana Masjid',
+        'currency' => 'MYR',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Maybank2u',
+        'account_number' => null,
+        'iban' => 'GB82WEST12345698765432',
+    ]);
+
+    $workflow = app(App\Features\DonationChannels\Api\DonationQrWorkflow::class);
+    $fingerprint = $workflow->donationChannelFingerprint([
+        'method' => 'bank_account',
+        'bank_code' => 'MB2U0227',
+        'account_number' => null,
+        'iban' => 'GB82WEST12345698765432',
+    ]);
+
+    $request = App\Features\Contributions\Models\ContributionRequest::factory()->create([
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => (string) $institution->getKey(),
+    ]);
+
+    $staged = $request->addMediaFromString((string) fakeGeneratedImageUpload('qr.png')->get())
+        ->usingFileName('contribution-request-iban.png')
+        ->withCustomProperties([
+            'contribution_field' => 'donation_qr',
+            'donation_fingerprint' => $fingerprint,
+            'original_file_name' => 'iban-qr.png',
+        ])
+        ->toMediaCollection('pending_media');
+
+    $workflow->attachStagedDonationQr(
+        $institution->getMorphClass(),
+        (string) $institution->getKey(),
+        (string) $staged->getKey(),
+    );
+
+    expect($fingerprint)->not->toBeNull()
+        ->and($channel->fresh()->getFirstMedia('qr'))->not->toBeNull();
 });
 
 it('uses direct public CDN URLs for public S3 media when AWS_URL is configured and keeps private S3 media temporary', function () {

@@ -17,6 +17,7 @@ Route::middleware('api')
         Route::get('/administrative-districts', [CatalogController::class, 'administrativeDistricts'])->name('administrative-districts');
         Route::get('/administrative-subdivisions', [CatalogController::class, 'administrativeSubdivisions'])->name('administrative-subdivisions');
         Route::get('/languages', [CatalogController::class, 'languages'])->name('languages');
+        Route::get('/donation-banks', [CatalogController::class, 'donationBanks'])->name('donation-banks');
         Route::get('/taxonomy-terms/{type}', [CatalogController::class, 'taxonomyTerms'])->name('taxonomy-terms');
         Route::get('/references', [CatalogController::class, 'references'])->name('references');
         Route::get('/submit-institutions', [CatalogController::class, 'submitInstitutions'])->name('submit-institutions');

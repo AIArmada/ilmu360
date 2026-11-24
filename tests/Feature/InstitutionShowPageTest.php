@@ -649,7 +649,7 @@ it('displays donation channels', function () {
 
     $channel = $institution->donationChannels()->create([
         'method' => 'bank_account',
-        'bank_code' => 'BIMB',
+        'bank_code' => 'BIMB0340',
         'bank_name' => 'Bank Islam',
         'account_number' => '123456789012',
         'recipient' => 'Tabung Masjid Al-Ikhlas',
@@ -671,7 +671,7 @@ it('renders donation qr thumbnails without the rounded border shell', function (
 
     $channel = $institution->donationChannels()->create([
         'method' => 'bank_account',
-        'bank_code' => 'BIMB',
+        'bank_code' => 'BIMB0340',
         'bank_name' => 'Bank Islam',
         'account_number' => '123456789012',
         'recipient' => 'Tabung Masjid Al-Ikhlas',

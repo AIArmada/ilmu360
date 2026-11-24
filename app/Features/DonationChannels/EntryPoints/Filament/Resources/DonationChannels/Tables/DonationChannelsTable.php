@@ -67,6 +67,10 @@ class DonationChannelsTable
                         'E-Wallet' => 'warning',
                         default => 'gray',
                     }),
+                TextColumn::make('currency')
+                    ->label('Currency')
+                    ->badge()
+                    ->placeholder('—'),
                 TextColumn::make('payment_details')
                     ->label('Details')
                     ->searchable(['bank_name', 'ewallet_handle']),

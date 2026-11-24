@@ -11,7 +11,7 @@
 - Centralise status→timestamp mapping in the transition method/trait: on X→Y set `y_at = now()` plus `last_state_change_at = now()`; cast lifecycle timestamps as `'immutable_datetime'`.
 
 ## Migration Pattern
-- Phase 1: add nullable `status` + `*_at`, backfill. Phase 2: drop old booleans (`is_active`, `is_public`). Phase 3: make `status` NOT NULL.
+- Phase 1: add nullable `status` + `*_at`. Phase 2: drop old booleans (`is_active`, `is_public`). Phase 3: make `status` NOT NULL.
 
 ## Verification
 - Boolean anti-patterns: `rg -n "is_active|is_public|is_archived|registration_required|waitlist_enabled|approval_required" packages/*/database/migrations`
