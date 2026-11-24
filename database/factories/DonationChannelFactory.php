@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Institutions\Models\Institution;
@@ -80,16 +81,13 @@ class DonationChannelFactory extends Factory
      */
     protected function duitnowFields(): array
     {
-        /** @var 'mobile'|'nric'|'business' $type */
-        $type = fake()->randomElement(['mobile', 'nric', 'business']);
+        $type = fake()->randomElement(array_keys(DonationChannelOptions::DUITNOW_ID_TYPES));
 
         return [
             'currency' => 'MYR',
             'duitnow_type' => $type,
             'duitnow_value' => match ($type) {
                 'mobile' => fake()->numerify('01#-#######'),
-                'nric' => fake()->numerify('######-##-####'),
-                'business' => fake()->numerify('########'),
                 default => fake()->numerify('########'),
             },
             // Ensure other method fields are null
@@ -110,7 +108,7 @@ class DonationChannelFactory extends Factory
      */
     protected function ewalletFields(): array
     {
-        $provider = fake()->randomElement(['tng', 'grab', 'shopee', 'boost']);
+        $provider = fake()->randomElement(array_keys(DonationChannelOptions::EWALLET_PROVIDERS));
 
         return [
             'currency' => 'MYR',

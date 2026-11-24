@@ -1101,7 +1101,7 @@ it('stages donation channel proposals on visitor update requests', function () {
         ->set('data.donation_channels', [[
             'recipient' => 'Jawatankuasa Surau',
             'method' => 'ewallet',
-            'ewallet_provider' => 'tng',
+            'ewallet_provider' => 'bigpay',
             'ewallet_handle' => '0912345678',
         ]])
         ->call('submit')
@@ -1114,6 +1114,7 @@ it('stages donation channel proposals on visitor update requests', function () {
         ->firstOrFail();
 
     expect(data_get($request->proposed_data, 'donation_channels.0.method'))->toBe('ewallet')
+        ->and(data_get($request->proposed_data, 'donation_channels.0.ewallet_provider'))->toBe('bigpay')
         ->and(data_get($request->proposed_data, 'donation_channels.0.ewallet_handle'))->toBe('0912345678')
         ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
@@ -1537,11 +1538,33 @@ it('requires an e-wallet handle or QR payload when submitting donations', functi
             'ewallet_provider' => 'tng',
         ]])
         ->call('submit')
-        ->assertHasErrors([
-            'data.donation_channels.0.ewallet_handle',
-            'data.donation_channels.0.ewallet_qr_payload',
-        ]);
+        ->assertHasErrors(['data.donation_channels.0.ewallet_handle'])
+        ->assertHasNoErrors(['data.donation_channels.0.ewallet_qr_payload']);
 });
+
+it('rejects unsupported Malaysian donation options on the institution contribution form', function (string $method, string $field, array $details) {
+    $owner = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    giveInstitutionStoredMapsPlace($institution);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $owner, MemberRole::Owner));
+
+    Livewire::actingAs($owner)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.donation_channels', [[
+            'recipient' => 'Jawatankuasa Surau',
+            'method' => $method,
+            $field => 'unsupported',
+            ...$details,
+        ]])
+        ->call('submit')
+        ->assertHasErrors(["data.donation_channels.0.{$field}"]);
+})->with([
+    'DuitNow ID type' => ['duitnow', 'duitnow_type', ['duitnow_value' => '0123456789']],
+    'e-wallet provider' => ['ewallet', 'ewallet_provider', ['ewallet_handle' => '0123456789']],
+]);
 
 it('stores an ewallet channel identified only by its QR payload', function () {
     $owner = User::factory()->create();

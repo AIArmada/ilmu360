@@ -1,4 +1,11 @@
 {
+    "DuitNow Transfer": "تحويل DuitNow",
+    "Enter the DuitNow ID registered to the account that receives donations.": "أدخل معرّف DuitNow المسجّل للحساب الذي يتلقّى التبرعات.",
+    "DuitNow ID Type": "نوع معرّف DuitNow",
+    "Business Registration Number (SSM)": "رقم تسجيل النشاط التجاري (SSM)",
+    "DuitNow ID": "معرّف DuitNow",
+    "Optional if you provide an e-wallet ID. Enter the payment data encoded in the QR, if your provider supplies it.": "اختياري عند إدخال معرّف المحفظة الإلكترونية. أدخل بيانات الدفع المشفّرة في رمز QR إذا أتاحها مزوّد الخدمة.",
+    "Optional. Upload a reusable payment QR image issued for this recipient.": "اختياري. حمّل صورة رمز QR للدفع قابلة لإعادة الاستخدام وصادرة لهذا المستلم.",
     "About": "حول",
     "About Us": "من نحن",
     "About this Event": "حول هذه الفعالية",

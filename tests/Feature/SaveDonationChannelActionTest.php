@@ -83,6 +83,23 @@ it('creates an ewallet donation channel', function () {
         ->and($channel->duitnow_type)->toBeNull();
 });
 
+it('rejects donation options outside the canonical catalog before saving', function (string $method, array $details, string $field) {
+    $institution = Institution::factory()->create();
+
+    expect(fn () => app(SaveDonationChannelAction::class)->handle([
+        'donatable_type' => 'institution',
+        'donatable_id' => (string) $institution->getKey(),
+        'recipient' => 'Masjid Al-Hidayah',
+        'method' => $method,
+        ...$details,
+    ]))->toThrow(ValidationException::class, __('validation.in', ['attribute' => $field]));
+
+    expect($institution->donationChannels()->exists())->toBeFalse();
+})->with([
+    'personal identity number' => ['duitnow', ['duitnow_type' => 'nric', 'duitnow_value' => '123456789'], 'duitnow type'],
+    'unknown wallet provider' => ['ewallet', ['ewallet_provider' => 'unsupported', 'ewallet_handle' => '0123456789'], 'ewallet provider'],
+]);
+
 it('updates an existing donation channel and requires reverification when its bank destination changes', function () {
     $institution = Institution::factory()->create();
 

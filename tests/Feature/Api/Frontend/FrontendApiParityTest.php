@@ -877,12 +877,12 @@ it('rejects partially filled donation channels on public contribution update sug
             [
                 'recipient' => 'Jawatankuasa Surau',
                 'method' => 'ewallet',
-                'ewallet_provider' => 'tng',
+                'ewallet_provider' => 'unsupported',
             ],
         ],
     ])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['donation_channels.1.ewallet_handle']);
+        ->assertJsonValidationErrors(['donation_channels.1.ewallet_provider', 'donation_channels.1.ewallet_handle']);
 
     expect($institution->fresh()->donationChannels()->count())->toBe(0);
 });
@@ -902,10 +902,12 @@ it('documents donation channel item fields in the institution suggest contract',
     ]))->assertOk()->json('data');
 
     $field = collect($contract['fields'])->firstWhere('name', 'donation_channels');
-    $itemFields = collect(data_get($field, 'item_schema.fields', []))->pluck('name')->all();
+    $itemFields = collect(data_get($field, 'item_schema.fields', []))->keyBy('name');
 
     expect(data_get($field, 'item_schema.type'))->toBe('object')
-        ->and($itemFields)->toContain('recipient', 'method', 'currency', 'bank_name', 'bank_code', 'account_number', 'iban', 'swift_bic', 'routing_code', 'is_default');
+        ->and($itemFields->keys()->all())->toContain('recipient', 'method', 'currency', 'bank_name', 'bank_code', 'account_number', 'iban', 'swift_bic', 'routing_code', 'is_default')
+        ->and(data_get($itemFields->get('duitnow_type'), 'allowed_values'))->toBe(['business', 'mobile'])
+        ->and(data_get($itemFields->get('ewallet_provider'), 'allowed_values'))->toContain('bigpay');
 });
 
 it('stores donation channels on mobile institution contributions', function () {

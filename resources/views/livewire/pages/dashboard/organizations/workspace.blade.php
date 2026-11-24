@@ -278,20 +278,30 @@
                             @endif
                             @if(($channelForm['method'] ?? null) === 'duitnow')
                                 <div>
-                                    <label for="channel-duitnow-type" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('DuitNow type') }}</label>
-                                    <input id="channel-duitnow-type" type="text" wire:model="channelForm.duitnow_type" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    <label for="channel-duitnow-type" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('DuitNow ID Type') }}</label>
+                                    <select id="channel-duitnow-type" wire:model="channelForm.duitnow_type" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                        <option value="">{{ __('Select an option') }}</option>
+                                        @foreach(\App\Features\DonationChannels\Api\DonationChannelOptions::duitNowIdTypes() as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
                                     @error('channelForm.duitnow_type') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label for="channel-duitnow-value" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('DuitNow value') }}</label>
+                                    <label for="channel-duitnow-value" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('DuitNow ID') }}</label>
                                     <input id="channel-duitnow-value" type="text" wire:model="channelForm.duitnow_value" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
                                     @error('channelForm.duitnow_value') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 </div>
                             @endif
                             @if(($channelForm['method'] ?? null) === 'ewallet')
                                 <div>
-                                    <label for="channel-ewallet-provider" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('E-wallet provider') }}</label>
-                                    <input id="channel-ewallet-provider" type="text" wire:model="channelForm.ewallet_provider" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                    <label for="channel-ewallet-provider" class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{{ __('E-Wallet Provider') }}</label>
+                                    <select id="channel-ewallet-provider" wire:model="channelForm.ewallet_provider" class="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+                                        <option value="">{{ __('Select an option') }}</option>
+                                        @foreach(\App\Features\DonationChannels\Api\DonationChannelOptions::EWALLET_PROVIDERS as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
                                     @error('channelForm.ewallet_provider') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>

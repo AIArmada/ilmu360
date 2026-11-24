@@ -12,6 +12,7 @@ use App\Features\DonationChannels\Api\Data\DonationChannelCountryProfile;
 use App\Features\DonationChannels\Api\Data\DonationChannelSummary;
 use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;
 use App\Features\DonationChannels\Api\DonationChannelDirectory;
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Features\Events\Api\Data\OrganizationWorkspaceEvent;
 use App\Features\Events\Api\EventScheduleReads;
@@ -373,7 +374,7 @@ final class Workspace extends Component
     {
         $labels = [
             'bank_account' => __('Bank Account'),
-            'duitnow' => 'DuitNow',
+            'duitnow' => __('DuitNow Transfer'),
             'ewallet' => __('E-Wallet'),
         ];
 
@@ -687,9 +688,7 @@ final class Workspace extends Component
             'channelForm.iban' => ['nullable', 'string', 'max:34'],
             'channelForm.swift_bic' => ['nullable', 'string', 'max:11'],
             'channelForm.routing_code' => ['nullable', 'string', 'max:20'],
-            'channelForm.duitnow_type' => ['nullable', 'string', 'max:64'],
             'channelForm.duitnow_value' => ['nullable', 'string', 'max:255'],
-            'channelForm.ewallet_provider' => ['nullable', 'string', 'max:64'],
             'channelForm.ewallet_handle' => ['nullable', 'string', 'max:255'],
             'channelForm.is_default' => ['boolean'],
             'channelQr' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:'.$this->maxQrUploadKb()],
@@ -704,12 +703,12 @@ final class Workspace extends Component
             ],
             'duitnow' => [
                 ...$rules,
-                'channelForm.duitnow_type' => ['required', 'string', 'max:64'],
+                'channelForm.duitnow_type' => ['required', 'string', Rule::in(array_keys(DonationChannelOptions::DUITNOW_ID_TYPES))],
                 'channelForm.duitnow_value' => ['required', 'string', 'max:255'],
             ],
             'ewallet' => [
                 ...$rules,
-                'channelForm.ewallet_provider' => ['required', 'string', 'max:64'],
+                'channelForm.ewallet_provider' => ['required', 'string', Rule::in(array_keys(DonationChannelOptions::EWALLET_PROVIDERS))],
                 'channelForm.ewallet_handle' => ['required', 'string', 'max:255'],
             ],
             default => $rules,

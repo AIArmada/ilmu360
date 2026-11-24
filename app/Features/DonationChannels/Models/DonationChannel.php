@@ -180,7 +180,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     {
         return match ($this->method) {
             'bank_account' => 'Bank Account',
-            'duitnow' => 'DuitNow',
+            'duitnow' => 'DuitNow Transfer',
             'ewallet' => 'E-Wallet',
             default => $this->method,
         };

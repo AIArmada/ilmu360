@@ -6,6 +6,7 @@ use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
 use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Platform\Ui\Forms\AddressFields;
@@ -241,18 +242,21 @@ class InstitutionContributionFormSchema
                                 ->visible(fn (Get $get): bool => $get('method') === 'bank_account'
                                     && self::donationRoutingSupported($get))
                                 ->helperText(__('Local clearing or branch code used by some international banks, for example an Indonesian bank code or a Singapore branch code.')),
-                            TextInput::make('duitnow_type')
-                                ->label(__('DuitNow Type'))
-                                ->maxLength(255)
+                            Select::make('duitnow_type')
+                                ->label(__('DuitNow ID Type'))
+                                ->options(DonationChannelOptions::duitNowIdTypes())
+                                ->native(false)
                                 ->visible(fn (Get $get): bool => $get('method') === 'duitnow')
                                 ->required(fn (Get $get): bool => $get('method') === 'duitnow'),
                             TextInput::make('duitnow_value')
-                                ->label(__('DuitNow Value'))
+                                ->label(__('DuitNow ID'))
+                                ->helperText(__('Enter the DuitNow ID registered to the account that receives donations.'))
                                 ->visible(fn (Get $get): bool => $get('method') === 'duitnow')
                                 ->required(fn (Get $get): bool => $get('method') === 'duitnow'),
-                            TextInput::make('ewallet_provider')
+                            Select::make('ewallet_provider')
                                 ->label(__('E-Wallet Provider'))
-                                ->maxLength(255)
+                                ->options(DonationChannelOptions::EWALLET_PROVIDERS)
+                                ->native(false)
                                 ->visible(fn (Get $get): bool => $get('method') === 'ewallet')
                                 ->required(fn (Get $get): bool => $get('method') === 'ewallet'),
                             TextInput::make('ewallet_handle')
@@ -262,8 +266,9 @@ class InstitutionContributionFormSchema
                                 ->required(fn (Get $get): bool => $get('method') === 'ewallet' && blank($get('ewallet_qr_payload'))),
                             Textarea::make('ewallet_qr_payload')
                                 ->label(__('E-Wallet QR Payload'))
+                                ->helperText(__('Optional if you provide an e-wallet ID. Enter the payment data encoded in the QR, if your provider supplies it.'))
+                                ->live(onBlur: true)
                                 ->visible(fn (Get $get): bool => $get('method') === 'ewallet')
-                                ->required(fn (Get $get): bool => $get('method') === 'ewallet' && blank($get('ewallet_handle')))
                                 ->columnSpanFull(),
                             Textarea::make('reference_note')
                                 ->label(__('Reference Note'))
@@ -271,7 +276,7 @@ class InstitutionContributionFormSchema
                                 ->columnSpanFull(),
                             FileUpload::make('qr_upload')
                                 ->label(__('QR Image'))
-                                ->helperText(__('Upload an official payment QR image.'))
+                                ->helperText(__('Optional. Upload a reusable payment QR image issued for this recipient.'))
                                 ->image()
                                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                                 ->maxSize(10240)
@@ -448,7 +453,7 @@ class InstitutionContributionFormSchema
     {
         $labels = [
             'bank_account' => __('Bank Account'),
-            'duitnow' => 'DuitNow',
+            'duitnow' => __('DuitNow Transfer'),
             'ewallet' => __('E-Wallet'),
         ];
 

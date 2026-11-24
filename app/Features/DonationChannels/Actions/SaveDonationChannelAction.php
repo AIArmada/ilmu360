@@ -7,6 +7,7 @@ namespace App\Features\DonationChannels\Actions;
 use App\Features\DonationChannels\Api\Data\DonationBank;
 use App\Features\DonationChannels\Api\Data\DonationChannelCountryProfile;
 use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Platform\Media\MediaCollectionSync;
@@ -118,7 +119,7 @@ final readonly class SaveDonationChannelAction
                 'iban' => null,
                 'swift_bic' => null,
                 'routing_code' => null,
-                'duitnow_type' => $this->normalizeRequiredString($data['duitnow_type'] ?? $donationChannel->getAttribute('duitnow_type'), 'duitnow_type'),
+                'duitnow_type' => $this->normalizeRequiredOption($data['duitnow_type'] ?? $donationChannel->getAttribute('duitnow_type'), 'duitnow_type', DonationChannelOptions::DUITNOW_ID_TYPES),
                 'duitnow_value' => $this->normalizeRequiredString($data['duitnow_value'] ?? $donationChannel->getAttribute('duitnow_value'), 'duitnow_value'),
                 'ewallet_provider' => null,
                 'ewallet_handle' => null,
@@ -134,7 +135,7 @@ final readonly class SaveDonationChannelAction
                 'routing_code' => null,
                 'duitnow_type' => null,
                 'duitnow_value' => null,
-                'ewallet_provider' => $this->normalizeRequiredString($data['ewallet_provider'] ?? $donationChannel->getAttribute('ewallet_provider'), 'ewallet_provider'),
+                'ewallet_provider' => $this->normalizeRequiredOption($data['ewallet_provider'] ?? $donationChannel->getAttribute('ewallet_provider'), 'ewallet_provider', DonationChannelOptions::EWALLET_PROVIDERS),
                 'ewallet_handle' => array_key_exists('ewallet_handle', $data)
                     ? $this->normalizeOptionalString($data['ewallet_handle'])
                     : $donationChannel->getAttribute('ewallet_handle'),
@@ -471,6 +472,20 @@ final readonly class SaveDonationChannelAction
         }
 
         return $status;
+    }
+
+    /** @param array<string, string> $options */
+    private function normalizeRequiredOption(mixed $value, string $field, array $options): string
+    {
+        $value = $this->normalizeRequiredString($value, $field);
+
+        if (! array_key_exists($value, $options)) {
+            throw ValidationException::withMessages([
+                $field => __('validation.in', ['attribute' => str_replace('_', ' ', $field)]),
+            ]);
+        }
+
+        return $value;
     }
 
     private function normalizeRequiredString(mixed $value, string $field): string
