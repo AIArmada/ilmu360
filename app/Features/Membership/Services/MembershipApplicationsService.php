@@ -20,6 +20,7 @@ use App\Platform\Media\StagedUploadFactory;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Spatie\MediaLibrary\HasMedia;
 use Throwable;
@@ -58,6 +59,10 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
 
     public function find(string $applicationId): ?MembershipApplicationDetail
     {
+        if (! Str::isUuid($applicationId)) {
+            return null;
+        }
+
         $application = OwnerContext::withOwner(null, fn (): ?Model => $this->query()
             ->with(['reviewer', 'media'])
             ->find($applicationId));
@@ -115,6 +120,10 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
 
     public function cancelForApplicant(string $accountId, string $applicationId): ?MembershipApplicationDetail
     {
+        if (! Str::isUuid($applicationId)) {
+            return null;
+        }
+
         $application = OwnerContext::withOwner(null, fn (): ?Model => $this->query()
             ->whereKey($applicationId)
             ->where('applicant_id', $accountId)

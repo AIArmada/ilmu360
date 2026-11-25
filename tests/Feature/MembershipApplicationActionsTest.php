@@ -26,6 +26,15 @@ beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
 
+it('rejects invalid application identifiers without poisoning the database transaction', function (string $identifier): void {
+    $claimant = User::factory()->create();
+    $applications = app(MembershipApplications::class);
+
+    expect($applications->find($identifier))->toBeNull()
+        ->and($applications->cancelForApplicant((string) $claimant->getKey(), $identifier))->toBeNull()
+        ->and(User::query()->whereKey($claimant->getKey())->exists())->toBeTrue();
+})->with(['', 'not-a-uuid']);
+
 it('submits a pending institution membership claim', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
     $claimant = User::factory()->create();
