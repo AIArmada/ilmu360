@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Persistence;
 
-use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
-use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\Institutions\Api\InstitutionSearchCache;
+use App\Shared\Cache\DiscoveryCache;
 use Closure;
 
 /**
@@ -14,13 +13,8 @@ use Closure;
  */
 final readonly class InstitutionSearchCacheStore implements InstitutionSearchCache
 {
-    private const string VERSION_KEY = 'institution_search_public_version_v2';
-
-    private const int PUBLIC_SEARCH_CACHE_TTL_SECONDS = 600;
-
     public function __construct(
-        private CacheVersionStore $versions,
-        private VersionedCache $cache,
+        private DiscoveryCache $cache,
     ) {}
 
     /**
@@ -43,7 +37,7 @@ final readonly class InstitutionSearchCacheStore implements InstitutionSearchCac
 
     public function bumpPublicSearchVersion(): void
     {
-        $this->versions->bump(self::VERSION_KEY);
+        $this->cache->bump($this->versionKey());
     }
 
     /**
@@ -56,12 +50,19 @@ final readonly class InstitutionSearchCacheStore implements InstitutionSearchCac
 
         /** @var list<string> $ids */
         $ids = $this->cache->remember(
-            self::VERSION_KEY,
+            $this->versionKey(),
             sprintf('%s:%s', $keyPrefix, md5($boundedSearch)),
-            self::PUBLIC_SEARCH_CACHE_TTL_SECONDS,
+            (int) config('discovery.cache.ttls.search_public', 300),
             $resolve,
         );
 
         return $ids;
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.institutions_search', 'discovery:v:institutions:search');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:institutions:search';
     }
 }

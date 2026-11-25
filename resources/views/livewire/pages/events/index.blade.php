@@ -89,10 +89,17 @@
     $sourceLabels = $this->termOptionLabels('source', $selectedSourceTagIds);
     $issueLabels = $this->termOptionLabels('issue', $selectedIssueTagIds);
     $institutionLabel = filled($institutionId) ? $this->institutionOptionLabel((string) $institutionId) : null;
-    $divisionLabel = filled($areaAssignments['administrative_division'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['administrative_division']) : null;
-    $postalLocalityLabel = filled($areaAssignments['postal_locality'] ?? null) ? $this->areaOptionLabel((string) $areaAssignments['postal_locality']) : null;
-    $districtLabel = filled($districtAreaId) ? $this->areaOptionLabel((string) $districtAreaId) : null;
-    $subdivisionLabel = filled($subdivisionAreaId) ? $this->areaOptionLabel((string) $subdivisionAreaId) : null;
+    $areaLabelIds = array_values(array_filter([
+        filled($areaAssignments['administrative_division'] ?? null) ? (string) $areaAssignments['administrative_division'] : null,
+        filled($areaAssignments['postal_locality'] ?? null) ? (string) $areaAssignments['postal_locality'] : null,
+        filled($districtAreaId) ? (string) $districtAreaId : null,
+        filled($subdivisionAreaId) ? (string) $subdivisionAreaId : null,
+    ]));
+    $areaLabels = $this->areaOptionLabels($areaLabelIds);
+    $divisionLabel = filled($areaAssignments['administrative_division'] ?? null) ? ($areaLabels[(string) $areaAssignments['administrative_division']] ?? null) : null;
+    $postalLocalityLabel = filled($areaAssignments['postal_locality'] ?? null) ? ($areaLabels[(string) $areaAssignments['postal_locality']] ?? null) : null;
+    $districtLabel = filled($districtAreaId) ? ($areaLabels[(string) $districtAreaId] ?? null) : null;
+    $subdivisionLabel = filled($subdivisionAreaId) ? ($areaLabels[(string) $subdivisionAreaId] ?? null) : null;
     $prayerTimeLabels = collect((array) $prayerTime)
         ->filter(static fn (mixed $value): bool => is_string($value) && $value !== '')
         ->map(static fn (string $value): string => \App\Features\Prayer\Api\EventPrayerTime::tryFrom($value)?->getLabel() ?? $value)

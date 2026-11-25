@@ -30,6 +30,7 @@ use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventChangePublisher;
 use App\Features\Events\Api\EventChangeSeverity;
+use App\Features\Events\Api\EventSubmissionOptionsCache;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
 use App\Features\Identity\Persistence\OAuthTransactionStore;
@@ -203,20 +204,8 @@ pest()->extend(TestCase::class)
         config()->set('services.turnstile.expected_action', 'submit_event');
         config()->set('services.turnstile.hostnames', ['ilmu360.test']);
 
-        // Clear tag option caches to prevent stale data in tests
-        foreach (['domain', 'discipline', 'source', 'issue'] as $type) {
-            Cache::forget("submit_tags_{$type}_ms_safe_v2");
-            Cache::forget("submit_tags_{$type}_en_safe_v2");
-        }
-
-        foreach (['discipline', 'issue'] as $type) {
-            Cache::forget("submit_tags_{$type}_verified_ms_safe_v2");
-            Cache::forget("submit_tags_{$type}_verified_en_safe_v2");
-        }
-
-        Cache::forget('submit_languages_safe_v2');
-        Cache::forget('submit_venues_all_safe_v2');
-
+        // Bust submission option and default listing caches to prevent stale data in tests
+        app(EventSubmissionOptionsCache::class)->invalidate();
         app(PublicListingsCacheInvalidator::class)->bustMajlisListing();
 
         // Seed title categories and titles for tests

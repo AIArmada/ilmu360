@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Places\Actions\Projection;
 
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
+use App\Features\Events\Api\EventSubmissionOptionsCache;
+use App\Features\Places\Api\VenueSearchCache;
 use App\Features\Places\Api\VenueWorkflow;
 use App\Features\Places\Models\Venue;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
@@ -17,7 +19,9 @@ final readonly class SyncVenueDirectoryEffectsAction
     public function __construct(
         protected VenueWorkflow $venueWorkflow,
         protected SlugRedirectCommands $slugRedirectCommands,
-        protected PublicListingsCacheInvalidator $publicListingsCache
+        protected PublicListingsCacheInvalidator $publicListingsCache,
+        protected EventSubmissionOptionsCache $submissionOptionsCache,
+        protected VenueSearchCache $venueSearchCache,
     ) {}
 
     public function saved(Venue $venue): void
@@ -34,7 +38,9 @@ final readonly class SyncVenueDirectoryEffectsAction
             );
         }
 
+        $this->venueSearchCache->bumpPublicSearchVersion();
         $this->publicListingsCache->bustMajlisListing();
+        $this->submissionOptionsCache->invalidate();
     }
 
     public function deleted(Venue $venue): void
@@ -43,6 +49,8 @@ final readonly class SyncVenueDirectoryEffectsAction
         // this after-commit observer keeps derived side effects only.
         $this->slugRedirectCommands->purge($venue->getMorphClass(), (string) $venue->getKey());
         $this->venueWorkflow->syncSlugsForName($venue->name);
+        $this->venueSearchCache->bumpPublicSearchVersion();
         $this->publicListingsCache->bustMajlisListing();
+        $this->submissionOptionsCache->invalidate();
     }
 }

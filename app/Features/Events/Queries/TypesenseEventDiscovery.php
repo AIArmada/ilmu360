@@ -6,8 +6,10 @@ namespace App\Features\Events\Queries;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Features\Discovery\Api\Data\EventSearchHitIds;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\Enums\EventVisibility;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Models\Event;
@@ -16,6 +18,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
+use Laravel\Scout\Builder as ScoutBuilder;
 
 class TypesenseEventDiscovery implements EventDiscoveryReader
 {
@@ -30,9 +33,25 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         return EventDiscoveryPageProjector::fromPaginator($this->searchWithTypesense($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort));
     }
 
+    public function searchIds(EventDiscoveryCriteria $criteria): EventSearchHitIds
+    {
+        return $this->toHitIdsFromScoutPaginator(
+            $this->buildTextSearch($criteria->text, $criteria->filters, $criteria->sort),
+            $criteria->perPage,
+        );
+    }
+
     public function nearby(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
         return EventDiscoveryPageProjector::fromPaginator($this->searchNearbyWithTypesense($criteria));
+    }
+
+    public function nearbyIds(EventDiscoveryCriteria $criteria): EventSearchHitIds
+    {
+        return $this->toHitIdsFromScoutPaginator(
+            $this->buildNearbySearch($criteria),
+            $criteria->perPage,
+        );
     }
 
     public function nearbyWithQuery(EventDiscoveryCriteria $criteria): EventDiscoveryPage
@@ -47,6 +66,20 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         ));
     }
 
+    public function nearbyWithQueryIds(EventDiscoveryCriteria $criteria): EventSearchHitIds
+    {
+        return $this->toHitIdsFromScoutPaginator(
+            $this->buildNearbyQuerySearch(
+                $criteria->text ?? '',
+                $criteria->latitude ?? 0.0,
+                $criteria->longitude ?? 0.0,
+                (int) ($criteria->radiusKm ?? 0.0),
+                $criteria->filters,
+            ),
+            $criteria->perPage,
+        );
+    }
+
     /**
      * @param  array<string, mixed>  $filters
      * @return LengthAwarePaginator<int, Event>
@@ -57,6 +90,15 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         int $perPage,
         string $sort
     ): LengthAwarePaginator {
+        return $this->buildTextSearch($query, $filters, $sort)->paginate($perPage);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return ScoutBuilder<Event>
+     */
+    private function buildTextSearch(?string $query, array $filters, string $sort): ScoutBuilder
+    {
         $search = Event::search($query ?? '')
             ->query(fn (Builder $builder): Builder => $this->constrainCurrentPublicState($builder));
 
@@ -73,13 +115,21 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
             'query_by' => 'title,person_names,institution_name',
         ]);
 
-        return $search->paginate($perPage);
+        return $search;
     }
 
     /**
      * @return LengthAwarePaginator<int, Event>
      */
     protected function searchNearbyWithTypesense(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->buildNearbySearch($criteria)->paginate($criteria->perPage);
+    }
+
+    /**
+     * @return ScoutBuilder<Event>
+     */
+    private function buildNearbySearch(EventDiscoveryCriteria $criteria): ScoutBuilder
     {
         $lat = $criteria->latitude ?? 0.0;
         $lng = $criteria->longitude ?? 0.0;
@@ -95,7 +145,7 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
             'sort_by' => "location({$lat}, {$lng}):asc",
         ]);
 
-        return $search->paginate($criteria->perPage);
+        return $search;
     }
 
     /**
@@ -110,6 +160,20 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
         array $filters,
         int $perPage
     ): LengthAwarePaginator {
+        return $this->buildNearbyQuerySearch($query, $lat, $lng, $radiusKm, $filters)->paginate($perPage);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return ScoutBuilder<Event>
+     */
+    private function buildNearbyQuerySearch(
+        string $query,
+        float $lat,
+        float $lng,
+        int $radiusKm,
+        array $filters,
+    ): ScoutBuilder {
         $search = Event::search($query)
             ->query(fn (Builder $builder): Builder => $this->constrainCurrentPublicState($builder));
 
@@ -124,7 +188,102 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
             'query_by' => 'title,person_names,institution_name',
         ]);
 
-        return $search->paginate($perPage);
+        return $search;
+    }
+
+    /**
+     * Extract IDs and distances without full model hydration, keeping the
+     * lightweight public-state freshness filter in Typesense hit order.
+     *
+     * @param  ScoutBuilder<Event>  $search
+     */
+    private function toHitIdsFromScoutPaginator(ScoutBuilder $search, int $perPage): EventSearchHitIds
+    {
+        $rawPaginator = $search->paginateRaw($perPage);
+        $rawItems = $rawPaginator->items();
+
+        if (isset($rawItems['hits']) && is_array($rawItems['hits'])) {
+            /** @var list<string> $candidateIds */
+            $candidateIds = [];
+            /** @var array<string, float> $candidateDistances */
+            $candidateDistances = [];
+
+            foreach ($rawItems['hits'] as $hit) {
+                if (! is_array($hit)) {
+                    continue;
+                }
+
+                $documentId = $hit['document']['id'] ?? null;
+
+                if (! is_string($documentId) || $documentId === '') {
+                    continue;
+                }
+
+                $candidateIds[] = $documentId;
+                $meters = $hit['geo_distance_meters']['location'] ?? null;
+
+                if (is_numeric($meters)) {
+                    $candidateDistances[$documentId] = round(((float) $meters) / 1000.0, 3);
+                }
+            }
+
+            if ($candidateIds === []) {
+                return new EventSearchHitIds(eventIds: [], distances: [], total: $rawPaginator->total());
+            }
+
+            $validIdSet = array_flip(
+                $this->constrainCurrentPublicState(Event::query()->whereKey($candidateIds))
+                    ->pluck('events.id')
+                    ->map(static fn (mixed $id): string => (string) $id)
+                    ->all()
+            );
+
+            $eventIds = array_values(array_filter(
+                $candidateIds,
+                static fn (string $id): bool => isset($validIdSet[$id]),
+            ));
+            $distances = array_intersect_key($candidateDistances, $validIdSet);
+            $droppedCount = count($candidateIds) - count($eventIds);
+
+            return new EventSearchHitIds(
+                eventIds: $eventIds,
+                distances: $distances,
+                total: max(0, $rawPaginator->total() - $droppedCount),
+            );
+        }
+
+        if (isset($rawItems['results']) && is_array($rawItems['results'])) {
+            $models = $rawItems['results'];
+            $total = (int) ($rawItems['total'] ?? count($models));
+        } else {
+            $models = $rawItems;
+            $total = $rawPaginator->total();
+        }
+
+        /** @var list<string> $eventIds */
+        $eventIds = [];
+        /** @var array<string, float> $distances */
+        $distances = [];
+
+        foreach ($models as $event) {
+            if (! $event instanceof Event) {
+                continue;
+            }
+
+            $eventId = (string) $event->getKey();
+            $eventIds[] = $eventId;
+            $distance = $event->getAttributes()['distance_km'] ?? null;
+
+            if (is_numeric($distance)) {
+                $distances[$eventId] = round((float) $distance, 3);
+            }
+        }
+
+        return new EventSearchHitIds(
+            eventIds: $eventIds,
+            distances: $distances,
+            total: $total,
+        );
     }
 
     /**
@@ -222,10 +381,18 @@ class TypesenseEventDiscovery implements EventDiscoveryReader
             }
         }
 
-        $childrenAllowed = $this->normalizeBooleanFilter($filters['children_allowed'] ?? null);
+        foreach (['children_allowed', 'is_muslim_only', 'has_event_url', 'has_live_url', 'has_end_time'] as $booleanField) {
+            $booleanValue = $this->normalizeBooleanFilter($filters[$booleanField] ?? null);
 
-        if ($childrenAllowed !== null) {
-            $filterParts[] = 'children_allowed:='.($childrenAllowed ? 'true' : 'false');
+            if ($booleanValue !== null) {
+                $filterParts[] = $booleanField.':='.($booleanValue ? 'true' : 'false');
+            }
+        }
+
+        $timingMode = $filters['timing_mode'] ?? null;
+
+        if (in_array($timingMode, [TimingMode::Absolute->value, TimingMode::PrayerRelative->value], true)) {
+            $filterParts[] = 'timing_mode:='.$timingMode;
         }
 
         if (! empty($filters['institution_id'])) {

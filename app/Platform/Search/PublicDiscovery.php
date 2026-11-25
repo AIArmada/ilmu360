@@ -6,9 +6,11 @@ namespace App\Platform\Search;
 
 use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 final class PublicDiscovery
 {
@@ -71,45 +73,56 @@ final class PublicDiscovery
         array $orderedIds,
         string $idColumn,
     ): LengthAwarePaginator {
+        $orderedIds = array_values(array_unique($orderedIds));
+
         if ($orderedIds === []) {
             return $this->emptyPaginator($request, $perPage, $base);
         }
 
+        $positions = array_flip($orderedIds);
+
         $scopedIds = (clone $base)
+            ->reorder()
             ->whereIn($idColumn, $orderedIds)
             ->pluck($idColumn)
             ->map(static fn (mixed $id): string => (string) $id)
-            ->all();
-
-        $scopedOrderedIds = collect($scopedIds)
-            ->sortBy(static function (string $id) use ($orderedIds): int {
-                $position = array_search($id, $orderedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
+            ->unique()
             ->values()
             ->all();
 
-        if ($scopedOrderedIds === []) {
+        if ($scopedIds === []) {
             return $this->emptyPaginator($request, $perPage, $base);
         }
 
-        $orderCases = [];
-        $orderBindings = [];
+        usort(
+            $scopedIds,
+            static fn (string $left, string $right): int => ($positions[$left] ?? PHP_INT_MAX) <=> ($positions[$right] ?? PHP_INT_MAX),
+        );
 
-        foreach ($scopedOrderedIds as $position => $id) {
-            $orderCases[] = 'when ? then '.$position;
-            $orderBindings[] = $id;
+        $page = max(1, $request->integer('page', 1));
+        $total = count($scopedIds);
+        $pageIds = array_slice($scopedIds, ($page - 1) * $perPage, $perPage);
+
+        if ($pageIds === []) {
+            return $this->buildPaginator(
+                $request,
+                $base->getModel()->newCollection(),
+                $total,
+                $perPage,
+                $page,
+            );
         }
 
-        $wrappedIdColumn = $base->getQuery()->getGrammar()->wrap($idColumn);
-        $orderSql = 'case '.$wrappedIdColumn.' '.implode(' ', $orderCases).' else '.count($scopedOrderedIds).' end';
+        $pagePositions = array_flip($pageIds);
 
-        return (clone $base)
-            ->whereIn($idColumn, $scopedOrderedIds)
-            ->orderByRaw($orderSql, $orderBindings)
-            ->paginate($perPage, ['*'], 'page', max(1, $request->integer('page', 1)))
-            ->appends($request->query());
+        $items = (clone $base)
+            ->reorder()
+            ->whereIn($idColumn, $pageIds)
+            ->get()
+            ->sortBy(static fn (Model $model): int => $pagePositions[(string) $model->getKey()] ?? PHP_INT_MAX)
+            ->values();
+
+        return $this->buildPaginator($request, $items, $total, $perPage, $page);
     }
 
     /**
@@ -120,9 +133,37 @@ final class PublicDiscovery
      */
     private function emptyPaginator(Request $request, int $perPage, Builder $base): LengthAwarePaginator
     {
-        return (clone $base)
-            ->whereRaw('1 = 0')
-            ->paginate($perPage, ['*'], 'page', max(1, $request->integer('page', 1)))
-            ->appends($request->query());
+        return $this->buildPaginator(
+            $request,
+            $base->getModel()->newCollection(),
+            0,
+            $perPage,
+            max(1, $request->integer('page', 1)),
+        );
+    }
+
+    /**
+     * @template TModel of Model
+     *
+     * @param  EloquentCollection<int, TModel>  $items
+     * @return LengthAwarePaginator<int, TModel>
+     */
+    private function buildPaginator(
+        Request $request,
+        EloquentCollection $items,
+        int $total,
+        int $perPage,
+        int $page,
+    ): LengthAwarePaginator {
+        return (new LengthAwarePaginator(
+            items: $items,
+            total: $total,
+            perPage: $perPage,
+            currentPage: $page,
+            options: [
+                'path' => Paginator::resolveCurrentPath(),
+                'pageName' => 'page',
+            ],
+        ))->appends($request->query());
     }
 }

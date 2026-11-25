@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Api;
 
+use App\Features\Discovery\Api\Data\EventSearchHitIds;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 
 /**
@@ -28,6 +29,16 @@ interface EventSearchReader
     /**
      * @param  array<string, mixed>  $filters
      */
+    public function searchIds(
+        ?string $query = null,
+        array $filters = [],
+        int $perPage = 20,
+        string $sort = 'time'
+    ): EventSearchHitIds;
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
     public function searchNearby(
         float $lat,
         float $lng,
@@ -35,6 +46,18 @@ interface EventSearchReader
         array $filters = [],
         int $perPage = 20
     ): EventSearchPage;
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function searchNearbyIds(
+        float $lat,
+        float $lng,
+        int $radiusKm = 50,
+        array $filters = [],
+        int $perPage = 20,
+        ?string $query = null,
+    ): EventSearchHitIds;
 
     /**
      * @param  array<string, mixed>  $filters

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Features\Events\Api\EventInvolvementFingerprint;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\References\Api\ReferenceListingCacheVersion;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -27,23 +28,32 @@ it('bumps owner listing versions independently', function (): void {
 
     $institutions = app(InstitutionListingCacheVersion::class);
     $persons = app(PersonListingCacheVersion::class);
+    $references = app(ReferenceListingCacheVersion::class);
     $institutionBefore = $institutions->current()['version'];
     $personBefore = $persons->current()['version'];
+    $referenceBefore = $references->current()['version'];
 
     $institutions->bump();
     expect($institutions->current()['version'])->not->toBe($institutionBefore)
-        ->and($persons->current()['version'])->toBe($personBefore);
+        ->and($persons->current()['version'])->toBe($personBefore)
+        ->and($references->current()['version'])->toBe($referenceBefore);
 
     $persons->bump();
-    expect($persons->current()['version'])->not->toBe($personBefore);
+    expect($persons->current()['version'])->not->toBe($personBefore)
+        ->and($references->current()['version'])->toBe($referenceBefore);
+
+    $references->bump();
+    expect($references->current()['version'])->not->toBe($referenceBefore);
 });
 
-it('uses unchanged persistent version keys', function (): void {
+it('uses configured discovery cache version keys', function (): void {
     app(InstitutionListingCacheVersion::class)->bump();
     app(PersonListingCacheVersion::class)->bump();
+    app(ReferenceListingCacheVersion::class)->bump();
 
-    expect(Cache::get('public_directory:institutions:version:v1'))->toBeString()
-        ->and(Cache::get('public_directory:persons:version:v1'))->toBeString();
+    expect(Cache::get((string) config('discovery.cache.versions.institutions_listing')))->toBeString()
+        ->and(Cache::get((string) config('discovery.cache.versions.persons_listing')))->toBeString()
+        ->and(Cache::get((string) config('discovery.cache.versions.references_listing')))->toBeString();
 });
 
 it('composes the person version with the Events-owned involvement fingerprint', function (): void {
@@ -59,7 +69,7 @@ it('composes the person version with the Events-owned involvement fingerprint', 
 
     try {
         $emptyPersonVersion = $versions->current()['version'];
-        $baseVersion = Cache::get('public_directory:persons:version:v1');
+        $baseVersion = Cache::get((string) config('discovery.cache.versions.persons_listing'));
 
         expect($emptyPersonVersion)->toBe($baseVersion.'|0|');
 

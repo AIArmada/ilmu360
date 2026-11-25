@@ -7,7 +7,7 @@ namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\RelationMa
 use AIArmada\CommerceSupport\Filament\Concerns\VerifiesRelationManagerOwnerContext;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -54,7 +54,7 @@ final class NamesRelationManager extends RelationManager
                     ->required()
                     ->maxLength(255),
                 Select::make('language_code')
-                    ->options(fn (): array => app(SelectionCatalogCache::class)->languageOptions('code', ttlSeconds: 3600))
+                    ->options(fn (): array => app(SelectionCatalog::class)->languageOptions('code', ttlSeconds: 3600))
                     ->searchable()
                     ->preload()
                     ->required()

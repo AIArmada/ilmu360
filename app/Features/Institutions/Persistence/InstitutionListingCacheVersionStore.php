@@ -4,24 +4,29 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Persistence;
 
-use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use App\Features\Institutions\Api\InstitutionListingCacheVersion;
+use App\Shared\Cache\DiscoveryCache;
 
 final readonly class InstitutionListingCacheVersionStore implements InstitutionListingCacheVersion
 {
-    private const string VERSION_KEY = 'public_directory:institutions:version:v1';
-
     public function __construct(
-        private CacheVersionStore $cacheVersions,
+        private DiscoveryCache $cache,
     ) {}
 
     public function current(): array
     {
-        return ['version' => $this->cacheVersions->version(self::VERSION_KEY)];
+        return ['version' => $this->cache->version($this->versionKey())];
     }
 
     public function bump(): void
     {
-        $this->cacheVersions->bump(self::VERSION_KEY);
+        $this->cache->bump($this->versionKey());
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.institutions_listing', 'discovery:v:institutions:listing');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:institutions:listing';
     }
 }

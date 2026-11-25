@@ -264,4 +264,32 @@ interface EventScheduleReads
      * @return array<string, array{next_event_id: ?string, next_event_slug: ?string, next_event_title: ?string, next_event_starts_at: ?string, upcoming_events_count: int}>
      */
     public function referenceDirectoryFacts(array $referenceFamilies): array;
+
+    /**
+     * Upcoming event counts and next speaker event per person id.
+     *
+     * @param  list<string>  $personIds
+     * @return array<string, array{
+     *     events_count: int,
+     *     next_event_slug: ?string,
+     *     next_event_title: ?string,
+     *     next_event_starts_at: ?string
+     * }>
+     */
+    public function personDirectoryFacts(array $personIds): array;
+
+    /**
+     * Person ids with at least one upcoming public speaker occurrence.
+     *
+     * @return list<string>
+     */
+    public function upcomingSpeakerPersonIds(): array;
+
+    /**
+     * Active public event counts keyed by default venue id.
+     *
+     * @param  list<string>  $venueIds
+     * @return array<string, int>
+     */
+    public function venueEventCounts(array $venueIds): array;
 }

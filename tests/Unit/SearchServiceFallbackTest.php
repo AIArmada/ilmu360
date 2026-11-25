@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\PersonName;
@@ -7,6 +9,7 @@ use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\InstitutionSearchCache;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Services\InstitutionSearchService;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
@@ -14,7 +17,10 @@ use App\Features\Persons\Services\PersonSearchService;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Models\Reference;
 use App\Features\References\Services\ReferenceSearchService;
-use App\Platform\Search\TypesenseHealthCheckService;
+use App\Platform\Search\DatabaseFuzzyMatcher;
+use App\Platform\Search\ScoutRawHitExtractor;
+use App\Shared\Contracts\SearchEngineResolver;
+use App\Shared\Contracts\SearchHealthCheck;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -31,6 +37,78 @@ beforeEach(function (): void {
     }
 });
 
+function remoteAvailableEngineResolver(int $limit = 250): SearchEngineResolver
+{
+    return new class($limit) implements SearchEngineResolver
+    {
+        public function __construct(private readonly int $limit) {}
+
+        public function activeDriver(): string
+        {
+            return 'typesense';
+        }
+
+        public function usesScout(): bool
+        {
+            return true;
+        }
+
+        public function usesTypesense(): bool
+        {
+            return true;
+        }
+
+        public function isRemoteEngineAvailable(): bool
+        {
+            return true;
+        }
+
+        public function resultLimit(): int
+        {
+            return $this->limit;
+        }
+    };
+}
+
+function makeFailingPersonSearchService(int $limit = 250): PersonSearchService
+{
+    return new class(app(PersonWorkflow::class), app(PersonSearchCache::class), remoteAvailableEngineResolver($limit), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends PersonSearchService
+    {
+        protected function searchIdsWithScout(string $search, array $options = []): array
+        {
+            throw new RuntimeException('Typesense unavailable');
+        }
+
+        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
+    };
+}
+
+function makeFailingInstitutionSearchService(int $limit = 250): InstitutionSearchService
+{
+    return new class(app(InstitutionSearchCache::class), remoteAvailableEngineResolver($limit), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends InstitutionSearchService
+    {
+        protected function searchIdsWithScout(string $search, array $options = []): array
+        {
+            throw new RuntimeException('Typesense unavailable');
+        }
+
+        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
+    };
+}
+
+function makeFailingReferenceSearchService(int $limit = 250): ReferenceSearchService
+{
+    return new class(app(ReferenceSearchCache::class), app(PersonLookup::class), remoteAvailableEngineResolver($limit), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends ReferenceSearchService
+    {
+        protected function searchIdsWithScout(string $search, array $options = []): array
+        {
+            throw new RuntimeException('Typesense unavailable');
+        }
+
+        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
+    };
+}
+
 it('falls back to the local person search index when typesense lookup fails', function () {
     $person = Person::factory()->create([
         'name' => 'Nurul Akma',
@@ -40,20 +118,7 @@ it('falls back to the local person search index when typesense lookup fails', fu
     $baseService = app(PersonSearchService::class);
     $baseService->syncPersonRecord($person);
 
-    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
-    {
-        protected function shouldUseScoutSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingPersonSearchService();
 
     $ids = $service->publicSearchIds($person->name);
     $queryIds = $service->applyIndexedSearch(Person::query()->where('status', 'verified'), $person->name)
@@ -97,20 +162,7 @@ it('falls back to local person fuzzy search when typesense lookup fails', functi
 
     app(PersonSearchService::class)->syncPersonRecord($person);
 
-    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
-    {
-        protected function shouldUseScoutSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingPersonSearchService();
 
     expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $person->id);
 });
@@ -154,21 +206,7 @@ it('can score a person when the local searchable name is empty', function () {
 
     DB::table('persons')->where('id', $person->getKey())->update(['searchable_name' => null]);
 
-    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
-
+    $service = makeFailingPersonSearchService();
     $service->bustPublicSearchCache();
 
     Model::preventAccessingMissingAttributes();
@@ -188,20 +226,7 @@ it('keeps transposed person typos reachable through fallback candidate filtering
 
     app(PersonSearchService::class)->syncPersonRecord($person);
 
-    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingPersonSearchService();
 
     expect($service->publicFuzzySearchIds('Ahmda'))->toContain((string) $person->id);
 });
@@ -223,25 +248,7 @@ it('keeps exact person fuzzy matches inside the capped fallback candidate set', 
 
     $baseService->syncPersonRecord($exactPerson);
 
-    $service = new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-
-        protected function typesenseResultLimit(): int
-        {
-            return 5;
-        }
-    };
+    $service = makeFailingPersonSearchService(5);
 
     expect($service->publicFuzzySearchIds('Samadx'))->toContain((string) $exactPerson->id);
 });
@@ -261,20 +268,7 @@ it('falls back to database institution search when typesense lookup fails', func
         'is_primary' => true,
     ]);
 
-    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
-    {
-        protected function shouldUseScoutSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingInstitutionSearchService();
 
     $ids = $service->publicSearchIds('Masjid Biru');
     $queryIds = $service->applySearch(Institution::query()->where('status', 'verified'), 'Masjid Biru')
@@ -293,20 +287,7 @@ it('falls back to database institution fuzzy search when typesense lookup fails'
         'status' => 'verified',
     ]);
 
-    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
-    {
-        protected function shouldUseScoutSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingInstitutionSearchService();
 
     expect($service->publicFuzzySearchIds('Hidayh'))->toContain((string) $institution->id);
 });
@@ -317,13 +298,8 @@ it('binds all institution name ordering parameters for multi-word fuzzy searches
         'status' => 'verified',
     ]);
 
-    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return false;
-        }
-    };
+    config()->set('scout.driver', 'collection');
+    $service = app(InstitutionSearchService::class);
 
     expect($service->publicFuzzySearchIds('batu pahat'))
         ->toContain((string) $institution->id);
@@ -336,20 +312,7 @@ it('keeps transposed institution typos reachable through fallback candidate filt
         'status' => 'verified',
     ]);
 
-    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingInstitutionSearchService();
 
     expect($service->publicFuzzySearchIds('Ahmda'))->toContain((string) $institution->id);
 });
@@ -369,25 +332,7 @@ it('keeps exact institution fuzzy matches inside the capped fallback candidate s
         'status' => 'verified',
     ]);
 
-    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-
-        protected function typesenseResultLimit(): int
-        {
-            return 5;
-        }
-    };
+    $service = makeFailingInstitutionSearchService(5);
 
     expect($service->publicFuzzySearchIds('Samadx'))->toContain((string) $exactInstitution->id);
 });
@@ -605,20 +550,7 @@ it('falls back to database reference search when typesense lookup fails', functi
         'status' => 'verified',
     ]);
 
-    $service = new class(app(ReferenceSearchCache::class)) extends ReferenceSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingReferenceSearchService();
 
     expect($service->publicSearchIds('himpunan hadith'))->toContain((string) $reference->id);
 });
@@ -629,20 +561,7 @@ it('falls back to database reference fuzzy search when typesense lookup fails', 
         'status' => 'verified',
     ]);
 
-    $service = new class(app(ReferenceSearchCache::class)) extends ReferenceSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingReferenceSearchService();
 
     expect($service->publicFuzzySearchIds('Bulugh al Mram'))->toContain((string) $reference->id);
 });
@@ -689,20 +608,7 @@ it('falls back to database institution search when public query typesense fails'
         'status' => 'verified',
     ]);
 
-    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
-
-        protected function searchIdsWithScout(string $search, array $options = []): array
-        {
-            throw new RuntimeException('Typesense unavailable');
-        }
-
-        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
-    };
+    $service = makeFailingInstitutionSearchService();
 
     $ids = $service->applyPublicSearch(Institution::query(), 'Masjid Biru')
         ->pluck('institutions.id')
@@ -715,22 +621,13 @@ it('falls back to database institution search when public query typesense fails'
 it('passes the public status filter to typesense institution search', function () {
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(TypesenseHealthCheckService::class, fn () => new class(app(App\Shared\Contracts\SearchHealthProbe::class)) extends TypesenseHealthCheckService
-    {
-        public function isAvailable(): bool
-        {
-            return true;
-        }
-    });
+    $healthCheck = Mockery::mock(SearchHealthCheck::class);
+    $healthCheck->shouldReceive('isAvailable')->andReturn(true);
+    app()->instance(SearchHealthCheck::class, $healthCheck);
 
-    $service = new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
+    $service = new class(app(InstitutionSearchCache::class), app(SearchEngineResolver::class), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends InstitutionSearchService
     {
         public array $capturedOptions = [];
-
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
 
         protected function searchIdsWithScout(string $search, array $options = []): array
         {

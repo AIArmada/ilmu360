@@ -10,12 +10,8 @@ use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\Addressing\Support\LocationLevelLabels;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
-use App\Features\Discovery\Api\Data\EventListData;
-use App\Features\Discovery\Api\Data\EventSearchPage;
-use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Engagement\Api\EventEngagement;
 use App\Features\Engagement\Api\EventEngagementToggles;
 use App\Features\Engagement\Api\EventSaveCommands;
@@ -37,7 +33,7 @@ use App\Platform\Location\LocationSlugResolver;
 use App\Platform\Location\PublicGeolocationPermission;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Shared\Auth\IntendedRedirect;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use App\Shared\Location\VisitorCountryResolving;
 use Carbon\CarbonInterface;
 use Filament\Forms\Components\DatePicker;
@@ -335,9 +331,6 @@ class Index extends Component implements HasForms
      * @var list<string>|null
      */
     private ?array $goingEventIdsForFilterCache = null;
-
-    /** @var LengthAwarePaginator<int, Event>|null */
-    private ?LengthAwarePaginator $eventsForRequest = null;
 
     /** @var LengthAwarePaginator<int, PublicScheduleLeaf>|null */
     private ?LengthAwarePaginator $scheduleItemsForRequest = null;
@@ -1129,7 +1122,7 @@ class Index extends Component implements HasForms
             $country->exists = true;
 
             return $country;
-        }, app(SelectionCatalogCache::class)->countryRows());
+        }, app(SelectionCatalog::class)->countryRows());
 
         return new \Illuminate\Database\Eloquent\Collection($countries);
     }
@@ -1277,7 +1270,14 @@ class Index extends Component implements HasForms
     {
         $areaId = AddressAreaStateBridge::areaIdForState($this->normalizeNullableString($this->state_id));
 
-        if ($areaId !== null && AddressArea::query()->whereKey($areaId)->value('type') === 'wilayah_persekutuan') {
+        if ($areaId !== null && app(SelectionCatalog::class)->rememberAddressValue(
+            "area-type:{$areaId}",
+            static function () use ($areaId): ?string {
+                $type = AddressArea::query()->whereKey($areaId)->value('type');
+
+                return is_string($type) ? $type : null;
+            },
+        ) === 'wilayah_persekutuan') {
             return __('WP');
         }
 
@@ -1393,7 +1393,25 @@ class Index extends Component implements HasForms
             return null;
         }
 
-        return AddressArea::query()->whereKey($id)->value('name');
+        return app(SelectionCatalog::class)->addressAreaNamesByIds([$id])[$id] ?? null;
+    }
+
+    /**
+     * @param  list<string>  $values
+     * @return array<string, string>
+     */
+    public function areaOptionLabels(array $values): array
+    {
+        $ids = array_values(array_filter(array_map(
+            static fn (mixed $value): ?string => AddressFormState::normalizeLocationId(is_scalar($value) ? $value : null),
+            $values,
+        )));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return app(SelectionCatalog::class)->addressAreaNamesByIds($ids);
     }
 
     /**
@@ -1588,87 +1606,6 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return LengthAwarePaginator<int, Event>
-     */
-    #[Computed]
-    public function events(): LengthAwarePaginator
-    {
-        if ($this->eventsForRequest instanceof LengthAwarePaginator) {
-            return $this->eventsForRequest;
-        }
-
-        if ($this->savedOnlyHasNoMatches() || $this->goingOnlyHasNoMatches()) {
-            return $this->eventsForRequest = $this->emptyEventPaginator();
-        }
-
-        $filters = $this->normalizedUrlState();
-        $searchFilters = $this->buildSearchFilters($filters);
-        $searchService = app(EventSearchReader::class);
-
-        $page = $filters['lat'] !== null && $filters['lng'] !== null
-            ? $searchService->searchNearby(
-                lat: (float) $filters['lat'],
-                lng: (float) $filters['lng'],
-                radiusKm: (int) $filters['radius_km'],
-                filters: $searchFilters,
-                perPage: 12,
-            )
-            : $searchService->search(
-                query: $filters['search'],
-                filters: $searchFilters,
-                perPage: 12,
-                sort: $filters['sort'],
-            );
-
-        return $this->eventsForRequest = $this->eventPaginatorFromSearchPage($page);
-    }
-
-    /**
-     * Rehydrate the page ids into this feature's own models for the Blade card
-     * component, preserving page metadata and id order.
-     *
-     * @return LengthAwarePaginator<int, Event>
-     */
-    private function eventPaginatorFromSearchPage(EventSearchPage $page): LengthAwarePaginator
-    {
-        /** @var list<string> $eventIds */
-        $eventIds = array_map(
-            static fn (EventListData $item): string => $item->id,
-            $page->items,
-        );
-
-        $events = $eventIds === []
-            ? collect()
-            : Event::query()
-                ->with(app(EventSearchRelationProvider::class)->relations())
-                ->whereHas('occurrences')
-                ->whereKey($eventIds)
-                ->get()
-                ->keyBy('id');
-
-        $orderedEvents = collect($eventIds)
-            ->map(static fn (string $eventId): ?Event => $events->get($eventId))
-            ->filter()
-            ->values();
-
-        $orderedEvents->each(function (Event $event) use ($page): void {
-            $distanceKm = $page->distances[$event->id] ?? null;
-
-            if ($distanceKm !== null) {
-                $event->setAttribute('distance_km', $distanceKm);
-            }
-        });
-
-        return new Paginator(
-            items: $orderedEvents,
-            total: $page->total,
-            perPage: $page->perPage,
-            currentPage: $page->currentPage,
-            options: ['path' => request()->url(), 'query' => request()->query()],
-        );
-    }
-
-    /**
      * @return LengthAwarePaginator<int, PublicScheduleLeaf>
      */
     #[Computed]
@@ -1825,20 +1762,6 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return LengthAwarePaginator<int, Event>
-     */
-    private function emptyEventPaginator(): LengthAwarePaginator
-    {
-        return new Paginator(
-            items: collect(),
-            total: 0,
-            perPage: 12,
-            currentPage: max(1, (int) $this->getPage()),
-            options: ['path' => request()->url(), 'query' => request()->query()],
-        );
-    }
-
-    /**
      * @return LengthAwarePaginator<int, PublicScheduleLeaf>
      */
     private function emptySchedulePaginator(): LengthAwarePaginator
@@ -1859,7 +1782,7 @@ class Index extends Component implements HasForms
     {
         $preferredOrder = MalaysiaLanguageCatalog::codes();
         $preferredLabels = MalaysiaLanguageCatalog::labels();
-        $catalogOptions = app(SelectionCatalogCache::class)->languageOptions('code', $preferredLabels);
+        $catalogOptions = app(SelectionCatalog::class)->languageOptions('code', $preferredLabels);
         $options = [];
 
         foreach ($preferredOrder as $code) {

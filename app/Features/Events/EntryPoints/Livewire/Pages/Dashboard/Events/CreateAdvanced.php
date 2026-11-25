@@ -31,7 +31,7 @@ use App\Features\References\Api\ReferenceLookup;
 use App\Models\User;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\Select;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -1357,7 +1357,7 @@ class CreateAdvanced extends Component implements HasForms
     /** @return array<string, string> */
     protected function languageOptions(): array
     {
-        return app(SelectionCatalogCache::class)->languageOptionsForCodes(
+        return app(SelectionCatalog::class)->languageOptionsForCodes(
             MalaysiaLanguageCatalog::codes(),
             MalaysiaLanguageCatalog::labels(),
         );

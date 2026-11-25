@@ -2,27 +2,15 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollowCommands;
 use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
-use App\Features\Events\Api\Enums\EventKeyPersonRole;
-use App\Features\Events\Api\Enums\EventVisibility;
-use App\Features\Events\Models\Event;
-use App\Features\Events\Models\EventKeyPerson;
-use App\Features\Persons\Models\Person;
-use App\Features\Persons\Services\PersonSearchService;
+use App\Features\Persons\Queries\PersonDirectoryQuery;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -36,8 +24,6 @@ new
     class extends Component
     {
         use WithPagination;
-
-        private const MIN_SEARCH_LENGTH = 3;
 
         #[Url]
         public ?string $search = null;
@@ -81,36 +67,23 @@ new
             );
         }
 
-        private function applySort(Builder $query): Builder
-        {
-            return match ($this->sort) {
-                'name' => $query->orderBy('persons.name'),
-                default => $query->publicDirectoryOrder(),
-            };
-        }
-
         #[Computed]
         public function persons(): LengthAwarePaginatorContract
         {
-            $search = $this->normalizedSearch();
-
-            if ($search === null) {
-                return $this->attachUpcomingEventCountsToPaginator(
-                    $this->paginateWithWindowTotal($this->applySort($this->basePersonsQuery())),
-                );
-            }
-
-            if (mb_strlen($search) < self::MIN_SEARCH_LENGTH) {
-                return $this->emptyPaginator();
-            }
-
-            $directMatches = $this->directSearch($search);
-
-            if ($directMatches->total() > 0) {
-                return $directMatches;
-            }
-
-            return $this->fuzzySearch($search);
+            return app(PersonDirectoryQuery::class)->paginate(
+                search: $this->normalizedSearch(),
+                sort: $this->sort,
+                titleId: $this->normalizedFilterId($this->title_id),
+                languageId: $this->normalizedFilterId($this->language_id),
+                stateId: $this->normalizedFilterId($this->state_id),
+                upcomingOnly: $this->upcoming_only === true,
+                followedOnly: $this->followed_only === true && auth()->user() instanceof User,
+                followingPersonIds: $this->followingPersonIds,
+                page: max(1, (int) $this->getPage()),
+                paginationMeta: $this->paginationMeta(),
+                requestQuery: request()->query(),
+                requestUrl: request()->url(),
+            );
         }
 
         public function updatedSearch(): void
@@ -217,80 +190,6 @@ new
             }
         }
 
-        private function basePersonsQuery(): Builder
-        {
-            return $this->applyDirectoryFilters(
-                Person::query()
-                    ->speakers()
-                    ->whereIn('status', ['verified', 'pending']),
-            )->with([
-                'media' => function (MorphMany $relation): void {
-                    $relation->where('collection_name', 'profile');
-                },
-                'addresses.state',
-                // Matches the lazy path in formatted_name (active assignments
-                // with title.category) so cards never query per person.
-                'titleAssignments' => function (MorphMany $relation): void {
-                    $relation
-                        ->where('status', AssignmentStatus::Active)
-                        ->with('title.category');
-                },
-            ]);
-        }
-
-        private function applyDirectoryFilters(Builder $query): Builder
-        {
-            $titleId = $this->normalizedFilterId($this->title_id);
-            $languageId = $this->normalizedFilterId($this->language_id);
-            $stateId = $this->normalizedFilterId($this->state_id);
-            $upcomingOnly = $this->upcoming_only === true;
-            $followedOnly = $this->followed_only === true && auth()->user() instanceof User;
-            $eventsTable = (new Event)->getTable();
-            $eventInvolvementsTable = (new EventKeyPerson)->getTable();
-            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-
-            return $query
-                ->when($followedOnly, function (Builder $query): void {
-                    $query->whereIn('persons.id', $this->followedPersonIds());
-                })
-                ->when($titleId !== null, function (Builder $query) use ($titleId): void {
-                    $query->whereHas('titleAssignments', function (Builder $titleQuery) use ($titleId): void {
-                        $titleQuery
-                            ->where('title_id', $titleId)
-                            ->where('status', AssignmentStatus::Active);
-                    });
-                })
-                ->when($languageId !== null, function (Builder $query) use ($languageId): void {
-                    $query->whereHas('languages', function (Builder $languageQuery) use ($languageId): void {
-                        $languageQuery->where('languages.id', $languageId);
-                    });
-                })
-                ->when($stateId !== null, function (Builder $query) use ($stateId): void {
-                    $query->whereHas('addresses', function (Builder $addressQuery) use ($stateId): void {
-                        $addressQuery->where('state_id', $stateId);
-                    });
-                })
-                ->when($upcomingOnly, function (Builder $query) use ($eventInvolvementsTable, $eventsTable, $occurrencesTable): void {
-                    $query->whereExists(function (QueryBuilder $existsQuery) use ($eventInvolvementsTable, $eventsTable, $occurrencesTable): void {
-                        $existsQuery
-                            ->selectRaw('1')
-                            ->from("{$eventInvolvementsTable} as event_involvements")
-                            ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
-                            ->join("{$occurrencesTable} as occurrences", 'occurrences.event_id', '=', 'events.id')
-                            ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
-                            ->whereColumn('event_involvements.involveable_id', 'persons.id')
-                            ->where('event_involvements.role_code', EventKeyPersonRole::Speaker->value)
-                            ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                            ->where('events.visibility', EventVisibility::Public->value)
-                            ->whereNotNull('events.published_at')
-                            ->whereIn('occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
-                            ->whereIn('occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
-                            ->whereNotNull('occurrences.starts_at')
-                            ->where('occurrences.starts_at', '>=', now());
-                    });
-                });
-        }
-
         private function normalizedFilterId(?string $value): ?string
         {
             if (! is_string($value)) {
@@ -300,239 +199,6 @@ new
             $value = trim($value);
 
             return Str::isUuid($value) ? $value : null;
-        }
-
-        /**
-         * @return list<string>
-         */
-        private function followedPersonIds(): array
-        {
-            return $this->followingPersonIds;
-        }
-
-        private function directSearch(string $search): LengthAwarePaginatorContract
-        {
-            $matchingIds = $this->personSearchService()->publicSearchIds($search);
-
-            if ($matchingIds === []) {
-                return $this->emptyPaginator();
-            }
-
-            if ($this->sort === 'name') {
-                return $this->attachUpcomingEventCountsToPaginator(
-                    $this->paginateWithWindowTotal(
-                        $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $matchingIds)),
-                        withQueryString: true,
-                    ),
-                );
-            }
-
-            return $this->orderedIdPaginator($matchingIds);
-        }
-
-        private function fuzzySearch(string $search): LengthAwarePaginatorContract
-        {
-            return $this->orderedIdPaginator(
-                $this->personSearchService()->publicFuzzySearchIds($search),
-            );
-        }
-
-        /**
-         * @param  list<string>  $orderedIds
-         */
-        private function orderedIdPaginator(array $orderedIds): LengthAwarePaginatorContract
-        {
-            $orderedIds = $this->scopeOrderedIds($orderedIds);
-
-            if ($orderedIds === []) {
-                return $this->emptyPaginator();
-            }
-
-            if ($this->sort === 'name') {
-                return $this->attachUpcomingEventCountsToPaginator(
-                    $this->paginateWithWindowTotal(
-                        $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $orderedIds)),
-                        withQueryString: true,
-                    ),
-                );
-            }
-
-            $currentPage = max(1, (int) $this->getPage());
-            $perPage = 12;
-            $paginationMeta = $this->paginationMeta();
-            $paginatedIds = array_slice($orderedIds, ($currentPage - 1) * $perPage, $perPage);
-
-            if ($paginatedIds === []) {
-                return new LengthAwarePaginator(collect(), count($orderedIds), $perPage, $currentPage, $paginationMeta);
-            }
-
-            $persons = $this->basePersonsQuery()
-                ->whereIn('persons.id', $paginatedIds)
-                ->get()
-                ->sortBy(static function (Person $person) use ($paginatedIds): int {
-                    $position = array_search((string) $person->id, $paginatedIds, true);
-
-                    return is_int($position) ? $position : PHP_INT_MAX;
-                })
-                ->values();
-
-            $this->attachUpcomingEventCountsToPersons($persons);
-
-            return new LengthAwarePaginator($persons, count($orderedIds), $perPage, $currentPage, $paginationMeta);
-        }
-
-        /**
-         * @param  list<string>  $orderedIds
-         * @return list<string>
-         */
-        private function scopeOrderedIds(array $orderedIds): array
-        {
-            if ($orderedIds === []) {
-                return [];
-            }
-
-            $scopedIds = $this->basePersonsQuery()
-                ->whereIn('persons.id', $orderedIds)
-                ->pluck('persons.id')
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->all();
-
-            return collect($scopedIds)
-                ->sortBy(static function (string $id) use ($orderedIds): int {
-                    $position = array_search($id, $orderedIds, true);
-
-                    return is_int($position) ? $position : PHP_INT_MAX;
-                })
-                ->values()
-                ->all();
-        }
-
-        private function paginateWithWindowTotal(Builder $query, int $perPage = 12, bool $withQueryString = false): LengthAwarePaginator
-        {
-            $currentPage = max(1, (int) $this->getPage());
-
-            $persons = (clone $query)
-                ->select('persons.*')
-                ->selectRaw('count(*) over () as matching_total')
-                ->forPage($currentPage, $perPage)
-                ->get();
-
-            $total = $persons->first() instanceof Person
-                ? (int) $persons->first()->getAttribute('matching_total')
-                : 0;
-
-            // A page beyond the end has no row from which to read the window
-            // total, so fall back to a scoped count without changing the normal
-            // request path.
-            if ($persons->isEmpty() && $currentPage > 1) {
-                $total = (clone $query)->reorder()->count();
-            }
-
-            $persons->each(static fn (Person $person): Person => $person->makeHidden('matching_total'));
-
-            $paginator = new LengthAwarePaginator(
-                $persons,
-                $total,
-                $perPage,
-                $currentPage,
-                $withQueryString
-                    ? ['path' => request()->url(), 'query' => request()->query()]
-                    : $this->paginationMeta(),
-            );
-
-            return $withQueryString ? $paginator : $paginator->appends($this->directoryQueryString());
-        }
-
-        private function attachUpcomingEventCountsToPaginator(LengthAwarePaginator $paginator): LengthAwarePaginator
-        {
-            $this->attachUpcomingEventCountsToPersons($paginator->getCollection());
-
-            return $paginator;
-        }
-
-        /**
-         * @param  Collection<int, Person>  $persons
-         */
-        private function attachUpcomingEventCountsToPersons(Collection $persons): void
-        {
-            $personIds = $persons
-                ->map(static fn (Person $person): string => (string) $person->getKey())
-                ->filter(static fn (string $id): bool => $id !== '')
-                ->values();
-
-            if ($personIds->isEmpty()) {
-                return;
-            }
-
-            $eventsTable = (new Event)->getTable();
-            $eventInvolvementsTable = (new EventKeyPerson)->getTable();
-            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
-            $now = now();
-            // Scoped to the listed persons' public events. Join duplication cannot
-            // change MIN(starts_at), which stays the same earliest-occurrence
-            // value used by EventBuilder, including the past-plus-future case.
-            $counts = DB::table("{$eventInvolvementsTable} as event_involvements")
-                ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
-                ->join("{$occurrencesTable} as occurrences", 'occurrences.event_id', '=', 'events.id')
-                ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
-                ->whereIn('event_involvements.involveable_id', $personIds->all())
-                ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                ->where('events.visibility', EventVisibility::Public)
-                ->whereNotNull('events.published_at')
-                ->whereIn('occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
-                ->whereIn('occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
-                ->whereNotNull('occurrences.starts_at')
-                ->where('occurrences.starts_at', '>=', $now)
-                ->selectRaw('event_involvements.involveable_id, count(distinct occurrences.id) as events_count')
-                ->groupBy('event_involvements.involveable_id')
-                ->pluck('events_count', 'event_involvements.involveable_id');
-
-            $rankedNextEvents = DB::table("{$eventInvolvementsTable} as event_involvements")
-                ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
-                ->join("{$occurrencesTable} as occurrences", 'occurrences.event_id', '=', 'events.id')
-                ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
-                ->whereIn('event_involvements.involveable_id', $personIds->all())
-                ->where('event_involvements.role_code', EventKeyPersonRole::Speaker->value)
-                ->whereNotNull('occurrences.starts_at')
-                ->where('occurrences.starts_at', '>=', $now)
-                ->whereIn('occurrences.status', Event::PUBLIC_SCHEDULE_STATUSES)
-                ->whereIn('occurrences.visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
-                ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                ->where('events.visibility', EventVisibility::Public->value)
-                ->whereNotNull('events.published_at')
-                ->select([
-                    'event_involvements.involveable_id as person_id',
-                    'events.slug as event_slug',
-                    'events.title as event_title',
-                    'occurrences.starts_at as event_starts_at',
-                ])
-                ->selectRaw('row_number() over (partition by event_involvements.involveable_id order by occurrences.starts_at asc, events.id asc) as rn');
-
-            $nextEvents = DB::query()
-                ->fromSub($rankedNextEvents, 'ranked_next_events')
-                ->where('rn', 1)
-                ->get()
-                ->keyBy('person_id');
-
-            foreach ($persons as $person) {
-                $personId = (string) $person->getKey();
-                $nextEvent = $nextEvents->get($personId);
-
-                $person->setAttribute('events_count', (int) ($counts->get($personId) ?? 0));
-                $person->setAttribute('next_event_slug', is_object($nextEvent) ? (string) $nextEvent->event_slug : null);
-                $person->setAttribute('next_event_title', is_object($nextEvent) ? (string) $nextEvent->event_title : null);
-                $person->setAttribute(
-                    'next_event_starts_at',
-                    is_object($nextEvent) && filled($nextEvent->event_starts_at)
-                        ? CarbonImmutable::parse((string) $nextEvent->event_starts_at, 'UTC')
-                        : null,
-                );
-            }
-        }
-
-        private function emptyPaginator(): LengthAwarePaginatorContract
-        {
-            return new LengthAwarePaginator(collect(), 0, 12, max(1, (int) $this->getPage()), $this->paginationMeta());
         }
 
         private function normalizedSearch(): ?string
@@ -574,11 +240,6 @@ new
                 'path' => request()->url(),
                 'query' => array_merge(request()->query(), $this->directoryQueryString()),
             ];
-        }
-
-        private function personSearchService(): PersonSearchService
-        {
-            return app(PersonSearchService::class);
         }
     };
 ?>

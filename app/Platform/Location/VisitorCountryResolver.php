@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Platform\Location;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use App\Shared\Location\VisitorCountryResolving;
 use Illuminate\Http\Request;
 
@@ -40,7 +40,7 @@ final class VisitorCountryResolver implements VisitorCountryResolving
     ];
 
     public function __construct(
-        private readonly SelectionCatalogCache $catalogCache,
+        private readonly SelectionCatalog $catalogCache,
         private readonly AddressCountryResolver $countryResolver,
     ) {}
 

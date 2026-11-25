@@ -6,22 +6,22 @@ namespace App\Platform\Addressing\Observers;
 
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 final readonly class AddressCatalogObserver implements ShouldHandleEventsAfterCommit
 {
-    public function __construct(private SelectionCatalogCache $selectionCatalogCache) {}
+    public function __construct(private SelectionCatalog $selectionCatalog) {}
 
     public function saved(State|City $model): void
     {
         if ($model->wasRecentlyCreated || $model->wasChanged()) {
-            $this->selectionCatalogCache->bustAddress();
+            $this->selectionCatalog->bustAddress();
         }
     }
 
     public function deleted(State|City $model): void
     {
-        $this->selectionCatalogCache->bustAddress();
+        $this->selectionCatalog->bustAddress();
     }
 }

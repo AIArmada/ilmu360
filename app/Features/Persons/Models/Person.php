@@ -4,7 +4,6 @@ namespace App\Features\Persons\Models;
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Traits\HasAddresses;
-use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Contracts\Followable;
@@ -30,6 +29,7 @@ use App\Platform\Models\Concerns\HasLanguages;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auditing\RecordsCustomAuditDifferences;
 use App\Shared\Auditing\RecordsCustomAuditEvents;
+use App\Shared\Cache\DiscoveryCache;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -71,8 +71,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, Followable, HasMedia, MembershipMutationGuard, RecordsCustomAuditDifferences, RecordsCustomAuditEvents
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
-
-    public const string FEATURED_IDS_CACHE_KEY = 'home:featured_person_ids:v1';
 
     #[\Override]
     protected $table = 'persons';
@@ -397,8 +395,28 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     #[\Override]
     protected static function booted(): void
     {
-        static::saved(static fn () => app(CacheVersionStore::class)->bump(self::FEATURED_IDS_CACHE_KEY));
-        static::deleted(static fn () => app(CacheVersionStore::class)->bump(self::FEATURED_IDS_CACHE_KEY));
+        $bumpFeatured = static function (): void {
+            $versionKey = config('discovery.cache.versions.persons_featured', 'discovery:v:persons:featured');
+            app(DiscoveryCache::class)->bump(is_string($versionKey) && $versionKey !== '' ? $versionKey : 'discovery:v:persons:featured');
+        };
+
+        static::created($bumpFeatured);
+        static::updated(static function (self $person) use ($bumpFeatured): void {
+            if ($person->wasChanged([
+                'is_featured',
+                'status',
+                'speaker_status',
+                'order_column',
+                'sort_order',
+                'name',
+                'middle_name',
+                'family_name',
+                'slug',
+            ])) {
+                $bumpFeatured();
+            }
+        });
+        static::deleted($bumpFeatured);
     }
 
     public function getAvatarUrlAttribute(): ?string

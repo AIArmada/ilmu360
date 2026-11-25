@@ -42,6 +42,8 @@ use App\Platform\Telemetry\ProductSignalRecorder;
 use App\Platform\Telemetry\SignalSchemaRegistry;
 use App\Platform\Time\DefaultUserDateTimeFormatter;
 use App\Platform\Ui\ContentVersionedJs;
+use App\Shared\Cache\SelectionCatalog;
+use App\Shared\Cache\SelectionCatalogCache;
 use App\Shared\Captcha\CaptchaVerifier;
 use App\Shared\Contracts\AffiliateSnapshotPersistence;
 use App\Shared\Contracts\SearchHealthProbe;
@@ -118,6 +120,7 @@ class AppServiceProvider extends ServiceProvider
         );
         $this->app->bind(LanguageOptions::class, EloquentLanguageOptions::class);
         $this->app->bind(AddressCatalog::class, EloquentAddressCatalog::class);
+        $this->app->bind(SelectionCatalog::class, SelectionCatalogCache::class);
 
         $this->app->bind(AuditRecorder::class, EloquentAuditRecorder::class);
         $this->app->bind(LanguageCatalog::class, DatabaseLanguageCatalog::class);

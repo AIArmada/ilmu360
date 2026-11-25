@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\References\Persistence;
 
-use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
-use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\References\Api\ReferenceSearchCache;
+use App\Shared\Cache\DiscoveryCache;
 use Closure;
 
 /**
@@ -14,13 +13,8 @@ use Closure;
  */
 final readonly class ReferenceSearchCacheStore implements ReferenceSearchCache
 {
-    private const string VERSION_KEY = 'reference_search_public_version_v2';
-
-    private const int PUBLIC_SEARCH_CACHE_TTL_SECONDS = 600;
-
     public function __construct(
-        private CacheVersionStore $versions,
-        private VersionedCache $cache,
+        private DiscoveryCache $cache,
     ) {}
 
     /**
@@ -43,7 +37,7 @@ final readonly class ReferenceSearchCacheStore implements ReferenceSearchCache
 
     public function bumpPublicSearchVersion(): void
     {
-        $this->versions->bump(self::VERSION_KEY);
+        $this->cache->bump($this->versionKey());
     }
 
     /**
@@ -56,12 +50,19 @@ final readonly class ReferenceSearchCacheStore implements ReferenceSearchCache
 
         /** @var list<string> $ids */
         $ids = $this->cache->remember(
-            self::VERSION_KEY,
+            $this->versionKey(),
             sprintf('%s:%s', $keyPrefix, md5($boundedSearch)),
-            self::PUBLIC_SEARCH_CACHE_TTL_SECONDS,
+            (int) config('discovery.cache.ttls.search_public', 300),
             $resolve,
         );
 
         return $ids;
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.references_search', 'discovery:v:references:search');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:references:search';
     }
 }

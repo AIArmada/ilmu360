@@ -41,7 +41,7 @@ use App\Models\User;
 use App\Platform\Language\Models\Language;
 use App\Platform\Models\MorphModelResolver;
 use App\Shared\Auth\IntendedRedirect;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -575,7 +575,7 @@ class Show extends Component
                 return collect();
             }
 
-            $ownLabels = app(SelectionCatalogCache::class)->languageLabelsForCodes($ownCodes->all());
+            $ownLabels = app(SelectionCatalog::class)->languageLabelsForCodes($ownCodes->all());
 
             return $ownCodes
                 ->map(fn (string $code): string => $ownLabels[$code] ?? strtoupper($code))
@@ -596,7 +596,7 @@ class Show extends Component
             return collect();
         }
 
-        $labels = app(SelectionCatalogCache::class)->languageLabelsForCodes($codes);
+        $labels = app(SelectionCatalog::class)->languageLabelsForCodes($codes);
 
         return collect($codes)
             ->map(fn (string $code): string => $labels[$code] ?? strtoupper($code))

@@ -4,26 +4,27 @@ declare(strict_types=1);
 
 namespace App\Features\Inspirations\Queries;
 
-use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\Inspirations\Api\InspirationCard;
 use App\Features\Inspirations\Api\InspirationReader;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Features\Inspirations\Models\Inspiration;
+use App\Shared\Cache\DiscoveryCache;
 
 final readonly class DatabaseInspirationReader implements InspirationReader
 {
-    public function __construct(private VersionedCache $cache) {}
+    public function __construct(private DiscoveryCache $cache) {}
 
     public function random(?string $locale = null): ?InspirationCard
     {
         $localeKey = trim((string) ($locale ?? app()->getLocale()));
         $localeKey = $localeKey !== '' ? $localeKey : 'default';
+        $versionKey = config('discovery.cache.versions.inspirations', 'discovery:v:inspirations');
 
         /** @var list<string> $ids */
         $ids = $this->cache->remember(
-            Inspiration::ACTIVE_CACHE_VERSION_KEY,
+            is_string($versionKey) && $versionKey !== '' ? $versionKey : 'discovery:v:inspirations',
             "inspirations:active:ids:{$localeKey}",
-            300,
+            (int) config('discovery.cache.ttls.search_public', 300),
             static fn (): array => Inspiration::query()
                 ->active()
                 ->forLocale($locale)

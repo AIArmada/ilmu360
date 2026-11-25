@@ -1264,6 +1264,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Own
                 'occurrences',
                 'displayOccurrence.media',
                 'timeExpressions',
+                'links',
+                'audiences',
             ])
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
@@ -1296,6 +1298,8 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Own
             'primaryOccurrence',
             'displayOccurrence.media',
             'timeExpressions',
+            'links',
+            'audiences',
         ]);
         $this->load([
             'references' => fn ($referenceQuery) => $referenceQuery->active(),
@@ -1454,6 +1458,16 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Own
             ->values()
             ->all();
 
+        $explicitEndInstant = $primaryOccurrence instanceof EventOccurrence
+            ? $primaryOccurrence->ends_at
+            : $this->ends_at;
+        $hasEventUrl = $this->links->contains(static fn (EventLink $link): bool => ($link->link_type instanceof BackedEnum ? $link->link_type->value : (string) $link->link_type) === 'external'
+            && is_string($link->url)
+            && $link->url !== '');
+        $hasLiveUrl = $this->links->contains(static fn (EventLink $link): bool => ($link->link_type instanceof BackedEnum ? $link->link_type->value : (string) $link->link_type) === 'streaming'
+            && is_string($link->url)
+            && $link->url !== '');
+
         $array = [
             'id' => $this->id,
             'title' => $this->title,
@@ -1483,6 +1497,10 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Own
             'age_group' => $ageGroupValues,
             'event_format' => $eventFormat instanceof EventFormat ? $eventFormat->value : ((is_string($eventFormat) && $eventFormat !== '') ? $eventFormat : 'physical'),
             'children_allowed' => $this->children_allowed ?? true,
+            'is_muslim_only' => (bool) $this->is_muslim_only,
+            'has_event_url' => $hasEventUrl,
+            'has_live_url' => $hasLiveUrl,
+            'has_end_time' => $explicitEndInstant instanceof CarbonInterface,
             'status' => (string) $this->status,
             'visibility' => $visibility instanceof EventVisibility ? $visibility->value : ((is_string($visibility) && $visibility !== '') ? $visibility : 'public'),
             'occurrence_status' => $occurrenceStatus instanceof BackedEnum ? $occurrenceStatus->value : ((is_string($occurrenceStatus) && $occurrenceStatus !== '') ? $occurrenceStatus : null),

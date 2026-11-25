@@ -18,6 +18,7 @@ use App\Features\Places\Models\Venue;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Api\ReferenceHomepageStats;
 use App\Features\References\Models\Reference;
+use App\Shared\Cache\DiscoveryCache;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -36,8 +37,11 @@ beforeEach(function (): void {
  */
 function primeMajlisListingCache(): array
 {
+    $version = app(DiscoveryCache::class)->version((string) config('discovery.cache.versions.events_schedule'));
     $keys = [
-        'default_events_search_v2',
+        "default_events_search:country:global:per:12:{$version}",
+        'default_schedule_page:country:global:per:12:tz:UTC:min:'.now()->utc()->format('YmdHi').":{$version}",
+        "homepage_featured_occurrences:{$version}",
     ];
 
     foreach ($keys as $key) {
@@ -52,11 +56,12 @@ function primeMajlisListingCache(): array
  */
 function primeHomepageStatsCache(): array
 {
+    $version = app(DiscoveryCache::class)->version((string) config('discovery.cache.versions.homepage_stats'));
     $keys = [
-        'home.stats.events.active',
-        'home.stats.persons.active',
-        'home.stats.institutions.active',
-        'home.stats.references.active',
+        "home:stats:events:active:{$version}",
+        "home:stats:persons:active:{$version}",
+        "home:stats:institutions:active:{$version}",
+        "home:stats:references:active:{$version}",
     ];
 
     foreach ($keys as $key) {
@@ -71,9 +76,11 @@ function primeHomepageStatsCache(): array
  */
 function assertMajlisCacheWasCleared(array $keys): void
 {
+    $currentVersion = app(DiscoveryCache::class)->version((string) config('discovery.cache.versions.events_schedule'));
+
     foreach ($keys as $key) {
-        expect(Cache::has($key))
-            ->toBeFalse("Expected cache key [{$key}] to be cleared.");
+        expect(str_ends_with($key, ":{$currentVersion}"))
+            ->toBeFalse("Expected majlis version for [{$key}] to have bumped.");
     }
 }
 
@@ -82,9 +89,11 @@ function assertMajlisCacheWasCleared(array $keys): void
  */
 function assertHomepageStatsCacheWasCleared(array $keys): void
 {
+    $currentVersion = app(DiscoveryCache::class)->version((string) config('discovery.cache.versions.homepage_stats'));
+
     foreach ($keys as $key) {
-        expect(Cache::has($key))
-            ->toBeFalse("Expected cache key [{$key}] to be cleared.");
+        expect(str_ends_with($key, ":{$currentVersion}"))
+            ->toBeFalse("Expected homepage stats version for [{$key}] to have bumped.");
     }
 }
 
@@ -105,11 +114,14 @@ it('reads homepage counts through their feature-owned caches', function (): void
     expect(app(EventHomepageStats::class)->activeEventCount())->toBe($eventCount)
         ->and(app(PersonHomepageStats::class)->activePersonCount())->toBe($personCount)
         ->and(app(InstitutionHomepageStats::class)->activeInstitutionCount())->toBe($institutionCount)
-        ->and(app(ReferenceHomepageStats::class)->rootReferenceCount())->toBe($referenceCount)
-        ->and(Cache::has('home.stats.events.active'))->toBeTrue()
-        ->and(Cache::has('home.stats.persons.active'))->toBeTrue()
-        ->and(Cache::has('home.stats.institutions.active'))->toBeTrue()
-        ->and(Cache::has('home.stats.references.active'))->toBeTrue();
+        ->and(app(ReferenceHomepageStats::class)->rootReferenceCount())->toBe($referenceCount);
+
+    $version = app(DiscoveryCache::class)->version((string) config('discovery.cache.versions.homepage_stats'));
+
+    expect(Cache::has("home:stats:events:active:{$version}"))->toBeTrue()
+        ->and(Cache::has("home:stats:persons:active:{$version}"))->toBeTrue()
+        ->and(Cache::has("home:stats:institutions:active:{$version}"))->toBeTrue()
+        ->and(Cache::has("home:stats:references:active:{$version}"))->toBeTrue();
 });
 
 it('clears majlis listing cache when event is submitted from public submit form', function () {

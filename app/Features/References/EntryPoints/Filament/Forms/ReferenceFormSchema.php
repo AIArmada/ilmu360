@@ -10,7 +10,7 @@ use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Models\User;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use App\Shared\Signals\SignalRecorder;
 use BackedEnum;
 use Filament\Forms\Components\Placeholder;
@@ -136,11 +136,11 @@ class ReferenceFormSchema implements ReferenceQuickCreate
             TextInput::make('isbn')->label('ISBN')->maxLength(20)->rules([new Isbn]),
             Select::make('language')->label(__('Language'))
                 ->placeholder(__('Select language'))
-                ->options(fn (): array => app(SelectionCatalogCache::class)->languageSelectOptions())
+                ->options(fn (): array => app(SelectionCatalog::class)->languageSelectOptions())
                 ->searchable()
                 ->preload()
                 ->getOptionLabelUsing(fn (mixed $value): ?string => is_string($value) && $value !== ''
-                    ? (app(SelectionCatalogCache::class)->languageLabel($value) ?? $value)
+                    ? (app(SelectionCatalog::class)->languageLabel($value) ?? $value)
                     : null),
             TextInput::make('url')->label(__('Primary URL'))->url()->rules(['url:http,https'])->maxLength(255),
         ];

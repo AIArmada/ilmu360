@@ -145,6 +145,12 @@ final readonly class ReferencesSchemasContributor implements DocumentSchemaContr
                     ->addProperty('total', new IntegerType)
                     ->setRequired(['total']),
             )
-            ->setRequired(['pagination', 'following']);
+            ->addProperty(
+                'cache',
+                (new ObjectType)
+                    ->addProperty('version', new StringType)
+                    ->setRequired(['version']),
+            )
+            ->setRequired(['pagination', 'following', 'cache']);
     }
 }

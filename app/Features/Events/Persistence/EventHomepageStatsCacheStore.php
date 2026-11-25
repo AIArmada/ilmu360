@@ -6,27 +6,33 @@ namespace App\Features\Events\Persistence;
 
 use App\Features\Events\Api\EventHomepageStats;
 use App\Features\Events\Models\Event;
-use Illuminate\Support\Facades\Cache;
+use App\Shared\Cache\DiscoveryCache;
 
 final readonly class EventHomepageStatsCacheStore implements EventHomepageStats
 {
-    private const string ACTIVE_COUNT_KEY = 'home.stats.events.active';
-
-    private const int CACHE_TTL_SECONDS = 3600;
+    public function __construct(
+        private DiscoveryCache $cache,
+    ) {}
 
     public function activeEventCount(): int
     {
-        $count = Cache::remember(
-            self::ACTIVE_COUNT_KEY,
-            self::CACHE_TTL_SECONDS,
-            fn (): int => Event::active()->count('id'),
+        return $this->cache->rememberInt(
+            $this->versionKey(),
+            'home:stats:events:active',
+            (int) config('discovery.cache.ttls.homepage_stats', 300),
+            static fn (): int => Event::active()->count('id'),
         );
-
-        return is_numeric($count) ? (int) $count : 0;
     }
 
     public function forgetCachedCount(): void
     {
-        Cache::forget(self::ACTIVE_COUNT_KEY);
+        $this->cache->bump($this->versionKey());
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.homepage_stats', 'discovery:v:homepage:stats');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:homepage:stats';
     }
 }

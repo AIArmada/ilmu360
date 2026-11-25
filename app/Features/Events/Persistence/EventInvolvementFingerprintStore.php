@@ -12,12 +12,16 @@ final readonly class EventInvolvementFingerprintStore implements EventInvolvemen
     public function current(): string
     {
         $involvementsTable = config('events.database.tables.event_involvements', 'event_involvements');
-        $participationCount = DB::table($involvementsTable)->count();
-        $latestParticipationChange = DB::table($involvementsTable)->max('updated_at');
+        $row = DB::table($involvementsTable)
+            ->selectRaw('count(*) as total, max(updated_at) as latest')
+            ->first();
+
+        $participationCount = is_object($row) && isset($row->total) ? (int) $row->total : 0;
+        $latestParticipationChange = is_object($row) && isset($row->latest) ? (string) $row->latest : '';
 
         return implode('|', [
             $participationCount,
-            (string) $latestParticipationChange,
+            $latestParticipationChange,
         ]);
     }
 }

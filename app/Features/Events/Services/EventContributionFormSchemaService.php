@@ -35,7 +35,7 @@ use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Platform\Ui\Forms\Select;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Closure;
 use DateTimeZone;
 use Filament\Forms\Components\DatePicker;
@@ -284,7 +284,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
                         ->native(false)
                         ->label(__('Country'))
                         ->required()
-                        ->options(fn (): array => app(SelectionCatalogCache::class)->rememberAddressOptions(
+                        ->options(fn (): array => app(SelectionCatalog::class)->rememberAddressOptions(
                             'countries',
                             static fn (): array => AddressCountry::query()
                                 ->orderBy('name')
@@ -1554,7 +1554,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
             return $this->options->languageOptions();
         }
 
-        return $this->withSelectedLabels(app(SelectionCatalogCache::class)->languageOptions('id'), $this->selectedLanguageIds($context), static fn (array $ids): array => app(SelectionCatalogCache::class)->languageOptions('id'));
+        return $this->withSelectedLabels(app(SelectionCatalog::class)->languageOptions('id'), $this->selectedLanguageIds($context), static fn (array $ids): array => app(SelectionCatalog::class)->languageOptions('id'));
     }
 
     /**

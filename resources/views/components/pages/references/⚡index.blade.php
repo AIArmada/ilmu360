@@ -1,23 +1,15 @@
 <?php
 
-use App\Features\Engagement\Api\EngagementSubjectType;
-
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
+use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollowCommands;
-use App\Features\Events\Api\EventScheduleReads;
-use App\Features\References\Api\ReferenceQueries;
-use App\Features\References\Models\Reference;
+use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
+use App\Features\References\Queries\ReferenceDirectoryQuery;
 use App\Models\User;
 use App\Shared\Auth\IntendedRedirect;
-use App\Features\Engagement\Services\DirectoryFollowSubjectResolver;
-use App\Features\References\Services\ReferenceSearchService;
-use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -30,8 +22,6 @@ new
     class extends Component
     {
         use WithPagination;
-
-        private const MIN_SEARCH_LENGTH = 3;
 
         #[Url]
         public ?string $search = null;
@@ -63,43 +53,13 @@ new
         #[Computed]
         public function references(): LengthAwarePaginatorContract
         {
-            $search = $this->normalizedSearch();
-
-            if ($search === null) {
-                $currentPage = max(1, (int) $this->getPage());
-                $perPage = 12;
-                $query = $this->baseReferencesQuery()->orderBy('references.title');
-
-                $items = (clone $query)
-                    ->selectRaw('count(*) over () as matching_total')
-                    ->forPage($currentPage, $perPage)
-                    ->get();
-
-                $firstItem = $items->first();
-                $total = $firstItem instanceof Reference
-                    ? (int) $firstItem->getAttribute('matching_total')
-                    : 0;
-
-                if ($items->isEmpty() && $currentPage > 1) {
-                    $total = (clone $query)->reorder()->count();
-                }
-
-                $items->each(static fn (Reference $reference): Reference => $reference->makeHidden('matching_total'));
-
-                $paginator = new LengthAwarePaginator($items, $total, $perPage, $currentPage, $this->paginationMeta());
-            } elseif (mb_strlen($search) < self::MIN_SEARCH_LENGTH) {
-                return $this->emptyPaginator();
-            } else {
-                $directMatches = $this->directSearch($search);
-
-                $paginator = $directMatches->total() > 0
-                    ? $directMatches
-                    : $this->fuzzySearch($search);
-            }
-
-            $this->attachNextPublicEvents($paginator->items());
-
-            return $paginator;
+            return app(ReferenceDirectoryQuery::class)->paginate(
+                search: $this->search,
+                followedOnly: $this->followed_only === true && auth()->user() instanceof User,
+                followingReferenceIds: $this->followingReferenceIds,
+                page: max(1, (int) $this->getPage()),
+                paginationMeta: $this->paginationMeta(),
+            );
         }
 
         public function updatedSearch(): void
@@ -170,189 +130,6 @@ new
             }
         }
 
-        private function baseReferencesQuery(bool $includeParts = false): Builder
-        {
-            $query = $this->applyFollowedOnlyFilter(
-                Reference::query()->active(),
-            )
-                ->select('references.*')
-                // Cards only read front/back covers, so skip the gallery
-                // collection instead of loading every media row per page.
-                ->with([
-                    'authors.titleAssignments' => function (MorphMany $relation): void {
-                        $relation
-                            ->where('status', AssignmentStatus::Active->value)
-                            ->with('title.category');
-                    },
-                    'media' => function (MorphMany $relation): void {
-                        $relation->whereIn('collection_name', ['front_cover', 'back_cover']);
-                    },
-                ]);
-
-            if ($includeParts) {
-                $query->with([
-                    'parentReference.parentReference',
-                    'parentReference.authors.titleAssignments' => function (MorphMany $relation): void {
-                        $relation
-                            ->where('status', AssignmentStatus::Active->value)
-                            ->with('title.category');
-                    },
-                    'parentReference.parentReference.authors.titleAssignments' => function (MorphMany $relation): void {
-                        $relation
-                            ->where('status', AssignmentStatus::Active->value)
-                            ->with('title.category');
-                    },
-                ]);
-            } else {
-                $query->root();
-            }
-
-            return $query;
-        }
-
-        /**
-         * @param  array<int, Reference>  $references
-         */
-        private function attachNextPublicEvents(array $references): void
-        {
-            if ($references === []) {
-                return;
-            }
-
-            $referenceIds = array_values(array_map(
-                static fn (Reference $reference): string => (string) $reference->getKey(),
-                $references,
-            ));
-
-            $families = app(ReferenceQueries::class)->defaultEventReferenceIdsForMany($referenceIds);
-            $facts = app(EventScheduleReads::class)->referenceDirectoryFacts($families);
-
-            foreach ($references as $reference) {
-                $fact = $facts[(string) $reference->getKey()] ?? null;
-
-                $reference->setAttribute('upcoming_events_count', (int) ($fact['upcoming_events_count'] ?? 0));
-                $reference->setAttribute('next_event_slug', $fact['next_event_slug'] ?? null);
-                $reference->setAttribute('next_event_title', $fact['next_event_title'] ?? null);
-                $reference->setAttribute('next_event_starts_at', $fact['next_event_starts_at'] ?? null);
-            }
-        }
-
-        private function directSearch(string $search): LengthAwarePaginatorContract
-        {
-            $matchingIds = $this->filterSearchIdsToCurrentScope(
-                $this->referenceSearchService()->publicSearchIds($search),
-            );
-
-            if ($matchingIds === []) {
-                return $this->emptyPaginator();
-            }
-
-            return $this->orderedIdPaginator($matchingIds);
-        }
-
-        private function fuzzySearch(string $search): LengthAwarePaginatorContract
-        {
-            $orderedIds = $this->filterSearchIdsToCurrentScope(
-                $this->referenceSearchService()->publicFuzzySearchIds($search),
-            );
-
-            if ($orderedIds === []) {
-                return $this->emptyPaginator();
-            }
-
-            return $this->orderedIdPaginator($orderedIds);
-        }
-
-        /**
-         * @param  list<string>  $orderedIds
-         */
-        private function orderedIdPaginator(array $orderedIds): LengthAwarePaginatorContract
-        {
-            $currentPage = max(1, (int) $this->getPage());
-            $perPage = 12;
-            $paginationMeta = $this->paginationMeta();
-            $paginatedIds = array_slice($orderedIds, ($currentPage - 1) * $perPage, $perPage);
-
-            if ($paginatedIds === []) {
-                return new LengthAwarePaginator(collect(), count($orderedIds), $perPage, $currentPage, $paginationMeta);
-            }
-
-            $references = $this->baseReferencesQuery(includeParts: true)
-                ->whereIn('references.id', $paginatedIds)
-                ->get()
-                ->sortBy(static function (Reference $reference) use ($paginatedIds): int {
-                    $position = array_search((string) $reference->id, $paginatedIds, true);
-
-                    return is_int($position) ? $position : PHP_INT_MAX;
-                })
-                ->values();
-
-            return new LengthAwarePaginator($references, count($orderedIds), $perPage, $currentPage, $paginationMeta);
-        }
-
-        /**
-         * @param  list<string>  $orderedIds
-         * @return list<string>
-         */
-        private function filterSearchIdsToCurrentScope(array $orderedIds): array
-        {
-            if ($orderedIds === []) {
-                return [];
-            }
-
-            // Lean scope check: same active visibility as the card query
-            // but without the upcoming-events count subselect and media eager load.
-            $scopedIds = $this->applyFollowedOnlyFilter(Reference::query()->active())
-                ->whereIn('references.id', $orderedIds)
-                ->pluck('references.id')
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->all();
-
-            return collect($scopedIds)
-                ->sortBy(static function (string $id) use ($orderedIds): int {
-                    $position = array_search($id, $orderedIds, true);
-
-                    return is_int($position) ? $position : PHP_INT_MAX;
-                })
-                ->values()
-                ->all();
-        }
-
-        private function emptyPaginator(): LengthAwarePaginatorContract
-        {
-            return new LengthAwarePaginator(collect(), 0, 12, max(1, (int) $this->getPage()), $this->paginationMeta());
-        }
-
-        private function normalizedSearch(): ?string
-        {
-            if (! is_string($this->search)) {
-                return null;
-            }
-
-            $search = trim($this->search);
-
-            return $search === '' ? null : $search;
-        }
-
-        private function applyFollowedOnlyFilter(Builder $query): Builder
-        {
-            $user = auth()->user();
-
-            if ($this->followed_only !== true || ! $user instanceof User) {
-                return $query;
-            }
-
-            return $query->whereIn('references.id', $this->followedReferenceIds());
-        }
-
-        /**
-         * @return list<string>
-         */
-        private function followedReferenceIds(): array
-        {
-            return $this->followingReferenceIds;
-        }
-
         /**
          * @return array{path: string, query: array<string, mixed>}
          */
@@ -362,11 +139,6 @@ new
                 'path' => request()->url(),
                 'query' => request()->except('page'),
             ];
-        }
-
-        private function referenceSearchService(): ReferenceSearchService
-        {
-            return app(ReferenceSearchService::class);
         }
     };
 ?>

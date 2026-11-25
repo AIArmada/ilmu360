@@ -11,6 +11,7 @@ use App\Features\Events\Api\EventScheduleReads;
 use App\Features\References\Api\Data\ReferenceDetailData;
 use App\Features\References\Api\Data\ReferenceListData;
 use App\Features\References\Api\Documentation\Schemas\ReferenceDirectoryResponse;
+use App\Features\References\Api\ReferenceListingCacheVersion;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Api\ReferenceSearch;
 use App\Features\References\Models\Reference;
@@ -21,7 +22,7 @@ use App\Platform\Api\Search\SearchRequestNormalizer;
 use App\Platform\Http\FrontendController;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Platform\Search\PublicDiscovery;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
@@ -71,6 +72,8 @@ final class ReferenceDirectoryController extends FrontendController
         private readonly PublicDiscovery $publicDiscovery,
         private readonly SubjectFollows $subjectFollows,
         private readonly SearchPayloadTransformer $searchPayloadTransformer,
+        private readonly ReferenceListingCacheVersion $referenceListingCacheVersion,
+        private readonly SelectionCatalog $selectionCatalog,
     ) {}
 
     #[Group('Reference', 'Public reference directory and detail endpoints.')]
@@ -135,6 +138,7 @@ final class ReferenceDirectoryController extends FrontendController
                     'total' => $paginator->total(),
                 ],
                 'following' => ['total' => $followingTotal],
+                'cache' => $this->referenceListingCacheVersion->current(),
             ],
         ]);
     }
@@ -304,7 +308,7 @@ final class ReferenceDirectoryController extends FrontendController
             edition_label: $reference->edition_label,
             isbn: $reference->isbn,
             language: $reference->language,
-            language_label: app(SelectionCatalogCache::class)->languageLabel($reference->language),
+            language_label: $this->selectionCatalog->languageLabel($reference->language),
             url: $reference->url,
             part_type: $reference->partTypeValue(),
             part_number: $reference->partNumberValue(),
@@ -349,7 +353,7 @@ final class ReferenceDirectoryController extends FrontendController
             edition_label: $reference->edition_label,
             isbn: $reference->isbn,
             language: $reference->language,
-            language_label: app(SelectionCatalogCache::class)->languageLabel($reference->language),
+            language_label: $this->selectionCatalog->languageLabel($reference->language),
             url: $reference->url,
             part_type: $reference->partTypeValue(),
             part_number: $reference->partNumberValue(),

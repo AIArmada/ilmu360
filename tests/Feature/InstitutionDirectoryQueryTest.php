@@ -12,7 +12,7 @@ function institutionDirectoryPaginationMeta(): array
     ];
 }
 
-it('paginates direct institution search without resolving every matching id', function () {
+it('paginates scoped direct institution search without resolving every matching id', function () {
     foreach (range(1, 15) as $index) {
         Institution::factory()->create([
             'name' => sprintf('Masjid Ujian %02d', $index),
@@ -20,14 +20,20 @@ it('paginates direct institution search without resolving every matching id', fu
         ]);
     }
 
+    $matchingIds = Institution::query()
+        ->where('name', 'like', 'Masjid Ujian%')
+        ->pluck('id')
+        ->map(static fn (mixed $id): string => (string) $id)
+        ->all();
+
     DB::enableQueryLog();
     DB::flushQueryLog();
 
     $paginator = app(InstitutionDirectoryQuery::class)->paginate(
         search: 'Masjid Ujian',
         locationIds: [],
-        followedOnly: false,
-        followingInstitutionIds: [],
+        followedOnly: true,
+        followingInstitutionIds: $matchingIds,
         page: 1,
         paginationMeta: institutionDirectoryPaginationMeta(),
     );
@@ -44,6 +50,47 @@ it('paginates direct institution search without resolving every matching id', fu
         ))->toHaveCount(1)
         ->and($queries->filter(
             static fn (string $query): bool => str_contains($query, 'count(*) as "aggregate"'),
+        ))->toBeEmpty();
+});
+
+it('uses cached publicSearchIds when unscoped direct institution search runs', function () {
+    foreach (range(1, 15) as $index) {
+        Institution::factory()->create([
+            'name' => sprintf('Masjid Cache %02d', $index),
+            'status' => 'verified',
+        ]);
+    }
+
+    $firstPage = app(InstitutionDirectoryQuery::class)->paginate(
+        search: 'Masjid Cache',
+        locationIds: [],
+        followedOnly: false,
+        followingInstitutionIds: [],
+        page: 1,
+        paginationMeta: institutionDirectoryPaginationMeta(),
+    );
+
+    DB::enableQueryLog();
+    DB::flushQueryLog();
+
+    $secondPage = app(InstitutionDirectoryQuery::class)->paginate(
+        search: 'Masjid Cache',
+        locationIds: [],
+        followedOnly: false,
+        followingInstitutionIds: [],
+        page: 2,
+        paginationMeta: institutionDirectoryPaginationMeta(),
+    );
+
+    $queries = collect(DB::getQueryLog())->pluck('query');
+    DB::disableQueryLog();
+
+    expect($firstPage->total())->toBe(15)
+        ->and($firstPage->count())->toBe(12)
+        ->and($secondPage->total())->toBe(15)
+        ->and($secondPage->count())->toBe(3)
+        ->and($queries->filter(
+            static fn (string $query): bool => str_contains($query, 'like'),
         ))->toBeEmpty();
 });
 

@@ -6,6 +6,8 @@ use App\Features\Discovery\Services\CatalogDispatcher;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Http\FrontendController;
+use App\Shared\Cache\SelectionCatalog;
+use Closure;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
@@ -17,17 +19,22 @@ class CatalogController extends FrontendController
 {
     public function __construct(
         private readonly CatalogDispatcher $catalogs,
+        private readonly SelectionCatalog $selectionCatalog,
     ) {}
 
     #[Endpoint(
         title: 'List public countries catalog',
         description: 'Returns the public countries catalog used by client and public write-flow selectors.',
     )]
-    public function countries(): JsonResponse
+    public function countries(Request $request): JsonResponse
     {
-        return response()->json([
-            'data' => $this->catalogs->countries(),
-        ]);
+        return $this->cachedCatalogResponse(
+            $request,
+            $this->selectionCatalog->geographyVersion(),
+            fn (): array => [
+                'data' => $this->catalogs->countries(),
+            ],
+        );
     }
 
     #[QueryParameter('country_id', 'Package country UUID required for state options.', required: true, type: 'string', infer: false)]
@@ -37,11 +44,15 @@ class CatalogController extends FrontendController
     )]
     public function states(Request $request): JsonResponse
     {
-        return response()->json([
-            'data' => $this->catalogs->states(
-                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
-            ),
-        ]);
+        return $this->cachedCatalogResponse(
+            $request,
+            $this->selectionCatalog->geographyVersion(),
+            fn (): array => [
+                'data' => $this->catalogs->states(
+                    $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+                ),
+            ],
+        );
     }
 
     #[QueryParameter('state_id', 'Package state UUID (preferred).', required: false, type: 'string', infer: false)]
@@ -52,12 +63,16 @@ class CatalogController extends FrontendController
     )]
     public function cities(Request $request): JsonResponse
     {
-        return response()->json([
-            'data' => $this->catalogs->cities(
-                $request->filled('state_id') ? $request->string('state_id')->toString() : null,
-                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
-            ),
-        ]);
+        return $this->cachedCatalogResponse(
+            $request,
+            $this->selectionCatalog->geographyVersion(),
+            fn (): array => [
+                'data' => $this->catalogs->cities(
+                    $request->filled('state_id') ? $request->string('state_id')->toString() : null,
+                    $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+                ),
+            ],
+        );
     }
 
     #[QueryParameter('country_id', 'Address country UUID for country-scoped administrative-area listing.', required: false, type: 'string', infer: false)]
@@ -68,12 +83,16 @@ class CatalogController extends FrontendController
     )]
     public function administrativeDistricts(Request $request): JsonResponse
     {
-        return response()->json([
-            'data' => $this->catalogs->administrativeDistricts(
-                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
-                $request->filled('state_id') ? $request->string('state_id')->toString() : null,
-            ),
-        ]);
+        return $this->cachedCatalogResponse(
+            $request,
+            $this->selectionCatalog->geographyVersion(),
+            fn (): array => [
+                'data' => $this->catalogs->administrativeDistricts(
+                    $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+                    $request->filled('state_id') ? $request->string('state_id')->toString() : null,
+                ),
+            ],
+        );
     }
 
     #[QueryParameter('administrative_district', 'Optional administrative district UUID used as the parent.', required: false, type: 'string', infer: false)]
@@ -85,24 +104,32 @@ class CatalogController extends FrontendController
     )]
     public function administrativeSubdivisions(Request $request): JsonResponse
     {
-        return response()->json([
-            'data' => $this->catalogs->administrativeSubdivisions(
-                $request->filled('administrative_district') ? $request->string('administrative_district')->toString() : null,
-                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
-                $request->filled('state_id') ? $request->string('state_id')->toString() : null,
-            ),
-        ]);
+        return $this->cachedCatalogResponse(
+            $request,
+            $this->selectionCatalog->geographyVersion(),
+            fn (): array => [
+                'data' => $this->catalogs->administrativeSubdivisions(
+                    $request->filled('administrative_district') ? $request->string('administrative_district')->toString() : null,
+                    $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+                    $request->filled('state_id') ? $request->string('state_id')->toString() : null,
+                ),
+            ],
+        );
     }
 
     #[Endpoint(
         title: 'List languages catalog',
         description: 'Returns selectable language options for public and client-facing write flows.',
     )]
-    public function languages(): JsonResponse
+    public function languages(Request $request): JsonResponse
     {
-        return response()->json([
-            'data' => $this->catalogs->languages(),
-        ]);
+        return $this->cachedCatalogResponse(
+            $request,
+            $this->selectionCatalog->languagesVersion(),
+            fn (): array => [
+                'data' => $this->catalogs->languages(),
+            ],
+        );
     }
 
     #[QueryParameter('country_id', 'Address country UUID whose bank catalog should be returned.', required: false, type: 'string', infer: false)]
@@ -112,12 +139,18 @@ class CatalogController extends FrontendController
     )]
     public function donationBanks(Request $request): JsonResponse
     {
-        $countryId = $request->filled('country_id') ? $request->string('country_id')->toString() : null;
+        return $this->cachedCatalogResponse(
+            $request,
+            $this->selectionCatalog->donationBanksVersion(),
+            function () use ($request): array {
+                $countryId = $request->filled('country_id') ? $request->string('country_id')->toString() : null;
 
-        return response()->json([
-            'data' => $this->catalogs->donationBanks($countryId),
-            'meta' => $this->catalogs->donationBanksMeta($countryId),
-        ]);
+                return [
+                    'data' => $this->catalogs->donationBanks($countryId),
+                    'meta' => $this->catalogs->donationBanksMeta($countryId),
+                ];
+            },
+        );
     }
 
     #[Endpoint(
@@ -129,9 +162,13 @@ class CatalogController extends FrontendController
         $taxonomyCode = EventTaxonomyCode::tryFrom($type);
         abort_unless($taxonomyCode instanceof EventTaxonomyCode, 404);
 
-        return response()->json([
-            'data' => $this->catalogs->taxonomyTerms($taxonomyCode->value, $request->string('q')->toString()),
-        ]);
+        return $this->cachedCatalogResponse(
+            $request,
+            $this->selectionCatalog->taxonomyTermsVersion(),
+            fn (): array => [
+                'data' => $this->catalogs->taxonomyTerms($taxonomyCode->value, $request->string('q')->toString()),
+            ],
+        );
     }
 
     #[Endpoint(
@@ -247,5 +284,37 @@ class CatalogController extends FrontendController
         return response()->json([
             'data' => $this->catalogs->institutionRoleOptions(),
         ]);
+    }
+
+    /**
+     * @param  Closure(): array<string, mixed>  $resolvePayload
+     */
+    private function cachedCatalogResponse(Request $request, string $version, Closure $resolvePayload): JsonResponse
+    {
+        $maxAge = (int) config('discovery.cache.ttls.http_catalog_max_age', 300);
+        $staleWhileRevalidate = (int) config('discovery.cache.ttls.http_catalog_stale_while_revalidate', 600);
+        $etagToken = sprintf('%s:%s', $version, sha1($request->fullUrl()));
+
+        $probe = new JsonResponse;
+        $probe->headers->set('Cache-Control', sprintf(
+            'public, max-age=%d, stale-while-revalidate=%d',
+            $maxAge,
+            $staleWhileRevalidate,
+        ));
+        $probe->setEtag($etagToken, weak: true);
+
+        if ($probe->isNotModified($request)) {
+            return $probe;
+        }
+
+        $response = response()->json($resolvePayload());
+        $response->headers->set('Cache-Control', sprintf(
+            'public, max-age=%d, stale-while-revalidate=%d',
+            $maxAge,
+            $staleWhileRevalidate,
+        ));
+        $response->setEtag($etagToken, weak: true);
+
+        return $response;
     }
 }

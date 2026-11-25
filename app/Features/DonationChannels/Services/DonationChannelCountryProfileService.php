@@ -12,7 +12,7 @@ use App\Features\DonationChannels\Api\DonationBankCatalogs;
 use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;
 use App\Features\DonationChannels\Api\DonationChannelOwnerCountry;
 use App\Platform\ExtensionRegistry;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -29,7 +29,7 @@ final readonly class DonationChannelCountryProfileService implements DonationCha
     private const array INTERNATIONAL_METHODS = ['bank_account'];
 
     public function __construct(
-        private SelectionCatalogCache $catalogCache,
+        private SelectionCatalog $catalogCache,
         private AddressCountryResolver $countries,
         private DonationBankCatalogs $bankCatalogs,
         private ExtensionRegistry $extensions,

@@ -6,25 +6,29 @@ namespace App\Features\Discovery\Services;
 
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Discovery\Api\Data\EventListData;
+use App\Features\Discovery\Api\Data\EventSearchHitIds;
 use App\Features\Discovery\Api\Data\EventSearchPage;
+use App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder;
 use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Events\Api\Data\EventDiscoveryHit;
 use App\Features\Events\Api\Data\EventDiscoveryPage;
 use App\Features\Events\Api\EventCards;
+use App\Features\Events\Api\EventDiscoveryReader;
 use App\Features\Events\Api\EventDiscoveryReaders;
 use App\Features\Events\Api\EventSearchCache;
-use App\Platform\Search\TypesenseHealthCheckService;
+use App\Shared\Contracts\SearchEngineResolver;
+use Closure;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class EventSearchService implements EventSearchReader
 {
     public function __construct(
-        private readonly TypesenseHealthCheckService $healthCheck,
+        private readonly SearchEngineResolver $engineResolver,
         private readonly EventSearchCache $eventSearchCache,
         private readonly EventDiscoveryReaders $readers,
         private readonly EventCards $eventCards,
-        private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
+        private readonly EventDiscoveryCriteriaBuilder $criteriaFactory,
     ) {}
 
     /**
@@ -41,46 +45,76 @@ class EventSearchService implements EventSearchReader
         $criteria = $this->criteriaFactory->fromSearch($query, $filters, $perPage, $sort);
 
         if ($this->usesDefaultSearchCache($criteria)) {
-            return $this->cachedDefaultSearch($perPage);
+            return $this->cachedDefaultSearch($criteria);
         }
 
         return $this->toPage($this->performSearch($criteria));
     }
 
+    /**
+     * Search event IDs without hydrating event cards.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function searchIds(
+        ?string $query = null,
+        array $filters = [],
+        int $perPage = 20,
+        string $sort = 'time'
+    ): EventSearchHitIds {
+        $criteria = $this->criteriaFactory->fromSearch($query, $filters, $perPage, $sort);
+
+        return $this->dispatchDiscoveryReader(
+            $criteria,
+            static fn (EventDiscoveryReader $reader): EventSearchHitIds => $reader->searchIds($criteria),
+            'Typesense ID search failed, falling back to database',
+        );
+    }
+
     protected function performSearch(EventDiscoveryCriteria $criteria): EventDiscoveryPage
     {
-        if ($criteria->requiresDatabaseFiltering) {
-            return $this->readers->database()->search($criteria);
-        }
-
-        if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
-            try {
-                return $this->readers->typesense()->search($criteria);
-            } catch (\Exception $e) {
-                Log::warning('Typesense search failed, falling back to database', [
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        return $this->readers->database()->search($criteria);
+        return $this->dispatchDiscoveryReader(
+            $criteria,
+            static fn (EventDiscoveryReader $reader): EventDiscoveryPage => $reader->search($criteria),
+            'Typesense search failed, falling back to database',
+        );
     }
 
     private function usesDefaultSearchCache(EventDiscoveryCriteria $criteria): bool
     {
-        return $criteria->text === null
-            && $criteria->filters === []
-            && $criteria->perPage === 12
-            && $criteria->sort === 'time'
-            && $criteria->page === 1;
+        if (
+            $criteria->text !== null
+            || $criteria->latitude !== null
+            || $criteria->longitude !== null
+            || $criteria->perPage < 1
+            || $criteria->sort !== 'time'
+            || $criteria->page !== 1
+        ) {
+            return false;
+        }
+
+        $filters = $criteria->filters;
+        $timeScope = $filters['time_scope'] ?? null;
+
+        if ($timeScope !== null && $timeScope !== 'upcoming') {
+            return false;
+        }
+
+        unset($filters['country_id'], $filters['time_scope']);
+
+        return $filters === [];
     }
 
-    private function cachedDefaultSearch(int $perPage): EventSearchPage
+    private function cachedDefaultSearch(EventDiscoveryCriteria $criteria): EventSearchPage
     {
-        $criteria = $this->criteriaFactory->fromSearch(null, [], $perPage, 'time');
+        $scopeKey = sprintf(
+            'country:%s:per:%d',
+            $criteria->countryId ?? 'global',
+            $criteria->perPage,
+        );
 
         try {
-            $payload = $this->eventSearchCache->rememberDefaultSearch(function () use ($criteria): array {
+            $payload = $this->eventSearchCache->rememberDefaultSearch($scopeKey, function () use ($criteria): array {
                 $paginator = $this->performSearch($criteria);
 
                 return [
@@ -96,7 +130,7 @@ class EventSearchService implements EventSearchReader
             return $this->toPage($this->performSearch($criteria));
         }
 
-        return $this->cachedPage($payload->ids, $payload->total, $perPage);
+        return $this->cachedPage($payload->ids, $payload->total, $criteria->perPage);
     }
 
     /**
@@ -168,19 +202,42 @@ class EventSearchService implements EventSearchReader
     ): EventSearchPage {
         $criteria = $this->criteriaFactory->fromSearch(null, $filters, $perPage, 'distance', $lat, $lng, $radiusKm);
 
-        if ($criteria->requiresDatabaseFiltering) {
-            return $this->toPage($this->readers->database()->nearby($criteria));
+        return $this->toPage($this->dispatchDiscoveryReader(
+            $criteria,
+            static fn (EventDiscoveryReader $reader): EventDiscoveryPage => $reader->nearby($criteria),
+            'Typesense geo search failed',
+        ));
+    }
+
+    /**
+     * Geo search returning IDs and distances without hydrating event cards.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function searchNearbyIds(
+        float $lat,
+        float $lng,
+        int $radiusKm = 50,
+        array $filters = [],
+        int $perPage = 20,
+        ?string $query = null,
+    ): EventSearchHitIds {
+        $criteria = $this->criteriaFactory->fromSearch($query, $filters, $perPage, 'distance', $lat, $lng, $radiusKm);
+        $normalizedQuery = $this->normalizeSearchQuery($criteria->text);
+
+        if ($normalizedQuery === null) {
+            return $this->dispatchDiscoveryReader(
+                $criteria,
+                static fn (EventDiscoveryReader $reader): EventSearchHitIds => $reader->nearbyIds($criteria),
+                'Typesense geo ID search failed',
+            );
         }
 
-        if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
-            try {
-                return $this->toPage($this->readers->typesense()->nearby($criteria));
-            } catch (\Exception $e) {
-                Log::warning('Typesense geo search failed', ['error' => $e->getMessage()]);
-            }
-        }
-
-        return $this->toPage($this->readers->database()->nearby($criteria));
+        return $this->dispatchDiscoveryReader(
+            $criteria,
+            static fn (EventDiscoveryReader $reader): EventSearchHitIds => $reader->nearbyWithQueryIds($criteria),
+            'Typesense geo query ID search failed',
+        );
     }
 
     /**
@@ -203,19 +260,34 @@ class EventSearchService implements EventSearchReader
             return $this->searchNearby($criteria->latitude ?? $lat, $criteria->longitude ?? $lng, (int) ($criteria->radiusKm ?? $radiusKm), $criteria->filters, $criteria->perPage);
         }
 
+        return $this->toPage($this->dispatchDiscoveryReader(
+            $criteria,
+            static fn (EventDiscoveryReader $reader): EventDiscoveryPage => $reader->nearbyWithQuery($criteria),
+            'Typesense geo query search failed',
+        ));
+    }
+
+    /**
+     * @template TResult
+     *
+     * @param  Closure(EventDiscoveryReader): TResult  $callback
+     * @return TResult
+     */
+    private function dispatchDiscoveryReader(EventDiscoveryCriteria $criteria, Closure $callback, string $failureMessage): mixed
+    {
         if ($criteria->requiresDatabaseFiltering) {
-            return $this->toPage($this->readers->database()->nearbyWithQuery($criteria));
+            return $callback($this->readers->database());
         }
 
-        if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
+        if ($this->engineResolver->usesTypesense() && $this->engineResolver->isRemoteEngineAvailable()) {
             try {
-                return $this->toPage($this->readers->typesense()->nearbyWithQuery($criteria));
+                return $callback($this->readers->typesense());
             } catch (\Exception $e) {
-                Log::warning('Typesense geo query search failed', ['error' => $e->getMessage()]);
+                Log::warning($failureMessage, ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->toPage($this->readers->database()->nearbyWithQuery($criteria));
+        return $callback($this->readers->database());
     }
 
     private function normalizeSearchQuery(?string $query): ?string

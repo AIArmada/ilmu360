@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Persistence\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\ShareCardWarmScheduler;
 use App\Features\Events\Models\Event;
@@ -13,6 +14,7 @@ use App\Features\Institutions\Api\InstitutionListingCacheVersion;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
 use App\Platform\Models\Concerns\SyncsCurrentAndPreviousValues;
+use BackedEnum;
 
 final readonly class ApplyEventLifecycleEffectsAction
 {
@@ -55,8 +57,11 @@ final readonly class ApplyEventLifecycleEffectsAction
 
     public function updated(Event $event): void
     {
-        $this->publicListingsCache->bustHomepageStats();
-        $this->publicListingsCache->bustMajlisListing();
+        if ($this->affectsPublicListings($event)) {
+            $this->publicListingsCache->bustHomepageStats();
+            $this->publicListingsCache->bustMajlisListing();
+        }
+
         $this->institutionCacheVersion->bump();
         $this->personCacheVersion->bump();
 
@@ -130,5 +135,34 @@ final readonly class ApplyEventLifecycleEffectsAction
         $this->publicListingsCache->bustMajlisListing();
         $this->institutionCacheVersion->bump();
         $this->personCacheVersion->bump();
+    }
+
+    private function affectsPublicListings(Event $event): bool
+    {
+        if ($this->isPublicListingState($event->status, $event->visibility, $event->published_at)) {
+            return true;
+        }
+
+        $previous = $event->getPrevious();
+
+        if ($previous === []) {
+            return false;
+        }
+
+        $previousStatus = array_key_exists('status', $previous) ? $previous['status'] : $event->status;
+        $previousVisibility = array_key_exists('visibility', $previous) ? $previous['visibility'] : $event->visibility;
+        $previousPublishedAt = array_key_exists('published_at', $previous) ? $previous['published_at'] : $event->published_at;
+
+        return $this->isPublicListingState($previousStatus, $previousVisibility, $previousPublishedAt);
+    }
+
+    private function isPublicListingState(mixed $status, mixed $visibility, mixed $publishedAt): bool
+    {
+        $normalizedStatus = $status instanceof BackedEnum ? (string) $status->value : (string) $status;
+        $normalizedVisibility = $visibility instanceof BackedEnum ? (string) $visibility->value : (string) $visibility;
+
+        return $publishedAt !== null
+            && in_array($normalizedStatus, Event::PUBLIC_STATUSES, true)
+            && $normalizedVisibility === EventVisibility::Public->value;
     }
 }

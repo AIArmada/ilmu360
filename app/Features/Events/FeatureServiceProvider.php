@@ -180,7 +180,6 @@ use App\Features\Events\Persistence\ProductSignalsDashboardCacheStore;
 use App\Features\Events\Policies\EventPolicy;
 use App\Features\Events\Policies\EventTicketingPolicy;
 use App\Features\Events\Queries\EloquentAccountEventFacts;
-use App\Features\Events\Queries\EloquentEventCollections;
 use App\Features\Events\Queries\EventCardsQuery;
 use App\Features\Events\Queries\EventContributionOptionsCountryQuery;
 use App\Features\Events\Queries\EventContributionProjection;
@@ -317,7 +316,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(EventSchedulePageData::class, EventSchedulePageDataService::class);
         $this->app->bind(EventPageSchedule::class, EventPageScheduleService::class);
         $this->app->bind(InstitutionEventTable::class, EntryPoints\Filament\Support\InstitutionEventTableBuilder::class);
-        $this->app->bind(EventCollections::class, EloquentEventCollections::class);
+        $this->app->bind(EventCollections::class, PostgresEventDiscovery::class);
         $this->app->bind(AdminEventSearch::class, McpEventSearchService::class);
         $this->app->bind(EventScheduleSql::class, PrimaryOccurrenceScheduleSql::class);
         $this->app->bind(EventTicketing::class, EventTicketingPolicy::class);

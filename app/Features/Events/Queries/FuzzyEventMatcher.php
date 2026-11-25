@@ -4,37 +4,25 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Features\Events\Models\Event;
+use App\Platform\Search\DatabaseFuzzyMatcher;
 use Illuminate\Database\Eloquent\Builder;
 
-final class FuzzyEventMatcher
+final readonly class FuzzyEventMatcher
 {
+    public function __construct(
+        private DatabaseFuzzyMatcher $fuzzyMatcher,
+    ) {}
+
     /**
      * @param  Builder<Event>  $queryBuilder
      * @return Builder<Event>
      */
     public function applyFuzzyTitleCandidateFilter(Builder $queryBuilder, string $normalizedSearch): Builder
     {
-        $patterns = $this->fuzzyCandidatePatterns($normalizedSearch);
-
-        if ($patterns === []) {
-            return $queryBuilder->limit($this->fuzzyCandidateLimit());
-        }
-
-        $queryBuilder->where(function (Builder $candidateQuery) use ($patterns): void {
-            foreach ($patterns as $index => $pattern) {
-                if ($index === 0) {
-                    $candidateQuery->whereLike('events.title', $pattern);
-
-                    continue;
-                }
-
-                $candidateQuery->orWhereLike('events.title', $pattern);
-            }
-        });
-
-        return $queryBuilder->limit($this->fuzzyCandidateLimit());
+        return $this->fuzzyMatcher
+            ->applyColumnsFilter($queryBuilder, ['events.title'], $normalizedSearch)
+            ->limit($this->fuzzyCandidateLimit());
     }
 
     /**
@@ -54,86 +42,6 @@ final class FuzzyEventMatcher
             ->orderBy('events.id');
     }
 
-    /**
-     * @return list<string>
-     */
-    public function fuzzyCandidatePatterns(string $normalizedSearch): array
-    {
-        $tokens = array_values(array_unique(array_filter([
-            $normalizedSearch,
-            ...array_filter(explode(' ', $normalizedSearch), static fn (string $token): bool => mb_strlen($token) >= 3),
-        ], static fn (string $token): bool => $token !== '')));
-
-        $patterns = [];
-
-        foreach ($tokens as $token) {
-            foreach ($this->fuzzyPatternSources($token) as $patternSource) {
-                $pattern = $this->fuzzySubsequencePattern($patternSource);
-
-                if ($pattern !== null) {
-                    $patterns[] = $pattern;
-                }
-            }
-        }
-
-        return array_values(array_unique($patterns));
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function fuzzyPatternSources(string $value): array
-    {
-        $sources = [$value];
-
-        if (str_contains($value, ' ') || mb_strlen($value) < 5) {
-            return $sources;
-        }
-
-        return array_values(array_unique([
-            ...$sources,
-            ...$this->fuzzyOmissionVariants($value),
-        ]));
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function fuzzyOmissionVariants(string $value): array
-    {
-        $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($characters) || count($characters) < 2) {
-            return [];
-        }
-
-        $variants = [];
-
-        foreach (array_keys($characters) as $index) {
-            $variantCharacters = $characters;
-            unset($variantCharacters[$index]);
-
-            $variant = implode('', $variantCharacters);
-
-            if ($variant !== '') {
-                $variants[] = $variant;
-            }
-        }
-
-        return array_values(array_unique($variants));
-    }
-
-    public function fuzzySubsequencePattern(string $value): ?string
-    {
-        $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($characters) || $characters === []) {
-            return null;
-        }
-
-        return '%'.implode('%', $characters).'%';
-    }
-
     public function fuzzyCandidateLimit(): int
     {
         return 250;
@@ -147,25 +55,10 @@ final class FuzzyEventMatcher
             return 0.0;
         }
 
-        $normalizedCandidate = StringSimilarity::normalize($title);
-
-        if ($normalizedCandidate === '') {
-            return 0.0;
-        }
-
-        $scoreCandidates = [];
-        $scoreCandidates[] = StringSimilarity::score($normalizedSearch, $normalizedCandidate);
-
-        /** @var list<string> $candidateTokens */
-        $candidateTokens = array_values(array_filter(
-            explode(' ', $normalizedCandidate),
-            static fn (string $token): bool => mb_strlen($token) >= 2
-        ));
-
-        foreach ($candidateTokens as $token) {
-            $scoreCandidates[] = StringSimilarity::score($normalizedSearch, $token);
-        }
-
-        return max($scoreCandidates);
+        return $this->fuzzyMatcher->bestScore(
+            $normalizedSearch,
+            [$title],
+            usePolicy: false,
+        );
     }
 }

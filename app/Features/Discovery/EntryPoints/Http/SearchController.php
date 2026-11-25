@@ -43,12 +43,20 @@ final class SearchController extends FrontendController
         $hasLocation = $lat !== null && $lng !== null;
 
         $eventPage = $hasLocation
-            ? $this->eventSearch->searchNearby(
-                lat: $lat ?? 0.0,
-                lng: $lng ?? 0.0,
-                radiusKm: $radius,
-                perPage: 6,
-            )
+            ? ($search !== null
+                ? $this->eventSearch->searchNearbyWithQuery(
+                    query: $search,
+                    lat: $lat ?? 0.0,
+                    lng: $lng ?? 0.0,
+                    radiusKm: $radius,
+                    perPage: 6,
+                )
+                : $this->eventSearch->searchNearby(
+                    lat: $lat ?? 0.0,
+                    lng: $lng ?? 0.0,
+                    radiusKm: $radius,
+                    perPage: 6,
+                ))
             : $this->eventSearch->search(
                 query: $search,
                 perPage: 6,

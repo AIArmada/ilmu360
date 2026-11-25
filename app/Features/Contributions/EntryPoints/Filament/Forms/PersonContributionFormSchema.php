@@ -14,7 +14,7 @@ use App\Features\Institutions\Api\InstitutionLookup;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Platform\Ui\Forms\Select as SelectWithCloseOnSelect;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Closure;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -418,7 +418,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
      */
     private static function titleOptions(): array
     {
-        return app(SelectionCatalogCache::class)->titleOptions();
+        return app(SelectionCatalog::class)->titleOptions();
     }
 
     /**
@@ -426,7 +426,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
      */
     private static function languageOptions(string $key): array
     {
-        return app(SelectionCatalogCache::class)->languageOptions(
+        return app(SelectionCatalog::class)->languageOptions(
             $key,
             MalaysiaLanguageCatalog::labels(),
         );
@@ -447,7 +447,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
      */
     private static function titleSearchOptions(string $search): array
     {
-        return app(SelectionCatalogCache::class)->titleSearchOptions($search);
+        return app(SelectionCatalog::class)->titleSearchOptions($search);
     }
 
     /**
@@ -456,7 +456,7 @@ class PersonContributionFormSchema implements PersonContributionSchema
      */
     private static function titleLabels(array $values): array
     {
-        return app(SelectionCatalogCache::class)->titleLabels($values);
+        return app(SelectionCatalog::class)->titleLabels($values);
     }
 
     /** @return array<string, string> */

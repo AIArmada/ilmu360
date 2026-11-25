@@ -2,9 +2,9 @@
 
 namespace App\Features\Inspirations\Models;
 
-use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Shared\Cache\DiscoveryCache;
 use Database\Factories\InspirationFactory;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -22,8 +22,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Inspiration extends Model implements AuditableContract, HasMedia
 {
-    public const string ACTIVE_CACHE_VERSION_KEY = 'inspirations:active:version:v1';
-
     /** @property array<string, mixed> $content */
     /** @use HasFactory<InspirationFactory> */
     use AuditsModelChanges, HasFactory, HasUuids, InteractsWithMedia;
@@ -65,13 +63,13 @@ class Inspiration extends Model implements AuditableContract, HasMedia
     {
         parent::booted();
 
-        static::saved(static function (): void {
-            app(CacheVersionStore::class)->bump(self::ACTIVE_CACHE_VERSION_KEY);
-        });
+        $bump = static function (): void {
+            $versionKey = config('discovery.cache.versions.inspirations', 'discovery:v:inspirations');
+            app(DiscoveryCache::class)->bump(is_string($versionKey) && $versionKey !== '' ? $versionKey : 'discovery:v:inspirations');
+        };
 
-        static::deleted(static function (): void {
-            app(CacheVersionStore::class)->bump(self::ACTIVE_CACHE_VERSION_KEY);
-        });
+        static::saved($bump);
+        static::deleted($bump);
     }
 
     /**

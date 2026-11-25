@@ -31,6 +31,6 @@ final readonly class PublicListingsCache implements PublicListingsCacheInvalidat
 
     public function bustMajlisListing(): void
     {
-        $this->eventSearchCache->forgetDefaultSearch();
+        $this->eventSearchCache->bust();
     }
 }

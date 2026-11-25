@@ -13,16 +13,16 @@
       "reason": "The platform media URL generator caches infrastructure URL resolutions.",
       "expires": "2027-06-30"
     },
-    "App\\Platform\\Search\\TypesenseHealthCheckService": {
-      "adapter": "cache",
-      "resource": "store:infrastructure.typesense-health",
-      "reason": "The platform health check caches search-service reachability state.",
-      "expires": "2027-06-30"
-    },
     "App\\Platform\\ApiDocumentation\\ApiDocumentationDocumentResolver": {
       "adapter": "cache",
       "resource": "store:infrastructure.api-documentation-cache",
       "reason": "The root API documentation resolver caches source-derived OpenAPI documents.",
+      "expires": "2027-06-30"
+    },
+    "App\\Platform\\Cache\\ManagedDiscoveryCache": {
+      "adapter": "cache",
+      "resource": "store:infrastructure.discovery-cache",
+      "reason": "The platform discovery cache manager stores versioned frontend discovery and catalog entries.",
       "expires": "2027-06-30"
     }
   },

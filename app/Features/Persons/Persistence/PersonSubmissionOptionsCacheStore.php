@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace App\Features\Persons\Persistence;
 
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
+use App\Shared\Cache\DiscoveryCache;
 use Closure;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Guest person submission-options cache store.
  */
 final readonly class PersonSubmissionOptionsCacheStore implements PersonSubmissionOptionsCache
 {
-    private const string OPTIONS_KEY = 'submit_persons';
-
-    private const int OPTIONS_TTL_SECONDS = 60;
+    public function __construct(
+        private DiscoveryCache $cache,
+    ) {}
 
     /**
      * @param  Closure(): array<string, string>  $resolver
@@ -23,11 +23,23 @@ final readonly class PersonSubmissionOptionsCacheStore implements PersonSubmissi
      */
     public function rememberGuestPersonOptions(Closure $resolver): array
     {
-        return Cache::remember(self::OPTIONS_KEY, self::OPTIONS_TTL_SECONDS, $resolver);
+        return $this->cache->remember(
+            $this->versionKey(),
+            'submission_options:persons:guest',
+            (int) config('discovery.cache.ttls.submission_options', 900),
+            $resolver,
+        );
     }
 
     public function forgetGuestPersonOptions(): void
     {
-        Cache::forget(self::OPTIONS_KEY);
+        $this->cache->bump($this->versionKey());
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.submission_persons', 'discovery:v:submission:persons');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:submission:persons';
     }
 }

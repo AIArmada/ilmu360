@@ -19,6 +19,9 @@
     ],
     "store:reference-homepage-stats": [
       "App\\Features\\References\\Persistence\\ReferenceHomepageStatsCacheStore"
+    ],
+    "store:reference-listing-cache-version": [
+      "App\\Features\\References\\Persistence\\ReferenceListingCacheVersionStore"
     ]
   },
   "aliases": {

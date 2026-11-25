@@ -7,7 +7,7 @@ namespace App\Features\Events\Services;
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Data\EventTermData;
 use App\Features\Events\Api\EventCategoryCatalog as EventCategoryCatalogContract;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 
 final readonly class EventCategoryCatalog implements EventCategoryCatalogContract
 {
@@ -30,7 +30,7 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
     /** @return array<string, string> */
     public function options(): array
     {
-        return app(SelectionCatalogCache::class)->eventCategoryOptions();
+        return app(SelectionCatalog::class)->eventCategoryOptions();
     }
 
     /**

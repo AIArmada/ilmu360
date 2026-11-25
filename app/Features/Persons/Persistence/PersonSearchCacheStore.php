@@ -5,34 +5,21 @@ declare(strict_types=1);
 namespace App\Features\Persons\Persistence;
 
 use App\Features\Persons\Api\PersonSearchCache;
+use App\Shared\Cache\DiscoveryCache;
 use Closure;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Public person-search cache store.
  */
 final readonly class PersonSearchCacheStore implements PersonSearchCache
 {
-    private const string VERSION_KEY = 'person_search_public_version_v2';
-
-    private const int DEFAULT_VERSION = 2;
-
-    private const int VERSION_TTL_DAYS = 30;
-
-    private const int PUBLIC_SEARCH_CACHE_TTL_SECONDS = 600;
-
-    private function version(): int
-    {
-        return (int) Cache::get(self::VERSION_KEY, self::DEFAULT_VERSION);
-    }
+    public function __construct(
+        private DiscoveryCache $cache,
+    ) {}
 
     public function bumpPublicSearchVersion(): void
     {
-        Cache::put(
-            self::VERSION_KEY,
-            $this->version() + 1,
-            now()->addDays(self::VERSION_TTL_DAYS),
-        );
+        $this->cache->bump($this->versionKey());
     }
 
     /**
@@ -62,12 +49,20 @@ final readonly class PersonSearchCacheStore implements PersonSearchCache
         $boundedSearch = mb_substr($normalizedSearch, 0, 200);
 
         /** @var list<string> $ids */
-        $ids = Cache::remember(
-            sprintf('%s:%d:%s', $keyPrefix, $this->version(), md5($boundedSearch)),
-            self::PUBLIC_SEARCH_CACHE_TTL_SECONDS,
+        $ids = $this->cache->remember(
+            $this->versionKey(),
+            sprintf('%s:%s', $keyPrefix, md5($boundedSearch)),
+            (int) config('discovery.cache.ttls.search_public', 300),
             $resolve,
         );
 
         return $ids;
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.persons_search', 'discovery:v:persons:search');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:persons:search';
     }
 }

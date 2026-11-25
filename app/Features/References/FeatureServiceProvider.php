@@ -9,6 +9,7 @@ use App\Features\References\Api\ContributionProjection;
 use App\Features\References\Api\Filament\ReferenceQuickCreate;
 use App\Features\References\Api\ReferenceCatalog;
 use App\Features\References\Api\ReferenceHomepageStats;
+use App\Features\References\Api\ReferenceListingCacheVersion;
 use App\Features\References\Api\ReferenceLookup;
 use App\Features\References\Api\ReferenceQueries;
 use App\Features\References\Api\ReferenceSearch;
@@ -27,6 +28,7 @@ use App\Features\References\Models\Reference;
 use App\Features\References\Observers\ReferenceContributorObserver;
 use App\Features\References\Observers\ReferenceObserver;
 use App\Features\References\Persistence\ReferenceHomepageStatsCacheStore;
+use App\Features\References\Persistence\ReferenceListingCacheVersionStore;
 use App\Features\References\Persistence\ReferenceSearchCacheStore;
 use App\Features\References\Queries\EloquentReferenceLookup;
 use App\Features\References\Queries\ReferenceContributionProjection;
@@ -70,6 +72,7 @@ class FeatureServiceProvider extends FeatureModule
         $this->app->bind(ReferenceQueries::class, ReferenceQueryService::class);
         $this->app->bind(ReferenceLookup::class, EloquentReferenceLookup::class);
         $this->app->bind(ReferenceHomepageStats::class, ReferenceHomepageStatsCacheStore::class);
+        $this->app->bind(ReferenceListingCacheVersion::class, ReferenceListingCacheVersionStore::class);
         $this->app->tag([ReferenceResourceSearchAdapter::class], ResourceSearchAdapter::TAG);
 
         $resources = $this->app->make(FilamentResourceRegistry::class);

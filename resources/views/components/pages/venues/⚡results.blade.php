@@ -1,12 +1,8 @@
 <?php
 
-use App\Features\Places\Api\Enums\VenueType;
-
-use App\Features\Places\Models\Venue;
+use App\Features\Places\Queries\VenueDirectoryQuery;
 use App\Platform\Location\LocationSlugResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -83,100 +79,17 @@ new
         #[Computed]
         public function venues(): LengthAwarePaginatorContract
         {
-            $query = $this->baseVenuesQuery();
-            $search = $this->normalizedSearch();
-
-            if ($search !== null) {
-                $this->applySearchScope($query, $search);
-            }
-
-            return $query
-                ->orderBy('venues.name')
-                ->paginate(12)
-                ->withQueryString();
-        }
-
-        private function baseVenuesQuery(): Builder
-        {
-            $query = Venue::query()
-                ->active()
-                ->where('status', 'verified')
-                ->withCount(['events' => function (Builder $query): void {
-                    $query->active();
-                }])
-                ->with([
-                    'addresses.areaAssignments.area',
-                    'media',
-                ]);
-
-            return $this->applyLocationScope($query);
-        }
-
-        private function applySearchScope(Builder $query, string $search): void
-        {
-            $operator = DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
-            $collapsedWildcardSearch = '%'.str_replace(' ', '%', $search).'%';
-
-            $query->where(function (Builder $innerQuery) use ($operator, $search, $collapsedWildcardSearch): void {
-                $innerQuery
-                    ->where('venues.name', $operator, "%{$search}%")
-                    ->orWhere('venues.name', $operator, $collapsedWildcardSearch)
-                    ->orWhere('venues.slug', $operator, "%{$search}%")
-                    ->orWhere('venues.description', $operator, "%{$search}%")
-                    ->orWhere('venues.description', $operator, $collapsedWildcardSearch)
-                    ->orWhereHas('addresses', function (Builder $addressQuery) use ($operator, $search, $collapsedWildcardSearch): void {
-                        $addressQuery
-                            ->where('line1', $operator, "%{$search}%")
-                            ->orWhere('line1', $operator, $collapsedWildcardSearch)
-                            ->orWhere('line2', $operator, "%{$search}%")
-                            ->orWhere('postcode', $operator, "%{$search}%")
-                            ->orWhere('city', $operator, "%{$search}%")
-                            ->orWhere('state', $operator, "%{$search}%")
-                            ->orWhere('country', $operator, "%{$search}%");
-                    });
-            });
-        }
-
-        private function applyLocationScope(Builder $query): Builder
-        {
-            $countryId = $this->normalizedLocationId($this->country_id);
-            $stateId = $this->normalizedLocationId($this->state_id);
-            $areaIds = $this->normalizedAreas($this->areas);
-
-            if ($countryId === null && $stateId === null && $areaIds === []) {
-                return $query;
-            }
-
-            return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $areaIds): void {
-                if ($countryId !== null) {
-                    $addressQuery->where('country_id', $countryId);
-                }
-
-                if ($stateId !== null) {
-                    $addressQuery->where('state_id', $stateId);
-                }
-
-                foreach ($areaIds as $role => $areaId) {
-                    $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
-                        ->where('role', $role)->where('address_area_id', $areaId));
-                }
-            });
-        }
-
-        private function locationSlugResolver(): LocationSlugResolver
-        {
-            return app(LocationSlugResolver::class);
-        }
-
-        private function normalizedSearch(): ?string
-        {
-            if (! is_string($this->search)) {
-                return null;
-            }
-
-            $search = trim($this->search);
-
-            return $search === '' ? null : $search;
+            return app(VenueDirectoryQuery::class)->paginate(
+                search: $this->search,
+                countryId: $this->normalizedLocationId($this->country_id),
+                stateId: $this->normalizedLocationId($this->state_id),
+                areas: $this->normalizedAreas($this->areas),
+                page: max(1, (int) $this->getPage()),
+                paginationMeta: [
+                    'path' => request()->url(),
+                    'query' => request()->except('page'),
+                ],
+            );
         }
 
         private function normalizedLocationId(?string $value): ?string
@@ -223,7 +136,6 @@ new
 
             return $normalized;
         }
-
     };
 ?>
 

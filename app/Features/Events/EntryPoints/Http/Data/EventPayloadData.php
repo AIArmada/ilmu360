@@ -26,7 +26,7 @@ use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\References\Models\Reference;
 use App\Platform\Language\Models\Language;
 use App\Platform\Models\MorphModelResolver;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
@@ -530,7 +530,7 @@ class EventPayloadData extends Data
             'edition_label' => $reference->edition_label,
             'isbn' => $reference->isbn,
             'language' => $reference->language,
-            'language_label' => app(SelectionCatalogCache::class)->languageLabel($reference->language),
+            'language_label' => app(SelectionCatalog::class)->languageLabel($reference->language),
             'url' => $reference->url,
             'media' => $media,
             'front_cover_url' => $frontCoverUrl,

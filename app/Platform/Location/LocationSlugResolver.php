@@ -7,7 +7,7 @@ namespace App\Platform\Location;
 use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Support\CountryAddressProfileResolver;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Illuminate\Support\Str;
 
 /**
@@ -37,7 +37,7 @@ final class LocationSlugResolver
     /** @var array<string, array{?string, ?string}> */
     private static array $slotRoles = [];
 
-    public function __construct(private readonly SelectionCatalogCache $catalogCache) {}
+    public function __construct(private readonly SelectionCatalog $catalogCache) {}
 
     /**
      * @return array{slugToId: array<string, string>, idToSlug: array<string, string>, options: array<string, string>}

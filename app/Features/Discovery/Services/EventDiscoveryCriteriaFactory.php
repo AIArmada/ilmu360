@@ -6,7 +6,6 @@ namespace App\Features\Discovery\Services;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
-use App\Features\Events\Api\Enums\TimingMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Str;
@@ -173,20 +172,14 @@ final class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api
     private function requiresDatabaseFiltering(array $filters): bool
     {
         return $this->arrayValue($filters['prayer_time'] ?? null) !== []
-            || $this->arrayValue($filters['language_codes'] ?? null) !== []
             || $this->uuidList($filters['saved_event_ids'] ?? null) !== []
             || $this->uuidList($filters['going_event_ids'] ?? null) !== []
             || $this->arrayValue($filters['reference_author_search'] ?? null) !== []
             || $this->normalizeText($filters['person_in_charge_search'] ?? null) !== null
             || $this->normalizeText($filters['person_name_search'] ?? null) !== null
-            || in_array($filters['timing_mode'] ?? null, [TimingMode::Absolute->value, TimingMode::PrayerRelative->value], true)
             || $this->normalizeText($filters['starts_time_from'] ?? null) !== null
             || $this->normalizeText($filters['starts_time_until'] ?? null) !== null
-            || filled($filters['venue_id'] ?? null)
-            || $this->boolean($filters['is_muslim_only'] ?? null) !== null
-            || $this->boolean($filters['has_event_url'] ?? null) !== null
-            || $this->boolean($filters['has_live_url'] ?? null) !== null
-            || $this->boolean($filters['has_end_time'] ?? null) !== null;
+            || filled($filters['venue_id'] ?? null);
     }
 
     /**
@@ -195,22 +188,5 @@ final class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api
     private function arrayValue(mixed $value): array
     {
         return is_array($value) ? $value : ($value === null ? [] : [$value]);
-    }
-
-    private function boolean(mixed $value): ?bool
-    {
-        if (is_bool($value)) {
-            return $value;
-        }
-
-        if (in_array($value, [1, '1', 'true', 'on', 'yes'], true)) {
-            return true;
-        }
-
-        if (in_array($value, [0, '0', 'false', 'off', 'no'], true)) {
-            return false;
-        }
-
-        return null;
     }
 }

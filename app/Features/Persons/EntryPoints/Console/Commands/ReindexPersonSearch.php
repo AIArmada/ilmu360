@@ -20,12 +20,6 @@ class ReindexPersonSearch extends Command
 
     public function handle(): int
     {
-        if (! $this->personSearchService->searchIndexSchemaReady()) {
-            $this->error('Person search schema is not ready. Run the migrations first.');
-
-            return self::FAILURE;
-        }
-
         $chunkSize = max(1, (int) $this->option('chunk'));
         $processed = $this->personSearchService->reindexAll($chunkSize);
 

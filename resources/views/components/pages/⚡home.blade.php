@@ -209,11 +209,13 @@ new
         #[Computed]
         public function featuredPersons(): Collection
         {
+            $versionKey = config('discovery.cache.versions.persons_featured', 'discovery:v:persons:featured');
+
             /** @var list<string> $ids */
-            $ids = app(\AIArmada\CommerceSupport\Persistence\VersionedCache::class)->remember(
-                Person::FEATURED_IDS_CACHE_KEY,
+            $ids = app(\App\Shared\Cache\DiscoveryCache::class)->remember(
+                is_string($versionKey) && $versionKey !== '' ? $versionKey : 'discovery:v:persons:featured',
                 'home:featured_person_ids',
-                300,
+                (int) config('discovery.cache.ttls.homepage_featured', 120),
                 static fn (): array => Person::query()
                     ->active()
                     ->speakers()

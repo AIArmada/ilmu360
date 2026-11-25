@@ -35,6 +35,7 @@ use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Membership\Models\MembershipApplication;
 use App\Features\Persons\Api\PersonCards;
 use App\Features\Persons\Api\PersonListingCacheVersion;
+use App\Features\Persons\Api\PersonLookup;
 use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Affiliation;
@@ -48,6 +49,10 @@ use App\Features\References\EntryPoints\Http\ReferenceDirectoryController;
 use App\Features\References\Models\Reference;
 use App\Features\References\Services\ReferenceSearchService;
 use App\Models\User;
+use App\Platform\Search\DatabaseFuzzyMatcher;
+use App\Platform\Search\ScoutRawHitExtractor;
+use App\Shared\Contracts\SearchEngineResolver;
+use App\Shared\Contracts\SearchHealthCheck;
 use Database\Factories\EventKeyPersonFactory;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -1348,13 +1353,12 @@ it('falls back to local person and institution search on the frontend unified se
     app(PersonSearchService::class)->syncPersonRecord($person);
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
-    {
-        protected function shouldUseScoutSearch(): bool
-        {
-            return true;
-        }
+    $healthCheck = Mockery::mock(SearchHealthCheck::class);
+    $healthCheck->shouldReceive('isAvailable')->andReturn(true);
+    app()->instance(SearchHealthCheck::class, $healthCheck);
 
+    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class(app(PersonWorkflow::class), app(PersonSearchCache::class), app(SearchEngineResolver::class), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends PersonSearchService
+    {
         protected function searchIdsWithScout(string $search, array $options = []): array
         {
             throw new RuntimeException('Typesense unavailable');
@@ -1363,13 +1367,8 @@ it('falls back to local person and institution search on the frontend unified se
         protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
     });
 
-    $this->app->bind(InstitutionSearchService::class, fn (): InstitutionSearchService => new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
+    $this->app->bind(InstitutionSearchService::class, fn (): InstitutionSearchService => new class(app(InstitutionSearchCache::class), app(SearchEngineResolver::class), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends InstitutionSearchService
     {
-        protected function shouldUseScoutSearch(): bool
-        {
-            return true;
-        }
-
         protected function searchIdsWithScout(string $search, array $options = []): array
         {
             throw new RuntimeException('Typesense unavailable');
@@ -1464,13 +1463,12 @@ it('falls back to local person directory search when typesense fails', function 
     app(PersonSearchService::class)->syncPersonRecord($person);
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class(app(PersonWorkflow::class), app(PersonSearchCache::class)) extends PersonSearchService
-    {
-        protected function shouldUseScoutSearch(): bool
-        {
-            return true;
-        }
+    $healthCheck = Mockery::mock(SearchHealthCheck::class);
+    $healthCheck->shouldReceive('isAvailable')->andReturn(true);
+    app()->instance(SearchHealthCheck::class, $healthCheck);
 
+    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class(app(PersonWorkflow::class), app(PersonSearchCache::class), app(SearchEngineResolver::class), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends PersonSearchService
+    {
         protected function searchIdsWithScout(string $search, array $options = []): array
         {
             throw new RuntimeException('Typesense unavailable');
@@ -1500,13 +1498,12 @@ it('falls back to database institution directory search when typesense fails', f
 
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(InstitutionSearchService::class, fn (): InstitutionSearchService => new class(app(InstitutionSearchCache::class)) extends InstitutionSearchService
-    {
-        protected function shouldUseScoutSearch(): bool
-        {
-            return true;
-        }
+    $healthCheck = Mockery::mock(SearchHealthCheck::class);
+    $healthCheck->shouldReceive('isAvailable')->andReturn(true);
+    app()->instance(SearchHealthCheck::class, $healthCheck);
 
+    $this->app->bind(InstitutionSearchService::class, fn (): InstitutionSearchService => new class(app(InstitutionSearchCache::class), app(SearchEngineResolver::class), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends InstitutionSearchService
+    {
         protected function searchIdsWithScout(string $search, array $options = []): array
         {
             throw new RuntimeException('Typesense unavailable');
@@ -2829,13 +2826,12 @@ it('falls back to indexed reference search when typesense fails', function () {
 
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(ReferenceSearchService::class, fn (): ReferenceSearchService => new class(app(ReferenceSearchCache::class)) extends ReferenceSearchService
-    {
-        protected function shouldUseTypesenseSearch(): bool
-        {
-            return true;
-        }
+    $healthCheck = Mockery::mock(SearchHealthCheck::class);
+    $healthCheck->shouldReceive('isAvailable')->andReturn(true);
+    app()->instance(SearchHealthCheck::class, $healthCheck);
 
+    $this->app->bind(ReferenceSearchService::class, fn (): ReferenceSearchService => new class(app(ReferenceSearchCache::class), app(PersonLookup::class), app(SearchEngineResolver::class), app(ScoutRawHitExtractor::class), app(DatabaseFuzzyMatcher::class)) extends ReferenceSearchService
+    {
         protected function searchIdsWithScout(string $search, array $options = []): array
         {
             throw new RuntimeException('Typesense unavailable');

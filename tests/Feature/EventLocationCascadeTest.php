@@ -4,6 +4,7 @@ use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\State;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Support\PublicScheduleLeaf;
 use App\Features\Places\Models\Venue;
 use Livewire\Livewire;
 
@@ -92,7 +93,9 @@ it('builds Indonesian slot fields and filters events down the cascade', function
         ->and($fields['area_assignments.regency']->getLabel())->toBe('Kabupaten')
         ->and($fields['area_assignments.district']->getLabel())->toBe('Kecamatan');
 
-    $titles = $component->instance()->events->getCollection()->pluck('title')->all();
+    $titles = collect($component->instance()->scheduleItems->items())
+        ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
+        ->all();
 
     expect($titles)->toContain('Cascade Match Bandung')->not->toContain('Cascade Other Cibinong');
 });
@@ -151,7 +154,9 @@ it('builds the stateless Singapore cascade and filters events by planning area',
         ->and($fields['area_assignments.region']->getLabel())->toBe('Wilayah Perancangan')
         ->and($component->instance()->states())->toBeEmpty();
 
-    $titles = $component->instance()->events->getCollection()->pluck('title')->all();
+    $titles = collect($component->instance()->scheduleItems->items())
+        ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
+        ->all();
 
     expect($titles)->toContain('Cascade Match Bishan')->not->toContain('Cascade Other Geylang');
 });
@@ -193,7 +198,9 @@ it('keeps the Malaysian event cascade on district and subdivision fields', funct
         ->toContain('area_assignments.administrative_district')
         ->toContain('area_assignments.administrative_subdivision');
 
-    $titles = $component->instance()->events->getCollection()->pluck('title')->all();
+    $titles = collect($component->instance()->scheduleItems->items())
+        ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
+        ->all();
 
     expect($titles)->toContain('Cascade Match Subang')->not->toContain('Cascade Other Klang');
 });

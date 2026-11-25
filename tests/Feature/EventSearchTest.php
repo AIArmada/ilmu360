@@ -37,6 +37,7 @@ use App\Models\User;
 use App\Platform\Language\Models\Language;
 use App\Platform\Location\PublicGeolocationPermission;
 use App\Platform\Location\VisitorCountryResolver;
+use App\Shared\Cache\DiscoveryCache;
 use Database\Seeders\AIArmada\EventTopicSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -474,10 +475,12 @@ describe('Event Search Filters', function () {
             ->assertSee('15 minit selepas Isyak');
     });
 
-    it('does not prime the global default events search cache when the implicit country filter is active', function () {
+    it('isolates country-scoped default event search and schedule caches from global keys', function () {
         config()->set('cache.default', 'array');
         app('cache')->setDefaultDriver('array');
         Cache::flush();
+
+        $malaysia = ensureMalaysiaCountryForTests();
 
         Event::factory()->count(3)->create([
             'status' => 'approved',
@@ -489,8 +492,15 @@ describe('Event Search Filters', function () {
         Livewire::test(Index::class)
             ->assertSee('Temui majlis ilmu yang');
 
-        expect(Cache::get('default_events_search_v2'))
-            ->toBeNull();
+        app(EventSearchService::class)->search(null, ['country_id' => (string) $malaysia->getKey()], 12, 'time');
+
+        $version = app(DiscoveryCache::class)
+            ->version((string) config('discovery.cache.versions.events_schedule'));
+
+        expect(Cache::get("default_events_search:country:global:per:12:{$version}"))
+            ->toBeNull()
+            ->and(Cache::get("default_events_search:country:{$malaysia->getKey()}:per:12:{$version}"))
+            ->toBeArray();
     });
 
     it('reuses the computed event paginator when resolving saved event ids', function () {
@@ -535,9 +545,11 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDay(),
         ]);
 
-        Cache::shouldReceive('remember')
+        $cache = Mockery::mock(DiscoveryCache::class);
+        $cache->shouldReceive('remember')
             ->once()
             ->andThrow(new RuntimeException('cache unavailable'));
+        app()->instance(DiscoveryCache::class, $cache);
 
         $results = app(EventSearchService::class)->search(null, [], 12, 'time');
 
@@ -1640,10 +1652,8 @@ describe('Event Search Filters', function () {
             ->set('search', 'Melawti')
             ->assertSet('search', 'Melawti');
 
-        $eventTitles = $component->instance()
-            ->events
-            ->getCollection()
-            ->pluck('title')
+        $eventTitles = collect($component->instance()->scheduleItems->items())
+            ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
             ->all();
 
         expect($eventTitles)
@@ -2136,10 +2146,8 @@ describe('Event Search Filters', function () {
             'area_assignments' => ['administrative_district' => $geoA['district']->getKey()],
         ])->test(Index::class);
 
-        $eventTitles = $component->instance()
-            ->events
-            ->getCollection()
-            ->pluck('title')
+        $eventTitles = collect($component->instance()->scheduleItems->items())
+            ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
             ->all();
 
         expect($eventTitles)
@@ -2203,10 +2211,8 @@ describe('Event Search Filters', function () {
             'country_id' => (string) $malaysia->id,
         ])->test(Index::class);
 
-        $eventTitles = $component->instance()
-            ->events
-            ->getCollection()
-            ->pluck('title')
+        $eventTitles = collect($component->instance()->scheduleItems->items())
+            ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
             ->all();
 
         expect($eventTitles)
@@ -3069,10 +3075,8 @@ describe('Event Search Filters', function () {
             ->test(Index::class)
             ->set('starts_after', $localFilterDate);
 
-        $eventTitles = $component->instance()
-            ->events
-            ->getCollection()
-            ->pluck('title')
+        $eventTitles = collect($component->instance()->scheduleItems->items())
+            ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
             ->all();
 
         expect($eventTitles)
@@ -3119,10 +3123,8 @@ describe('Event Search Filters', function () {
             ])
             ->test(Index::class);
 
-        $eventTitles = $component->instance()
-            ->events
-            ->getCollection()
-            ->pluck('title')
+        $eventTitles = collect($component->instance()->scheduleItems->items())
+            ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
             ->all();
 
         expect($eventTitles)

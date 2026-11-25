@@ -83,6 +83,30 @@ final readonly class InstitutionDirectoryQuery
         array $paginationMeta,
         int $perPage,
     ): LengthAwarePaginator {
+        if (! $followedOnly && ! $this->hasLocationFilter($locationIds)) {
+            $orderedIds = $this->filterSearchIdsToCurrentScope(
+                $this->searchService->publicSearchIds($search),
+                $locationIds,
+                false,
+                $followingInstitutionIds,
+                useDirectoryOrder: true,
+            );
+
+            if ($orderedIds === []) {
+                return $this->emptyPaginator($page, $paginationMeta, $perPage);
+            }
+
+            return $this->orderedIdPaginator(
+                $orderedIds,
+                $locationIds,
+                false,
+                $followingInstitutionIds,
+                $page,
+                $paginationMeta,
+                $perPage,
+            );
+        }
+
         $query = $this->baseInstitutionsQuery($locationIds, $followedOnly, $followingInstitutionIds);
         $query = $this->searchService->applyPublicSearch($query, $search);
         $query->publicDirectoryOrder();
@@ -92,6 +116,18 @@ final readonly class InstitutionDirectoryQuery
         // path has no such cap. Fully location-aware Typesense search would
         // require indexing location fields and adding filter_by constraints.
         return $this->paginateQuery($query, $page, $paginationMeta, $perPage);
+    }
+
+    /**
+     * @param  array{country_id?: ?string, state_id?: ?string, city_id?: ?string, locality_id?: ?string, area_ids?: array<string, ?string>}  $locationIds
+     */
+    private function hasLocationFilter(array $locationIds): bool
+    {
+        return ($locationIds['country_id'] ?? null) !== null
+            || ($locationIds['state_id'] ?? null) !== null
+            || ($locationIds['city_id'] ?? null) !== null
+            || ($locationIds['locality_id'] ?? null) !== null
+            || array_filter($locationIds['area_ids'] ?? []) !== [];
     }
 
     /**
@@ -321,12 +357,10 @@ final readonly class InstitutionDirectoryQuery
             return $scopedIds;
         }
 
-        return collect($scopedIds)
-            ->sortBy(static function (string $id) use ($orderedIds): int {
-                $position = array_search($id, $orderedIds, true);
+        $positions = array_flip($orderedIds);
 
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
+        return collect($scopedIds)
+            ->sortBy(static fn (string $id): int => $positions[$id] ?? PHP_INT_MAX)
             ->values()
             ->all();
     }
@@ -382,14 +416,12 @@ final readonly class InstitutionDirectoryQuery
         array $followingInstitutionIds,
         int $perPage,
     ): LengthAwarePaginator {
+        $positions = array_flip($orderedIds);
+
         $institutions = $this->baseInstitutionsQuery($locationIds, $followedOnly, $followingInstitutionIds)
             ->whereIn('institutions.id', $orderedIds)
             ->get()
-            ->sortBy(static function (Institution $institution) use ($orderedIds): int {
-                $position = array_search((string) $institution->id, $orderedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
+            ->sortBy(static fn (Institution $institution): int => $positions[(string) $institution->id] ?? PHP_INT_MAX)
             ->values();
 
         return new LengthAwarePaginator($institutions, $total, $perPage, $currentPage, $paginationMeta);

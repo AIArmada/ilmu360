@@ -5,26 +5,29 @@ declare(strict_types=1);
 namespace App\Platform\Location;
 
 use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use App\Platform\Location\Api\AddressCatalog;
 use App\Platform\Ui\Forms\AddressFields;
+use App\Shared\Cache\SelectionCatalog;
 use Illuminate\Support\Str;
 
 final readonly class EloquentAddressCatalog implements AddressCatalog
 {
+    public function __construct(
+        private SelectionCatalog $selectionCatalog,
+    ) {}
+
     public function countries(): array
     {
-        return AddressCountry::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'iso2'])
-            ->map(fn (AddressCountry $country): array => [
-                'id' => (string) $country->id,
-                'label' => (string) $country->name,
-                'iso2' => strtoupper((string) $country->iso2),
-                'key' => Str::slug((string) $country->name),
+        return collect($this->selectionCatalog->countryRows())
+            ->map(static fn (array $country): array => [
+                'id' => $country['id'],
+                'label' => $country['name'],
+                'iso2' => strtoupper($country['iso2']),
+                'key' => Str::slug($country['name']),
             ])
+            ->values()
             ->all();
     }
 
@@ -38,37 +41,58 @@ final readonly class EloquentAddressCatalog implements AddressCatalog
             return [];
         }
 
-        return State::query()
-            ->where('country_id', $countryId)
-            ->orderBy('name')
-            ->get(['id', 'name', 'code'])
-            ->map(fn (State $state): array => [
-                'id' => (string) $state->id,
-                'label' => (string) $state->name,
-                'code' => $state->code !== null ? (string) $state->code : null,
-            ])
-            ->all();
+        /** @var list<array{id: string, label: string, code: string|null}> $rows */
+        $rows = $this->selectionCatalog->rememberAddressData(
+            "catalog:states:{$countryId}",
+            static fn (): array => State::query()
+                ->where('country_id', $countryId)
+                ->orderBy('name')
+                ->get(['id', 'name', 'code'])
+                ->map(static fn (State $state): array => [
+                    'id' => (string) $state->id,
+                    'label' => (string) $state->name,
+                    'code' => $state->code !== null ? (string) $state->code : null,
+                ])
+                ->all(),
+        );
+
+        return $rows;
     }
 
     public function cities(?string $stateId, ?string $countryId = null): array
     {
-        $query = City::query()->orderBy('name');
+        $hasState = is_string($stateId) && $stateId !== '';
+        $hasCountry = is_string($countryId) && $countryId !== '';
 
-        if (is_string($stateId) && $stateId !== '') {
-            $query->where('state_id', $stateId);
-        } elseif (is_string($countryId) && $countryId !== '') {
-            $query->where('country_id', $countryId);
-        } else {
+        if (! $hasState && ! $hasCountry) {
             return [];
         }
 
-        return $query
-            ->get(['id', 'name'])
-            ->map(fn (City $city): array => [
-                'id' => (string) $city->id,
-                'label' => (string) $city->name,
-            ])
-            ->all();
+        $cacheKey = ($hasState ? $stateId : 'any').':'.($hasCountry ? $countryId : 'any');
+
+        /** @var list<array{id: string, label: string}> $rows */
+        $rows = $this->selectionCatalog->rememberAddressData(
+            "catalog:cities:{$cacheKey}",
+            static function () use ($hasState, $stateId, $hasCountry, $countryId): array {
+                $query = City::query()->orderBy('name');
+
+                if ($hasState) {
+                    $query->where('state_id', $stateId);
+                } elseif ($hasCountry) {
+                    $query->where('country_id', $countryId);
+                }
+
+                return $query
+                    ->get(['id', 'name'])
+                    ->map(static fn (City $city): array => [
+                        'id' => (string) $city->id,
+                        'label' => (string) $city->name,
+                    ])
+                    ->all();
+            },
+        );
+
+        return $rows;
     }
 
     public function administrativeDistricts(?string $countryId, ?string $stateId = null): array
@@ -124,32 +148,49 @@ final readonly class EloquentAddressCatalog implements AddressCatalog
 
     public function addressAreas(?string $countryId = null, ?string $parentId = null, ?int $level = null): array
     {
-        $query = AddressArea::query();
+        $hasParent = is_string($parentId) && $parentId !== '';
+        $hasCountry = is_string($countryId) && $countryId !== '';
 
-        if (is_string($parentId) && $parentId !== '') {
-            $query->where('parent_id', $parentId);
-        }
-
-        if (is_string($countryId) && $countryId !== '') {
-            $query->where('country_id', $countryId);
-        } elseif (! is_string($parentId) || $parentId === '') {
+        if (! $hasParent && ! $hasCountry) {
             return [];
         }
 
-        if ($level !== null) {
-            $query->where('level', $level);
-        }
+        $cacheKey = ($hasCountry ? $countryId : 'any')
+            .':'.($hasParent ? $parentId : 'any')
+            .':'.($level !== null ? (string) $level : 'any');
 
-        return $query
-            ->orderBy('name')
-            ->get(['id', 'name', 'type', 'level'])
-            ->map(fn (AddressArea $area): array => [
-                'id' => (string) $area->id,
-                'label' => (string) $area->name,
-                'type' => (string) $area->type,
-                'level' => $area->level,
-            ])
-            ->all();
+        /** @var list<array{id: string, label: string, type: string, level: int|null}> $rows */
+        $rows = $this->selectionCatalog->rememberAddressData(
+            "catalog:areas:{$cacheKey}",
+            static function () use ($hasParent, $parentId, $hasCountry, $countryId, $level): array {
+                $query = AddressArea::query();
+
+                if ($hasParent) {
+                    $query->where('parent_id', $parentId);
+                }
+
+                if ($hasCountry) {
+                    $query->where('country_id', $countryId);
+                }
+
+                if ($level !== null) {
+                    $query->where('level', $level);
+                }
+
+                return $query
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'type', 'level'])
+                    ->map(static fn (AddressArea $area): array => [
+                        'id' => (string) $area->id,
+                        'label' => (string) $area->name,
+                        'type' => (string) $area->type,
+                        'level' => $area->level,
+                    ])
+                    ->all();
+            },
+        );
+
+        return $rows;
     }
 
     /** @return list<array{id: string, label: string, type: string, level: int|null}> */
@@ -161,29 +202,49 @@ final readonly class EloquentAddressCatalog implements AddressCatalog
             return [];
         }
 
-        return AddressArea::query()
-            ->whereIn('id', array_keys($options))
-            ->orderBy('name')
-            ->get(['id', 'name', 'type', 'level'])
-            ->map(fn (AddressArea $area): array => [
-                'id' => (string) $area->id,
-                'label' => (string) $area->name,
-                'type' => (string) $area->type,
-                'level' => $area->level !== null ? (int) $area->level : null,
-            ])
-            ->all();
+        $cacheKey = ($countryId ?? 'any').':'.$role.':'.($parentId ?? 'root');
+
+        /** @var list<array{id: string, label: string, type: string, level: int|null}> $rows */
+        $rows = $this->selectionCatalog->rememberAddressData(
+            "catalog:role-areas:{$cacheKey}",
+            static fn (): array => AddressArea::query()
+                ->whereIn('id', array_keys($options))
+                ->orderBy('name')
+                ->get(['id', 'name', 'type', 'level'])
+                ->map(static fn (AddressArea $area): array => [
+                    'id' => (string) $area->id,
+                    'label' => (string) $area->name,
+                    'type' => (string) $area->type,
+                    'level' => $area->level !== null ? (int) $area->level : null,
+                ])
+                ->all(),
+        );
+
+        return $rows;
     }
 
     private function countryIdForState(string $stateId): ?string
     {
-        $countryId = State::query()->whereKey($stateId)->value('country_id');
+        return $this->selectionCatalog->rememberAddressValue(
+            "country-for-state:{$stateId}",
+            static function () use ($stateId): ?string {
+                $countryId = State::query()->whereKey($stateId)->value('country_id');
 
-        return is_string($countryId) ? $countryId : null;
+                return is_string($countryId) && $countryId !== '' ? $countryId : null;
+            },
+        );
     }
 
     private function countryIdForArea(string $areaId): ?string
     {
-        $countryId = AddressArea::query()->whereKey($areaId)->value('country_id');
+        $countryId = $this->selectionCatalog->rememberAddressValue(
+            "country-for-parent:{$areaId}",
+            static function () use ($areaId): ?string {
+                $resolved = AddressArea::query()->whereKey($areaId)->value('country_id');
+
+                return is_string($resolved) && $resolved !== '' ? $resolved : null;
+            },
+        );
 
         if (is_string($countryId) && $countryId !== '') {
             return $countryId;

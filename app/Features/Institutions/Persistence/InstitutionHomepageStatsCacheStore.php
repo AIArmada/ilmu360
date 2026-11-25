@@ -6,23 +6,33 @@ namespace App\Features\Institutions\Persistence;
 
 use App\Features\Institutions\Api\InstitutionHomepageStats;
 use App\Features\Institutions\Models\Institution;
-use Illuminate\Support\Facades\Cache;
+use App\Shared\Cache\DiscoveryCache;
 
 final readonly class InstitutionHomepageStatsCacheStore implements InstitutionHomepageStats
 {
-    private const string COUNT_KEY = 'home.stats.institutions.active';
-
-    private const int CACHE_TTL_SECONDS = 3600;
+    public function __construct(
+        private DiscoveryCache $cache,
+    ) {}
 
     public function activeInstitutionCount(): int
     {
-        $count = Cache::remember(self::COUNT_KEY, self::CACHE_TTL_SECONDS, fn (): int => Institution::active()->count('id'));
-
-        return is_numeric($count) ? (int) $count : 0;
+        return $this->cache->rememberInt(
+            $this->versionKey(),
+            'home:stats:institutions:active',
+            (int) config('discovery.cache.ttls.homepage_stats', 300),
+            static fn (): int => Institution::active()->count('id'),
+        );
     }
 
     public function forgetCachedCount(): void
     {
-        Cache::forget(self::COUNT_KEY);
+        $this->cache->bump($this->versionKey());
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.homepage_stats', 'discovery:v:homepage:stats');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:homepage:stats';
     }
 }

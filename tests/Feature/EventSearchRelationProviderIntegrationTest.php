@@ -5,17 +5,26 @@ declare(strict_types=1);
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Events\Api\Data\EventDiscoveryHit;
 use App\Features\Events\Api\EventCategoryCatalog;
+use App\Features\Events\Api\EventScheduleSql;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventCardsQuery;
+use App\Features\Events\Queries\EventCategoryPresenter;
 use App\Features\Events\Queries\EventDiscoveryFilterSet;
 use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Queries\FuzzyEventMatcher;
+use App\Features\Events\Queries\Postgres\EventFilterQueryBuilder;
+use App\Features\Events\Queries\Postgres\EventHomepageAndCollectionQueries;
+use App\Features\Events\Queries\Postgres\EventScheduleHydrator;
+use App\Features\Events\Queries\Postgres\EventScheduleOccurrencePaginator;
 use App\Features\Events\Queries\PostgresEventDiscovery;
+use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Events\Queries\TypesenseEventDiscovery;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\PlaceCatalog;
+use App\Features\Places\Api\SpaceLocation;
 use App\Features\References\Api\ReferenceQueries;
+use App\Platform\Search\DatabaseFuzzyMatcher;
 use Tests\Support\RecordingEventSearchRelationProvider;
 
 it('returns immutable PostgreSQL search hits without importing event models into Discovery', function (): void {
@@ -30,15 +39,38 @@ it('returns immutable PostgreSQL search hits without importing event models into
     ]);
     $criteria = app(EventDiscoveryCriteriaFactory::class)->fromSearch(null, [], 20, 'time');
 
-    $discovery = new PostgresEventDiscovery(
-        fuzzyMatcher: new FuzzyEventMatcher,
+    $referenceQueries = app(ReferenceQueries::class);
+    $publicReferenceConstraint = new PublicReferenceConstraint($referenceQueries);
+    $filterQueryBuilder = new EventFilterQueryBuilder(
+        fuzzyMatcher: new FuzzyEventMatcher(new DatabaseFuzzyMatcher),
         filterSet: new EventDiscoveryFilterSet,
         personLookup: app(PersonLookup::class),
         institutionLookup: app(InstitutionLookup::class),
         placeCatalog: app(PlaceCatalog::class),
         categoryCatalog: app(EventCategoryCatalog::class),
-        relationProvider: $provider,
-        referenceQueries: app(ReferenceQueries::class),
+        referenceQueries: $referenceQueries,
+        publicReferenceConstraint: $publicReferenceConstraint,
+    );
+    $scheduleHydrator = new EventScheduleHydrator($provider);
+    $schedulePaginator = new EventScheduleOccurrencePaginator($filterQueryBuilder, $scheduleHydrator);
+    $homepageAndCollectionQueries = new EventHomepageAndCollectionQueries(
+        filterQueryBuilder: $filterQueryBuilder,
+        schedulePaginator: $schedulePaginator,
+        scheduleHydrator: $scheduleHydrator,
+        personLookup: app(PersonLookup::class),
+        referenceQueries: $referenceQueries,
+        eventListPayloads: app(EventListPayloadPresenter::class),
+        eventScheduleSql: app(EventScheduleSql::class),
+        publicReferenceConstraint: $publicReferenceConstraint,
+        eventCategories: app(EventCategoryPresenter::class),
+        spaceLocation: app(SpaceLocation::class),
+    );
+
+    $discovery = new PostgresEventDiscovery(
+        filterQueryBuilder: $filterQueryBuilder,
+        schedulePaginator: $schedulePaginator,
+        homepageAndCollectionQueries: $homepageAndCollectionQueries,
+        scheduleHydrator: $scheduleHydrator,
     );
 
     $hit = collect($discovery->search($criteria)->items())->firstWhere('id', (string) $event->getKey());

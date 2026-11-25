@@ -1,6 +1,7 @@
 <?php
 
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
+use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventDiscoveryFilterSet;
@@ -276,4 +277,90 @@ test('typesense rehydration drops stale ids returned by the index', function () 
     // the hydrated payload and the total exclude stale current-state rows.
     expect(collect($results->items())->pluck('id')->all())->toBe([(string) $fresh->getKey()])
         ->and($results->total())->toBe(1);
+});
+
+test('event searchable array includes boolean facets matching postgres predicates', function () {
+    $eventWithAll = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHours(2),
+        'is_muslim_only' => true,
+        'event_url' => 'https://example.com/register',
+        'live_url' => 'https://youtube.com/live/abc',
+    ]);
+
+    $eventWithoutLinks = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay(),
+        'ends_at' => null,
+        'delivery_mode' => EventFormat::Physical,
+        'is_muslim_only' => false,
+        'event_url' => null,
+        'live_url' => null,
+    ]);
+
+    $withAllPayload = $eventWithAll->fresh()->toSearchableArray();
+    $withoutLinksPayload = $eventWithoutLinks->fresh()->toSearchableArray();
+
+    expect($withAllPayload)
+        ->toHaveKey('is_muslim_only', true)
+        ->toHaveKey('has_event_url', true)
+        ->toHaveKey('has_live_url', true)
+        ->toHaveKey('has_end_time', true)
+        ->and($withoutLinksPayload)
+        ->toHaveKey('is_muslim_only', false)
+        ->toHaveKey('has_event_url', false)
+        ->toHaveKey('has_live_url', false)
+        ->toHaveKey('has_end_time', false);
+});
+
+test('typesense filters include timing_mode and expanded boolean facets', function () {
+    $discovery = exposedTypesenseDiscovery();
+
+    $filters = $discovery->exposedBuildTypesenseFilterParts([
+        'timing_mode' => 'prayer_relative',
+        'is_muslim_only' => '1',
+        'has_event_url' => true,
+        'has_live_url' => '0',
+        'has_end_time' => false,
+    ]);
+
+    expect($filters)
+        ->toContain('timing_mode:=prayer_relative')
+        ->toContain('is_muslim_only:=true')
+        ->toContain('has_event_url:=true')
+        ->toContain('has_live_url:=false')
+        ->toContain('has_end_time:=false');
+});
+
+test('typesense criteria keeps expanded filters on typesense while preserving database fallback filters', function () {
+    $factory = new EventDiscoveryCriteriaFactory;
+    $uuid = (string) Str::uuid();
+
+    expect($factory->fromSearch(null, [
+        'language_codes' => ['ms'],
+        'timing_mode' => 'absolute',
+        'is_muslim_only' => true,
+        'has_event_url' => true,
+        'has_live_url' => false,
+        'has_end_time' => true,
+    ], 20, 'time')->requiresDatabaseFiltering)->toBeFalse();
+
+    foreach ([
+        ['venue_id' => $uuid],
+        ['reference_author_search' => 'Al-Nawawi'],
+        ['prayer_time' => 'after_maghrib'],
+        ['saved_event_ids' => [$uuid]],
+        ['going_event_ids' => [$uuid]],
+        ['person_in_charge_search' => 'Ahmad'],
+        ['person_name_search' => 'Ustaz Ali'],
+        ['starts_time_from' => '09:00'],
+        ['starts_time_until' => '18:00'],
+    ] as $databaseFilter) {
+        expect($factory->fromSearch(null, $databaseFilter, 20, 'time')->requiresDatabaseFiltering)->toBeTrue();
+    }
 });

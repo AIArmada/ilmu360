@@ -4,35 +4,23 @@ declare(strict_types=1);
 
 namespace App\Shared\Cache;
 
+use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
-use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\Persons\Models\Title;
 use App\Platform\Language\Models\Language;
 use Closure;
+use Illuminate\Support\Str;
+use InvalidArgumentException;
 
-final readonly class SelectionCatalogCache
+final readonly class SelectionCatalogCache implements SelectionCatalog
 {
-    private const int CATALOG_TTL_SECONDS = 86400;
-
-    private const string TITLES_VERSION_KEY = 'selection_catalog:titles:version:v1';
-
-    private const string LANGUAGES_VERSION_KEY = 'selection_catalog:languages:version:v2';
-
-    private const string ADDRESS_VERSION_KEY = 'selection_catalog:address:version:v1';
-
-    private const string EVENT_CATEGORIES_VERSION_KEY = 'selection_catalog:event_categories:version:v1';
-
     public function __construct(
-        private EventTaxonomyHierarchy $eventTaxonomyHierarchy,
-        private CacheVersionStore $cacheVersions,
-        private VersionedCache $versionedCache,
+        private DiscoveryCache $cache,
     ) {}
 
-    /**
-     * @return array<string, string>
-     */
     public function titleOptions(): array
     {
         return collect($this->titleRows())
@@ -40,10 +28,6 @@ final readonly class SelectionCatalogCache
             ->all();
     }
 
-    /**
-     * @param  array<int, mixed>  $values
-     * @return array<string, string>
-     */
     public function titleLabels(array $values): array
     {
         $wanted = array_fill_keys(array_map(static fn (mixed $value): string => (string) $value, $values), true);
@@ -54,9 +38,6 @@ final readonly class SelectionCatalogCache
             ->all();
     }
 
-    /**
-     * @return array<string, string>
-     */
     public function titleSearchOptions(string $search): array
     {
         $search = mb_strtolower(trim($search));
@@ -74,22 +55,17 @@ final readonly class SelectionCatalogCache
             ->all();
     }
 
-    /**
-     * @param  array<string, string>  $preferredLabels  Optional localized labels keyed by language code.
-     * @param  int  $ttlSeconds  Cache lifetime for the language rows.
-     * @return array<string, string>
-     */
     public function languageOptions(
         string $key,
         array $preferredLabels = [],
-        int $ttlSeconds = self::CATALOG_TTL_SECONDS,
+        ?int $ttlSeconds = null,
     ): array {
         return collect($this->languageRows($ttlSeconds))
             ->mapWithKeys(static function (array $language) use ($key, $preferredLabels): array {
                 $optionKey = match ($key) {
                     'code' => $language['code'],
                     'id' => $language['id'],
-                    default => throw new \InvalidArgumentException("Unsupported language option key [{$key}]."),
+                    default => throw new InvalidArgumentException("Unsupported language option key [{$key}]."),
                 };
 
                 return [$optionKey => $preferredLabels[$language['code']] ?? $language['name']];
@@ -97,9 +73,17 @@ final readonly class SelectionCatalogCache
             ->all();
     }
 
-    /**
-     * @return array<string, string>
-     */
+    public function languageCatalogOptions(): array
+    {
+        return collect($this->languageRows())
+            ->map(static fn (array $language): array => [
+                'id' => $language['id'],
+                'label' => $language['name'],
+            ])
+            ->values()
+            ->all();
+    }
+
     public function countryOptions(): array
     {
         /** @var array<string, string> $options */
@@ -111,16 +95,13 @@ final readonly class SelectionCatalogCache
         return $options;
     }
 
-    /**
-     * @return list<array{id: string, name: string, iso2: string}>
-     */
     public function countryRows(): array
     {
         /** @var list<array{id: string, name: string, iso2: string}> $rows */
-        $rows = $this->versionedCache->remember(
-            self::ADDRESS_VERSION_KEY,
+        $rows = $this->cache->remember(
+            $this->versionKey('catalogs_geography', 'discovery:v:catalogs:geography'),
             'selection_catalog:address:country_rows',
-            self::CATALOG_TTL_SECONDS,
+            $this->catalogTtl(),
             static fn (): array => AddressCountry::query()
                 ->orderBy('name')
                 ->get(['id', 'name', 'iso2'])
@@ -136,22 +117,44 @@ final readonly class SelectionCatalogCache
         return $rows;
     }
 
-    /** @param Closure(): mixed $resolver */
+    public function addressAreaNamesByIds(array $areaIds): array
+    {
+        $normalizedIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $id): string => is_string($id) ? trim($id) : '', $areaIds),
+            static fn (string $id): bool => $id !== '' && Str::isUuid($id),
+        )));
+
+        if ($normalizedIds === []) {
+            return [];
+        }
+
+        sort($normalizedIds);
+
+        /** @var array<string, string> $names */
+        $names = $this->cache->remember(
+            $this->versionKey('catalogs_geography', 'discovery:v:catalogs:geography'),
+            'selection_catalog:address:area_names:'.sha1(implode(',', $normalizedIds)),
+            $this->catalogTtl(),
+            static fn (): array => AddressArea::query()
+                ->whereIn('id', $normalizedIds)
+                ->pluck('name', 'id')
+                ->mapWithKeys(static fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
+                ->all(),
+        );
+
+        return $names;
+    }
+
     public function rememberAddressData(string $key, Closure $resolver): mixed
     {
-        return $this->versionedCache->remember(
-            self::ADDRESS_VERSION_KEY,
+        return $this->cache->remember(
+            $this->versionKey('catalogs_geography', 'discovery:v:catalogs:geography'),
             "selection_catalog:address:data:{$key}",
-            self::CATALOG_TTL_SECONDS,
+            $this->catalogTtl(),
             $resolver,
         );
     }
 
-    /**
-     * Full language catalog keyed by code with friendly native-inclusive labels.
-     *
-     * @return array<string, string>
-     */
     public function languageSelectOptions(): array
     {
         return collect($this->languageRows())
@@ -170,10 +173,6 @@ final readonly class SelectionCatalogCache
         return $this->languageLabelsForCodes([$code])[$code] ?? null;
     }
 
-    /**
-     * @param  list<string>  $codes
-     * @return array<string, string>
-     */
     public function languageLabelsForCodes(array $codes): array
     {
         $wanted = [];
@@ -196,22 +195,6 @@ final readonly class SelectionCatalogCache
             ->all();
     }
 
-    private static function languageDisplayLabel(string $name, ?string $native): string
-    {
-        $native = trim((string) $native);
-
-        if ($native === '' || mb_strtolower($native) === mb_strtolower($name)) {
-            return $name;
-        }
-
-        return "{$name} ({$native})";
-    }
-
-    /**
-     * @param  list<string>  $preferredCodes
-     * @param  array<string, string>  $preferredLabels
-     * @return array<string, string>
-     */
     public function languageOptionsForCodes(array $preferredCodes, array $preferredLabels = []): array
     {
         $order = array_flip($preferredCodes);
@@ -227,69 +210,142 @@ final readonly class SelectionCatalogCache
             ->all();
     }
 
-    public function bustTitles(): void
-    {
-        $this->cacheVersions->bump(self::TITLES_VERSION_KEY);
-    }
-
-    public function bustLanguages(): void
-    {
-        $this->cacheVersions->bump(self::LANGUAGES_VERSION_KEY);
-    }
-
-    /**
-     * @param  Closure(): array<int|string, string>  $resolver
-     * @return array<int|string, string>
-     */
     public function rememberAddressOptions(string $key, Closure $resolver): array
     {
         /** @var array<int|string, string> $options */
-        $options = $this->versionedCache->remember(
-            self::ADDRESS_VERSION_KEY,
+        $options = $this->cache->remember(
+            $this->versionKey('catalogs_geography', 'discovery:v:catalogs:geography'),
             "selection_catalog:address:{$key}",
-            self::CATALOG_TTL_SECONDS,
+            $this->catalogTtl(),
             $resolver,
         );
 
         return $options;
     }
 
-    /** @param Closure(): ?string $resolver */
     public function rememberAddressValue(string $key, Closure $resolver): ?string
     {
         /** @var string|null $value */
-        $value = $this->versionedCache->remember(
-            self::ADDRESS_VERSION_KEY,
+        $value = $this->cache->remember(
+            $this->versionKey('catalogs_geography', 'discovery:v:catalogs:geography'),
             "selection_catalog:address:value:{$key}",
-            self::CATALOG_TTL_SECONDS,
+            $this->catalogTtl(),
             $resolver,
         );
 
         return $value;
     }
 
-    /** @return array<string, string> */
     public function eventCategoryOptions(): array
     {
         /** @var array<string, string> $options */
-        $options = $this->versionedCache->remember(
-            self::EVENT_CATEGORIES_VERSION_KEY,
+        $options = $this->cache->remember(
+            $this->versionKey('catalogs_categories', 'discovery:v:catalogs:categories'),
             'selection_catalog:event_categories',
-            self::CATALOG_TTL_SECONDS,
-            fn (): array => $this->eventTaxonomyHierarchy->options('event_category'),
+            $this->catalogTtl(),
+            static fn (): array => app(EventTaxonomyHierarchy::class)->options('event_category'),
         );
 
         return $options;
     }
 
+    public function taxonomyTermOptions(string $taxonomyCode): array
+    {
+        return collect($this->taxonomyTermRows($taxonomyCode))
+            ->mapWithKeys(static fn (array $term): array => [$term['id'] => $term['name']])
+            ->all();
+    }
+
+    public function taxonomyTermRows(string $taxonomyCode): array
+    {
+        $normalized = trim($taxonomyCode);
+
+        if ($normalized === '') {
+            return [];
+        }
+
+        /** @var list<array{id: string, name: string, code: string}> $rows */
+        $rows = $this->cache->remember(
+            $this->versionKey('catalogs_taxonomy_terms', 'discovery:v:catalogs:taxonomy_terms'),
+            "selection_catalog:taxonomy_terms:rows:{$normalized}",
+            $this->catalogTtl(),
+            static function () use ($normalized): array {
+                $taxonomyId = EventTaxonomy::query()
+                    ->where('code', $normalized)
+                    ->where('is_active', true)
+                    ->value('id');
+
+                if (! is_string($taxonomyId) || $taxonomyId === '') {
+                    return [];
+                }
+
+                return EventTerm::query()
+                    ->where('event_taxonomy_id', $taxonomyId)
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'code'])
+                    ->map(static fn (EventTerm $term): array => [
+                        'id' => (string) $term->getKey(),
+                        'name' => (string) $term->name,
+                        'code' => (string) $term->code,
+                    ])
+                    ->values()
+                    ->all();
+            },
+        );
+
+        return $rows;
+    }
+
+    public function geographyVersion(): string
+    {
+        return $this->cache->version($this->versionKey('catalogs_geography', 'discovery:v:catalogs:geography'));
+    }
+
+    public function languagesVersion(): string
+    {
+        return $this->cache->version($this->versionKey('catalogs_languages', 'discovery:v:catalogs:languages'));
+    }
+
+    public function donationBanksVersion(): string
+    {
+        return $this->cache->version($this->versionKey('catalogs_banks', 'discovery:v:catalogs:banks'));
+    }
+
+    public function taxonomyTermsVersion(): string
+    {
+        return $this->cache->version($this->versionKey('catalogs_taxonomy_terms', 'discovery:v:catalogs:taxonomy_terms'));
+    }
+
+    public function bustTitles(): void
+    {
+        $this->cache->bump($this->versionKey('catalogs_titles', 'discovery:v:catalogs:titles'));
+    }
+
+    public function bustLanguages(): void
+    {
+        $this->cache->bump($this->versionKey('catalogs_languages', 'discovery:v:catalogs:languages'));
+    }
+
     public function bustAddress(): void
     {
-        $this->cacheVersions->bump(self::ADDRESS_VERSION_KEY);
+        $this->cache->bump($this->versionKey('catalogs_geography', 'discovery:v:catalogs:geography'));
     }
 
     public function bustEventCategories(): void
     {
-        $this->cacheVersions->bump(self::EVENT_CATEGORIES_VERSION_KEY);
+        $this->cache->bump($this->versionKey('catalogs_categories', 'discovery:v:catalogs:categories'));
+    }
+
+    public function bustTaxonomyTerms(): void
+    {
+        $this->cache->bump($this->versionKey('catalogs_taxonomy_terms', 'discovery:v:catalogs:taxonomy_terms'));
+    }
+
+    public function bustDonationBanks(): void
+    {
+        $this->cache->bump($this->versionKey('catalogs_banks', 'discovery:v:catalogs:banks'));
     }
 
     public function bustAll(): void
@@ -298,6 +354,19 @@ final readonly class SelectionCatalogCache
         $this->bustLanguages();
         $this->bustAddress();
         $this->bustEventCategories();
+        $this->bustTaxonomyTerms();
+        $this->bustDonationBanks();
+    }
+
+    private static function languageDisplayLabel(string $name, ?string $native): string
+    {
+        $native = trim((string) $native);
+
+        if ($native === '' || mb_strtolower($native) === mb_strtolower($name)) {
+            return $name;
+        }
+
+        return "{$name} ({$native})";
     }
 
     /**
@@ -306,14 +375,14 @@ final readonly class SelectionCatalogCache
     private function titleRows(): array
     {
         /** @var list<array{id: string, name: string, short_form: string|null}> $rows */
-        $rows = $this->versionedCache->remember(
-            self::TITLES_VERSION_KEY,
+        $rows = $this->cache->remember(
+            $this->versionKey('catalogs_titles', 'discovery:v:catalogs:titles'),
             'selection_catalog:titles:rows',
-            self::CATALOG_TTL_SECONDS,
+            $this->catalogTtl(),
             static fn (): array => Title::query()
                 ->with('category')
                 ->get()
-                ->sortBy(fn (Title $title): array => [
+                ->sortBy(static fn (Title $title): array => [
                     $title->category->sort_order,
                     $title->sort_order,
                     $title->name,
@@ -333,17 +402,19 @@ final readonly class SelectionCatalogCache
     /**
      * @return list<array{id: string, code: string, name: string, native: string|null}>
      */
-    private function languageRows(int $ttlSeconds = self::CATALOG_TTL_SECONDS): array
+    private function languageRows(?int $ttlSeconds = null): array
     {
-        $cacheKey = $ttlSeconds === self::CATALOG_TTL_SECONDS
+        $defaultTtl = $this->catalogTtl();
+        $ttl = $ttlSeconds ?? $defaultTtl;
+        $cacheKey = $ttl === $defaultTtl
             ? 'selection_catalog:languages:rows'
-            : "selection_catalog:languages:rows:ttl:{$ttlSeconds}";
+            : "selection_catalog:languages:rows:ttl:{$ttl}";
 
         /** @var list<array{id: string, code: string, name: string, native: string|null}> $rows */
-        $rows = $this->versionedCache->remember(
-            self::LANGUAGES_VERSION_KEY,
+        $rows = $this->cache->remember(
+            $this->versionKey('catalogs_languages', 'discovery:v:catalogs:languages'),
             $cacheKey,
-            $ttlSeconds,
+            $ttl,
             static fn (): array => Language::query()
                 ->orderBy('name')
                 ->get(['id', 'code', 'name', 'native'])
@@ -358,5 +429,17 @@ final readonly class SelectionCatalogCache
         );
 
         return $rows;
+    }
+
+    private function catalogTtl(): int
+    {
+        return (int) config('discovery.cache.ttls.catalog', 3600);
+    }
+
+    private function versionKey(string $name, string $default): string
+    {
+        $configured = config("discovery.cache.versions.{$name}", $default);
+
+        return is_string($configured) && $configured !== '' ? $configured : $default;
     }
 }

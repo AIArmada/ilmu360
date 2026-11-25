@@ -338,15 +338,21 @@ it('keeps multi-word search strict to phrase-relevant institutions', function ()
 
 it('paginates direct institution search results without a second count query', function () {
     $institutionName = 'Institution Search '.fake()->unique()->numerify('#####');
+    $geo = createTestPackageGeography('Selangor Window', 'Petaling Window', 'Subang Window');
 
-    Institution::factory()->create([
+    $institution = Institution::factory()->create([
         'name' => $institutionName,
         'status' => 'verified',
     ]);
+    syncPrimaryAddressForTest($institution, $geo['address']);
 
     DB::enableQueryLog();
 
-    Livewire::test('pages.institutions.index', ['search' => $institutionName])
+    Livewire::test('pages.institutions.index', [
+        'search' => $institutionName,
+        'country' => $geo['country']->slug ?? 'malaysia',
+        'state' => $geo['state']->slug,
+    ])
         ->assertSee($institutionName);
 
     $queries = collect(DB::getQueryLog())->pluck('query');
@@ -994,7 +1000,8 @@ it('issues single like predicates for single-word institution search', function 
         ->assertSee('Masjid Shah Alam Ujian');
 
     $searchQueries = collect(DB::getQueryLog())->pluck('query')->filter(
-        static fn (string $query): bool => str_contains($query, 'count(*) over ()'),
+        static fn (string $query): bool => str_contains($query, 'from "institutions"')
+            && str_contains($query, 'like'),
     );
 
     expect($searchQueries)->toHaveCount(1);

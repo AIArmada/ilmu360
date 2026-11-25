@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\References\EntryPoints\Admin\Resources;
 
 use App\Platform\Api\Admin\Contracts\AdminResourceHooks;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Illuminate\Database\Eloquent\Model;
 
 final readonly class ReferenceAdminHooks implements AdminResourceHooks
@@ -62,7 +62,7 @@ final readonly class ReferenceAdminHooks implements AdminResourceHooks
         $authors = $record->effectiveAuthorsStructured();
         $attributes['authors'] = $authors;
         $attributes['author_ids'] = array_column($authors, 'id');
-        $attributes['language_label'] = app(SelectionCatalogCache::class)->languageLabel($record->language);
+        $attributes['language_label'] = app(SelectionCatalog::class)->languageLabel($record->language);
 
         unset($attributes['authorLinks'], $attributes['contributors']);
 

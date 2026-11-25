@@ -16,7 +16,7 @@ use App\Features\Institutions\Models\Institution;
 use App\Platform\Concurrency\MapsIdentityLock;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Ui\Forms\AddressFields;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -117,7 +117,7 @@ class InstitutionFormSchema implements InstitutionQuickAdd
                     Select::make('language_code')
                         ->label(__('Name language'))
                         ->placeholder(__('Select language'))
-                        ->options(fn (): array => app(SelectionCatalogCache::class)->languageOptions(
+                        ->options(fn (): array => app(SelectionCatalog::class)->languageOptions(
                             'code',
                             MalaysiaLanguageCatalog::labels(),
                         ))

@@ -4,18 +4,15 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Persistence;
 
-use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
+use App\Shared\Cache\DiscoveryCache;
 use Closure;
-use Illuminate\Support\Facades\Cache;
 
 final readonly class InstitutionSubmissionOptionsCacheStore implements InstitutionSubmissionOptionsCache
 {
-    private const string VERSION_KEY = 'submission_options:institutions:version:v1';
-
-    private const int OPTIONS_TTL_SECONDS = 60;
-
-    public function __construct(private CacheVersionStore $cacheVersions) {}
+    public function __construct(
+        private DiscoveryCache $cache,
+    ) {}
 
     /**
      * @param  Closure(): array<string, string>  $resolver
@@ -23,15 +20,23 @@ final readonly class InstitutionSubmissionOptionsCacheStore implements Instituti
      */
     public function rememberGuestOptions(?string $countryId, Closure $resolver): array
     {
-        return Cache::remember(
-            'submit_institutions:'.($countryId ?? 'all').':'.$this->cacheVersions->version(self::VERSION_KEY),
-            self::OPTIONS_TTL_SECONDS,
+        return $this->cache->remember(
+            $this->versionKey(),
+            'submission_options:institutions:guest:'.($countryId ?? 'all'),
+            (int) config('discovery.cache.ttls.submission_options', 900),
             $resolver,
         );
     }
 
     public function invalidate(): void
     {
-        $this->cacheVersions->bump(self::VERSION_KEY);
+        $this->cache->bump($this->versionKey());
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.submission_institutions', 'discovery:v:submission:institutions');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:submission:institutions';
     }
 }

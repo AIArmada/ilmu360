@@ -8,16 +8,16 @@ use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\Events\Features\Catalog\Models\EventSession;
 use AIArmada\Events\Features\Venues\Models\EventLocation;
-use App\Features\Discovery\Api\Data\EventListData;
-use App\Features\Discovery\Api\Data\EventSearchPage;
+use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder;
 use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
+use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventScheduleFact;
-use App\Features\Events\Api\EventScheduleFactSet;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Events\Api\EventScheduleTimeFact;
+use App\Features\Events\Api\EventSearchCache;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Events\Queries\PostgresEventDiscovery;
@@ -27,9 +27,12 @@ use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final readonly class PublicScheduleDiscoveryService
 {
@@ -40,6 +43,7 @@ final readonly class PublicScheduleDiscoveryService
         private SubjectFollows $subjectFollows,
         private VenueAddressResolver $venueAddresses,
         private EventDiscoveryCriteriaBuilder $criteriaFactory,
+        private EventSearchCache $eventSearchCache,
     ) {}
 
     /**
@@ -83,23 +87,22 @@ final readonly class PublicScheduleDiscoveryService
             && $sort !== 'distance'
             && ! $hasExpressionFilters
         ) {
-            $pageResult = $this->scheduleFacts->paginatePublicScheduleOccurrences(
-                $criteria->text,
-                $criteria->filters,
+            $pageResult = $this->paginateSchedulePageWithOptionalCache(
+                $criteria,
                 $currentPage,
                 $perPage,
                 $sort,
             );
 
             if ($criteria->text !== null && ! $pageResult['has_matching_events']) {
-                $parentPage = $this->eventSearch->search(
+                $hitIds = $this->eventSearch->searchIds(
                     query: $criteria->text,
                     filters: $eventFilters,
                     perPage: 1000,
                     sort: $sort,
                 );
 
-                $factSet = $this->factsFromSearchPage($parentPage);
+                $factSet = $this->scheduleFacts->scheduleFactsForEventIds($hitIds->eventIds, $hitIds->distances);
                 $leaves = $this->sortLeaves(
                     collect($factSet->leaves)
                         ->filter(fn (EventScheduleFact $fact): bool => $this->matchesFilters($fact, $criteria->filters))
@@ -125,16 +128,16 @@ final readonly class PublicScheduleDiscoveryService
         }
 
         if ($criteria->latitude !== null && $criteria->longitude !== null) {
-            $parentPage = $this->eventSearch->searchNearbyWithQuery(
-                query: $criteria->text,
+            $hitIds = $this->eventSearch->searchNearbyIds(
                 lat: $criteria->latitude,
                 lng: $criteria->longitude,
                 radiusKm: (int) ($criteria->radiusKm ?? 15),
                 filters: $eventFilters,
                 perPage: 1000,
+                query: $criteria->text,
             );
 
-            $factSet = $this->factsFromSearchPage($parentPage);
+            $factSet = $this->scheduleFacts->scheduleFactsForEventIds($hitIds->eventIds, $hitIds->distances);
         } else {
             $directFactSet = $hasExpressionFilters
                 ? $this->scheduleFacts->publicScheduleFactSetForWindow($criteria->text, $eventFilters, $criteria->filters)
@@ -143,14 +146,14 @@ final readonly class PublicScheduleDiscoveryService
             if ($criteria->text === null || $directFactSet->eventIds !== []) {
                 $factSet = $directFactSet;
             } else {
-                $parentPage = $this->eventSearch->search(
+                $hitIds = $this->eventSearch->searchIds(
                     query: $criteria->text,
                     filters: $eventFilters,
                     perPage: 1000,
                     sort: $sort,
                 );
 
-                $factSet = $this->factsFromSearchPage($parentPage);
+                $factSet = $this->scheduleFacts->scheduleFactsForEventIds($hitIds->eventIds, $hitIds->distances);
             }
         }
 
@@ -166,19 +169,112 @@ final readonly class PublicScheduleDiscoveryService
     }
 
     /**
+     * @return array{rows: list<array{event_id: string, occurrence_id: string}>, total: int, has_matching_events: bool}
+     */
+    private function paginateSchedulePageWithOptionalCache(
+        EventDiscoveryCriteria $criteria,
+        int $currentPage,
+        int $perPage,
+        string $sort,
+    ): array {
+        if (! $this->isDefaultSchedulePageQuery($criteria, $currentPage, $sort)) {
+            return $this->scheduleFacts->paginatePublicScheduleOccurrences(
+                $criteria->text,
+                $criteria->filters,
+                $currentPage,
+                $perPage,
+                $sort,
+            );
+        }
+
+        $scopeKey = sprintf(
+            'country:%s:per:%d:tz:%s:min:%s',
+            $criteria->countryId ?? 'global',
+            $perPage,
+            UserDateTimeFormatter::resolveTimezone(),
+            now()->utc()->format('YmdHi'),
+        );
+
+        try {
+            $cached = $this->eventSearchCache->rememberDefaultSchedulePage(
+                $scopeKey,
+                function () use ($criteria, $currentPage, $perPage, $sort): array {
+                    $result = $this->scheduleFacts->paginatePublicScheduleOccurrences(
+                        $criteria->text,
+                        $criteria->filters,
+                        $currentPage,
+                        $perPage,
+                        $sort,
+                    );
+
+                    return [
+                        'rows' => $result['rows'],
+                        'total' => $result['total'],
+                    ];
+                },
+            );
+
+            return [
+                'rows' => $cached['rows'],
+                'total' => $cached['total'],
+                'has_matching_events' => true,
+            ];
+        } catch (Throwable $exception) {
+            Log::warning('Default schedule page cache failed, using uncached results', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            return $this->scheduleFacts->paginatePublicScheduleOccurrences(
+                $criteria->text,
+                $criteria->filters,
+                $currentPage,
+                $perPage,
+                $sort,
+            );
+        }
+    }
+
+    private function isDefaultSchedulePageQuery(
+        EventDiscoveryCriteria $criteria,
+        int $currentPage,
+        string $sort,
+    ): bool {
+        if (
+            $criteria->text !== null
+            || $criteria->latitude !== null
+            || $criteria->longitude !== null
+            || $sort !== 'time'
+            || $currentPage !== 1
+        ) {
+            return false;
+        }
+
+        $filters = $criteria->filters;
+        $timeScope = $filters['time_scope'] ?? null;
+
+        if ($timeScope !== null && $timeScope !== 'upcoming') {
+            return false;
+        }
+
+        unset($filters['country_id'], $filters['time_scope']);
+
+        return $filters === [];
+    }
+
+    /**
      * @param  array<string, mixed>  $filters
      */
     private function hasExpressionFilters(array $filters): bool
     {
-        foreach (['timing_mode', 'prayer_time', 'starts_time_from', 'starts_time_until'] as $key) {
-            $value = $filters[$key] ?? null;
+        $hasTimeRange = filled($filters['starts_time_from'] ?? null) || filled($filters['starts_time_until'] ?? null);
 
-            if (is_array($value) ? $value !== [] : filled($value)) {
-                return true;
-            }
+        if (! $hasTimeRange || ($filters['timing_mode'] ?? null) !== TimingMode::Absolute->value) {
+            return false;
         }
 
-        return false;
+        $connection = Event::query()->getConnection();
+
+        return ! ($connection instanceof Connection) || $connection->getDriverName() !== 'pgsql';
     }
 
     /**
@@ -205,7 +301,18 @@ final readonly class PublicScheduleDiscoveryService
     /** @return Collection<int, PublicScheduleLeafValue> */
     public function homepageSelection(?string $accountId): Collection
     {
-        $featuredRows = $this->scheduleFacts->homepageFeaturedOccurrences(9);
+        try {
+            $featuredRows = $this->eventSearchCache->rememberHomepageFeatured(
+                fn (): array => $this->scheduleFacts->homepageFeaturedOccurrences(9),
+            );
+        } catch (Throwable $exception) {
+            Log::warning('Homepage featured occurrences cache failed, using uncached results', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            $featuredRows = $this->scheduleFacts->homepageFeaturedOccurrences(9);
+        }
+
         $selectedRows = $featuredRows;
 
         if ($accountId !== null && count($featuredRows) < 9) {
@@ -500,7 +607,7 @@ final readonly class PublicScheduleDiscoveryService
             return now(UserDateTimeFormatter::resolveTimezone())
                 ->setTimeFromTimeString($value)
                 ->format('H:i');
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
@@ -527,19 +634,6 @@ final readonly class PublicScheduleDiscoveryService
         $titleResult = $left->title() <=> $right->title();
 
         return $titleResult !== 0 ? $titleResult : $left->occurrenceId <=> $right->occurrenceId;
-    }
-
-    /**
-     * Convert an immutable event search result into schedule facts.
-     */
-    private function factsFromSearchPage(EventSearchPage $page): EventScheduleFactSet
-    {
-        $eventIds = array_map(
-            static fn (EventListData $item): string => $item->id,
-            $page->items,
-        );
-
-        return $this->scheduleFacts->scheduleFactsForEventIds($eventIds, $page->distances);
     }
 
     /**

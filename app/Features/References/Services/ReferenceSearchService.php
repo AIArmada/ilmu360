@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\References\Services;
 
-use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\References\Enums\ReferenceContributorRole;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\References\Api\ReferenceSearchCache;
 use App\Features\References\Models\Reference;
 use App\Features\References\Support\ReferenceScopedSearch;
-use App\Platform\Search\FuzzySearchPolicy;
-use App\Platform\Search\TypesenseHealthCheckService;
+use App\Platform\Search\DatabaseFuzzyMatcher;
+use App\Platform\Search\ScoutRawHitExtractor;
+use App\Shared\Contracts\SearchEngineResolver;
 use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,6 +19,7 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * @implements ReferenceScopedSearch<Reference>
@@ -25,7 +28,13 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
 {
     private const string PUBLIC_TYPESENSE_FILTER = 'status:=[verified,pending] && published_at:>0';
 
-    public function __construct(private readonly ReferenceSearchCache $referenceSearchCache) {}
+    public function __construct(
+        private readonly ReferenceSearchCache $referenceSearchCache,
+        private readonly PersonLookup $personLookup,
+        private readonly SearchEngineResolver $engineResolver,
+        private readonly ScoutRawHitExtractor $hitExtractor,
+        private readonly DatabaseFuzzyMatcher $fuzzyMatcher,
+    ) {}
 
     /**
      * @param  Builder<Reference>  $query
@@ -39,11 +48,11 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
             return $query->whereRaw('1 = 0');
         }
 
-        if ($this->shouldUseScoutSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+        if ($this->engineResolver->isRemoteEngineAvailable()) {
             try {
                 return $this->applyScoutSearch($query, $normalizedSearch);
-            } catch (\Throwable $exception) {
-                $this->logScoutFallback('Reference Typesense search failed, falling back to database search', $exception, $normalizedSearch);
+            } catch (Throwable $exception) {
+                $this->logScoutFallback('Reference Scout search failed, falling back to database search', $exception, $normalizedSearch);
             }
         }
 
@@ -78,7 +87,7 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
             return $ids;
         }
 
-        return $this->scopedFuzzySearchIds($query, $normalizedSearch, $this->minimumFuzzyScore($normalizedSearch));
+        return $this->scopedFuzzySearchIds($query, $normalizedSearch);
     }
 
     /**
@@ -93,14 +102,18 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
         }
 
         return $this->referenceSearchCache->rememberPublicSearchIds($normalizedSearch, function () use ($normalizedSearch): array {
-            if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+            if ($this->engineResolver->isRemoteEngineAvailable()) {
                 try {
-                    return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
-                        'num_typos' => 0,
-                    ]);
-                } catch (\Throwable $exception) {
-                    $this->logScoutFallback('Reference Typesense public search failed, falling back to database search', $exception, $normalizedSearch);
+                    $options = $this->engineResolver->usesTypesense()
+                        ? [
+                            'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
+                            'num_typos' => 0,
+                        ]
+                        : [];
+
+                    return $this->searchIdsWithScout($normalizedSearch, $options);
+                } catch (Throwable $exception) {
+                    $this->logScoutFallback('Reference Scout public search failed, falling back to database search', $exception, $normalizedSearch);
                 }
             }
 
@@ -139,21 +152,23 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
             return [];
         }
 
-        $minimumScore = $this->minimumFuzzyScore($normalizedSearch);
-
-        return $this->referenceSearchCache->rememberPublicFuzzySearchIds($normalizedSearch, function () use ($minimumScore, $normalizedSearch): array {
-            if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+        return $this->referenceSearchCache->rememberPublicFuzzySearchIds($normalizedSearch, function () use ($normalizedSearch): array {
+            if ($this->engineResolver->isRemoteEngineAvailable()) {
                 try {
-                    return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
-                        'prioritize_exact_match' => true,
-                    ]);
-                } catch (\Throwable $exception) {
-                    $this->logScoutFallback('Reference Typesense fuzzy search failed, falling back to database fuzzy search', $exception, $normalizedSearch);
+                    $options = $this->engineResolver->usesTypesense()
+                        ? [
+                            'filter_by' => self::PUBLIC_TYPESENSE_FILTER,
+                            'prioritize_exact_match' => true,
+                        ]
+                        : [];
+
+                    return $this->searchIdsWithScout($normalizedSearch, $options);
+                } catch (Throwable $exception) {
+                    $this->logScoutFallback('Reference Scout fuzzy search failed, falling back to database fuzzy search', $exception, $normalizedSearch);
                 }
             }
 
-            return $this->publicFuzzySearchIdsFromDatabase($normalizedSearch, $minimumScore);
+            return $this->publicFuzzySearchIdsFromDatabase($normalizedSearch);
         });
     }
 
@@ -176,59 +191,45 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
     /**
      * @return list<string>
      */
-    private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch, float $minimumScore): array
+    private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch): array
     {
         $rows = Reference::query()
             ->active()
             ->select(['id', 'title', 'parent_id', 'publisher', 'edition_label', 'edition_number', 'isbn', 'language', 'year'])
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateOrdering($query, $normalizedSearch))
-            ->limit($this->typesenseResultLimit())
+            ->limit($this->engineResolver->resultLimit())
             ->get();
 
-        return $this->scoreFuzzyCandidates($rows, $normalizedSearch, $minimumScore);
+        return $this->scoreFuzzyCandidates($rows, $normalizedSearch);
     }
 
     /**
      * @param  EloquentCollection<int, Reference>  $rows
      * @return list<string>
      */
-    private function scoreFuzzyCandidates(EloquentCollection $rows, string $normalizedSearch, float $minimumScore): array
+    private function scoreFuzzyCandidates(EloquentCollection $rows, string $normalizedSearch): array
     {
         $authorNames = $this->inheritedAuthorNamesByReferenceId($rows);
+        $minimumScore = $this->fuzzyMatcher->minimumScore($normalizedSearch);
+        $maximumDistance = $this->fuzzyMatcher->maximumDistance($normalizedSearch);
 
         return $rows
-            ->map(function (Reference $reference) use ($normalizedSearch, $authorNames): array {
-                $candidates = array_values(array_filter([
-                    StringSimilarity::normalize((string) $reference->title),
-                    StringSimilarity::normalize($authorNames[(string) $reference->getKey()] ?? ''),
-                    StringSimilarity::normalize((string) ($reference->publisher ?? '')),
-                    StringSimilarity::normalize((string) ($reference->edition_label ?? '')),
-                    StringSimilarity::normalize((string) ($reference->edition_number ?? '')),
-                    StringSimilarity::normalize((string) ($reference->isbn ?? '')),
-                    StringSimilarity::normalize((string) ($reference->language ?? '')),
-                    StringSimilarity::normalize((string) ($reference->year ?? '')),
-
-                ], static fn (string $candidate): bool => $candidate !== ''));
-
-                $scoreCandidates = [];
-
-                foreach ($candidates as $candidate) {
-                    $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $candidate);
-
-                    $tokens = array_values(array_filter(
-                        explode(' ', $candidate),
-                        static fn (string $token): bool => mb_strlen($token) >= 2,
-                    ));
-
-                    foreach ($tokens as $token) {
-                        $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $token);
-                    }
-                }
+            ->map(function (Reference $reference) use ($normalizedSearch, $authorNames, $maximumDistance): array {
+                $candidates = [
+                    (string) $reference->title,
+                    $authorNames[(string) $reference->getKey()] ?? '',
+                    (string) ($reference->publisher ?? ''),
+                    (string) ($reference->edition_label ?? ''),
+                    (string) ($reference->edition_number ?? ''),
+                    (string) ($reference->isbn ?? ''),
+                    (string) ($reference->language ?? ''),
+                    (string) ($reference->year ?? ''),
+                ];
 
                 return [
                     'id' => (string) $reference->id,
-                    'score' => $scoreCandidates === [] ? 0.0 : max($scoreCandidates),
+                    'score' => $this->fuzzyMatcher->bestScore($normalizedSearch, $candidates, $maximumDistance),
                 ];
             })
             ->filter(static fn (array $candidate): bool => $candidate['score'] >= $minimumScore)
@@ -242,7 +243,7 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
      * @param  Builder<Reference>  $query
      * @return list<string>
      */
-    private function scopedFuzzySearchIds(Builder $query, string $normalizedSearch, float $minimumScore): array
+    private function scopedFuzzySearchIds(Builder $query, string $normalizedSearch): array
     {
         $model = $query->getModel();
 
@@ -258,14 +259,13 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
                 $model->qualifyColumn('isbn'),
                 $model->qualifyColumn('language'),
                 $model->qualifyColumn('year'),
-
             ])
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateFilter($builder, $normalizedSearch))
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateOrdering($builder, $normalizedSearch))
-            ->limit($this->typesenseResultLimit())
+            ->limit($this->engineResolver->resultLimit())
             ->get();
 
-        return $this->scoreFuzzyCandidates($rows, $normalizedSearch, $minimumScore);
+        return $this->scoreFuzzyCandidates($rows, $normalizedSearch);
     }
 
     /**
@@ -335,7 +335,7 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
             ->join('persons as reference_author_person', 'reference_author_person.id', '=', 'reference_author_link.contributor_id')
             ->whereIn('reference_author_link.reference_id', $ownerIds)
             ->where('reference_author_link.role', ReferenceContributorRole::Author->value)
-            ->where('reference_author_link.contributor_type', app(PersonLookup::class)->personMorphType())
+            ->where('reference_author_link.contributor_type', $this->personLookup->personMorphType())
             ->orderBy('reference_author_link.contributor_id')
             ->get([
                 'reference_author_link.reference_id',
@@ -424,21 +424,43 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
      */
     private function applyFuzzyCandidateFilter(Builder $query, string $normalizedSearch): Builder
     {
-        $patterns = $this->fuzzyCandidatePatterns($normalizedSearch);
+        $columns = [
+            'references.title',
+            'references.publisher',
+            'references.edition_label',
+            'references.isbn',
+            'references.language',
+        ];
+        $patterns = $this->fuzzyMatcher->candidatePatterns($normalizedSearch);
+
+        if ($this->fuzzyMatcher->isPostgres($query)) {
+            $threshold = $this->fuzzyMatcher->pgTrgmThreshold();
+
+            return $query->where(function (Builder $candidateQuery) use ($columns, $normalizedSearch, $threshold, $patterns): void {
+                foreach ($columns as $column) {
+                    $this->fuzzyMatcher->orWherePgTrgm($candidateQuery, $column, $normalizedSearch, $threshold);
+                }
+
+                foreach ($patterns as $pattern) {
+                    $candidateQuery
+                        ->orWhereAuthorNameLike($pattern)
+                        ->orWhereLike($this->numericSearchColumn($candidateQuery, 'edition_number'), $pattern);
+                }
+            });
+        }
 
         if ($patterns === []) {
             return $query;
         }
 
-        return $query->where(function (Builder $candidateQuery) use ($patterns): void {
+        return $query->where(function (Builder $candidateQuery) use ($columns, $patterns): void {
             foreach ($patterns as $pattern) {
+                foreach ($columns as $column) {
+                    $candidateQuery->orWhereLike($column, $pattern);
+                }
+
                 $candidateQuery
-                    ->orWhereLike('references.title', $pattern)
                     ->orWhereAuthorNameLike($pattern)
-                    ->orWhereLike('references.publisher', $pattern)
-                    ->orWhereLike('references.edition_label', $pattern)
-                    ->orWhereLike('references.isbn', $pattern)
-                    ->orWhereLike('references.language', $pattern)
                     ->orWhereLike($this->numericSearchColumn($candidateQuery, 'edition_number'), $pattern);
             }
         });
@@ -450,9 +472,8 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
     private function numericSearchColumn(Builder $query, string $column): ExpressionContract
     {
         $wrapped = $query->getQuery()->getGrammar()->wrap($query->getModel()->qualifyColumn($column));
-        $cast = 'TEXT';
 
-        return new Expression('CAST('.$wrapped.' AS '.$cast.')');
+        return new Expression('CAST('.$wrapped.' AS TEXT)');
     }
 
     /**
@@ -479,9 +500,11 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
      */
     protected function searchIdsWithScout(string $search, array $options = []): array
     {
-        if ($this->scoutDriver() === 'database') {
+        $limit = $this->engineResolver->resultLimit();
+
+        if ($this->engineResolver->activeDriver() === 'database') {
             return Reference::search($search)
-                ->query(fn (Builder $query): Builder => $query->limit($this->typesenseResultLimit()))
+                ->query(static fn (Builder $query): Builder => $query->limit($limit))
                 ->get()
                 ->pluck('id')
                 ->map(static fn (mixed $id): string => (string) $id)
@@ -489,29 +512,19 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
                 ->all();
         }
 
-        $rawResults = Reference::search($search)
-            ->options([
+        $scoutOptions = $this->engineResolver->usesTypesense()
+            ? [
                 'query_by' => 'title,authors,search_text',
-                'per_page' => $this->typesenseResultLimit(),
+                'per_page' => $limit,
                 ...$options,
-            ])
+            ]
+            : ['per_page' => $limit, ...$options];
+
+        $rawResults = Reference::search($search)
+            ->options($scoutOptions)
             ->raw();
 
-        /** @var array<int, array<string, mixed>> $hits */
-        $hits = is_array($rawResults) && is_array($rawResults['hits'] ?? null)
-            ? $rawResults['hits']
-            : [];
-
-        return collect($hits)
-            ->pluck('document.id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
-    }
-
-    protected function shouldUseScoutSearch(): bool
-    {
-        return in_array($this->scoutDriver(), ['typesense', 'database'], true);
+        return $this->hitExtractor->extractIds($rawResults);
     }
 
     /**
@@ -520,9 +533,10 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
      */
     protected function applyScoutSearch(Builder $query, string $search): Builder
     {
-        $ids = $this->searchIdsWithScout($search, [
-            'num_typos' => 0,
-        ]);
+        $ids = $this->searchIdsWithScout(
+            $search,
+            $this->engineResolver->usesTypesense() ? ['num_typos' => 0] : [],
+        );
 
         if ($ids === []) {
             return $query->whereRaw('1 = 0');
@@ -531,27 +545,12 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
         return $query->whereIn($query->getModel()->qualifyColumn('id'), $ids);
     }
 
-    protected function shouldUseTypesenseSearch(): bool
-    {
-        return $this->scoutDriver() === 'typesense';
-    }
-
-    protected function typesenseResultLimit(): int
-    {
-        return max(50, (int) (config('scout.typesense.max_total_results') ?? 250));
-    }
-
-    protected function logScoutFallback(string $message, \Throwable $exception, string $search): void
+    protected function logScoutFallback(string $message, Throwable $exception, string $search): void
     {
         Log::warning($message, [
             'error' => $exception->getMessage(),
             'search' => $search,
         ]);
-    }
-
-    protected function scoutDriver(): string
-    {
-        return (string) config('scout.driver');
     }
 
     public function bustPublicSearchCache(): void
@@ -561,107 +560,6 @@ class ReferenceSearchService implements \App\Features\References\Api\ReferenceSe
 
     public function normalizedSearch(string $search): ?string
     {
-        $normalized = StringSimilarity::normalize($search);
-
-        return $normalized === '' ? null : $normalized;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function fuzzyCandidatePatterns(string $normalizedSearch): array
-    {
-        $tokens = array_values(array_unique(array_filter([
-            $normalizedSearch,
-            ...array_filter(explode(' ', $normalizedSearch), static fn (string $token): bool => mb_strlen($token) >= 3),
-        ], static fn (string $token): bool => $token !== '')));
-
-        $patterns = [];
-
-        foreach ($tokens as $token) {
-            foreach ($this->fuzzyPatternSources($token) as $patternSource) {
-                $pattern = $this->fuzzySubsequencePattern($patternSource);
-
-                if ($pattern !== null) {
-                    $patterns[] = $pattern;
-                }
-            }
-        }
-
-        return array_values(array_unique($patterns));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function fuzzyPatternSources(string $value): array
-    {
-        $sources = [$value];
-
-        if (str_contains($value, ' ') || mb_strlen($value) < 5) {
-            return $sources;
-        }
-
-        return array_values(array_unique([
-            ...$sources,
-            ...$this->fuzzyOmissionVariants($value),
-        ]));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function fuzzyOmissionVariants(string $value): array
-    {
-        $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($characters) || count($characters) < 2) {
-            return [];
-        }
-
-        $variants = [];
-
-        foreach (array_keys($characters) as $index) {
-            $variantCharacters = $characters;
-            unset($variantCharacters[$index]);
-
-            $variant = implode('', $variantCharacters);
-
-            if ($variant !== '') {
-                $variants[] = $variant;
-            }
-        }
-
-        return array_values(array_unique($variants));
-    }
-
-    private function fuzzySubsequencePattern(string $value): ?string
-    {
-        $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($characters) || $characters === []) {
-            return null;
-        }
-
-        return '%'.implode('%', $characters).'%';
-    }
-
-    private function fuzzyScore(string $search, string $candidate): float
-    {
-        if (! FuzzySearchPolicy::isComparable($search, $candidate, $this->maximumFuzzyDistance($search))) {
-            return 0.0;
-        }
-
-        return StringSimilarity::score($search, $candidate);
-    }
-
-    private function minimumFuzzyScore(string $search): float
-    {
-        return mb_strlen($search) >= 6 ? 0.80 : 0.70;
-    }
-
-    private function maximumFuzzyDistance(string $search): int
-    {
-        return mb_strlen($search) >= 5 ? 2 : 1;
+        return $this->fuzzyMatcher->normalize($search);
     }
 }

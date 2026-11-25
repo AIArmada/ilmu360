@@ -11,7 +11,19 @@ interface EventSearchCache
     /**
      * @param  Closure(): array{ids: list<string>, total: int}  $resolver
      */
-    public function rememberDefaultSearch(Closure $resolver): DefaultEventSearchCacheResult;
+    public function rememberDefaultSearch(string $scopeKey, Closure $resolver): DefaultEventSearchCacheResult;
 
-    public function forgetDefaultSearch(): void;
+    /**
+     * @param  Closure(): array{rows: list<array{event_id: string, occurrence_id: string}>, total: int}  $resolver
+     * @return array{rows: list<array{event_id: string, occurrence_id: string}>, total: int}
+     */
+    public function rememberDefaultSchedulePage(string $scopeKey, Closure $resolver): array;
+
+    /**
+     * @param  Closure(): list<array{event_id: string, occurrence_id: string}>  $resolver
+     * @return list<array{event_id: string, occurrence_id: string}>
+     */
+    public function rememberHomepageFeatured(Closure $resolver): array;
+
+    public function bust(): void;
 }

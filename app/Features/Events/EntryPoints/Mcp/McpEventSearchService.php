@@ -76,6 +76,17 @@ class McpEventSearchService implements AdminEventSearch
 
         $results = $this->withCurrentPage($page, function () use ($lat, $lng, $radiusKm, $filters, $perPage, $query, $sort): EventSearchPage {
             if ($lat !== null && $lng !== null) {
+                if ($query !== null) {
+                    return $this->eventSearchService->searchNearbyWithQuery(
+                        query: $query,
+                        lat: $lat,
+                        lng: $lng,
+                        radiusKm: $radiusKm,
+                        filters: $filters,
+                        perPage: $perPage,
+                    );
+                }
+
                 return $this->eventSearchService->searchNearby(
                     lat: $lat,
                     lng: $lng,

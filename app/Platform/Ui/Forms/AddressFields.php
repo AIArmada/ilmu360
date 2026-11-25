@@ -15,7 +15,7 @@ use AIArmada\Addressing\Support\CountryAddressProfileResolver;
 use AIArmada\Addressing\Support\LocationLevelLabels;
 use App\Platform\Addressing\AddressAreaRoles;
 use App\Platform\Location\LocationSlugResolver;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 use Closure;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -436,7 +436,7 @@ class AddressFields
             return [];
         }
 
-        return self::$stateOptions[$countryId] ??= app(SelectionCatalogCache::class)
+        return self::$stateOptions[$countryId] ??= app(SelectionCatalog::class)
             ->rememberAddressOptions("states:{$countryId}", static fn (): array => State::query()
                 ->where('country_id', $countryId)
                 ->orderBy('name')
@@ -475,7 +475,7 @@ class AddressFields
             $query->where('country_id', $countryId);
         }
 
-        return self::$cityOptions[$cacheKey] = app(SelectionCatalogCache::class)
+        return self::$cityOptions[$cacheKey] = app(SelectionCatalog::class)
             ->rememberAddressOptions("cities:{$cacheKey}", static fn (): array => $query
                 ->orderBy('name')
                 ->pluck('name', 'id')
@@ -561,7 +561,7 @@ class AddressFields
             return [];
         }
 
-        return self::$areaOptions[$cacheKey] = app(SelectionCatalogCache::class)
+        return self::$areaOptions[$cacheKey] = app(SelectionCatalog::class)
             ->rememberAddressOptions("areas:{$cacheKey}", static fn (): array => $query
                 ->orderBy('name')
                 ->pluck('name', 'id')
@@ -604,7 +604,7 @@ class AddressFields
             return [];
         }
 
-        return self::$areaSlugs[$cacheKey] = app(SelectionCatalogCache::class)
+        return self::$areaSlugs[$cacheKey] = app(SelectionCatalog::class)
             ->rememberAddressOptions("area-slugs:{$cacheKey}", static fn (): array => $query
                 ->orderBy('name')
                 ->pluck('slug', 'id')
@@ -669,7 +669,7 @@ class AddressFields
             return self::$countryIdsByState[$stateId];
         }
 
-        $countryId = app(SelectionCatalogCache::class)->rememberAddressValue(
+        $countryId = app(SelectionCatalog::class)->rememberAddressValue(
             "country-for-state:{$stateId}",
             static fn (): ?string => State::query()->whereKey($stateId)->value('country_id'),
         );
@@ -691,7 +691,7 @@ class AddressFields
             return self::$countryIdsByParent[$parentKey];
         }
 
-        $countryId = app(SelectionCatalogCache::class)->rememberAddressValue(
+        $countryId = app(SelectionCatalog::class)->rememberAddressValue(
             "country-for-parent:{$parentKey}",
             static fn (): ?string => AddressArea::query()->whereKey($parentKey)->value('country_id'),
         );
@@ -823,7 +823,7 @@ class AddressFields
     {
         self::ensureCacheScope();
 
-        return self::$countryOptions['all'] ??= app(SelectionCatalogCache::class)
+        return self::$countryOptions['all'] ??= app(SelectionCatalog::class)
             ->rememberAddressOptions('countries', static fn (): array => AddressCountry::query()
                 ->orderBy('name')
                 ->pluck('name', 'id')

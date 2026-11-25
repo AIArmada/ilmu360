@@ -4,8 +4,7 @@ use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;
 use AIArmada\Events\Features\Catalog\Models\EventReference;
 use AIArmada\Events\Features\Venues\Models\EventLocation;
-use App\Features\Discovery\Api\Data\EventListData;
-use App\Features\Discovery\Api\Data\EventSearchPage;
+use App\Features\Discovery\Api\Data\EventSearchHitIds;
 use App\Features\Discovery\Services\EventSearchService;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\TimingMode;
@@ -587,21 +586,15 @@ it('does not render stale search ids from the discovery fallback or nearby path'
         'starts_at' => now()->addDays(2),
     ]);
     $privateEventId = (string) $private->getKey();
-    $page = new EventSearchPage(
-        items: [EventListData::fromArray(['id' => $privateEventId])],
+    $hitIds = new EventSearchHitIds(
+        eventIds: [$privateEventId],
         distances: [$privateEventId => 2.5],
         total: 1,
-        perPage: 12,
-        currentPage: 1,
-        lastPage: 1,
-        from: 1,
-        to: 1,
-        hasMorePages: false,
     );
 
-    $this->mock(EventSearchService::class, function (MockInterface $mock) use ($page): void {
-        $mock->shouldReceive('search')->once()->andReturn($page);
-        $mock->shouldReceive('searchNearbyWithQuery')->once()->andReturn($page);
+    $this->mock(EventSearchService::class, function (MockInterface $mock) use ($hitIds): void {
+        $mock->shouldReceive('searchIds')->once()->andReturn($hitIds);
+        $mock->shouldReceive('searchNearbyIds')->once()->andReturn($hitIds);
     });
 
     $service = app(PublicScheduleDiscoveryService::class);

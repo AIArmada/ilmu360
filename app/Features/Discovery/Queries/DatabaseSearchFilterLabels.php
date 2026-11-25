@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Queries;
 
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
@@ -14,6 +12,7 @@ use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\References\Api\ReferenceLookup;
+use App\Shared\Cache\SelectionCatalog;
 use Illuminate\Support\Str;
 
 final class DatabaseSearchFilterLabels implements SearchFilterLabels
@@ -23,6 +22,7 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         private readonly PersonLookup $persons,
         private readonly PlaceCatalog $places,
         private readonly ReferenceLookup $references,
+        private readonly SelectionCatalog $selectionCatalog,
     ) {}
 
     /**
@@ -80,7 +80,10 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
             'institution_id' => $this->institutionName($id),
             'venue_id' => $this->venueName($id),
             'person_ids', 'person_in_charge_ids', 'moderator_ids', 'imam_ids', 'khatib_ids', 'bilal_ids' => $this->personName($id),
-            'domain_tag_ids', 'discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids' => $this->tagName($id),
+            'domain_tag_ids' => $this->tagName('domain', $id),
+            'discipline_tag_ids' => $this->tagName('discipline', $id),
+            'source_tag_ids' => $this->tagName('source', $id),
+            'issue_tag_ids' => $this->tagName('issue', $id),
             'reference_ids' => $this->referenceTitle($id),
             default => null,
         };
@@ -93,7 +96,7 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         }
 
         if (! array_key_exists($id, $this->countryNames)) {
-            $this->countryNames[$id] = AddressCountry::query()->whereKey($id)->value('name');
+            $this->countryNames[$id] = $this->selectionCatalog->countryOptions()[$id] ?? null;
         }
 
         return $this->countryNames[$id];
@@ -106,7 +109,14 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         }
 
         if (! array_key_exists($id, $this->stateNames)) {
-            $this->stateNames[$id] = State::query()->whereKey($id)->value('name');
+            $this->stateNames[$id] = $this->selectionCatalog->rememberAddressValue(
+                "state-name:{$id}",
+                static function () use ($id): ?string {
+                    $name = State::query()->whereKey($id)->value('name');
+
+                    return is_string($name) ? $name : null;
+                },
+            );
         }
 
         return $this->stateNames[$id];
@@ -119,7 +129,14 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         }
 
         if (! array_key_exists($id, $this->cityNames)) {
-            $this->cityNames[$id] = City::query()->whereKey($id)->value('name');
+            $this->cityNames[$id] = $this->selectionCatalog->rememberAddressValue(
+                "city-name:{$id}",
+                static function () use ($id): ?string {
+                    $name = City::query()->whereKey($id)->value('name');
+
+                    return is_string($name) ? $name : null;
+                },
+            );
         }
 
         return $this->cityNames[$id];
@@ -132,7 +149,7 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         }
 
         if (! array_key_exists($id, $this->adminAreaNames)) {
-            $this->adminAreaNames[$id] = AddressArea::query()->whereKey($id)->value('name');
+            $this->adminAreaNames[$id] = $this->selectionCatalog->addressAreaNamesByIds([$id])[$id] ?? null;
         }
 
         return $this->adminAreaNames[$id];
@@ -177,12 +194,18 @@ final class DatabaseSearchFilterLabels implements SearchFilterLabels
         return $this->personNames[$id];
     }
 
-    private function tagName(string $id): ?string
+    private function tagName(string $taxonomyCode, string $id): ?string
     {
         if (! array_key_exists($id, $this->tagNames)) {
-            $term = EventTerm::query()->whereKey($id)->first(['id', 'name']);
+            $cached = $this->selectionCatalog->taxonomyTermOptions($taxonomyCode)[$id] ?? null;
 
-            $this->tagNames[$id] = $term instanceof EventTerm ? (string) $term->name : null;
+            if ($cached !== null) {
+                $this->tagNames[$id] = $cached;
+            } else {
+                $term = EventTerm::query()->whereKey($id)->first(['id', 'name']);
+
+                $this->tagNames[$id] = $term instanceof EventTerm ? (string) $term->name : null;
+            }
         }
 
         return $this->tagNames[$id];

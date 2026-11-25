@@ -6,13 +6,15 @@ namespace App\Features\Events\Actions\Projection;
 
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Features\Events\Api\EventSubmissionOptionsCache;
+use App\Shared\Cache\SelectionCatalog;
 
 final readonly class InvalidateEventTermCatalogAction
 {
     public function __construct(
         private PublicListingsCacheInvalidator $publicListingsCache,
-        private SelectionCatalogCache $selectionCatalogCache,
+        private SelectionCatalog $selectionCatalog,
+        private EventSubmissionOptionsCache $submissionOptionsCache,
     ) {}
 
     public function saved(EventTerm $term): void
@@ -22,12 +24,16 @@ final readonly class InvalidateEventTermCatalogAction
         }
 
         $this->publicListingsCache->bustMajlisListing();
-        $this->selectionCatalogCache->bustEventCategories();
+        $this->selectionCatalog->bustEventCategories();
+        $this->selectionCatalog->bustTaxonomyTerms();
+        $this->submissionOptionsCache->invalidate();
     }
 
     public function deleted(): void
     {
         $this->publicListingsCache->bustMajlisListing();
-        $this->selectionCatalogCache->bustEventCategories();
+        $this->selectionCatalog->bustEventCategories();
+        $this->selectionCatalog->bustTaxonomyTerms();
+        $this->submissionOptionsCache->invalidate();
     }
 }

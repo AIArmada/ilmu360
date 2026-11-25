@@ -9,14 +9,14 @@ use Dedoc\Scramble\Attributes\SchemaName;
 /**
  * @phpstan-import-type ReferenceListItemArray from ReferenceListItem
  *
- * @phpstan-type ReferenceDirectoryResponseArray array{data: list<ReferenceListItemArray>, meta: array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}}}
+ * @phpstan-type ReferenceDirectoryResponseArray array{data: list<ReferenceListItemArray>, meta: array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}, cache: array{version: string}}}
  */
 #[SchemaName('ReferenceDirectoryResponse')]
 final readonly class ReferenceDirectoryResponse
 {
     /**
      * @param  list<ReferenceListItem>  $data
-     * @param  array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}}  $meta
+     * @param  array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}, cache: array{version: string}}  $meta
      */
     public function __construct(
         public array $data,

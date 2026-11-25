@@ -1,21 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Institutions\Services;
 
-use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionSearchCache;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Institutions\Models\InstitutionName;
-use App\Platform\Search\FuzzySearchPolicy;
-use App\Platform\Search\TypesenseHealthCheckService;
+use App\Platform\Search\DatabaseFuzzyMatcher;
+use App\Platform\Search\ScoutRawHitExtractor;
+use App\Shared\Contracts\SearchEngineResolver;
 use App\Shared\Discovery\PublicDiscoveryAdapter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class InstitutionSearchService implements \App\Features\Institutions\Api\InstitutionSearch, PublicDiscoveryAdapter
 {
-    public function __construct(private readonly InstitutionSearchCache $cache) {}
+    public function __construct(
+        private readonly InstitutionSearchCache $cache,
+        private readonly SearchEngineResolver $engineResolver,
+        private readonly ScoutRawHitExtractor $hitExtractor,
+        private readonly DatabaseFuzzyMatcher $fuzzyMatcher,
+    ) {}
 
     /**
      * @param  Builder<Institution>  $query
@@ -29,11 +38,11 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
             return $query->whereRaw('1 = 0');
         }
 
-        if ($this->shouldUseScoutSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+        if ($this->engineResolver->isRemoteEngineAvailable()) {
             try {
                 return $this->applyScoutSearch($query, $normalizedSearch);
-            } catch (\Throwable $exception) {
-                $this->logScoutFallback('Institution Typesense search failed, falling back to database search', $exception, $normalizedSearch);
+            } catch (Throwable $exception) {
+                $this->logScoutFallback('Institution Scout search failed, falling back to database search', $exception, $normalizedSearch);
             }
         }
 
@@ -55,13 +64,15 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
             return $query->whereRaw('1 = 0');
         }
 
-        if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+        if ($this->engineResolver->isRemoteEngineAvailable()) {
             try {
-                return $this->applyScoutSearch($query, $normalizedSearch, [
-                    'filter_by' => 'status:=[verified,pending]',
-                ]);
-            } catch (\Throwable $exception) {
-                $this->logScoutFallback('Institution Typesense public search failed, falling back to database search', $exception, $normalizedSearch);
+                $options = $this->engineResolver->usesTypesense()
+                    ? ['filter_by' => 'status:=[verified,pending]']
+                    : [];
+
+                return $this->applyScoutSearch($query, $normalizedSearch, $options);
+            } catch (Throwable $exception) {
+                $this->logScoutFallback('Institution Scout public search failed, falling back to database search', $exception, $normalizedSearch);
             }
         }
 
@@ -96,7 +107,7 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
             return $ids;
         }
 
-        return $this->scopedFuzzySearchIds($query, $normalizedSearch, $this->minimumFuzzyScore($normalizedSearch));
+        return $this->scopedFuzzySearchIds($query, $normalizedSearch);
     }
 
     /**
@@ -105,7 +116,7 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
      */
     private function applyDatabaseSearch(Builder $query, string $normalizedSearch): Builder
     {
-        $searchTokens = array_values(array_filter(explode(' ', $normalizedSearch), static fn (string $token): bool => $token !== ''));
+        $searchTokens = $this->fuzzyMatcher->tokens($normalizedSearch, 2);
 
         return $query->where(function (Builder $innerQuery) use ($normalizedSearch, $searchTokens): void {
             $innerQuery->searchNameOrNickname($normalizedSearch);
@@ -116,10 +127,6 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
 
             $innerQuery->orWhere(function (Builder $tokenQuery) use ($searchTokens): void {
                 foreach ($searchTokens as $token) {
-                    if (mb_strlen($token) < 2) {
-                        continue;
-                    }
-
                     $tokenQuery->where(function (Builder $tokenMatchQuery) use ($token): void {
                         $tokenMatchQuery->searchNameOrNickname($token);
                     });
@@ -141,14 +148,18 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
 
         /** @var list<string> $ids */
         $ids = $this->cache->rememberPublicSearchIds($normalizedSearch, function () use ($normalizedSearch): array {
-            if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+            if ($this->engineResolver->isRemoteEngineAvailable()) {
                 try {
-                    return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'status:=[verified,pending]',
-                        'num_typos' => 0,
-                    ]);
-                } catch (\Throwable $exception) {
-                    $this->logScoutFallback('Institution Typesense public search failed, falling back to database search', $exception, $normalizedSearch);
+                    $options = $this->engineResolver->usesTypesense()
+                        ? [
+                            'filter_by' => 'status:=[verified,pending]',
+                            'num_typos' => 0,
+                        ]
+                        : [];
+
+                    return $this->searchIdsWithScout($normalizedSearch, $options);
+                } catch (Throwable $exception) {
+                    $this->logScoutFallback('Institution Scout public search failed, falling back to database search', $exception, $normalizedSearch);
                 }
             }
 
@@ -205,22 +216,24 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
             return [];
         }
 
-        $minimumScore = $this->minimumFuzzyScore($normalizedSearch);
-
         /** @var list<string> $ids */
-        $ids = $this->cache->rememberPublicFuzzySearchIds($normalizedSearch, function () use ($minimumScore, $normalizedSearch): array {
-            if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+        $ids = $this->cache->rememberPublicFuzzySearchIds($normalizedSearch, function () use ($normalizedSearch): array {
+            if ($this->engineResolver->isRemoteEngineAvailable()) {
                 try {
-                    return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'status:=[verified,pending]',
-                        'prioritize_exact_match' => true,
-                    ]);
-                } catch (\Throwable $exception) {
-                    $this->logScoutFallback('Institution Typesense fuzzy search failed, falling back to database fuzzy search', $exception, $normalizedSearch);
+                    $options = $this->engineResolver->usesTypesense()
+                        ? [
+                            'filter_by' => 'status:=[verified,pending]',
+                            'prioritize_exact_match' => true,
+                        ]
+                        : [];
+
+                    return $this->searchIdsWithScout($normalizedSearch, $options);
+                } catch (Throwable $exception) {
+                    $this->logScoutFallback('Institution Scout fuzzy search failed, falling back to database fuzzy search', $exception, $normalizedSearch);
                 }
             }
 
-            return $this->publicFuzzySearchIdsFromDatabase($normalizedSearch, $minimumScore);
+            return $this->publicFuzzySearchIdsFromDatabase($normalizedSearch);
         });
 
         return $ids;
@@ -229,58 +242,29 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
     /**
      * @return list<string>
      */
-    private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch, float $minimumScore): array
+    private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch): array
     {
-        return Institution::query()
+        $rows = Institution::query()
             ->whereIn('status', InstitutionStatus::publiclyVisibleValues())
             ->with('names')
             ->select(['id', 'name'])
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateOrdering($query, $normalizedSearch))
-            ->limit($this->typesenseResultLimit())
-            ->get()
-            ->map(function (Institution $institution) use ($normalizedSearch): array {
-                $nameCandidates = array_values(array_filter([
-                    StringSimilarity::normalize((string) $institution->name),
-                    ...$institution->names->map(fn ($n) => StringSimilarity::normalize((string) $n->full_name))->all(),
-                ], static fn (string $candidate): bool => $candidate !== ''));
+            ->limit($this->engineResolver->resultLimit())
+            ->get();
 
-                $scoreCandidates = [];
-
-                foreach ($nameCandidates as $candidate) {
-                    $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $candidate);
-
-                    $tokens = array_values(array_filter(
-                        explode(' ', $candidate),
-                        static fn (string $token): bool => mb_strlen($token) >= 2
-                    ));
-
-                    foreach ($tokens as $token) {
-                        $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $token);
-                    }
-                }
-
-                return [
-                    'id' => (string) $institution->id,
-                    'score' => $scoreCandidates === [] ? 0.0 : max($scoreCandidates),
-                ];
-            })
-            ->filter(static fn (array $candidate): bool => $candidate['score'] >= $minimumScore)
-            ->sortByDesc('score')
-            ->pluck('id')
-            ->values()
-            ->all();
+        return $this->scoreFuzzyCandidates($rows, $normalizedSearch);
     }
 
     /**
      * @param  Builder<Institution>  $query
      * @return list<string>
      */
-    private function scopedFuzzySearchIds(Builder $query, string $normalizedSearch, float $minimumScore): array
+    private function scopedFuzzySearchIds(Builder $query, string $normalizedSearch): array
     {
         $model = $query->getModel();
 
-        return (clone $query)
+        $rows = (clone $query)
             ->reorder()
             ->select([
                 $model->qualifyColumn($model->getKeyName()),
@@ -289,32 +273,31 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
             ->with(['names'])
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateFilter($builder, $normalizedSearch))
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateOrdering($builder, $normalizedSearch))
-            ->limit($this->typesenseResultLimit())
-            ->get()
-            ->map(function (Institution $institution) use ($normalizedSearch): array {
-                $nameCandidates = array_values(array_filter([
-                    StringSimilarity::normalize((string) $institution->name),
-                    ...$institution->names->map(fn ($n) => StringSimilarity::normalize((string) $n->full_name))->all(),
-                ], static fn (string $candidate): bool => $candidate !== ''));
+            ->limit($this->engineResolver->resultLimit())
+            ->get();
 
-                $scoreCandidates = [];
+        return $this->scoreFuzzyCandidates($rows, $normalizedSearch);
+    }
 
-                foreach ($nameCandidates as $candidate) {
-                    $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $candidate);
+    /**
+     * @param  EloquentCollection<int, Institution>  $rows
+     * @return list<string>
+     */
+    private function scoreFuzzyCandidates(EloquentCollection $rows, string $normalizedSearch): array
+    {
+        $minimumScore = $this->fuzzyMatcher->minimumScore($normalizedSearch);
+        $maximumDistance = $this->fuzzyMatcher->maximumDistance($normalizedSearch);
 
-                    $tokens = array_values(array_filter(
-                        explode(' ', $candidate),
-                        static fn (string $token): bool => mb_strlen($token) >= 2,
-                    ));
-
-                    foreach ($tokens as $token) {
-                        $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $token);
-                    }
-                }
+        return $rows
+            ->map(function (Institution $institution) use ($normalizedSearch, $maximumDistance): array {
+                $candidates = [
+                    (string) $institution->name,
+                    ...$institution->names->map(static fn (InstitutionName $name): string => (string) $name->full_name)->all(),
+                ];
 
                 return [
                     'id' => (string) $institution->id,
-                    'score' => $scoreCandidates === [] ? 0.0 : max($scoreCandidates),
+                    'score' => $this->fuzzyMatcher->bestScore($normalizedSearch, $candidates, $maximumDistance),
                 ];
             })
             ->filter(static fn (array $candidate): bool => $candidate['score'] >= $minimumScore)
@@ -330,7 +313,21 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
      */
     private function applyFuzzyCandidateFilter(Builder $query, string $normalizedSearch): Builder
     {
-        $patterns = $this->fuzzyCandidatePatterns($normalizedSearch);
+        if ($this->fuzzyMatcher->isPostgres($query)) {
+            $threshold = $this->fuzzyMatcher->pgTrgmThreshold();
+
+            return $query->where(function (Builder $candidateQuery) use ($normalizedSearch, $threshold): void {
+                $this->fuzzyMatcher->orWherePgTrgm($candidateQuery, 'institutions.name', $normalizedSearch, $threshold);
+
+                $candidateQuery->orWhereHas('names', function (Builder $nameQuery) use ($normalizedSearch, $threshold): void {
+                    $nameQuery->where(function (Builder $innerNameQuery) use ($normalizedSearch, $threshold): void {
+                        $this->fuzzyMatcher->orWherePgTrgm($innerNameQuery, 'full_name', $normalizedSearch, $threshold);
+                    });
+                });
+            });
+        }
+
+        $patterns = $this->fuzzyMatcher->candidatePatterns($normalizedSearch);
 
         if ($patterns === []) {
             return $query;
@@ -378,106 +375,18 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
     }
 
     /**
-     * @return list<string>
-     */
-    private function fuzzyCandidatePatterns(string $normalizedSearch): array
-    {
-        $tokens = array_values(array_unique(array_filter([
-            $normalizedSearch,
-            ...array_filter(explode(' ', $normalizedSearch), static fn (string $token): bool => mb_strlen($token) >= 3),
-        ], static fn (string $token): bool => $token !== '')));
-
-        $patterns = [];
-
-        foreach ($tokens as $token) {
-            foreach ($this->fuzzyPatternSources($token) as $patternSource) {
-                $pattern = $this->fuzzySubsequencePattern($patternSource);
-
-                if ($pattern !== null) {
-                    $patterns[] = $pattern;
-                }
-            }
-        }
-
-        return array_values(array_unique($patterns));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function fuzzyPatternSources(string $value): array
-    {
-        $sources = [$value];
-
-        if (str_contains($value, ' ') || mb_strlen($value) < 5) {
-            return $sources;
-        }
-
-        return array_values(array_unique([
-            ...$sources,
-            ...$this->fuzzyOmissionVariants($value),
-        ]));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function fuzzyOmissionVariants(string $value): array
-    {
-        $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($characters) || count($characters) < 2) {
-            return [];
-        }
-
-        $variants = [];
-
-        foreach (array_keys($characters) as $index) {
-            $variantCharacters = $characters;
-            unset($variantCharacters[$index]);
-
-            $variant = implode('', $variantCharacters);
-
-            if ($variant !== '') {
-                $variants[] = $variant;
-            }
-        }
-
-        return array_values(array_unique($variants));
-    }
-
-    private function fuzzySubsequencePattern(string $value): ?string
-    {
-        $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($characters) || $characters === []) {
-            return null;
-        }
-
-        return '%'.implode('%', $characters).'%';
-    }
-
-    protected function shouldUseScoutSearch(): bool
-    {
-        return in_array($this->scoutDriver(), ['typesense', 'database'], true);
-    }
-
-    protected function shouldUseTypesenseSearch(): bool
-    {
-        return $this->scoutDriver() === 'typesense';
-    }
-
-    /**
      * @param  Builder<Institution>  $query
      * @param  array<string, mixed>  $options
      * @return Builder<Institution>
      */
     protected function applyScoutSearch(Builder $query, string $search, array $options = []): Builder
     {
-        $ids = $this->searchIdsWithScout($search, [
-            'num_typos' => 0,
-            ...$options,
-        ]);
+        $ids = $this->searchIdsWithScout(
+            $search,
+            $this->engineResolver->usesTypesense()
+                ? ['num_typos' => 0, ...$options]
+                : $options,
+        );
 
         if ($ids === []) {
             return $query->whereRaw('1 = 0');
@@ -492,9 +401,11 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
      */
     protected function searchIdsWithScout(string $search, array $options = []): array
     {
-        if ($this->scoutDriver() === 'database') {
+        $limit = $this->engineResolver->resultLimit();
+
+        if ($this->engineResolver->activeDriver() === 'database') {
             return Institution::search($search)
-                ->query(fn (Builder $query): Builder => $query->limit($this->typesenseResultLimit()))
+                ->query(static fn (Builder $query): Builder => $query->limit($limit))
                 ->get()
                 ->pluck('id')
                 ->map(static fn (mixed $id): string => (string) $id)
@@ -502,42 +413,27 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
                 ->all();
         }
 
-        $rawResults = Institution::search($search)
-            ->options([
+        $scoutOptions = $this->engineResolver->usesTypesense()
+            ? [
                 'query_by' => 'display_name,name,nicknames,search_text',
-                'per_page' => $this->typesenseResultLimit(),
+                'per_page' => $limit,
                 ...$options,
-            ])
+            ]
+            : ['per_page' => $limit, ...$options];
+
+        $rawResults = Institution::search($search)
+            ->options($scoutOptions)
             ->raw();
 
-        /** @var array<int, array<string, mixed>> $hits */
-        $hits = is_array($rawResults) && is_array($rawResults['hits'] ?? null)
-            ? $rawResults['hits']
-            : [];
-
-        return collect($hits)
-            ->pluck('document.id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
+        return $this->hitExtractor->extractIds($rawResults);
     }
 
-    protected function typesenseResultLimit(): int
-    {
-        return max(50, (int) (config('scout.typesense.max_total_results') ?? 250));
-    }
-
-    protected function logScoutFallback(string $message, \Throwable $exception, string $search): void
+    protected function logScoutFallback(string $message, Throwable $exception, string $search): void
     {
         Log::warning($message, [
             'error' => $exception->getMessage(),
             'search' => $search,
         ]);
-    }
-
-    protected function scoutDriver(): string
-    {
-        return (string) config('scout.driver');
     }
 
     public function bustPublicSearchCache(): void
@@ -547,27 +443,6 @@ class InstitutionSearchService implements \App\Features\Institutions\Api\Institu
 
     public function normalizedSearch(string $search): ?string
     {
-        $normalized = StringSimilarity::normalize($search);
-
-        return $normalized === '' ? null : $normalized;
-    }
-
-    private function fuzzyScore(string $search, string $candidate): float
-    {
-        if (! FuzzySearchPolicy::isComparable($search, $candidate, $this->maximumFuzzyDistance($search))) {
-            return 0.0;
-        }
-
-        return StringSimilarity::score($search, $candidate);
-    }
-
-    private function minimumFuzzyScore(string $search): float
-    {
-        return mb_strlen($search) >= 6 ? 0.80 : 0.70;
-    }
-
-    private function maximumFuzzyDistance(string $search): int
-    {
-        return mb_strlen($search) >= 5 ? 2 : 1;
+        return $this->fuzzyMatcher->normalize($search);
     }
 }

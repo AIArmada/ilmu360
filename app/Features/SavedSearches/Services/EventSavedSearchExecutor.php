@@ -30,17 +30,28 @@ final readonly class EventSavedSearchExecutor implements SavedSearchExecutor
     public function execute(SavedSearchSnapshot $savedSearch): SavedSearchExecutionResult
     {
         $filters = $this->normalizeFilters($savedSearch->filters);
+        $rawQuery = is_string($savedSearch->query) ? trim($savedSearch->query) : '';
+        $normalizedQuery = $rawQuery !== '' ? $rawQuery : null;
 
         $events = ($savedSearch->lat !== null && $savedSearch->lng !== null && $savedSearch->radiusKm !== null)
-            ? $this->searchService->searchNearby(
-                lat: $savedSearch->lat,
-                lng: $savedSearch->lng,
-                radiusKm: $savedSearch->radiusKm,
-                filters: $filters,
-                perPage: 20,
-            )
+            ? ($normalizedQuery !== null
+                ? $this->searchService->searchNearbyWithQuery(
+                    query: $normalizedQuery,
+                    lat: $savedSearch->lat,
+                    lng: $savedSearch->lng,
+                    radiusKm: $savedSearch->radiusKm,
+                    filters: $filters,
+                    perPage: 20,
+                )
+                : $this->searchService->searchNearby(
+                    lat: $savedSearch->lat,
+                    lng: $savedSearch->lng,
+                    radiusKm: $savedSearch->radiusKm,
+                    filters: $filters,
+                    perPage: 20,
+                ))
             : $this->searchService->search(
-                query: is_string($savedSearch->query) ? $savedSearch->query : null,
+                query: $normalizedQuery,
                 filters: $filters,
                 perPage: 20,
             );

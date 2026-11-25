@@ -7,6 +7,7 @@ namespace App\Features\DonationChannels\Models;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Features\DonationChannels\Api\Enums\DonationBankStatus;
 use App\Platform\Auditing\AuditsModelChanges;
+use App\Shared\Cache\SelectionCatalog;
 use Carbon\CarbonImmutable;
 use Database\Factories\DonationBankFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -88,6 +89,15 @@ class DonationBank extends Model implements AuditableContract
     {
         return $this->hasMany(DonationChannel::class, 'bank_code', 'code')
             ->where('method', 'bank_account');
+    }
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::saved(static fn () => app(SelectionCatalog::class)->bustDonationBanks());
+        static::deleted(static fn () => app(SelectionCatalog::class)->bustDonationBanks());
     }
 
     protected static function newFactory(): DonationBankFactory

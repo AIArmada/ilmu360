@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Persons\Actions\Projection;
 
 use AIArmada\Persons\Models\TitleCategory;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 
 final readonly class InvalidateTitleCategoryCacheAction
 {
-    public function __construct(private SelectionCatalogCache $selectionCatalogCache) {}
+    public function __construct(private SelectionCatalog $selectionCatalogCache) {}
 
     public function saved(TitleCategory $category): void
     {

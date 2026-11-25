@@ -4,27 +4,34 @@ declare(strict_types=1);
 
 namespace App\Platform\Routing\EntryPoints\Http;
 
-use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Http\Controllers\Controller;
 use App\Platform\Routing\SitemapUrlProvider;
+use App\Shared\Cache\DiscoveryCache;
 use Illuminate\Http\Response;
 
 class SitemapController extends Controller
 {
-    private const int CACHE_TTL_SECONDS = 1800;
+    public function __construct(
+        private readonly DiscoveryCache $cache,
+    ) {}
 
     public function index(): Response
     {
-        $content = app(VersionedCache::class)->remember('sitemap:version:v1', 'sitemap:index:xml', self::CACHE_TTL_SECONDS, function (): string {
-            $xml = '<?xml version="1.0" encoding="UTF-8"?>';
-            $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-            $xml .= '<sitemap><loc>'.$this->escapeXml(route('sitemap.events')).'</loc></sitemap>';
-            $xml .= '<sitemap><loc>'.$this->escapeXml(route('sitemap.institutions')).'</loc></sitemap>';
-            $xml .= '<sitemap><loc>'.$this->escapeXml(route('sitemap.persons')).'</loc></sitemap>';
-            $xml .= '</sitemapindex>';
+        $content = $this->cache->remember(
+            $this->versionKey(),
+            'sitemap:index:xml',
+            $this->ttlSeconds(),
+            function (): string {
+                $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+                $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+                $xml .= '<sitemap><loc>'.$this->escapeXml(route('sitemap.events')).'</loc></sitemap>';
+                $xml .= '<sitemap><loc>'.$this->escapeXml(route('sitemap.institutions')).'</loc></sitemap>';
+                $xml .= '<sitemap><loc>'.$this->escapeXml(route('sitemap.persons')).'</loc></sitemap>';
+                $xml .= '</sitemapindex>';
 
-            return $xml;
-        });
+                return $xml;
+            },
+        );
 
         return response($content)
             ->header('Content-Type', 'application/xml; charset=UTF-8');
@@ -61,23 +68,28 @@ class SitemapController extends Controller
 
         abort_unless($provider instanceof SitemapUrlProvider, 404);
 
-        $content = app(VersionedCache::class)->remember("sitemap:{$name}:version:v1", "sitemap:{$name}:xml", self::CACHE_TTL_SECONDS, function () use ($provider): string {
-            $xml = '<?xml version="1.0" encoding="UTF-8"?>';
-            $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+        $content = $this->cache->remember(
+            $this->versionKey(),
+            "sitemap:{$name}:xml",
+            $this->ttlSeconds(),
+            function () use ($provider): string {
+                $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+                $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 
-            foreach ($provider->urls() as $url) {
-                $xml .= '<url>';
-                $xml .= '<loc>'.$this->escapeXml((string) $url['loc']).'</loc>';
-                $xml .= '<lastmod>'.$this->escapeXml((string) $url['lastmod']).'</lastmod>';
-                $xml .= '<changefreq>'.$this->escapeXml((string) $url['changefreq']).'</changefreq>';
-                $xml .= '<priority>'.$this->escapeXml((string) $url['priority']).'</priority>';
-                $xml .= '</url>';
-            }
+                foreach ($provider->urls() as $url) {
+                    $xml .= '<url>';
+                    $xml .= '<loc>'.$this->escapeXml((string) $url['loc']).'</loc>';
+                    $xml .= '<lastmod>'.$this->escapeXml((string) $url['lastmod']).'</lastmod>';
+                    $xml .= '<changefreq>'.$this->escapeXml((string) $url['changefreq']).'</changefreq>';
+                    $xml .= '<priority>'.$this->escapeXml((string) $url['priority']).'</priority>';
+                    $xml .= '</url>';
+                }
 
-            $xml .= '</urlset>';
+                $xml .= '</urlset>';
 
-            return $xml;
-        });
+                return $xml;
+            },
+        );
 
         return response($content)
             ->header('Content-Type', 'application/xml; charset=UTF-8');
@@ -86,5 +98,17 @@ class SitemapController extends Controller
     private function escapeXml(string $value): string
     {
         return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.sitemap', 'discovery:v:sitemap');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:sitemap';
+    }
+
+    private function ttlSeconds(): int
+    {
+        return (int) config('discovery.cache.ttls.sitemap', 3600);
     }
 }

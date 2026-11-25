@@ -31,4 +31,6 @@ interface EventSubmissionOptionsCache
      * @return list<string>
      */
     public function rememberMultiTimezoneCountryIds(Closure $resolver): array;
+
+    public function invalidate(): void;
 }

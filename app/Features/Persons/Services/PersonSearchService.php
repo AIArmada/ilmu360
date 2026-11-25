@@ -1,26 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Features\Persons\Services;
 
-use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Features\Persons\Api\PersonSearch;
 use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Api\PersonSearchMaintenance;
 use App\Features\Persons\Api\PersonWorkflow;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Support\PersonSearchText;
-use App\Platform\Search\FuzzySearchPolicy;
-use App\Platform\Search\TypesenseHealthCheckService;
+use App\Platform\Search\DatabaseFuzzyMatcher;
+use App\Platform\Search\ScoutRawHitExtractor;
+use App\Shared\Contracts\SearchEngineResolver;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 class PersonSearchService implements PersonSearch, PersonSearchMaintenance
 {
     public function __construct(
         private readonly PersonWorkflow $personWorkflow,
         private readonly PersonSearchCache $personSearchCache,
+        private readonly SearchEngineResolver $engineResolver,
+        private readonly ScoutRawHitExtractor $hitExtractor,
+        private readonly DatabaseFuzzyMatcher $fuzzyMatcher,
     ) {}
 
     public function buildSearchableName(
@@ -46,16 +52,12 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
             return $query->whereRaw('1 = 0');
         }
 
-        if ($this->shouldUseScoutSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+        if ($this->engineResolver->isRemoteEngineAvailable()) {
             try {
                 return $this->applyScoutSearch($query, $normalizedSearch);
-            } catch (\Throwable $exception) {
-                $this->logScoutFallback('Person Typesense search failed, falling back to local search', $exception, $normalizedSearch);
+            } catch (Throwable $exception) {
+                $this->logScoutFallback('Person Scout search failed, falling back to local search', $exception, $normalizedSearch);
             }
-        }
-
-        if (! $this->hasPersonSearchTermsTable()) {
-            return $this->applyDatabaseNameSearch($query, $normalizedSearch);
         }
 
         return $this->applyIndexedSearchWithLocalIndex($query, $normalizedSearch);
@@ -98,7 +100,7 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
      */
     private function applyIndexedSearchWithLocalIndex(Builder $query, string $search): Builder
     {
-        $searchTokens = $this->searchTokens($search);
+        $searchTokens = $this->fuzzyMatcher->tokens($search, 2);
 
         if ($searchTokens === []) {
             return $query->whereRaw('1 = 0');
@@ -140,22 +142,26 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
         }
 
         return $this->personSearchCache->rememberPublicSearchIds($normalizedSearch, function () use ($normalizedSearch): array {
-            $localIds = $this->publicSearchIdsFromLocalSearch($normalizedSearch);
-
-            if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+            if ($this->engineResolver->isRemoteEngineAvailable() || $this->engineResolver->activeDriver() === 'database') {
                 try {
-                    $scoutIds = $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'status:=[verified,pending]',
-                        'num_typos' => 0,
-                    ]);
+                    $options = $this->engineResolver->usesTypesense() || $this->engineResolver->activeDriver() === 'database'
+                        ? [
+                            'filter_by' => 'status:=[verified,pending]',
+                            'num_typos' => 0,
+                        ]
+                        : [];
 
-                    return $this->mergeOrderedIds($scoutIds, $localIds);
-                } catch (\Throwable $exception) {
-                    $this->logScoutFallback('Person Typesense public search failed, falling back to local search', $exception, $normalizedSearch);
+                    $scoutIds = $this->searchIdsWithScout($normalizedSearch, $options);
+
+                    if ($scoutIds !== []) {
+                        return $scoutIds;
+                    }
+                } catch (Throwable $exception) {
+                    $this->logScoutFallback('Person Scout public search failed, falling back to local search', $exception, $normalizedSearch);
                 }
             }
 
-            return $localIds;
+            return $this->publicSearchIdsFromLocalSearch($normalizedSearch);
         });
     }
 
@@ -184,19 +190,6 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
      */
     private function publicSearchIdsFromLocalSearch(string $normalizedSearch): array
     {
-        if (! $this->hasPersonSearchTermsTable()) {
-            return Person::query()
-                ->whereIn('status', ['verified', 'pending'])
-                ->select('persons.id')
-                ->tap(fn (Builder $query): Builder => $this->applyDatabaseNameSearch($query, $normalizedSearch))
-                ->orderBy('family_name')
-                ->orderBy('name')
-                ->pluck('persons.id')
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->values()
-                ->all();
-        }
-
         return Person::query()
             ->whereIn('status', ['verified', 'pending'])
             ->select('persons.id')
@@ -221,70 +214,30 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
         }
 
         return $this->personSearchCache->rememberPublicFuzzySearchIds($normalizedSearch, function () use ($normalizedSearch): array {
-            if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
+            if ($this->engineResolver->isRemoteEngineAvailable()) {
                 try {
-                    return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'status:=[verified,pending]',
-                        'prioritize_exact_match' => true,
-                    ]);
-                } catch (\Throwable $exception) {
-                    $this->logScoutFallback('Person Typesense fuzzy search failed, falling back to local fuzzy search', $exception, $normalizedSearch);
+                    $options = $this->engineResolver->usesTypesense()
+                        ? [
+                            'filter_by' => 'status:=[verified,pending]',
+                            'prioritize_exact_match' => true,
+                        ]
+                        : [];
+
+                    return $this->searchIdsWithScout($normalizedSearch, $options);
+                } catch (Throwable $exception) {
+                    $this->logScoutFallback('Person Scout fuzzy search failed, falling back to local fuzzy search', $exception, $normalizedSearch);
                 }
             }
 
-            $personQuery = Person::query()
+            $rows = Person::query()
                 ->whereIn('status', ['verified', 'pending'])
-                ->select(['id', 'name', 'middle_name', 'family_name'])
+                ->select(['id', 'name', 'middle_name', 'family_name', 'searchable_name'])
                 ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
                 ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateOrdering($query, $normalizedSearch))
-                ->limit($this->typesenseResultLimit());
+                ->limit($this->engineResolver->resultLimit())
+                ->get();
 
-            if ($this->hasSearchableNameColumn()) {
-                $personQuery->addSelect('searchable_name');
-            } else {
-                $personQuery->addSelect(['name']);
-            }
-
-            return $personQuery
-                ->get()
-                ->map(function (Person $person) use ($normalizedSearch): array {
-                    $candidate = $this->personCandidateSearchableName($person);
-
-                    if ($candidate === '') {
-                        return ['id' => (string) $person->id, 'score' => 0.0];
-                    }
-
-                    $scoreCandidates = [
-                        FuzzySearchPolicy::isComparable($normalizedSearch, $candidate)
-                            ? StringSimilarity::score($normalizedSearch, $candidate)
-                            : 0.0,
-                    ];
-
-                    $candidateTokens = array_values(array_filter(
-                        explode(' ', $candidate),
-                        static fn (string $token): bool => mb_strlen($token) >= 2
-                    ));
-
-                    foreach ($candidateTokens as $token) {
-                        if (! $this->fuzzyTokenPasses($token, $normalizedSearch)) {
-                            continue;
-                        }
-
-                        $scoreCandidates[] = FuzzySearchPolicy::isComparable($normalizedSearch, $token)
-                            ? StringSimilarity::score($normalizedSearch, $token)
-                            : 0.0;
-                    }
-
-                    return [
-                        'id' => (string) $person->id,
-                        'score' => max($scoreCandidates),
-                    ];
-                })
-                ->filter(static fn (array $candidate): bool => $candidate['score'] >= 0.70)
-                ->sortByDesc('score')
-                ->pluck('id')
-                ->values()
-                ->all();
+            return $this->scoreFuzzyCandidates($rows, $normalizedSearch);
         });
     }
 
@@ -297,28 +250,30 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
         $model = $query->getModel();
         $keyColumn = $model->qualifyColumn($model->getKeyName());
 
-        $personQuery = (clone $query)
+        $rows = (clone $query)
             ->reorder()
             ->select([
                 $keyColumn,
                 $model->qualifyColumn('name'),
                 $model->qualifyColumn('middle_name'),
                 $model->qualifyColumn('family_name'),
+                $model->qualifyColumn('searchable_name'),
             ])
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateFilter($builder, $normalizedSearch))
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateOrdering($builder, $normalizedSearch))
-            ->limit($this->typesenseResultLimit());
+            ->limit($this->engineResolver->resultLimit())
+            ->get();
 
-        if ($this->hasSearchableNameColumn()) {
-            $personQuery->addSelect($model->qualifyColumn('searchable_name'));
-        } else {
-            $personQuery->addSelect([
-                $model->qualifyColumn('name'),
-            ]);
-        }
+        return $this->scoreFuzzyCandidates($rows, $normalizedSearch);
+    }
 
-        return $personQuery
-            ->get()
+    /**
+     * @param  EloquentCollection<int, Person>  $rows
+     * @return list<string>
+     */
+    private function scoreFuzzyCandidates(EloquentCollection $rows, string $normalizedSearch): array
+    {
+        return $rows
             ->map(function (Person $person) use ($normalizedSearch): array {
                 $candidate = $this->personCandidateSearchableName($person);
 
@@ -326,30 +281,13 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
                     return ['id' => (string) $person->id, 'score' => 0.0];
                 }
 
-                $scoreCandidates = [
-                    FuzzySearchPolicy::isComparable($normalizedSearch, $candidate)
-                        ? StringSimilarity::score($normalizedSearch, $candidate)
-                        : 0.0,
-                ];
-
-                $candidateTokens = array_values(array_filter(
-                    explode(' ', $candidate),
-                    static fn (string $token): bool => mb_strlen($token) >= 2,
-                ));
-
-                foreach ($candidateTokens as $token) {
-                    if (! $this->fuzzyTokenPasses($token, $normalizedSearch)) {
-                        continue;
-                    }
-
-                    $scoreCandidates[] = FuzzySearchPolicy::isComparable($normalizedSearch, $token)
-                        ? StringSimilarity::score($normalizedSearch, $token)
-                        : 0.0;
-                }
-
                 return [
                     'id' => (string) $person->id,
-                    'score' => max($scoreCandidates),
+                    'score' => $this->fuzzyMatcher->bestScore(
+                        $normalizedSearch,
+                        [$candidate],
+                        enforceShortQuerySubstringOnTokens: true,
+                    ),
                 ];
             })
             ->filter(static fn (array $candidate): bool => $candidate['score'] >= 0.70)
@@ -365,23 +303,11 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
      */
     private function applyFuzzyCandidateFilter(Builder $query, string $normalizedSearch): Builder
     {
-        $patterns = $this->fuzzyCandidatePatterns($normalizedSearch);
-
-        if ($patterns === []) {
-            return $query;
-        }
-
-        $columns = $this->hasSearchableNameColumn()
-            ? ['persons.searchable_name', 'persons.name', 'persons.family_name']
-            : ['persons.name', 'persons.family_name'];
-
-        return $query->where(function (Builder $candidateQuery) use ($columns, $patterns): void {
-            foreach ($patterns as $pattern) {
-                foreach ($columns as $column) {
-                    $candidateQuery->orWhereLike($column, $pattern);
-                }
-            }
-        });
+        return $this->fuzzyMatcher->applyColumnsFilter(
+            $query,
+            ['persons.searchable_name', 'persons.name', 'persons.family_name'],
+            $normalizedSearch,
+        );
     }
 
     /**
@@ -390,9 +316,7 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
      */
     private function applyFuzzyCandidateOrdering(Builder $query, string $normalizedSearch): Builder
     {
-        $primaryColumn = $this->hasSearchableNameColumn()
-            ? 'persons.searchable_name'
-            : 'persons.name';
+        $primaryColumn = 'persons.searchable_name';
 
         return $query
             ->orderByRaw(
@@ -404,25 +328,16 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
             ->orderBy('persons.id');
     }
 
-    protected function shouldUseScoutSearch(): bool
-    {
-        return in_array($this->scoutDriver(), ['typesense', 'database'], true);
-    }
-
-    protected function shouldUseTypesenseSearch(): bool
-    {
-        return $this->scoutDriver() === 'typesense';
-    }
-
     /**
      * @param  Builder<Person>  $query
      * @return Builder<Person>
      */
     protected function applyScoutSearch(Builder $query, string $search): Builder
     {
-        $ids = $this->searchIdsWithScout($search, [
-            'num_typos' => 0,
-        ]);
+        $ids = $this->searchIdsWithScout(
+            $search,
+            $this->engineResolver->usesTypesense() ? ['num_typos' => 0] : [],
+        );
 
         if ($ids === []) {
             return $query->whereRaw('1 = 0');
@@ -437,9 +352,17 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
      */
     protected function searchIdsWithScout(string $search, array $options = []): array
     {
-        if ($this->scoutDriver() === 'database') {
+        $limit = $this->engineResolver->resultLimit();
+
+        if ($this->engineResolver->activeDriver() === 'database') {
             return Person::search($search)
-                ->query(fn (Builder $query): Builder => $query->limit($this->typesenseResultLimit()))
+                ->query(static function (Builder $query) use ($options, $limit): Builder {
+                    if (($options['filter_by'] ?? null) === 'status:=[verified,pending]') {
+                        $query->whereIn('status', ['verified', 'pending']);
+                    }
+
+                    return $query->limit($limit);
+                })
                 ->get()
                 ->pluck('id')
                 ->map(static fn (mixed $id): string => (string) $id)
@@ -447,42 +370,27 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
                 ->all();
         }
 
-        $rawResults = Person::search($search)
-            ->options([
+        $scoutOptions = $this->engineResolver->usesTypesense()
+            ? [
                 'query_by' => 'formatted_name,search_text,name',
-                'per_page' => $this->typesenseResultLimit(),
+                'per_page' => $limit,
                 ...$options,
-            ])
+            ]
+            : ['per_page' => $limit, ...$options];
+
+        $rawResults = Person::search($search)
+            ->options($scoutOptions)
             ->raw();
 
-        /** @var array<int, array<string, mixed>> $hits */
-        $hits = is_array($rawResults) && is_array($rawResults['hits'] ?? null)
-            ? $rawResults['hits']
-            : [];
-
-        return collect($hits)
-            ->pluck('document.id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->values()
-            ->all();
+        return $this->hitExtractor->extractIds($rawResults);
     }
 
-    protected function typesenseResultLimit(): int
-    {
-        return max(50, (int) (config('scout.typesense.max_total_results') ?? 250));
-    }
-
-    protected function logScoutFallback(string $message, \Throwable $exception, string $search): void
+    protected function logScoutFallback(string $message, Throwable $exception, string $search): void
     {
         Log::warning($message, [
             'error' => $exception->getMessage(),
             'search' => $search,
         ]);
-    }
-
-    protected function scoutDriver(): string
-    {
-        return (string) config('scout.driver');
     }
 
     public function syncPersonRecord(Person $person): void
@@ -493,11 +401,6 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
     public function reindexAll(int $chunkSize = 100): int
     {
         return $this->personWorkflow->reindexSearch($chunkSize);
-    }
-
-    public function searchIndexSchemaReady(): bool
-    {
-        return $this->hasSearchableNameColumn() && $this->hasPersonSearchTermsTable();
     }
 
     public function purgePersonRecord(Person $person): void
@@ -512,30 +415,7 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
 
     public function normalizedSearch(string $search): ?string
     {
-        $normalized = StringSimilarity::normalize($search);
-
-        return $normalized === '' ? null : $normalized;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function searchTokens(string $search): array
-    {
-        $normalizedSearch = $this->normalizedSearch($search);
-
-        if ($normalizedSearch === null) {
-            return [];
-        }
-
-        /** @var list<string> $tokens */
-        $tokens = collect(explode(' ', $normalizedSearch))
-            ->filter(static fn (string $token): bool => mb_strlen($token) >= 2)
-            ->unique()
-            ->values()
-            ->all();
-
-        return $tokens;
+        return $this->fuzzyMatcher->normalize($search);
     }
 
     /**
@@ -586,19 +466,6 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
         });
     }
 
-    /**
-     * For short queries, a candidate token must contain the query as a substring.
-     * This prevents over-matching like "ali" against the token "al" (e.g. "Al-Bakri").
-     */
-    private function fuzzyTokenPasses(string $token, string $query): bool
-    {
-        if (mb_strlen($query) <= 3) {
-            return str_contains($token, $query);
-        }
-
-        return true;
-    }
-
     private function personCandidateSearchableName(Person $person): string
     {
         $candidate = $person->searchable_name;
@@ -610,109 +477,5 @@ class PersonSearchService implements PersonSearch, PersonSearchMaintenance
         return $this->buildSearchableName(
             $person->formatted_name,
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function fuzzyCandidatePatterns(string $normalizedSearch): array
-    {
-        $tokens = array_values(array_unique(array_filter([
-            $normalizedSearch,
-            ...array_filter(explode(' ', $normalizedSearch), static fn (string $token): bool => mb_strlen($token) >= 3),
-        ], static fn (string $token): bool => $token !== '')));
-
-        $patterns = [];
-
-        foreach ($tokens as $token) {
-            foreach ($this->fuzzyPatternSources($token) as $patternSource) {
-                $pattern = $this->fuzzySubsequencePattern($patternSource);
-
-                if ($pattern !== null) {
-                    $patterns[] = $pattern;
-                }
-            }
-        }
-
-        return array_values(array_unique($patterns));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function fuzzyPatternSources(string $value): array
-    {
-        $sources = [$value];
-
-        if (str_contains($value, ' ') || mb_strlen($value) < 5) {
-            return $sources;
-        }
-
-        return array_values(array_unique([
-            ...$sources,
-            ...$this->fuzzyOmissionVariants($value),
-        ]));
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function fuzzyOmissionVariants(string $value): array
-    {
-        $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($characters) || count($characters) < 2) {
-            return [];
-        }
-
-        $variants = [];
-
-        foreach (array_keys($characters) as $index) {
-            $variantCharacters = $characters;
-            unset($variantCharacters[$index]);
-
-            $variant = implode('', $variantCharacters);
-
-            if ($variant !== '') {
-                $variants[] = $variant;
-            }
-        }
-
-        return array_values(array_unique($variants));
-    }
-
-    private function fuzzySubsequencePattern(string $value): ?string
-    {
-        $characters = preg_split('//u', $value, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (! is_array($characters) || $characters === []) {
-            return null;
-        }
-
-        return '%'.implode('%', $characters).'%';
-    }
-
-    private function hasSearchableNameColumn(): bool
-    {
-        return Schema::hasColumn('persons', 'searchable_name');
-    }
-
-    private function hasPersonSearchTermsTable(): bool
-    {
-        return Schema::hasTable('person_search_terms');
-    }
-
-    /**
-     * @param  list<string>  $primaryIds
-     * @param  list<string>  $secondaryIds
-     * @return list<string>
-     */
-    private function mergeOrderedIds(array $primaryIds, array $secondaryIds): array
-    {
-        return collect([...$primaryIds, ...$secondaryIds])
-            ->filter(static fn (string $id): bool => $id !== '')
-            ->unique()
-            ->values()
-            ->all();
     }
 }

@@ -8,13 +8,13 @@ use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Features\Persons\Models\Person;
 use App\Features\Persons\Services\PersonSearchService;
-use App\Shared\Cache\SelectionCatalogCache;
+use App\Shared\Cache\SelectionCatalog;
 
 final readonly class SyncPersonTitleEffectsAction
 {
     public function __construct(
         private PersonSearchService $personSearchService,
-        private SelectionCatalogCache $selectionCatalogCache,
+        private SelectionCatalog $selectionCatalogCache,
     ) {}
 
     public function saved(Title|TitleAssignment $model): void

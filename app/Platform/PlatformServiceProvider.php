@@ -40,11 +40,19 @@ use App\Platform\Addressing\Observers\AddressAreaRelationshipObserver;
 use App\Platform\Addressing\Observers\AddressCatalogObserver;
 use App\Platform\Addressing\Observers\AddressCountryObserver;
 use App\Platform\Addressing\Observers\AddressObserver;
+use App\Platform\Cache\Commands\BustDiscoveryCacheCommand;
+use App\Platform\Cache\Commands\DiscoveryCacheStatusCommand;
+use App\Platform\Cache\ManagedDiscoveryCache;
 use App\Platform\Console\CacheCommand;
 use App\Platform\Console\ClearCommand;
 use App\Platform\Language\Models\Language;
 use App\Platform\Language\Observers\LanguageObserver;
 use App\Platform\Routing\PublicSlugRegistry;
+use App\Platform\Search\CachedSearchHealthCheck;
+use App\Platform\Search\ScoutSearchEngineResolver;
+use App\Shared\Cache\DiscoveryCache;
+use App\Shared\Contracts\SearchEngineResolver;
+use App\Shared\Contracts\SearchHealthCheck;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -57,6 +65,9 @@ final class PlatformServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->scoped(DiscoveryCache::class, ManagedDiscoveryCache::class);
+        $this->app->bind(SearchHealthCheck::class, CachedSearchHealthCheck::class);
+        $this->app->bind(SearchEngineResolver::class, ScoutSearchEngineResolver::class);
         $this->app->singleton(PublicSlugRegistry::class, static fn (): PublicSlugRegistry => new PublicSlugRegistry([]));
 
         $catalog = FeatureCatalog::load($this->app->basePath());
@@ -126,7 +137,12 @@ final class PlatformServiceProvider extends ServiceProvider
         Date::use(CarbonImmutable::class);
 
         if ($this->app->runningInConsole()) {
-            $this->commands([CacheCommand::class, ClearCommand::class]);
+            $this->commands([
+                CacheCommand::class,
+                ClearCommand::class,
+                BustDiscoveryCacheCommand::class,
+                DiscoveryCacheStatusCommand::class,
+            ]);
             $this->optimizes(optimize: 'platform:cache', clear: 'platform:clear', key: 'platform');
         }
     }

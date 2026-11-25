@@ -24,6 +24,9 @@
     ],
     "table:venue_facilities": [
       "App\\Features\\Places\\Actions\\Venues\\SyncVenueFacilitiesAction"
+    ],
+    "store:venue-search": [
+      "App\\Features\\Places\\Persistence\\VenueSearchCacheStore"
     ]
   },
   "aliases": {

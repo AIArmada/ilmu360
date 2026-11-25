@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\EntryPoints\Livewire\Pages\Index;
 use App\Features\Events\Models\Event;
+use App\Features\Events\Support\PublicScheduleLeaf;
 use App\Features\Institutions\EntryPoints\Livewire\Pages\Show;
 use App\Features\Institutions\Models\Institution;
 use App\Platform\Location\VisitorCountryResolver;
@@ -66,10 +67,8 @@ it('converts viewer-local date filters to UTC boundaries around midnight', funct
         ->set('starts_after', '2026-04-17')
         ->set('starts_before', '2026-04-17');
 
-    $titles = $component->instance()
-        ->events
-        ->getCollection()
-        ->pluck('title')
+    $titles = collect($component->instance()->scheduleItems->items())
+        ->map(static fn (PublicScheduleLeaf $leaf): string => $leaf->title())
         ->all();
 
     expect($titles)

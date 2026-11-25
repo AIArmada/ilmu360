@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
+use App\Features\Persons\Api\PersonSearchCache;
 use App\Features\Persons\Models\Person;
-use App\Features\Persons\Persistence\PersonSearchCacheStore;
 use App\Features\Persons\Support\PersonSearchText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
 final readonly class SyncPersonSearchProjectionAction
 {
     public function __construct(
-        private PersonSearchCacheStore $cache,
+        private PersonSearchCache $cache,
     ) {}
 
     public function sync(Model $person, bool $bustCache = true): void

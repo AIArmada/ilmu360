@@ -3,7 +3,6 @@
 namespace App\Features\Events\Queries;
 
 use App\Features\Events\Models\Event;
-use Illuminate\Database\MySqlConnection;
 use Illuminate\Database\PostgresConnection;
 use Illuminate\Database\SQLiteConnection;
 use InvalidArgumentException;
@@ -41,7 +40,7 @@ class PrimaryOccurrenceSql
         $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
         $eventsTable ??= (new Event)->getTable();
 
-        /** @var PostgresConnection|SQLiteConnection|MySqlConnection $connection */
+        /** @var PostgresConnection|SQLiteConnection $connection */
         $connection = Event::query()->getConnection();
 
         $groupKeyExists = self::groupKeyExists($eventsTable, $connection);
@@ -64,7 +63,7 @@ class PrimaryOccurrenceSql
         $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
         $eventsTable ??= (new Event)->getTable();
 
-        /** @var PostgresConnection|SQLiteConnection|MySqlConnection $connection */
+        /** @var PostgresConnection|SQLiteConnection $connection */
         $connection = Event::query()->getConnection();
 
         $groupKeyExists = self::groupKeyExists($eventsTable, $connection);
@@ -92,12 +91,11 @@ class PrimaryOccurrenceSql
         };
     }
 
-    private static function groupKeyExists(string $eventsTable, PostgresConnection|SQLiteConnection|MySqlConnection $connection): string
+    private static function groupKeyExists(string $eventsTable, PostgresConnection|SQLiteConnection $connection): string
     {
         return match ($connection->getDriverName()) {
             'pgsql' => "{$eventsTable}.metadata->'public_submission_group'->>'key' is not null",
             'sqlite' => "json_extract({$eventsTable}.metadata, '$.public_submission_group.key') is not null",
-            'mysql', 'mariadb' => "json_unquote(json_extract({$eventsTable}.metadata, '$.public_submission_group.key')) is not null",
             default => throw new InvalidArgumentException(sprintf('Unsupported database driver [%s].', $connection->getDriverName())),
         };
     }

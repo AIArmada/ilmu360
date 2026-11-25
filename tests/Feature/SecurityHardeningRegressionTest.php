@@ -217,10 +217,13 @@ it('filters nearby institutions accurately using GeoDistance bounding box and ha
 });
 
 it('coerces stringified numeric cache values into strict integers in homepage stats and versioned cache stores', function (): void {
-    Cache::put('home.stats.events.active', '42', 3600);
-    Cache::put('home.stats.persons.active', '17', 3600);
-    Cache::put('home.stats.institutions.active', '9', 3600);
-    Cache::put('home.stats.references.active', '5', 3600);
+    $statsVersion = app(App\Shared\Cache\DiscoveryCache::class)
+        ->version((string) config('discovery.cache.versions.homepage_stats'));
+
+    Cache::put("home:stats:events:active:{$statsVersion}", '42', 3600);
+    Cache::put("home:stats:persons:active:{$statsVersion}", '17', 3600);
+    Cache::put("home:stats:institutions:active:{$statsVersion}", '9', 3600);
+    Cache::put("home:stats:references:active:{$statsVersion}", '5', 3600);
 
     Cache::forever('test.int.version', 'v-test');
     Cache::put('test.int.key:v-test', '88', 60);

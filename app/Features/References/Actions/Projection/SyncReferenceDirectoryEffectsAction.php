@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\References\Actions\Projection;
 
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
+use App\Features\References\Api\ReferenceListingCacheVersion;
 use App\Features\References\Api\ReferenceWorkflow;
 use App\Features\References\Models\Reference;
 use App\Features\References\Services\ReferenceSearchService;
@@ -20,6 +21,7 @@ final readonly class SyncReferenceDirectoryEffectsAction
         protected SlugRedirectCommands $slugRedirectCommands,
         protected ReferenceSearchService $referenceSearchService,
         protected PublicListingsCacheInvalidator $publicListingsCache,
+        protected ReferenceListingCacheVersion $referenceListingCacheVersion,
     ) {}
 
     public function saved(Reference $reference): void
@@ -29,6 +31,7 @@ final readonly class SyncReferenceDirectoryEffectsAction
         }
 
         $this->referenceSearchService->bustPublicSearchCache();
+        $this->referenceListingCacheVersion->bump();
         $this->publicListingsCache->bustHomepageStats();
     }
 
@@ -63,6 +66,7 @@ final readonly class SyncReferenceDirectoryEffectsAction
         $this->slugRedirectCommands->purge($reference->getMorphClass(), (string) $reference->getKey());
         $this->referenceWorkflow->syncSlugsForTitle($reference->title);
         $this->referenceSearchService->bustPublicSearchCache();
+        $this->referenceListingCacheVersion->bump();
         $this->publicListingsCache->bustHomepageStats();
     }
 }

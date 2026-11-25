@@ -5,18 +5,14 @@ declare(strict_types=1);
 namespace App\Features\Events\Persistence;
 
 use App\Features\Events\Api\EventSubmissionOptionsCache;
+use App\Shared\Cache\DiscoveryCache;
 use Closure;
-use Illuminate\Support\Facades\Cache;
 
 final readonly class EventSubmissionOptionsCacheStore implements EventSubmissionOptionsCache
 {
-    private const int OPTIONS_TTL_SECONDS = 60;
-
-    private const int CLIENT_CONFIGURATION_TTL_SECONDS = 300;
-
-    private const string CLIENT_PROGRESS_CONFIGURATION_KEY = 'submit_event_client_progress_configuration';
-
-    private const string MULTI_TIMEZONE_COUNTRIES_KEY = 'submit_diverging_timezone_countries_safe_v2';
+    public function __construct(
+        private DiscoveryCache $cache,
+    ) {}
 
     /**
      * @param  Closure(): array<string, string>  $resolver
@@ -24,9 +20,10 @@ final readonly class EventSubmissionOptionsCacheStore implements EventSubmission
      */
     public function rememberVenueOptions(?string $countryId, Closure $resolver): array
     {
-        return Cache::remember(
-            sprintf('submit_venues_%s_safe_v2', $countryId ?? 'all'),
-            self::OPTIONS_TTL_SECONDS,
+        return $this->cache->remember(
+            $this->versionKey(),
+            'submit_venues:'.($countryId ?? 'all'),
+            $this->ttlSeconds(),
             $resolver,
         );
     }
@@ -37,9 +34,10 @@ final readonly class EventSubmissionOptionsCacheStore implements EventSubmission
      */
     public function rememberTaxonomyTagOptions(string $cachePrefix, string $locale, Closure $resolver): array
     {
-        return Cache::remember(
-            sprintf('%s_%s_safe_v2', $cachePrefix, $locale),
-            self::OPTIONS_TTL_SECONDS,
+        return $this->cache->remember(
+            $this->versionKey(),
+            "{$cachePrefix}:{$locale}",
+            $this->ttlSeconds(),
             $resolver,
         );
     }
@@ -50,9 +48,10 @@ final readonly class EventSubmissionOptionsCacheStore implements EventSubmission
      */
     public function rememberClientProgressConfiguration(Closure $resolver): array
     {
-        return Cache::remember(
-            self::CLIENT_PROGRESS_CONFIGURATION_KEY,
-            self::CLIENT_CONFIGURATION_TTL_SECONDS,
+        return $this->cache->remember(
+            $this->versionKey(),
+            'submit_event_client_progress_configuration',
+            $this->ttlSeconds(),
             $resolver,
         );
     }
@@ -63,10 +62,28 @@ final readonly class EventSubmissionOptionsCacheStore implements EventSubmission
      */
     public function rememberMultiTimezoneCountryIds(Closure $resolver): array
     {
-        return Cache::remember(
-            self::MULTI_TIMEZONE_COUNTRIES_KEY,
-            self::CLIENT_CONFIGURATION_TTL_SECONDS,
+        return $this->cache->remember(
+            $this->versionKey(),
+            'submit_diverging_timezone_countries',
+            $this->ttlSeconds(),
             $resolver,
         );
+    }
+
+    public function invalidate(): void
+    {
+        $this->cache->bump($this->versionKey());
+    }
+
+    private function versionKey(): string
+    {
+        $configured = config('discovery.cache.versions.submission_events', 'discovery:v:submission:events');
+
+        return is_string($configured) && $configured !== '' ? $configured : 'discovery:v:submission:events';
+    }
+
+    private function ttlSeconds(): int
+    {
+        return (int) config('discovery.cache.ttls.submission_options', 900);
     }
 }
