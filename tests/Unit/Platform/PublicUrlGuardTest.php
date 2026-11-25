@@ -95,8 +95,6 @@ it('follows safe public redirects and rejects redirects to internal addresses', 
         configure: static function (PendingRequest $request): void {
             $request->timeout(5);
         },
-    ))->toThrow(InvalidArgumentException::class);
-
-    expect(fn () => $client->sendFollowingRedirects(guard: $guard, method: 'GET', url: 'https://start.example.com/evil'))
-        ->toThrow(InvalidArgumentException::class);
+    ))->toThrow(InvalidArgumentException::class)
+        ->and(fn () => $client->sendFollowingRedirects(guard: $guard, method: 'GET', url: 'https://start.example.com/evil'))->toThrow(InvalidArgumentException::class);
 });
