@@ -342,19 +342,25 @@ it('shows a changes summary for update requests in the table', function () {
     $moderator->assignRole('moderator');
 
     $institution = Institution::factory()->create(['name' => 'Ringkasan Masjid']);
+    $geography = createTestPackageGeography(cityName: 'Shah Alam');
+    $locality = [
+        'country_id' => (string) $geography['country']->getKey(),
+        'state_id' => (string) $geography['state']->getKey(),
+        'city_id' => (string) $geography['city']->getKey(),
+    ];
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Update,
         'subject_type' => ContributionSubjectType::Institution,
         'entity_type' => $institution->getMorphClass(),
         'entity_id' => $institution->id,
         'status' => ContributionRequestStatus::Pending,
-        'proposed_data' => ['description' => 'Updated description', 'city' => 'Kuala Lumpur'],
-        'original_data' => ['description' => 'Old description', 'city' => 'Shah Alam'],
+        'proposed_data' => ['description' => 'Updated description', 'address' => $locality + ['line1' => 'Jalan Baharu 1']],
+        'original_data' => ['description' => 'Old description', 'address' => $locality + ['line1' => 'Jalan Lama 1']],
     ]);
 
     $summary = app(ContributionsHubPresenter::class)->requestSummaryLine($request);
 
-    expect($summary)->toBe(__('Changed: :fields', ['fields' => __('City').', '.__('Description')]));
+    expect($summary)->toBe(__('Changed: :fields', ['fields' => __('Address').', '.__('Description')]));
 
     Livewire::actingAs($moderator)
         ->test(ListContributionRequests::class)
