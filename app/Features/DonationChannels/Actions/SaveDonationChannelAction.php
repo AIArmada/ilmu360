@@ -68,9 +68,6 @@ final readonly class SaveDonationChannelAction
                 : $donationChannel->getAttribute('label'),
             'recipient' => $this->normalizeRequiredString($data['recipient'] ?? $donationChannel->getAttribute('recipient'), 'recipient'),
             'method' => $method,
-            'reference_note' => array_key_exists('reference_note', $data)
-                ? $this->normalizeOptionalString($data['reference_note'])
-                : $donationChannel->getAttribute('reference_note'),
             'is_default' => array_key_exists('is_default', $data)
                 ? (bool) $data['is_default']
                 : ($creating ? false : (bool) $donationChannel->getAttribute('is_default')),

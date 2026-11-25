@@ -966,10 +966,9 @@ it('stores donation channels when submitting a new institution', function () {
             'label' => 'Tabung Masjid',
             'recipient' => 'Masjid Jamik Ungku Ahmad',
             'method' => 'bank_account',
-            'bank_name' => 'Maybank2u',
+            'bank_name' => 'Malayan Banking Berhad',
             'bank_code' => 'MB2U0227',
             'account_number' => '1234567890',
-            'reference_note' => 'Dana am',
             'is_default' => true,
         ]])
         ->call('submit')
@@ -981,7 +980,7 @@ it('stores donation channels when submitting a new institution', function () {
     expect($institution->donationChannels()->count())->toBe(1)
         ->and($channel->method)->toBe('bank_account')
         ->and($channel->account_number)->toBe('1234567890')
-        ->and($channel->bank_name)->toBe('Maybank2u')
+        ->and($channel->bank_name)->toBe('Malayan Banking Berhad')
         ->and($channel->status)->toBe(DonationChannelStatus::Pending)
         ->and($channel->is_default)->toBeTrue();
 });
@@ -1063,7 +1062,7 @@ it('preserves verified donation channels on unrelated institution edits', functi
         'recipient' => 'Masjid Kekal',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '0987654321',
         'is_default' => true,
     ]);
@@ -1086,6 +1085,50 @@ it('preserves verified donation channels on unrelated institution edits', functi
     expect($fresh->getKey())->toBe($channel->getKey())
         ->and($fresh->status)->toBe(DonationChannelStatus::Verified)
         ->and($fresh->verified_by)->toBe($owner->getKey());
+});
+
+it('only stages the name when existing institution location contacts and donation channels are untouched', function () {
+    $visitor = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified', 'name' => 'Masjid Asal']);
+    giveInstitutionStoredMapsPlace($institution);
+
+    withGlobalOwnerContext(function () use ($institution): void {
+        $institution->contactMethods()->delete();
+        $institution->contactMethods()->create([
+            'type' => 'phone',
+            'purpose' => 'general',
+            'value' => '+60 3-1234 5678',
+            'is_public' => true,
+        ]);
+    });
+
+    $institution->donationChannels()->create([
+        'label' => 'Tabung Masjid',
+        'recipient' => 'Masjid Asal',
+        'method' => 'bank_account',
+        'currency' => 'MYR',
+        'bank_code' => 'MB2U0227',
+        'bank_name' => 'Malayan Banking Berhad',
+        'account_number' => '0987654321',
+        'is_default' => true,
+    ]);
+
+    Livewire::actingAs($visitor)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->slug,
+        ])
+        ->set('data.name', 'Masjid Baharu')
+        ->call('submit')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('contributions.index'));
+
+    $request = ContributionRequest::query()
+        ->where('entity_id', $institution->getKey())
+        ->sole();
+
+    expect($request->original_data)->toBe(['name' => 'Masjid Asal'])
+        ->and($request->proposed_data)->toBe(['name' => 'Masjid Baharu']);
 });
 
 it('stages donation channel proposals on visitor update requests', function () {
@@ -1352,7 +1395,7 @@ it('stores donation QR uploads when submitting a new institution', function () {
             'label' => 'Tabung Masjid',
             'recipient' => 'Masjid Jamik Ungku Ahmad',
             'method' => 'bank_account',
-            'bank_name' => 'Maybank2u',
+            'bank_name' => 'Malayan Banking Berhad',
             'bank_code' => 'MB2U0227',
             'account_number' => '1234567890',
         ]])
@@ -1665,7 +1708,7 @@ it('refuses to wipe all donation channels when every submitted row is invalid', 
             'recipient' => 'Jawatankuasa Masjid',
             'method' => 'bank_account',
             'bank_code' => 'MB2U0227',
-            'bank_name' => 'Maybank2u',
+            'bank_name' => 'Malayan Banking Berhad',
             'account_number' => '12345678',
         ]);
     });

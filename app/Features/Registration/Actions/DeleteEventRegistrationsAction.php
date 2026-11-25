@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Actions;
 
-use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationAnswer;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationParticipant;
 use App\Features\Registration\Api\EventRegistrationDeletion;
+use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;
 use App\Features\Registration\Persistence\RegistrationWriter;
 use App\Platform\Models\MorphModelResolver;
@@ -63,8 +65,12 @@ final readonly class DeleteEventRegistrationsAction implements EventRegistration
             EventRegistrationParticipant::query()
                 ->where('event_registration_id', $registrationId)
                 ->each(function (EventRegistrationParticipant $participant): void {
-                    $participant->answers()->each(fn ($answer): bool => (bool) $answer->delete());
-                    $participant->attendances()->each(fn ($attendance): bool => (bool) $attendance->delete());
+                    EventRegistrationAnswer::query()
+                        ->where('event_registration_participant_id', $participant->getKey())
+                        ->each(fn (EventRegistrationAnswer $answer): bool => (bool) $answer->delete());
+                    EventCheckin::query()
+                        ->where('event_registration_participant_id', $participant->getKey())
+                        ->each(fn (EventCheckin $attendance): bool => (bool) $attendance->delete());
                     $participant->delete();
                 });
         });

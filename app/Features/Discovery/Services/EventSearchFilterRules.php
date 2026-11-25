@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Discovery\Services;
 
 use AIArmada\Addressing\Support\ModelResolver;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Discovery\Api\SearchFilterCatalog;
 use App\Features\Discovery\Api\SearchFilterKeys;
 use App\Features\Discovery\Api\SearchFilterRules;

@@ -413,6 +413,47 @@ final readonly class EloquentPersonLookup implements PersonLookup
         return $person instanceof Person ? (string) $person->formatted_name : null;
     }
 
+    /**
+     * @return list<array{id: string, slug: string, title: string, subtitle: ?string}>
+     */
+    public function searchPublicContributionTargets(string $search = '', int $limit = 12): array
+    {
+        $query = Person::query()->where('status', 'verified');
+        $term = trim($search);
+
+        if ($term !== '') {
+            $pattern = "%{$term}%";
+            $query->where(fn (Builder $nameQuery): Builder => $nameQuery
+                ->whereLike('name', $pattern)
+                ->orWhereLike('middle_name', $pattern)
+                ->orWhereLike('family_name', $pattern));
+        }
+
+        /** @var list<array{id: string, slug: string, title: string, subtitle: ?string}> $targets */
+        $targets = $query
+            ->orderBy('name')
+            ->limit(max($limit, 1))
+            ->with(['titleAssignments.title.category', 'institutions.names'])
+            ->get()
+            ->map(function (Person $person): array {
+                $institution = $person->institutions->firstWhere('pivot.is_primary', true)
+                    ?? $person->institutions->first();
+                $institutionName = $institution?->getAttribute('display_name');
+                $formattedName = (string) $person->formatted_name;
+
+                return [
+                    'id' => (string) $person->getKey(),
+                    'slug' => filled($person->slug) ? (string) $person->slug : (string) $person->getKey(),
+                    'title' => $formattedName !== '' ? $formattedName : (string) $person->name,
+                    'subtitle' => is_string($institutionName) && $institutionName !== '' ? $institutionName : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $targets;
+    }
+
     public function followedPersons(array $personIds): array
     {
         return Person::query()

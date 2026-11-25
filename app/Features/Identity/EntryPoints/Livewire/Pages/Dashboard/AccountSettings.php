@@ -2,7 +2,7 @@
 
 namespace App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard;
 
-use AIArmada\Events\Models\EventSubmission;
+use AIArmada\Events\Features\Governance\Models\EventSubmission;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Communications\Api\PushDestinationManagement;

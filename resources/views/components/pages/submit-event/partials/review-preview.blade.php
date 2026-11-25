@@ -9,7 +9,7 @@
     use App\Features\References\Models\Reference;
     use App\Features\Places\Models\Space;
     use App\Features\Persons\Models\Person;
-    use AIArmada\Events\Models\EventTerm;
+    use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
     use App\Features\Places\Models\Venue;
     use AIArmada\Addressing\Support\AddressCountryResolver;
     use App\Features\Events\Support\SubmissionTimingPolicy;

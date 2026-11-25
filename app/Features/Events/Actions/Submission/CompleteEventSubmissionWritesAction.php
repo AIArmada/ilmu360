@@ -6,9 +6,9 @@ namespace App\Features\Events\Actions\Submission;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
+use AIArmada\Events\Data\RegistrationMode;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Governance\Models\EventSubmission as PackageEventSubmission;
 use App\Features\Events\Support\EventModel;
 use RuntimeException;
 

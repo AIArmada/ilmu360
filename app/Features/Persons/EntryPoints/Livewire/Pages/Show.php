@@ -7,7 +7,7 @@ use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Engagement\Api\EventEngagement;

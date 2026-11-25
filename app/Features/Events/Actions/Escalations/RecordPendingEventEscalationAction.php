@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Escalations;
 
-use AIArmada\Events\Enums\EventEscalationType;
-use AIArmada\Events\Models\EventEscalation;
+use AIArmada\Events\Data\EventEscalationType;
+use AIArmada\Events\Features\Governance\Models\EventEscalation;
 use App\Features\Events\Models\Event;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;

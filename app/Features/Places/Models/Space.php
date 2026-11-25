@@ -2,8 +2,8 @@
 
 namespace App\Features\Places\Models;
 
-use AIArmada\Events\Models\VenueFacility;
-use AIArmada\Events\Models\VenueSpace;
+use AIArmada\Events\Features\Venues\Models\VenueFacility;
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Actions\Spaces\GuardSpaceDeletionAction;
 use App\Platform\Auditing\AuditsModelChanges;

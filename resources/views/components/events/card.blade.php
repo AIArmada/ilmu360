@@ -64,11 +64,11 @@
     $speakerAvatarItems = $speakerAvatarItems->take(3)->values();
     $eventTopics = $event->classifications
         ->whereIn('taxonomy_code', [\App\Features\Events\Api\EventTaxonomyCode::Discipline->value, \App\Features\Events\Api\EventTaxonomyCode::Domain->value])
-        ->sortBy(fn (\AIArmada\Events\Models\EventClassification $classification): array => [
+        ->sortBy(fn (\AIArmada\Events\Features\Taxonomy\Models\EventClassification $classification): array => [
             $classification->taxonomy_code === \App\Features\Events\Api\EventTaxonomyCode::Domain->value ? 0 : 1,
             (int) $classification->sort_order,
         ])
-        ->map(fn (\AIArmada\Events\Models\EventClassification $classification): string => (string) ($classification->term?->name ?? $classification->term_code))
+        ->map(fn (\AIArmada\Events\Features\Taxonomy\Models\EventClassification $classification): string => (string) ($classification->term?->name ?? $classification->term_code))
         ->filter()
         ->unique()
         ->take(3)
@@ -76,7 +76,7 @@
     $eventThemes = $event->classifications
         ->where('taxonomy_code', \App\Features\Events\Api\EventTaxonomyCode::Issue->value)
         ->sortBy('sort_order')
-        ->map(fn (\AIArmada\Events\Models\EventClassification $classification): string => (string) ($classification->term?->name ?? $classification->term_code))
+        ->map(fn (\AIArmada\Events\Features\Taxonomy\Models\EventClassification $classification): string => (string) ($classification->term?->name ?? $classification->term_code))
         ->filter()
         ->unique()
         ->take(2)
@@ -192,7 +192,7 @@
             </div>
         </div>
     </a>
-    @if($cardSessions->isNotEmpty() && $occurrence instanceof \AIArmada\Events\Models\EventOccurrence)
+    @if($cardSessions->isNotEmpty() && $occurrence instanceof \AIArmada\Events\Features\Catalog\Models\EventOccurrence)
         <div class="relative z-10 border-t border-slate-100 px-4 py-3 group-hover:border-amber-200" data-testid="event-card-sessions">
             <p class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
                 <flux:icon.list-bullet class="size-3.5 text-[#087f59]" />

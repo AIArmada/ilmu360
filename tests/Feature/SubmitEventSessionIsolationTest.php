@@ -1,16 +1,16 @@
 <?php
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Events\Actions\CreateEventOccurrenceAction;
-use AIArmada\Events\Models\EventAudience;
-use AIArmada\Events\Models\EventAudienceProfile;
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventLink;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
-use AIArmada\Events\Models\EventTerm;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Features\Catalog\Models\EventAudience;
+use AIArmada\Events\Features\Catalog\Models\EventAudienceProfile;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventLink;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;

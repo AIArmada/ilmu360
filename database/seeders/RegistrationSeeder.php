@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use AIArmada\Contacting\Data\ContactMethodData;
-use AIArmada\Events\States\RegistrationStatus\Confirmed;
+use AIArmada\Events\Features\Registrations\States\RegistrationStatus\Confirmed;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;

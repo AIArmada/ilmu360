@@ -3,6 +3,7 @@
 namespace App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support;
 
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
+use App\Features\Contributions\EntryPoints\Ui\ContributionsHubPresenter;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
@@ -58,7 +59,7 @@ class ContributionRequestPresenter
             $entity instanceof Institution => $entity->name,
             $entity instanceof Person => $entity->formatted_name,
             $entity instanceof Event => $entity->title,
-            $entity instanceof Reference => $entity->title,
+            $entity instanceof Reference => $entity->displayTitle(),
             is_string(data_get($request->proposed_data, 'name')) && filled(data_get($request->proposed_data, 'name')) => data_get($request->proposed_data, 'name'),
             is_string(data_get($request->proposed_data, 'title')) && filled(data_get($request->proposed_data, 'title')) => data_get($request->proposed_data, 'title'),
             default => self::labelForSubject($request->subject_type).' Request',
@@ -86,78 +87,80 @@ class ContributionRequestPresenter
     }
 
     /**
+     * Readable change set for the admin view.
+     *
+     * Update requests show only fields that actually changed, formatted with
+     * the hub presenter so moderators see labels and clean values instead of
+     * raw HTML, UUIDs or JSON. Create requests list the submitted payload.
+     *
      * @return list<array{field: string, original: string, proposed: string}>
      */
     public static function payloadChanges(ContributionRequest $request): array
     {
-        /** @var array<int|string, mixed> $proposed */
-        $proposed = $request->proposed_data ?? [];
-        /** @var array<int|string, mixed> $original */
-        $original = $request->original_data ?? [];
+        $hub = app(ContributionsHubPresenter::class);
 
-        return collect($proposed)
-            ->map(fn (mixed $proposedValue, int|string $key): array => [
-                'field' => Str::headline((string) $key),
-                'original' => self::formatValue($original[$key] ?? null),
-                'proposed' => self::formatValue($proposedValue),
-            ])
-            ->values()
-            ->all();
-    }
-
-    public static function formatValue(mixed $value): string
-    {
-        if ($value === null || $value === '') {
-            return '-';
+        if ($request->type === ContributionRequestType::Create) {
+            return array_map(
+                static fn (array $item): array => [
+                    'field' => $item['field'],
+                    'original' => '-',
+                    'proposed' => $item['value'],
+                ],
+                $hub->submittedFieldSummaries($request, 2000),
+            );
         }
 
-        if (is_bool($value)) {
-            return $value ? 'Yes' : 'No';
-        }
-
-        if (is_array($value)) {
-            $flat = array_filter($value, fn (mixed $item): bool => is_scalar($item) || $item === null);
-
-            if (count($flat) === count($value)) {
-                return implode(', ', array_map(fn (mixed $item): string => (string) $item, $flat));
-            }
-
-            return (string) json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        }
-
-        return (string) $value;
-    }
-
-    public static function changedFields(ContributionRequest $request): string
-    {
-        $keys = array_keys($request->proposed_data ?? []);
-
-        return $keys === [] ? '-' : implode(', ', $keys);
+        return array_map(
+            static fn (array $item): array => [
+                'field' => $item['field'],
+                'original' => $item['original'],
+                'proposed' => $item['proposed'],
+            ],
+            $hub->changedFieldSummaries($request, 2000),
+        );
     }
 
     public static function pendingMediaHtml(ContributionRequest $record): HtmlString
     {
-        $staged = $record->getMedia('pending_media');
+        $items = app(ContributionsHubPresenter::class)->stagedMediaItems($record);
 
-        if ($staged->isEmpty()) {
+        if ($items === []) {
             return new HtmlString('<span class="text-gray-400">-</span>');
         }
 
-        $grouped = $staged->groupBy(fn ($media): string => (string) $media->getCustomProperty('contribution_field', 'media'));
-
         $html = '';
 
-        foreach ($grouped as $field => $medias) {
-            $label = Str::headline($field);
+        foreach (collect($items)->groupBy('field') as $medias) {
+            $label = (string) ($medias->first()['field_label'] ?? '');
 
             $html .= sprintf('<div class="mb-4"><div class="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">%s</div>', e($label));
 
-            foreach ($medias as $media) {
-                $url = $media->getUrl();
+            foreach ($medias as $item) {
+                $url = (string) $item['url'];
+                $name = (string) $item['name'];
+
+                if ($item['is_image']) {
+                    $html .= sprintf(
+                        '<a href="%s" target="_blank" rel="noopener noreferrer" style="margin:0 8px 8px 0;display:inline-block;vertical-align:top;text-decoration:none;">'
+                        .'<img src="%s" alt="%s" style="height:96px;width:auto;border-radius:8px;display:block;object-fit:cover;margin-bottom:4px;" />'
+                        .'<span style="display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#6b7280;">%s</span>'
+                        .'</a>',
+                        e($url),
+                        e($url),
+                        e($name),
+                        e($name),
+                    );
+
+                    continue;
+                }
+
                 $html .= sprintf(
-                    '<img src="%s" alt="%s" style="height:96px;width:auto;border-radius:8px;margin:0 8px 8px 0;display:inline-block;object-fit:cover;" />',
+                    '<a href="%s" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;margin:0 8px 8px 0;padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;text-decoration:none;font-size:13px;color:#374151;">'
+                    .'<span>%s</span><span style="font-size:11px;color:#6b7280;">%s</span>'
+                    .'</a>',
                     e($url),
-                    e($label),
+                    e($name),
+                    e(__('Download')),
                 );
             }
 

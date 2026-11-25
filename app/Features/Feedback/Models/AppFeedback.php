@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Feedback\Models;
 
+use AIArmada\CommerceSupport\Support\CacheVersionStore;
 use App\Features\Feedback\Enums\AppFeedbackCategory;
 use App\Features\Feedback\Enums\AppFeedbackGitHubStatus;
 use App\Features\Feedback\Enums\AppFeedbackStatus;
@@ -65,6 +66,8 @@ class AppFeedback extends Model implements HasMedia
 
     #[\Override]
     protected $table = 'app_feedback';
+
+    public const string OPEN_COUNT_VERSION_KEY = 'nav_badge:app_feedback:open:version:v1';
 
     #[\Override]
     protected $fillable = [
@@ -183,5 +186,12 @@ class AppFeedback extends Model implements HasMedia
             ->fit(Fit::Max, 1080, 1080)
             ->sharpen(10)
             ->format('webp');
+    }
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        static::saved(static fn () => app(CacheVersionStore::class)->bump(self::OPEN_COUNT_VERSION_KEY));
+        static::deleted(static fn () => app(CacheVersionStore::class)->bump(self::OPEN_COUNT_VERSION_KEY));
     }
 }

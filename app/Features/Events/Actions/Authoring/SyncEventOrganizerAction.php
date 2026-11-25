@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventRole;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventRole;
 use App\Features\Events\Support\EventModel;
 use Illuminate\Support\Str;
 

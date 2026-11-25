@@ -36,6 +36,14 @@ class SubmitReference extends Component implements HasActions, HasForms
     public function mount(): void
     {
         OwnerContext::withOwner(null, function (): void {
+            $user = auth()->user();
+
+            abort_unless($user instanceof User, 403);
+
+            if (! $user->canSubmitDirectoryFeedback()) {
+                abort(403, $user->directoryFeedbackBanMessage());
+            }
+
             $this->contributionForm()->fill([
                 'type' => 'book',
                 'record_kind' => 'work',
@@ -45,10 +53,10 @@ class SubmitReference extends Component implements HasActions, HasForms
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return OwnerContext::withOwner(null, fn (): Schema => $schema
             ->model(Reference::class)
             ->statePath('data')
-            ->components(ReferenceContributionFormSchema::components(includeMedia: true));
+            ->components(ReferenceContributionFormSchema::components(includeMedia: true)));
     }
 
     public function submit(StagedContributionCreates $stagedCreates): void
@@ -57,6 +65,10 @@ class SubmitReference extends Component implements HasActions, HasForms
             $user = auth()->user();
 
             abort_unless($user instanceof User, 403);
+
+            if (! $user->canSubmitDirectoryFeedback()) {
+                abort(403, $user->directoryFeedbackBanMessage());
+            }
 
             $stagedCreates->submit(
                 ContributionSubjectType::Reference,

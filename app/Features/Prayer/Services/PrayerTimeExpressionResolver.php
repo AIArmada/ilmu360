@@ -5,9 +5,9 @@ namespace App\Features\Prayer\Services;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Contracts\ResolvesEventTimeExpression;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventSession;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Data\EventTimeExpressionData;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Models\Venue;
@@ -30,19 +30,19 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
     /**
      * @param  array<string, mixed>  $context
      */
-    public function resolve(EventTimeExpression $expression, array $context = []): ?DateTimeInterface
+    public function resolve(EventTimeExpressionData $expression, array $context = []): ?DateTimeInterface
     {
-        if ($expression->anchor_type !== 'prayer' || $expression->anchor_code === null) {
+        if ($expression->anchorType !== 'prayer' || $expression->anchorCode === null) {
             return null;
         }
 
-        $prayerReference = PrayerReference::tryFrom($expression->anchor_code);
+        $prayerReference = PrayerReference::tryFrom($expression->anchorCode);
 
         if ($prayerReference === null) {
             return null;
         }
 
-        $event = app(EventAuthoring::class)->eventPrayerScope((string) $expression->event_id);
+        $event = app(EventAuthoring::class)->eventPrayerScope($expression->eventId);
 
         if ($event === null) {
             return null;
@@ -50,7 +50,7 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
 
         // Storage keeps magnitude in offset_minutes and the sign in relation;
         // reconstruct signed minutes so every offset case round-trips.
-        $offsetMinutes = abs((int) ($expression->offset_minutes ?? 0));
+        $offsetMinutes = abs($expression->offsetMinutes ?? 0);
         $signedMinutes = $expression->relation === 'before' ? -$offsetMinutes : $offsetMinutes;
 
         // Provenance-bearing expressions re-resolve through the provider
@@ -61,7 +61,7 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
         // unmappable country — keeps the persisted instant: the submit
         // path already resolved it from provider data or the hardcoded
         // estimates, and re-resolution must never invent another clock.
-        $provenance = $expression->metadata['prayer'] ?? null;
+        $provenance = is_array($expression->metadata) ? ($expression->metadata['prayer'] ?? null) : null;
 
         if (is_array($provenance) && config('prayer.enabled')) {
             $scoped = $this->resolveFromProvenance($expression, $event, $provenance, $prayerReference, $signedMinutes);
@@ -71,14 +71,14 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
             }
         }
 
-        return $expression->resolved_starts_at;
+        return $expression->resolvedStartsAt;
     }
 
     /**
      * @param  array{timezone: string, venue_id: string|null, institution_id: string|null, persisted_address_id: string|null}  $event
      * @param  array<string, mixed>  $provenance
      */
-    private function resolveFromProvenance(EventTimeExpression $expression, array $event, array $provenance, PrayerReference $prayerReference, int $signedMinutes): ?CarbonImmutable
+    private function resolveFromProvenance(EventTimeExpressionData $expression, array $event, array $provenance, PrayerReference $prayerReference, int $signedMinutes): ?CarbonImmutable
     {
         $date = app(EventAuthoring::class)->normalizePrayerDateString($provenance['prayer_date'] ?? null);
 
@@ -182,15 +182,15 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
      * @param  array<string, mixed>  $provenance
      * @return array{timezone: string, address: ?Address}
      */
-    private function resolveScope(EventTimeExpression $expression, array $event, array $provenance): array
+    private function resolveScope(EventTimeExpressionData $expression, array $event, array $provenance): array
     {
         $eventTimezone = $event['timezone'] !== '' ? $event['timezone'] : 'Asia/Kuala_Lumpur';
 
-        $session = $expression->event_session_id === null
+        $session = $expression->sessionId === null
             ? null
-            : EventSession::query()->find($expression->event_session_id);
+            : EventSession::query()->find($expression->sessionId);
 
-        if ($expression->event_session_id !== null && ! $session instanceof EventSession) {
+        if ($expression->sessionId !== null && ! $session instanceof EventSession) {
             return ['timezone' => $eventTimezone, 'address' => null];
         }
 

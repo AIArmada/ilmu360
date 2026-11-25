@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
+use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Governance\Models\EventSubmission as PackageEventSubmission;
 use App\Features\Events\Actions\Submission\CompleteEventSubmissionWritesAction;
 use App\Features\Events\Actions\Submission\PersistNewEventSubmissionAction;
 use App\Features\Events\Actions\Submission\PersistSessionSubmissionAction;
@@ -19,8 +20,10 @@ use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Api\Data\EventSubmissionCard;
 use App\Features\Events\Api\Data\EventSubmissionPage;
 use App\Features\Events\Api\Data\EventSubmissionRewardFact;
+use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventSubmissionInput;
 use App\Features\Events\Api\EventSubmissions;
+use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Queries\EventSubmissionCardProjector;
 use App\Features\Events\Support\EventModel;
@@ -28,8 +31,10 @@ use App\Features\Prayer\Api\EventPrayerTime;
 use App\Models\User;
 use App\Platform\Models\MorphModelResolver;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * Submission persistence boundary implementation.
@@ -246,11 +251,115 @@ final readonly class EventSubmissionsService implements EventSubmissions
         return $model;
     }
 
-    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): EventSubmissionPage
+    public function paginateForSubmitter(
+        string $submitterId,
+        int $perPage,
+        string $pageName,
+        ?string $statusGroup = null,
+        ?string $search = null,
+    ): EventSubmissionPage {
+        $query = $this->submitterQuery($submitterId)
+            ->with($this->submissionRelations());
+
+        $this->applyStatusGroup($query, $statusGroup);
+        $this->applyTitleSearch($query, $search);
+
+        $page = $query
+            ->latest('created_at')
+            ->paginate(perPage: $perPage, pageName: $pageName);
+
+        return new EventSubmissionPage(
+            items: $page->getCollection()->map(fn (EventSubmission $submission): EventSubmissionCard => $this->cards->toCard($submission))->all(),
+            total: $page->total(),
+            perPage: $page->perPage(),
+            currentPage: $page->currentPage(),
+        );
+    }
+
+    /** @return list<EventSubmissionCard> */
+    public function recentForSubmitter(string $submitterId, int $limit = 5): array
+    {
+        return $this->submitterQuery($submitterId)
+            ->with($this->submissionRelations())
+            ->latest('created_at')
+            ->limit(max($limit, 1))
+            ->get()
+            ->map(fn (EventSubmission $submission): EventSubmissionCard => $this->cards->toCard($submission))
+            ->all();
+    }
+
+    public function findCardForSubmitter(string $submitterId, string $submissionId): ?EventSubmissionCard
+    {
+        if (! Str::isUuid($submissionId)) {
+            return null;
+        }
+
+        $submission = $this->submitterQuery($submitterId)
+            ->whereKey($submissionId)
+            ->with($this->submissionRelations())
+            ->first();
+
+        return $submission instanceof EventSubmission ? $this->cards->toCard($submission) : null;
+    }
+
+    public function summaryCountsForSubmitter(string $submitterId): array
+    {
+        return [
+            'total' => $this->submitterQuery($submitterId)->count(),
+            'pending' => $this->countForStatusGroup($submitterId, 'pending'),
+            'approved' => $this->countForStatusGroup($submitterId, 'published'),
+            'attention' => $this->countForStatusGroup($submitterId, 'attention'),
+        ];
+    }
+
+    public function searchPublicContributionTargets(string $search = '', int $limit = 12): array
+    {
+        $query = Event::query()
+            ->where('events.status', 'approved')
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereNotNull('events.published_at')
+            ->whereHas('occurrences')
+            ->with(['institution.names', 'occurrences'])
+            ->orderBy('events.title')
+            ->limit(max($limit, 1));
+
+        $term = trim($search);
+
+        if ($term !== '') {
+            $query->whereLike('events.title', "%{$term}%");
+        }
+
+        /** @var list<array{slug: string, title: string, subtitle: ?string}> $targets */
+        $targets = $query->get()
+            ->map(function (Event $event): array {
+                $institutionName = $event->institution?->getAttribute('display_name');
+                $institutionName = is_string($institutionName) && $institutionName !== '' ? $institutionName : null;
+                $startsAt = $event->starts_at;
+                $dateLabel = $startsAt instanceof CarbonInterface
+                    ? UserDateTimeFormatter::translatedFormat($startsAt, 'j M Y')
+                    : null;
+                $parts = array_values(array_filter([$institutionName, $dateLabel]));
+
+                return [
+                    'slug' => (string) $event->slug,
+                    'title' => (string) $event->title,
+                    'subtitle' => $parts !== [] ? implode(' · ', $parts) : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $targets;
+    }
+
+    /**
+     * @return Builder<EventSubmission>
+     */
+    private function submitterQuery(string $submitterId): Builder
     {
         $institutionIdSelector = 'events.institution_id';
 
-        $page = EventSubmission::query()
+        return EventSubmission::query()
             ->where('submitter_type', (new User)->getMorphClass())
             ->where('submitter_id', $submitterId)
             ->whereHas('event', function (Builder $query) use ($institutionIdSelector, $submitterId): void {
@@ -266,23 +375,88 @@ final readonly class EventSubmissionsService implements EventSubmissions
                             [$submitterId],
                         );
                 });
-            })
-            ->with([
-                'event.institution',
-                'event.persons',
-                'event.references',
-                'occurrence.involvements.involveable',
-                'occurrence.references.referenceable',
-            ])
-            ->latest('created_at')
-            ->paginate(perPage: $perPage, pageName: $pageName);
+            });
+    }
 
-        return new EventSubmissionPage(
-            items: $page->getCollection()->map(fn (EventSubmission $submission): EventSubmissionCard => $this->cards->toCard($submission))->all(),
-            total: $page->total(),
-            perPage: $page->perPage(),
-            currentPage: $page->currentPage(),
-        );
+    /**
+     * @return list<string>
+     */
+    private function submissionRelations(): array
+    {
+        return [
+            'event.institution',
+            'event.persons',
+            'event.references',
+            'occurrence.involvements.involveable',
+            'occurrence.references.referenceable',
+        ];
+    }
+
+    private function countForStatusGroup(string $submitterId, string $statusGroup): int
+    {
+        $query = $this->submitterQuery($submitterId);
+        $this->applyStatusGroup($query, $statusGroup);
+
+        return $query->count();
+    }
+
+    /**
+     * @param  Builder<EventSubmission>  $query
+     */
+    private function applyStatusGroup(Builder $query, ?string $statusGroup): void
+    {
+        $statuses = $this->statusGroupValues($statusGroup);
+
+        if ($statuses === null) {
+            return;
+        }
+
+        $query->where(function (Builder $statusQuery) use ($statuses): void {
+            $statusQuery
+                ->where(function (Builder $occurrenceBranch) use ($statuses): void {
+                    $occurrenceBranch
+                        ->whereNotNull('event_occurrence_id')
+                        ->whereHas('occurrence', fn (Builder $occurrenceQuery): Builder => $occurrenceQuery->whereIn('status', $statuses));
+                })
+                ->orWhere(function (Builder $eventBranch) use ($statuses): void {
+                    $eventBranch
+                        ->whereNull('event_occurrence_id')
+                        ->whereHas('event', fn (Builder $eventQuery): Builder => $eventQuery->whereIn('events.status', $statuses));
+                });
+        });
+    }
+
+    /**
+     * @param  Builder<EventSubmission>  $query
+     */
+    private function applyTitleSearch(Builder $query, ?string $search): void
+    {
+        $term = trim((string) $search);
+
+        if ($term === '') {
+            return;
+        }
+
+        $pattern = "%{$term}%";
+
+        $query->where(function (Builder $searchQuery) use ($pattern): void {
+            $searchQuery
+                ->whereHas('event', fn (Builder $eventQuery): Builder => $eventQuery->whereLike('events.title', $pattern))
+                ->orWhereHas('occurrence', fn (Builder $occurrenceQuery): Builder => $occurrenceQuery->whereLike('title', $pattern));
+        });
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function statusGroupValues(?string $statusGroup): ?array
+    {
+        return match ($statusGroup) {
+            'pending' => ['pending', 'draft'],
+            'published' => ['approved', 'published', 'scheduled', 'live', 'completed'],
+            'attention' => ['rejected', 'needs_changes', 'cancelled', 'postponed', 'rescheduled', 'delayed'],
+            default => null,
+        };
     }
 
     /** @return list<EventSubmissionCard> */

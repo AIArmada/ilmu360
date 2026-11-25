@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\EntryPoints\Livewire\Pages\Dashboard\Events\Schedule;

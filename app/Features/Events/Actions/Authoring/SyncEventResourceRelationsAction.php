@@ -2,9 +2,9 @@
 
 namespace App\Features\Events\Actions\Authoring;
 
-use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Data\RegistrationMode;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
 use App\Features\Registration\Api\AdmissionFacts;
 use Lorisleiva\Actions\Concerns\AsAction;
 

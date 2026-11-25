@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use AIArmada\Events\Actions\SyncEventClassificationsAction as PackageSyncEventClassificationsAction;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventClassification;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Taxonomy\Actions\SyncEventClassificationsAction as PackageSyncEventClassificationsAction;
+use AIArmada\Events\Features\Taxonomy\Models\EventClassification;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventTaxonomyCode;
 use Illuminate\Support\Collection;

@@ -51,7 +51,7 @@ final class Refunds extends Component
 
         abort_unless($user instanceof User, 403);
         abort_unless($user->can('manageAdmissions', $event), 403);
-        abort_unless(app(EventRefundEligibility::class)->refundsEnabled($event), 404);
+        abort_unless(app(EventRefundEligibility::class)->refundsEnabled((string) $event->getKey()), 404);
 
         $this->event = $event;
         $this->eventId = (string) $event->getKey();

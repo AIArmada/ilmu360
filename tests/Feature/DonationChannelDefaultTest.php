@@ -8,7 +8,7 @@ it('keeps only one default donation channel per owner when creating a new defaul
     $firstDefault = $institution->donationChannels()->create([
         'recipient' => 'Masjid Account A',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'bank_code' => 'MB2U0227',
         'account_number' => '1234567890',
         'is_default' => true,
@@ -33,7 +33,7 @@ it('keeps only one default donation channel per owner when updating an existing 
     $firstDefault = $institution->donationChannels()->create([
         'recipient' => 'Masjid Account A',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'bank_code' => 'MB2U0227',
         'account_number' => '1234567890',
         'is_default' => true,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Queries;
 
-use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Registration\Api\AttendanceState;
 use App\Platform\Models\MorphModelResolver;

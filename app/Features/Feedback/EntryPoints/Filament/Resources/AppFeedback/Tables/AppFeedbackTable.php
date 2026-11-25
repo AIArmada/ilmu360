@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Tables;
 
+use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\AppFeedbackResource;
 use App\Features\Feedback\Enums\AppFeedbackCategory;
 use App\Features\Feedback\Enums\AppFeedbackStatus;
+use App\Features\Feedback\Models\AppFeedback;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -16,7 +18,6 @@ class AppFeedbackTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['reporter', 'handler']))
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('title')
@@ -32,9 +33,15 @@ class AppFeedbackTable
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
-                TextColumn::make('reporter.email')
+                TextColumn::make('reporter.name')
                     ->label('Reporter')
-                    ->searchable()
+                    ->description(function (AppFeedback $record): ?string {
+                        $email = $record->reporter?->getAttribute('email');
+
+                        return is_string($email) && $email !== '' ? $email : null;
+                    })
+                    ->searchable(['name', 'email'])
+                    ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('github_escalation_status')
                     ->label('GitHub')
@@ -53,11 +60,11 @@ class AppFeedbackTable
                     ->options(AppFeedbackCategory::options()),
                 SelectFilter::make('status')
                     ->options(AppFeedbackStatus::options())
-                    ->multiple()
-                    ->default([AppFeedbackStatus::New->value, AppFeedbackStatus::Triaged->value]),
+                    ->multiple(),
             ])
             ->recordActions([
                 ViewAction::make(),
-            ]);
+            ])
+            ->recordUrl(fn (AppFeedback $record): string => AppFeedbackResource::getUrl('view', ['record' => $record]));
     }
 }

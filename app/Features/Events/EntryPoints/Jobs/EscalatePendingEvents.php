@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Jobs;
 
-use AIArmada\Events\Enums\EventEscalationType;
-use AIArmada\Events\Models\EventEscalation;
+use AIArmada\Events\Data\EventEscalationType;
+use AIArmada\Events\Features\Governance\Models\EventEscalation;
 use App\Features\Events\Actions\Escalations\RecordPendingEventEscalationAction;
 use App\Features\Events\Contracts\EventEscalationTransport;
 use App\Features\Events\Models\Event;

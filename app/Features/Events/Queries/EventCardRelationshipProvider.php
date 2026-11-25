@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use AIArmada\Events\Resolvers\DefaultEventSearchRelationProvider;
+use AIArmada\Events\Platform\DefaultEventSearchRelationProvider;
 use App\Features\Events\Models\Event;
 
 final readonly class EventCardRelationshipProvider implements EventSearchRelationProvider

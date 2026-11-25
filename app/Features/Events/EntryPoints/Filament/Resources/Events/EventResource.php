@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Filament\Resources\Events;
 
 use AIArmada\Events\Contracts\EventCloneService;
-use AIArmada\Events\Contracts\EventLifecycleWorkflow;
-use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Data\RegistrationMode;
 use AIArmada\FilamentEvents\Resources\EventResource as PackageEventResource;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Api\Enums\EventFormat;
@@ -16,9 +15,10 @@ use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\CreateEvent;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\EditEvent;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\ListEvents;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\ViewEvent;
+use App\Features\Events\EntryPoints\Filament\Support\EventModerationActions;
 use App\Features\Events\Models\Event;
-use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
@@ -28,7 +28,9 @@ use Filament\Infolists\Components\CodeEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Contracts\HasColor;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables;
+use Filament\Tables\Table;
 
 final class EventResource extends PackageEventResource
 {
@@ -144,6 +146,16 @@ final class EventResource extends PackageEventResource
         ];
     }
 
+    #[\Override]
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns(self::getTableColumns())
+            ->filters(self::getTableFilters())
+            ->headerActions(self::getTableHeaderActions())
+            ->recordActions(self::getEventRecordActions());
+    }
+
     protected static function getTableColumns(): array
     {
         return [
@@ -200,64 +212,41 @@ final class EventResource extends PackageEventResource
         ];
     }
 
-    protected static function getTableRecordActions(): array
+    /**
+     * @return array<int, Action|ActionGroup>
+     */
+    private static function getEventRecordActions(): array
     {
         return [
             ViewAction::make(),
             EditAction::make(),
-            Action::make('publish')
-                ->authorize(static fn (): bool => self::canPublishDirectoryUpdates())
-                ->label('Publish')
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->action(function (Event $record): void {
-                    app(EventLifecycleWorkflow::class)->publish($record);
-                })
-                ->visible(fn (?Event $record): bool => $record instanceof Event && in_array((string) $record->status, ['draft', 'pending', 'pending_review', 'needs_changes'], true))
-                ->requiresConfirmation(),
-            Action::make('archive')
-                ->authorize(static fn (): bool => self::canPublishDirectoryUpdates())
-                ->label('Archive')
-                ->icon('heroicon-o-archive-box')
+            ActionGroup::make([
+                EventModerationActions::approveAction(),
+                EventModerationActions::requestChangesAction(),
+                EventModerationActions::rejectAction(),
+                EventModerationActions::cancelAction(),
+                EventModerationActions::remoderateAction(),
+                EventModerationActions::reconsiderAction(),
+                EventModerationActions::revertToDraftAction(),
+                EventModerationActions::returnToPendingAction(),
+            ])
+                ->label('Moderate')
+                ->icon(Heroicon::OutlinedShieldCheck)
                 ->color('warning')
-                ->action(function (Event $record): void {
-                    app(EventLifecycleWorkflow::class)->archive($record);
-                })
-                ->visible(fn (?Event $record): bool => $record instanceof Event && (string) $record->status === 'approved')
-                ->requiresConfirmation(),
-            Action::make('cancel')
-                ->authorize(static fn (): bool => self::canPublishDirectoryUpdates())
-                ->label('Cancel')
-                ->icon('heroicon-o-x-circle')
-                ->color('danger')
-                ->schema([
-                    Textarea::make('reason')->required(),
-                ])
-                ->action(function (array $data, Event $record): void {
-                    app(EventLifecycleWorkflow::class)->cancel($record, $data['reason']);
-                })
-                ->visible(fn (?Event $record): bool => $record instanceof Event && ! in_array((string) $record->status, ['cancelled', 'completed', 'archived'], true))
-                ->requiresConfirmation(),
+                ->visible(static fn (Event $record): bool => auth()->user()?->can('moderate', $record) ?? false),
             Action::make('clone')
                 ->label('Clone')
                 ->icon('heroicon-o-document-duplicate')
                 ->color('gray')
                 ->action(function (Event $record): void {
-                    $clone = app(EventCloneService::class)->cloneEvent($record, [
+                    $cloneId = app(EventCloneService::class)->cloneEvent((string) $record->getKey(), [
                         'clone_occurrences' => false,
                     ]);
 
-                    redirect(self::getUrl('edit', ['record' => $clone]));
+                    redirect(self::getUrl('edit', ['record' => $cloneId]));
                 })
                 ->requiresConfirmation(),
         ];
-    }
-
-    private static function canPublishDirectoryUpdates(): bool
-    {
-        $actor = auth()->user();
-
-        return $actor instanceof User && $actor->canPublishDirectoryUpdates();
     }
 
     public static function getPages(): array

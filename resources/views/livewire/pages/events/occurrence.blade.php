@@ -50,7 +50,7 @@
 @php
     $detail = $this->detail;
     $occurrenceSessions = $detail->sessionsFor($occurrence)
-        ->filter(fn (\AIArmada\Events\Models\EventSession $session): bool => \App\Features\Events\Policies\PublicSchedulePolicy::isMeaningfulSession($session))
+        ->filter(fn (\AIArmada\Events\Features\Catalog\Models\EventSession $session): bool => \App\Features\Events\Policies\PublicSchedulePolicy::isMeaningfulSession($session))
         ->values();
     $occurrenceCapacity = $detail->capacityFor($occurrence);
     $occurrenceReserved = $detail->participantCount($occurrence);

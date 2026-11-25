@@ -49,7 +49,13 @@
                 </div>
                 <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <p class="font-semibold text-white">{{ __('Reviewers choose the final role') }}</p>
-                    <p class="mt-2">{{ __('Moderators may approve you as editor, admin, or owner based on the strength of the evidence you upload.') }}</p>
+                    <p class="mt-2">
+                        @if ($this->subjectType === \App\Features\Membership\Api\MembershipApplicationSubjectType::Person->value)
+                            {{ __('Moderators may approve you as editor, admin, or owner based on the strength of the evidence you upload.') }}
+                        @else
+                            {{ __('Moderators may approve you as editor or admin based on the strength of the evidence you upload.') }}
+                        @endif
+                    </p>
                 </div>
             </div>
         </section>

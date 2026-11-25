@@ -111,7 +111,10 @@ final class Refund extends Component
 
     public function refundDeadlineLabel(): string
     {
-        $deadline = app(EventRefundEligibility::class)->selfServiceRefundDeadline($this->event, $this->registration);
+        $deadline = app(EventRefundEligibility::class)->selfServiceRefundDeadline(
+            (string) $this->event->getKey(),
+            (string) $this->registration->getKey(),
+        );
 
         return $deadline instanceof CarbonImmutable
             ? UserDateTimeFormatter::translatedFormat($deadline, 'j F Y, h:i A')

@@ -5,10 +5,12 @@ namespace App\Features\Events\EntryPoints\Http\Data;
 use AIArmada\Addressing\Support\AddressHierarchyFormatter;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventReference;
-use AIArmada\Events\Models\EventTimeExpression;
-use AIArmada\Events\Models\VenueSpace;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventReference;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Taxonomy\Models\EventClassification;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\EventChangeSeverity;
 use App\Features\Events\Models\Event;
@@ -217,9 +219,9 @@ class EventPayloadData extends Data
         }
 
         $location = $event->primaryLocation;
+        $space = $location?->venueSpace;
 
-        if ($event->default_venue_id !== null && $location?->venueSpace !== null) {
-            $space = $location->venueSpace;
+        if ($event->default_venue_id !== null && $space instanceof VenueSpace) {
             $payload['venue_space'] = [
                 'id' => (string) $space->getKey(),
                 'name' => app(SpaceLocation::class)->name(
@@ -227,7 +229,7 @@ class EventPayloadData extends Data
                     $space->name,
                 ),
                 'capacity' => app(SpaceLocation::class)->effectiveCapacity(
-                    $location->venue_space_id !== null ? (string) $location->venue_space_id : null,
+                    $location?->venue_space_id !== null ? (string) $location->venue_space_id : null,
                     $space->capacity === null ? null : (int) $space->capacity,
                 ),
             ];
@@ -272,12 +274,24 @@ class EventPayloadData extends Data
                 ->filter()
                 ->values();
             $occurrenceClassifications = $displayOccurrence->classifications
-                ->filter(fn ($classification): bool => $classification->term !== null)
-                ->map(fn ($classification): array => [
-                    'id' => (string) $classification->term->getKey(),
-                    'name' => (string) $classification->term->name,
-                    'taxonomy_code' => (string) $classification->taxonomy_code,
-                ])
+                ->map(static function (mixed $classification): ?array {
+                    if (! $classification instanceof EventClassification) {
+                        return null;
+                    }
+
+                    $term = $classification->term;
+
+                    if (! $term instanceof EventTerm) {
+                        return null;
+                    }
+
+                    return [
+                        'id' => (string) $term->getKey(),
+                        'name' => (string) $term->name,
+                        'taxonomy_code' => (string) $classification->taxonomy_code,
+                    ];
+                })
+                ->filter()
                 ->values();
 
             if ($occurrenceScopedContent) {

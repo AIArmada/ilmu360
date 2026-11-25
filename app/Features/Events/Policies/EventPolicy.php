@@ -41,7 +41,7 @@ class EventPolicy
         }
 
         // Moderators and admins can view all
-        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
@@ -73,7 +73,7 @@ class EventPolicy
     public function update(User $user, Event $event): bool
     {
         // Admins and moderators can update any event
-        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
@@ -130,7 +130,7 @@ class EventPolicy
      */
     public function moderate(User $user, Event $event): bool
     {
-        return $user->hasAnyRole(['super_admin', 'moderator']);
+        return $user->hasAnyRole(['super_admin', 'admin', 'moderator']);
     }
 
     /**
@@ -146,7 +146,7 @@ class EventPolicy
      */
     public function viewRegistrations(User $user, Event $event): bool
     {
-        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
@@ -171,7 +171,7 @@ class EventPolicy
      */
     public function manageMembers(User $user, Event $event): bool
     {
-        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
@@ -187,7 +187,7 @@ class EventPolicy
      */
     public function manageAttendance(User $user, Event $event): bool
     {
-        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
@@ -201,7 +201,7 @@ class EventPolicy
      */
     public function manageAdmissions(User $user, Event $event): bool
     {
-        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 
@@ -210,7 +210,7 @@ class EventPolicy
 
     public function publishChange(User $user, Event $event): bool
     {
-        if ($user->hasAnyRole(['super_admin', 'moderator'])) {
+        if ($user->hasAnyRole(['super_admin', 'admin', 'moderator'])) {
             return true;
         }
 

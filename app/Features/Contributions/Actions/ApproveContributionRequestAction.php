@@ -3,6 +3,7 @@
 namespace App\Features\Contributions\Actions;
 
 use AIArmada\Addressing\Support\AddressAssignments;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Contracts\InstitutionClaimGuard;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
@@ -25,11 +26,13 @@ use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 use RuntimeException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use Throwable;
 
 class ApproveContributionRequestAction
 {
@@ -89,10 +92,21 @@ class ApproveContributionRequestAction
                 $entity = $request->entity;
 
                 if (! $entity instanceof Model) {
-                    throw new RuntimeException('Update request is missing its target entity.');
+                    throw ValidationException::withMessages([
+                        'reviewer_note' => __('The target record for this update request no longer exists.'),
+                    ]);
                 }
 
-                $entity = $entity->newQuery()->whereKey($entity->getKey())->lockForUpdate()->firstOrFail();
+                $lockedEntity = $entity->newQuery()->whereKey($entity->getKey())->lockForUpdate()->first();
+
+                if (! $lockedEntity instanceof Model) {
+                    throw ValidationException::withMessages([
+                        'reviewer_note' => __('The target record for this update request no longer exists.'),
+                    ]);
+                }
+
+                $entity = $lockedEntity;
+
                 $write = function () use ($request, $entity, $reviewer, $reviewerNote): void {
                     $this->applyApprovedUpdate($request, $entity);
                     $this->recordApproval($request, $reviewer, $reviewerNote);
@@ -106,7 +120,13 @@ class ApproveContributionRequestAction
             });
         };
 
-        if ($request->subject_type === ContributionSubjectType::Institution) {
+        $runApproval = function () use ($request, $approve): void {
+            if ($request->subject_type !== ContributionSubjectType::Institution) {
+                $approve();
+
+                return;
+            }
+
             /** @var array<string, mixed> $proposed */
             $proposed = $request->proposed_data ?? [];
 
@@ -141,13 +161,22 @@ class ApproveContributionRequestAction
                     $approve();
                 }
             );
-        } else {
-            $approve();
-        }
+        };
+
+        // Owner-scoped models (for example Reference) must always resolve,
+        // even when an admin session has a different owner context set.
+        OwnerContext::withOwner(null, $runApproval);
 
         $freshRequest = $request->fresh(['entity', 'proposer', 'reviewer']) ?? $request;
 
-        $this->contributionRequestNotifications->notifyCreateRequestApproved($freshRequest);
+        try {
+            $this->contributionRequestNotifications->notifyRequestApproved($freshRequest);
+        } catch (Throwable $exception) {
+            Log::warning('Contribution approval notification failed after commit.', [
+                'contribution_request_id' => (string) $freshRequest->getKey(),
+                'exception' => $exception,
+            ]);
+        }
 
         return $freshRequest;
     }

@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use AIArmada\FilamentEvents\Resources\EventOccurrenceResource;
 use AIArmada\FilamentEvents\Resources\EventResource as PackageEventResource;
 use AIArmada\FilamentEvents\Resources\EventSessionResource;
@@ -24,7 +24,10 @@ use App\Models\User;
 use Database\Seeders\AIArmada\EventRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
@@ -299,4 +302,23 @@ it('clears the event primary location when the admin form removes the venue', fu
     expect($event->default_venue_id)->toBeNull()
         ->and($event->primaryLocation()->exists())->toBeFalse()
         ->and($event->resolvedLocationName())->toBe($institution->name);
+});
+
+it('exposes the moderation workflow actions on the events table without lifecycle actions', function (): void {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('super_admin');
+
+    $table = EventResource::table(Table::make(Mockery::mock(HasTable::class)));
+
+    $recordActions = collect($table->getRecordActions());
+
+    $moderateGroup = $recordActions->first(fn ($action): bool => $action instanceof ActionGroup);
+
+    expect($moderateGroup)->not->toBeNull()
+        ->and(array_keys($moderateGroup->getFlatActions()))
+        ->toContain('approve', 'reject', 'needs_changes', 'cancel', 'remoderate', 'reconsider', 'revert_to_draft', 'return_to_pending')
+        ->and($recordActions->contains(fn ($action): bool => $action instanceof Action && in_array($action->getName(), ['publish', 'archive'], true)))->toBeFalse()
+        ->and($recordActions->contains(fn ($action): bool => $action instanceof EditAction))->toBeTrue()
+        ->and($recordActions->contains(fn ($action): bool => $action instanceof ViewAction))->toBeTrue()
+        ->and($recordActions->contains(fn ($action): bool => $action instanceof Action && $action->getName() === 'clone'))->toBeTrue();
 });

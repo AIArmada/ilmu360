@@ -3,7 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
-use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Features\Ai\Models\AiModelPricing;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;

@@ -8,9 +8,11 @@ use AIArmada\Checkout\Contracts\CheckoutServiceInterface;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Contracts\EventRegistrationQuestionResolver;
-use AIArmada\Events\Enums\EventRegistrationQuestionType;
-use AIArmada\Events\Models\EventRegistrationQuestion;
-use AIArmada\Events\Support\EventTicketScope;
+use AIArmada\Events\Data\EventRegistrationQuestionData;
+use AIArmada\Events\Data\EventRegistrationQuestionType;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Platform\EventTicketScope;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Events\Api\EventTicketing;
 use App\Features\Events\Models\Event;
@@ -20,8 +22,6 @@ use App\Features\Registration\Support\EventCommerceModes;
 use App\Features\Registration\Support\ParticipantIdentity;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -87,7 +87,7 @@ final class Checkout extends Component
 
             $ticketEvent = EventTicketScope::event($ticketType);
 
-            if (! $ticketEvent instanceof \AIArmada\Events\Models\Event || $ticketEvent->isNot($event)) {
+            if (! $ticketEvent instanceof \AIArmada\Events\Features\Catalog\Models\Event || $ticketEvent->isNot($event)) {
                 abort(404);
             }
 
@@ -130,11 +130,11 @@ final class Checkout extends Component
         }
 
         foreach ($this->registrationQuestions() as $question) {
-            $answerPath = 'participants.*.answers.'.$question->field_key;
+            $answerPath = 'participants.*.answers.'.$question->fieldKey;
             $rules[$answerPath] = $this->questionRules($question);
 
             if ($question->type === EventRegistrationQuestionType::Multiselect) {
-                $rules[$answerPath.'.*'] = [Rule::in($question->options ?? [])];
+                $rules[$answerPath.'.*'] = [Rule::in($question->options)];
             }
         }
 
@@ -399,7 +399,7 @@ final class Checkout extends Component
 
         $ticketEvent = EventTicketScope::event($ticket);
 
-        if (! $ticketEvent instanceof \AIArmada\Events\Models\Event || $ticketEvent->isNot($event)) {
+        if (! $ticketEvent instanceof \AIArmada\Events\Features\Catalog\Models\Event || $ticketEvent->isNot($event)) {
             throw new \InvalidArgumentException('The selected ticket does not belong to this event.');
         }
 
@@ -498,15 +498,15 @@ final class Checkout extends Component
 
     /**
      * @param  array<string, mixed>  $answers
-     * @param  Collection<int, EventRegistrationQuestion>  $questions
+     * @param  list<EventRegistrationQuestionData>  $questions
      * @return array<string, mixed>
      */
-    private function normalizeAnswerState(array $answers, Collection $questions): array
+    private function normalizeAnswerState(array $answers, array $questions): array
     {
         $normalized = [];
 
         foreach ($questions as $question) {
-            $key = (string) $question->field_key;
+            $key = $question->fieldKey;
 
             if (! array_key_exists($key, $answers)) {
                 $normalized[$key] = $question->type === EventRegistrationQuestionType::Multiselect
@@ -532,16 +532,16 @@ final class Checkout extends Component
 
     /**
      * @param  array<string, mixed>  $participant
-     * @param  Collection<int, EventRegistrationQuestion>  $questions
+     * @param  list<EventRegistrationQuestionData>  $questions
      * @return array<int, array<string, mixed>>
      */
-    private function normalizeParticipantAnswers(array $participant, Collection $questions): array
+    private function normalizeParticipantAnswers(array $participant, array $questions): array
     {
         $rawAnswers = is_array($participant['answers'] ?? null) ? $participant['answers'] : [];
         $answers = [];
 
         foreach ($questions as $question) {
-            $key = (string) $question->field_key;
+            $key = $question->fieldKey;
 
             if (! array_key_exists($key, $rawAnswers)) {
                 continue;
@@ -576,7 +576,7 @@ final class Checkout extends Component
                 'answer' => $answer,
                 'answer_json' => $answerJson,
                 'metadata' => [
-                    'question_id' => (string) $question->getKey(),
+                    'question_id' => $question->id,
                     'question_type' => $question->type->value,
                 ],
             ];
@@ -588,9 +588,9 @@ final class Checkout extends Component
     /**
      * @return array<int, mixed>
      */
-    private function questionRules(EventRegistrationQuestion $question): array
+    private function questionRules(EventRegistrationQuestionData $question): array
     {
-        $rules = $question->is_required
+        $rules = $question->isRequired
             ? [$question->type === EventRegistrationQuestionType::Checkbox ? 'accepted' : 'required']
             : ['nullable'];
 
@@ -599,21 +599,26 @@ final class Checkout extends Component
             EventRegistrationQuestionType::Textarea => [...$rules, 'string', 'max:5000'],
             EventRegistrationQuestionType::Number => [...$rules, 'numeric'],
             EventRegistrationQuestionType::Date => [...$rules, 'date_format:Y-m-d'],
-            EventRegistrationQuestionType::Select => [...$rules, 'string', Rule::in($question->options ?? [])],
+            EventRegistrationQuestionType::Select => [...$rules, 'string', Rule::in($question->options)],
             EventRegistrationQuestionType::Multiselect => [...$rules, 'array'],
-            EventRegistrationQuestionType::Checkbox => $question->is_required ? $rules : [...$rules, 'boolean'],
+            EventRegistrationQuestionType::Checkbox => $question->isRequired ? $rules : [...$rules, 'boolean'],
         };
     }
 
     /**
-     * @return Collection<int, EventRegistrationQuestion>
+     * @return list<EventRegistrationQuestionData>
      */
-    private function registrationQuestions(): Collection
+    private function registrationQuestions(): array
     {
-        return app(EventRegistrationQuestionResolver::class)->resolve($this->registrationTarget());
+        [$scopeType, $scopeId] = $this->registrationScope();
+
+        return app(EventRegistrationQuestionResolver::class)->resolve($scopeType, $scopeId);
     }
 
-    private function registrationTarget(): Model
+    /**
+     * @return array{0: 'event'|'occurrence'|'session', 1: string}
+     */
+    private function registrationScope(): array
     {
         // The ticket model is display state and can be stale after Livewire
         // hydration. Resolve the target from the locked ticket id so the
@@ -626,7 +631,13 @@ final class Checkout extends Component
             ? EventTicketScope::target($ticket)
             : null;
 
-        return $target instanceof Model ? $target : $this->event;
+        $target ??= $this->event;
+
+        return match (true) {
+            $target instanceof EventSession => ['session', (string) $target->getKey()],
+            $target instanceof EventOccurrence => ['occurrence', (string) $target->getKey()],
+            default => ['event', (string) $target->getKey()],
+        };
     }
 
     private function participantIdentityType(): string

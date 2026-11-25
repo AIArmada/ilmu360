@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Filament\Resources\Events;
 
-use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Data\ScheduleKind;
 use AIArmada\FilamentEvents\Contracts\EventFormExtension;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventGenderRestriction;

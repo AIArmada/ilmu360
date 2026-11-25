@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services\ShareCards;
 
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use App\Features\Events\Api\EventShareCardCache;
 use App\Features\Events\Contracts\EventShareCardPrewarm;
 use App\Features\Events\Models\Event;

@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;
 use App\Models\User;

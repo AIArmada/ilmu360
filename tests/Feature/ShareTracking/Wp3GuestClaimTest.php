@@ -10,7 +10,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateCredential;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\ShareGuestClaimResult;

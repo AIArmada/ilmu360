@@ -32,7 +32,6 @@ class DonationChannelFactory extends Factory
             'label' => fake()->optional()->randomElement(['Tabung Masjid', 'Infaq', 'Dana Pembangunan', 'Zakat', 'Sedekah']),
             'recipient' => fake()->name(),
             'method' => $method,
-            'reference_note' => fake()->optional()->sentence(),
             'status' => fake()->randomElement([DonationChannelStatus::Pending, DonationChannelStatus::Verified]),
             'is_default' => false,
         ];
@@ -52,12 +51,12 @@ class DonationChannelFactory extends Factory
     {
         /** @var array{0: string, 1: string} $bank */
         $bank = fake()->randomElement([
-            ['MB2U0227', 'Maybank2u'],
-            ['BCBB0235', 'CIMB Bank'],
-            ['BIMB0340', 'Bank Islam'],
-            ['RHB0218', 'RHB Bank'],
-            ['PBB0233', 'Public Bank'],
-            ['BKRM0602', 'Bank Rakyat'],
+            ['MB2U0227', 'Malayan Banking Berhad'],
+            ['BCBB0235', 'CIMB Bank Berhad'],
+            ['BIMB0340', 'Bank Islam Malaysia Berhad'],
+            ['RHB0218', 'RHB Bank Berhad'],
+            ['PBB0233', 'Public Bank Berhad'],
+            ['BKRM0602', 'Bank Kerjasama Rakyat Malaysia Berhad (Bank Rakyat)'],
         ]);
 
         return [

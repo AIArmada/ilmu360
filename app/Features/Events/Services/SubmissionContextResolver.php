@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventFormat;

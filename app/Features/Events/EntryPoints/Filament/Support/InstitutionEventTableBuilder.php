@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Filament\Support;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use App\Features\Events\Api\InstitutionEventTable;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Api\SpaceLocation;
@@ -131,10 +132,15 @@ final readonly class InstitutionEventTableBuilder implements InstitutionEventTab
                         ->implode(', ') ?: null),
                 TextColumn::make('primaryLocation.venueSpace.name')
                     ->label(__('Location'))
-                    ->state(fn (Event $record): ?string => app(SpaceLocation::class)->name(
-                        (string) ($record->primaryLocation->space_name_snapshot ?? ''),
-                        $record->primaryLocation?->venueSpace?->name,
-                    ))
+                    ->state(function (Event $record): ?string {
+                        $location = $record->primaryLocation;
+                        $space = $location?->venueSpace;
+
+                        return app(SpaceLocation::class)->name(
+                            (string) ($location->space_name_snapshot ?? ''),
+                            $space instanceof VenueSpace ? $space->name : null,
+                        );
+                    })
                     ->placeholder('-')
                     ->wrap(),
                 TextColumn::make('dashboard_registrations_count')

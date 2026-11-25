@@ -1,16 +1,16 @@
 <?php
 
-use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Models\EventAudience;
-use AIArmada\Events\Models\EventAudienceProfile;
-use AIArmada\Events\Models\EventClassification;
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventLink;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventReference;
-use AIArmada\Events\Models\EventSubmissionLog;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Data\ScheduleKind;
+use AIArmada\Events\Features\Catalog\Models\EventAudience;
+use AIArmada\Events\Features\Catalog\Models\EventAudienceProfile;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventLink;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventReference;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Governance\Models\EventSubmissionLog;
+use AIArmada\Events\Features\Taxonomy\Models\EventClassification;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;

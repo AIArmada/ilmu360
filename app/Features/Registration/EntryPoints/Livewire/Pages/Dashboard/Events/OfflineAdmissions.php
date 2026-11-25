@@ -7,11 +7,11 @@ namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Contracts\EventRegistrationQuestionResolver;
-use AIArmada\Events\Enums\EventRegistrationQuestionType;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventRegistrationQuestion;
-use AIArmada\Events\Models\EventSession;
-use AIArmada\Events\Support\EventTicketScope;
+use AIArmada\Events\Data\EventRegistrationQuestionData;
+use AIArmada\Events\Data\EventRegistrationQuestionType;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Platform\EventTicketScope;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Events\Models\Event;
@@ -292,15 +292,12 @@ final class OfflineAdmissions extends Component
             ->all();
     }
 
-    /** @return EloquentCollection<int, EventRegistrationQuestion> */
-    public function registrationQuestions(): EloquentCollection
+    /** @return list<EventRegistrationQuestionData> */
+    public function registrationQuestions(): array
     {
-        $target = $this->registrationTarget();
+        [$scopeType, $scopeId] = $this->registrationScope();
 
-        /** @var EloquentCollection<int, EventRegistrationQuestion> $questions */
-        $questions = app(EventRegistrationQuestionResolver::class)->resolve($target);
-
-        return $questions;
+        return app(EventRegistrationQuestionResolver::class)->resolve($scopeType, $scopeId);
     }
 
     /** @return Collection<int, array<string, mixed>> */
@@ -411,11 +408,11 @@ final class OfflineAdmissions extends Component
         }
 
         foreach ($this->registrationQuestions() as $question) {
-            $answerPath = 'participant.answers.'.$question->field_key;
+            $answerPath = 'participant.answers.'.$question->fieldKey;
             $rules[$answerPath] = $this->questionRules($question);
 
             if ($question->type === EventRegistrationQuestionType::Multiselect) {
-                $rules[$answerPath.'.*'] = [Rule::in($question->options ?? [])];
+                $rules[$answerPath.'.*'] = [Rule::in($question->options)];
             }
         }
 
@@ -439,9 +436,9 @@ final class OfflineAdmissions extends Component
     }
 
     /** @return array<int, mixed> */
-    private function questionRules(EventRegistrationQuestion $question): array
+    private function questionRules(EventRegistrationQuestionData $question): array
     {
-        $rules = $question->is_required
+        $rules = $question->isRequired
             ? [$question->type === EventRegistrationQuestionType::Checkbox ? 'accepted' : 'required']
             : ['nullable'];
 
@@ -450,9 +447,9 @@ final class OfflineAdmissions extends Component
             EventRegistrationQuestionType::Textarea => [...$rules, 'string', 'max:5000'],
             EventRegistrationQuestionType::Number => [...$rules, 'numeric'],
             EventRegistrationQuestionType::Date => [...$rules, 'date_format:Y-m-d'],
-            EventRegistrationQuestionType::Select => [...$rules, 'string', Rule::in($question->options ?? [])],
+            EventRegistrationQuestionType::Select => [...$rules, 'string', Rule::in($question->options)],
             EventRegistrationQuestionType::Multiselect => [...$rules, 'array'],
-            EventRegistrationQuestionType::Checkbox => $question->is_required ? $rules : [...$rules, 'boolean'],
+            EventRegistrationQuestionType::Checkbox => $question->isRequired ? $rules : [...$rules, 'boolean'],
         };
     }
 
@@ -517,15 +514,15 @@ final class OfflineAdmissions extends Component
 
     /**
      * @param  array<string, mixed>  $answers
-     * @param  EloquentCollection<int, EventRegistrationQuestion>  $questions
+     * @param  list<EventRegistrationQuestionData>  $questions
      * @return array<string, mixed>
      */
-    private function normalizeAnswerState(array $answers, EloquentCollection $questions): array
+    private function normalizeAnswerState(array $answers, array $questions): array
     {
         $normalized = [];
 
         foreach ($questions as $question) {
-            $key = (string) $question->field_key;
+            $key = $question->fieldKey;
 
             if (! array_key_exists($key, $answers)) {
                 $normalized[$key] = $question->type === EventRegistrationQuestionType::Multiselect
@@ -550,16 +547,16 @@ final class OfflineAdmissions extends Component
 
     /**
      * @param  array<string, mixed>  $participant
-     * @param  EloquentCollection<int, EventRegistrationQuestion>  $questions
+     * @param  list<EventRegistrationQuestionData>  $questions
      * @return array<int, array<string, mixed>>
      */
-    private function normalizeParticipantAnswers(array $participant, EloquentCollection $questions): array
+    private function normalizeParticipantAnswers(array $participant, array $questions): array
     {
         $rawAnswers = is_array($participant['answers'] ?? null) ? $participant['answers'] : [];
         $answers = [];
 
         foreach ($questions as $question) {
-            $key = (string) $question->field_key;
+            $key = $question->fieldKey;
 
             if (! array_key_exists($key, $rawAnswers)) {
                 continue;
@@ -594,7 +591,7 @@ final class OfflineAdmissions extends Component
                 'answer' => $answer,
                 'answer_json' => $answerJson,
                 'metadata' => [
-                    'question_id' => (string) $question->getKey(),
+                    'question_id' => $question->id,
                     'question_type' => $question->type->value,
                 ],
             ];
@@ -603,12 +600,21 @@ final class OfflineAdmissions extends Component
         return $answers;
     }
 
-    private function registrationTarget(): Model
+    /**
+     * @return array{0: 'event'|'occurrence'|'session', 1: string}
+     */
+    private function registrationScope(): array
     {
         $ticket = $this->ticketForEvent($this->selectedEvent(), $this->ticketId, false);
         $target = $ticket instanceof TicketType ? EventTicketScope::target($ticket) : null;
 
-        return $target instanceof Model ? $target : $this->selectedEvent();
+        $target ??= $this->selectedEvent();
+
+        return match (true) {
+            $target instanceof EventSession => ['session', (string) $target->getKey()],
+            $target instanceof EventOccurrence => ['occurrence', (string) $target->getKey()],
+            default => ['event', (string) $target->getKey()],
+        };
     }
 
     private function ticketForEvent(Event $event, string $ticketId, bool $requireActive = true): ?TicketType
@@ -625,7 +631,7 @@ final class OfflineAdmissions extends Component
 
         $ticketEvent = EventTicketScope::event($ticket);
 
-        if (! $ticketEvent instanceof \AIArmada\Events\Models\Event || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
+        if (! $ticketEvent instanceof \AIArmada\Events\Features\Catalog\Models\Event || (string) $ticketEvent->getKey() !== (string) $event->getKey()) {
             return null;
         }
 

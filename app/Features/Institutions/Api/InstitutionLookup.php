@@ -111,6 +111,13 @@ interface InstitutionLookup
     public function membershipApplicationLabel(string $institutionId): ?string;
 
     /**
+     * Verified institutions a contributor may target for updates, reports or claims.
+     *
+     * @return list<array{id: string, slug: string, title: string, subtitle: ?string}>
+     */
+    public function searchPublicContributionTargets(string $search = '', int $limit = 12): array;
+
+    /**
      * Documented transport: followed institutions for the supplied ids with
      * media loaded, ordered by name.
      *

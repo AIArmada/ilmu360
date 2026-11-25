@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventReference;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventReference;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use App\Features\Events\Api\SubmissionValues;
 use App\Features\Events\Queries\PublicReferenceConstraint;
 use App\Features\Events\Support\EventModel;

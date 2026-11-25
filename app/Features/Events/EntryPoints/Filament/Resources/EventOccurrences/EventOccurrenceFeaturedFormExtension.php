@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Filament\Resources\EventOccurrences;
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\FilamentEvents\Contracts\EventOccurrenceFormExtension;
 use App\Models\User;
 use Filament\Forms\Components\Toggle;

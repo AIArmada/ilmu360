@@ -94,7 +94,6 @@ final readonly class SubmitInstitutionFormContractContributor implements Fronten
                             ['name' => 'ewallet_provider', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(DonationChannelOptions::EWALLET_PROVIDERS)],
                             ['name' => 'ewallet_handle', 'type' => 'string', 'required' => false, 'max_length' => 255],
                             ['name' => 'ewallet_qr_payload', 'type' => 'string', 'required' => false, 'max_length' => 2000],
-                            ['name' => 'reference_note', 'type' => 'string', 'required' => false, 'max_length' => 255],
                             ['name' => 'is_default', 'type' => 'boolean', 'required' => false],
                         ],
                     ],

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Queries;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Api\EventCards;
 use App\Features\Events\Models\Event;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;

@@ -3,11 +3,11 @@
 namespace Database\Factories;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Data\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Data\ScheduleKind;
 use AIArmada\Events\Database\Factories\EventFactory as PackageEventFactory;
-use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
-use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventLink;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventLink;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;

@@ -546,7 +546,7 @@ class ContributionController extends FrontendController
         $normalizedState = $submissionState['state'];
 
         if ($entity instanceof Event && $normalizedState !== []) {
-            $mergedState = array_replace_recursive($publicInitialState, $normalizedState);
+            $mergedState = array_replace($publicInitialState, $normalizedState);
 
             if (
                 array_key_exists('event_date', $normalizedState)
@@ -888,7 +888,6 @@ class ContributionController extends FrontendController
             'donation_channels.*.ewallet_provider' => ['nullable', 'string', 'required_if:donation_channels.*.method,ewallet', Rule::in(array_keys(DonationChannelOptions::EWALLET_PROVIDERS))],
             'donation_channels.*.ewallet_handle' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.ewallet_qr_payload' => ['nullable', 'string', 'max:2000'],
-            'donation_channels.*.reference_note' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.is_default' => ['nullable', 'boolean'],
         ];
     }

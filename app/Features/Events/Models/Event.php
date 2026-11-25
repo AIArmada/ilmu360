@@ -5,6 +5,7 @@ namespace App\Features\Events\Models;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressAssignments;
 use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\CommerceSupport\Contracts\OwnerScopeConfigurable;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Engagement\Contracts\Bookmarkable;
@@ -12,21 +13,22 @@ use AIArmada\Engagement\Contracts\Respondable;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Engagement\Traits\HasResponses;
-use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventAccessPolicy;
-use AIArmada\Events\Models\EventAudience;
-use AIArmada\Events\Models\EventAudienceProfile;
-use AIArmada\Events\Models\EventClassification;
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventLanguage;
-use AIArmada\Events\Models\EventLink;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventMaterial;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventReference;
-use AIArmada\Events\Models\EventSeriesItemPivot;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Data\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
+use AIArmada\Events\Features\Catalog\Models\EventAudience;
+use AIArmada\Events\Features\Catalog\Models\EventAudienceProfile;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventLanguage;
+use AIArmada\Events\Features\Catalog\Models\EventLink;
+use AIArmada\Events\Features\Catalog\Models\EventMaterial;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventReference;
+use AIArmada\Events\Features\Catalog\Models\EventSeriesItemPivot;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Governance\Models\EventEscalation;
+use AIArmada\Events\Features\Taxonomy\Models\EventClassification;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Organizations\Models\Organization;
 use App\Features\DonationChannels\Concerns\HasDonationChannels;
@@ -139,10 +141,15 @@ use Spatie\ModelStates\HasStates;
  * @property-read \Illuminate\Database\Eloquent\Collection<int, EventOccurrence> $occurrences
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Reference> $references
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Person> $persons
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, EventLocation> $locations
+ * @property-read EventLocation|null $primaryLocation
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, EventClassification> $classifications
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, EventSubmission> $submissions
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, EventEscalation> $escalations
  * @property Carbon|null $updated_at
  * @property Carbon|null $created_at
  */
-class Event extends PackageEvent implements AuditableContract, Bookmarkable, Respondable
+class Event extends PackageEvent implements AuditableContract, Bookmarkable, OwnerScopeConfigurable, Respondable
 {
     #[\Override]
     protected $table = 'events';
@@ -449,7 +456,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
             ->whereNull('event_session_id');
     }
 
-    /** @return HasMany<EventLocation, $this> */
+    /** @return HasMany<Model, $this> */
     #[\Override]
     public function locations(): HasMany
     {
@@ -750,18 +757,6 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     }
 
     // ─── EventLocation (primary venue space) ───────────────────────────────
-
-    #[\Override]
-    public function primaryLocation(): HasOne
-    {
-        return $this->hasOne(EventLocation::class)
-            ->whereNull('event_occurrence_id')
-            ->whereNull('event_session_id')
-            ->where('location_role', 'primary')
-            ->orderBy('sort_order')
-            ->orderBy('created_at')
-            ->orderBy('id');
-    }
 
     /**
      * @param  list<string>  $spaceIds
@@ -1723,7 +1718,7 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     /**
      * Event-level classifications only; occurrence/session rows stay on their own scopes.
      *
-     * @return HasMany<EventClassification, $this>
+     * @return HasMany<Model, $this>
      */
     #[\Override]
     public function classifications(): HasMany
@@ -1736,7 +1731,9 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     /** @return HasMany<EventClassification, $this> */
     public function categoryClassifications(): HasMany
     {
-        return $this->classifications()
+        return $this->hasMany(EventClassification::class)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
             ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)
             ->orderBy('sort_order');
     }
@@ -1867,12 +1864,15 @@ class Event extends PackageEvent implements AuditableContract, Bookmarkable, Res
     }
 
     /**
-     * @return HasMany<EventSubmission, $this>
+     * @return HasMany<Model, $this>
      */
     #[\Override]
     public function submissions(): HasMany
     {
-        return $this->hasMany(EventSubmission::class);
+        /** @var HasMany<Model, $this> $relation */
+        $relation = $this->hasMany(EventSubmission::class);
+
+        return $relation;
     }
 
     /**

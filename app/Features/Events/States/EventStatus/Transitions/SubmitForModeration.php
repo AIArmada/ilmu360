@@ -49,7 +49,7 @@ class SubmitForModeration extends Transition implements HasColor, HasIcon, HasLa
 
             // Notify moderators
             try {
-                $moderators = User::role(['moderator', 'super_admin'])->get();
+                $moderators = User::role(['moderator', 'admin', 'super_admin'])->get();
                 if ($moderators->isNotEmpty()) {
                     Notification::send($moderators, new EventSubmittedNotification($event));
                 }

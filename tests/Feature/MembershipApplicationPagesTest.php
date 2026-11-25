@@ -194,6 +194,11 @@ it('saves a provided phone number to the applicant profile when missing', functi
             'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
             'subjectId' => $person->slug,
         ])
+        ->assertFormFieldExists('applied_role', function (Select $field): bool {
+            expect($field->getOptions())->toHaveKey('owner', 'Pemilik');
+
+            return true;
+        })
         ->fillForm([
             'applied_role' => MemberRole::Owner->value,
             'phone' => '0123456789',
@@ -223,7 +228,7 @@ it('rejects a phone number already used by another account', function (): void {
             'subjectId' => $person->slug,
         ])
         ->fillForm([
-            'applied_role' => MemberRole::Owner->value,
+            'applied_role' => MemberRole::Admin->value,
             'phone' => '+60123456789',
             'evidence' => [UploadedFile::fake()->image('proof.png')],
         ])
@@ -281,7 +286,7 @@ it('shows claim conflicts on a visible field and does not save profile data on f
             'subjectId' => $person->slug,
         ])
         ->fillForm([
-            'applied_role' => MemberRole::Owner->value,
+            'applied_role' => MemberRole::Admin->value,
             'phone' => '0123456789',
             'evidence' => [UploadedFile::fake()->image('proof.png')],
         ])
@@ -312,7 +317,27 @@ it('rejects forged membership role and relationship values', function (string $r
 })->with([
     'unknown role' => 'not-a-role',
     'view-only role' => MemberRole::Viewer->value,
+    'owner role' => MemberRole::Owner->value,
 ]);
+
+it('offers only editor and admin as requestable roles', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    Livewire::actingAs($user)
+        ->test(CreateMembershipApplicationPage::class, [
+            'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+            'subjectId' => $institution->getKey(),
+        ])
+        ->assertFormFieldExists('applied_role', function (Select $field): bool {
+            expect($field->getOptions())->toBe([
+                'admin' => 'Pentadbir',
+                'editor' => 'Penyunting',
+            ]);
+
+            return true;
+        });
+});
 
 it('requires relationship detail when Other is selected', function () {
     $user = User::factory()->create();
@@ -512,16 +537,19 @@ it('lets claimants cancel pending claims from the history page', function () {
 it('starts a membership claim from the contributions page search form', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create([
+        'name' => 'Ustaz Ahmad',
         'status' => 'verified',
     ]);
 
     Livewire::actingAs($user)
         ->test(ContributionsIndex::class)
-        ->fillForm([
-            'subject_type' => MemberSubjectType::Person->value,
-            'subject_slug' => $person->slug,
-        ])
-        ->call('startMembershipApplication')
+        ->call('selectTab', 'membership')
+        ->set('claimSubjectType', 'person')
+        ->set('claimSearch', 'Ahmad')
+        ->call('selectClaimRecord', $person->slug, $person->formatted_name)
+        ->assertSet('selectedClaimIdentifier', $person->slug)
+        ->assertSet('selectedClaimLabel', $person->formatted_name)
+        ->call('startMembershipClaim')
         ->assertRedirect(route('membership-applications.create', [
             'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
             'subjectId' => $person->slug,

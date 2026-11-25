@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\EntryPoints\Mcp\Tools;
 
+use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Features\Membership\Api\MembershipApplications;
+use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;
 use App\Platform\Mcp\McpAuthenticatedUserResolver;
 use App\Platform\Mcp\Tools\Admin\AbstractAdminTool;
@@ -41,6 +43,12 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
             $actor = $this->authorizeAdmin($request);
             $requiresGrantedRole = ($request->all()['action'] ?? null) === 'approve';
 
+            $record = $request->validate([
+                'record_key' => ['required', 'string'],
+            ]);
+            $application = $this->membershipApplications->find((string) $record['record_key']);
+            abort_unless($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail, 404);
+
             $validated = $this->validateArguments($request, [
                 'record_key' => ['required', 'string'],
                 'action' => ['required', 'string', Rule::in(['approve', 'reject'])],
@@ -48,13 +56,11 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
                     Rule::requiredIf($requiresGrantedRole),
                     'nullable',
                     'string',
-                    Rule::in(array_keys($this->membershipApplications->reviewRoleOptions())),
+                    Rule::in(array_keys(MembershipApplicationFormRules::roleOptions($application->application->subjectType))),
                 ],
                 'reviewer_note' => ['sometimes', 'nullable', 'string', 'max:2000'],
             ]);
 
-            $application = $this->membershipApplications->find((string) $validated['record_key']);
-            abort_unless($application instanceof \App\Features\Membership\Api\MembershipApplicationDetail, 404);
             $note = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
 
             $detail = match ((string) $validated['action']) {
@@ -92,7 +98,7 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
         return [
             'record_key' => $schema->string()->required()->min(1),
             'action' => $schema->string()->required()->enum(['approve', 'reject']),
-            'granted_role' => $schema->string()->nullable()->enum(array_keys($this->membershipApplications->reviewRoleOptions())),
+            'granted_role' => $schema->string()->nullable()->enum(array_keys(MembershipApplicationFormRules::roleOptions(MemberSubjectType::Person))),
             'reviewer_note' => $schema->string()->nullable(),
         ];
     }

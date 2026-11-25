@@ -6,7 +6,8 @@ namespace App\Features\Events\EntryPoints\Mcp;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressHierarchyFormatter;
-use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
@@ -531,6 +532,7 @@ class EventCoverPromptBuilder
         $languages = $event->languages;
         /** @var Collection<int, Model> $classifications */
         $classifications = $event->classifications;
+        $space = $event->primaryLocation?->venueSpace;
 
         return [
             'direct_attributes' => $this->normalizeArray($event->getAttributes()),
@@ -552,12 +554,12 @@ class EventCoverPromptBuilder
                 'address' => $this->addressPayload($event->primaryAddress()),
                 'institution' => $event->institution instanceof Institution ? $this->modelPayload($event->institution) : null,
                 'venue' => $event->venue instanceof Venue ? $this->modelPayload($event->venue) : null,
-                'space' => $event->primaryLocation?->venueSpace instanceof Model
+                'space' => $space instanceof VenueSpace
                     ? array_replace(
-                        $this->modelPayload($event->primaryLocation->venueSpace),
+                        $this->modelPayload($space),
                         ['name' => app(SpaceLocation::class)->name(
                             (string) ($event->primaryLocation->space_name_snapshot ?? ''),
-                            $event->primaryLocation->venueSpace->name,
+                            $space->name,
                         )],
                     )
                     : null,
@@ -880,10 +882,13 @@ class EventCoverPromptBuilder
             $parts[] = (string) $event->venue->name;
         }
 
-        if ($event->primaryLocation?->venueSpace !== null) {
+        $location = $event->primaryLocation;
+        $space = $location?->venueSpace;
+
+        if ($space instanceof VenueSpace) {
             $parts[] = (string) app(SpaceLocation::class)->name(
-                (string) ($event->primaryLocation->space_name_snapshot ?? ''),
-                $event->primaryLocation->venueSpace->name,
+                (string) ($location->space_name_snapshot ?? ''),
+                $space->name,
             );
         }
 

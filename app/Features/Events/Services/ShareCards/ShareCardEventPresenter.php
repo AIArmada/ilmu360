@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Services\ShareCards;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Models\Event;

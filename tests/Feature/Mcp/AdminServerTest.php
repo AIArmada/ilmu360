@@ -2,8 +2,8 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\TitleUsagePosition;
 use AIArmada\Persons\Models\Title;
@@ -1432,7 +1432,7 @@ it('exposes donation channel write schema and creates and updates donation chann
                 'recipient' => 'Masjid MCP',
                 'method' => 'bank_account',
                 'bank_code' => 'BCBB0235',
-                'bank_name' => 'CIMB Bank',
+                'bank_name' => 'CIMB Bank Berhad',
                 'account_number' => '9876543210',
                 'status' => 'verified',
                 'is_default' => true,
@@ -1453,7 +1453,7 @@ it('exposes donation channel write schema and creates and updates donation chann
         ->and($donationChannel->donatable_id)->toBe($institution->getKey())
         ->and($donationChannel->method)->toBe('bank_account')
         ->and($donationChannel->bank_code)->toBe('BCBB0235')
-        ->and($donationChannel->bank_name)->toBe('CIMB Bank')
+        ->and($donationChannel->bank_name)->toBe('CIMB Bank Berhad')
         ->and($donationChannel->duitnow_type)->toBeNull()
         ->and($donationChannel->getMedia('qr'))->toHaveCount(1);
 
@@ -2184,7 +2184,7 @@ it('surfaces event series and donation channel update semantics through admin MC
         'recipient' => 'Schema Donation Channel',
         'method' => 'bank_account',
         'bank_code' => 'BCBB0235',
-        'bank_name' => 'CIMB Bank',
+        'bank_name' => 'CIMB Bank Berhad',
         'account_number' => '1234567890',
         'status' => 'verified',
     ]);
@@ -2253,7 +2253,7 @@ it('surfaces event series and donation channel update semantics through admin MC
                     && data_get($fieldMap->get('routing_code'), 'supported_when') === 'owner_country_catalog_supports_routing_codes'
                     && data_get($fieldMap->get('method'), 'switch_clears_fields.ewallet') === ['bank_code', 'bank_name', 'account_number', 'iban', 'swift_bic', 'routing_code', 'duitnow_type', 'duitnow_value']
                     && data_get($fieldMap->get('label'), 'clear_semantics.explicit_null') === 'clear_to_null'
-                    && data_get($fieldMap->get('reference_note'), 'normalization.empty_string_at_mutation_layer') === 'null';
+                    && ! $fieldMap->has('reference_note');
             })
             ->etc());
 });

@@ -178,6 +178,42 @@ final readonly class EloquentInstitutionLookup implements InstitutionLookup
             : null;
     }
 
+    /**
+     * @return list<array{id: string, slug: string, title: string, subtitle: ?string}>
+     */
+    public function searchPublicContributionTargets(string $search = '', int $limit = 12): array
+    {
+        $query = Institution::query()
+            ->where('status', InstitutionStatus::Verified->value)
+            ->whereIn('status', InstitutionStatus::publiclyVisibleValues());
+
+        if (filled($search)) {
+            $query->searchNameOrNickname($search);
+        }
+
+        /** @var list<array{id: string, slug: string, title: string, subtitle: ?string}> $targets */
+        $targets = $query
+            ->orderBy('name')
+            ->limit(max($limit, 1))
+            ->with(['addresses', 'names'])
+            ->get(['id', 'slug', 'name'])
+            ->map(function (Institution $institution): array {
+                $slug = (string) $institution->getKey();
+                $location = AddressHierarchyFormatter::format($institution->primaryAddress());
+
+                return [
+                    'id' => (string) $institution->getKey(),
+                    'slug' => filled($institution->slug) ? (string) $institution->slug : $slug,
+                    'title' => (string) $institution->display_name,
+                    'subtitle' => $location !== '' ? $location : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $targets;
+    }
+
     public function followedInstitutions(array $institutionIds): array
     {
         return Institution::query()

@@ -2,7 +2,7 @@
 
 namespace App\Features\Places\EntryPoints\Filament\Resources\Spaces\Schemas;
 
-use AIArmada\Events\Models\VenueSpaceType;
+use AIArmada\Events\Features\Venues\Models\VenueSpaceType;
 use App\Features\Institutions\Api\InstitutionLookup;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;

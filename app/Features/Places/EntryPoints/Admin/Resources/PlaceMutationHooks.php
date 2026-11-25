@@ -8,7 +8,7 @@ use AIArmada\Addressing\Support\ModelResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
-use AIArmada\Events\Models\VenueSpaceType;
+use AIArmada\Events\Features\Venues\Models\VenueSpaceType;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Api\Enums\VenueType;
 use App\Features\Places\Api\SpaceWorkflow;

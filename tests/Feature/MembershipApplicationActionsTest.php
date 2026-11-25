@@ -152,24 +152,25 @@ it('rejects a role that is not offered for application approval', function () {
         ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeFalse();
 });
 
-it('approves a claim and can grant owner through the central moderation path', function () {
-    $person = Person::factory()->create();
+it('rejects owner when reviewing an institution membership claim', function () {
+    $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
     $reviewer = User::factory()->create();
 
     $claim = MembershipApplication::factory()
-        ->for($person, 'subject')
+        ->for($institution, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
         ]);
 
-    app(ApproveMembershipApplicationAction::class)->handle($claim, $reviewer, MemberRole::Owner, 'Approved as owner.');
-
-    expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
-        ->and($claim->fresh()->granted_role)->toBe('owner')
-        ->and($person->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue()
-        ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Person))->toBe(['owner']);
+    expect(fn () => app(MembershipApplications::class)->approve(
+        (string) $claim->getKey(),
+        (string) $reviewer->getKey(),
+        'owner',
+    ))->toThrow(InvalidArgumentException::class, 'Unsupported membership application approval role.')
+        ->and($claim->fresh()->status)->toBe(ApplicationStatus::Pending)
+        ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeFalse();
 });
 
 it('rejects a claim and records reviewer metadata', function () {

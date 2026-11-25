@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 use App\Features\Events\Queries\PublicScheduleDetailResolver;

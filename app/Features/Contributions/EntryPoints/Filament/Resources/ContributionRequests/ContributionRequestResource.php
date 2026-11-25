@@ -72,7 +72,7 @@ class ContributionRequestResource extends Resource
         /** @var Builder<ContributionRequest> $query */
         $query = parent::getEloquentQuery();
 
-        return $query->with(['entity', 'proposer', 'reviewer']);
+        return $query->with(['entity', 'proposer', 'reviewer', 'media']);
     }
 
     #[\Override]
@@ -116,6 +116,12 @@ class ContributionRequestResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return self::getNavigationBadge() !== null ? 'warning' : null;
+    }
+
+    public static function flushNavigationBadgeCache(): void
+    {
+        self::$navigationBadgeScope = null;
+        self::$pendingNavigationCount = null;
     }
 
     #[\Override]

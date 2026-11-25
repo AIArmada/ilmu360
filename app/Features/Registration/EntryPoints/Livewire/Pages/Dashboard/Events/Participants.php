@@ -7,8 +7,8 @@ namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Contracts\EventRefundEligibility;
-use AIArmada\Events\Models\EventAttendance;
-use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Features\Attendance\Models\EventAttendance;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationParticipant;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
@@ -456,7 +456,7 @@ final class Participants extends Component
 
     public function refundsEnabled(Event $event): bool
     {
-        return app(EventRefundEligibility::class)->refundsEnabled($event);
+        return app(EventRefundEligibility::class)->refundsEnabled((string) $event->getKey());
     }
 
     public function printList(): void

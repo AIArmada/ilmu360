@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Events\States\RegistrationStatus\Confirmed;
-use AIArmada\Events\States\RegistrationStatus\Pending;
+use AIArmada\Events\Features\Registrations\States\RegistrationStatus\Confirmed;
+use AIArmada\Events\Features\Registrations\States\RegistrationStatus\Pending;
 use AIArmada\Membership\Channels\EmailInvitationChannel;
 use AIArmada\Membership\Enums\InvitationStatus;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
@@ -60,7 +60,7 @@ it('keeps donation channel lifecycle fields behind transition methods', function
         'donatable_id' => $institution->getKey(),
         'recipient' => 'Lifecycle Test Account',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '1234567890',
         'status' => DonationChannelStatus::Verified,
         'verified_at' => $forgedAt,

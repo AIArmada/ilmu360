@@ -6,20 +6,19 @@ namespace App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Events\Actions\ArchiveEventRegistrationQuestionAction;
-use AIArmada\Events\Actions\CreateEventRegistrationQuestionAction;
-use AIArmada\Events\Actions\UpdateEventRegistrationQuestionAction;
-use AIArmada\Events\Enums\EventRegistrationQuestionType;
-use AIArmada\Events\Models\Event;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventRegistrationQuestion;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Data\EventRegistrationQuestionType;
+use AIArmada\Events\Features\Catalog\Models\Event;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Registrations\Actions\ArchiveEventRegistrationQuestionAction;
+use AIArmada\Events\Features\Registrations\Actions\CreateEventRegistrationQuestionAction;
+use AIArmada\Events\Features\Registrations\Actions\UpdateEventRegistrationQuestionAction;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationQuestion;
 use App\Platform\Models\MorphModelResolver;
 use App\Platform\Ui\InteractsWithToasts;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -161,10 +160,11 @@ final class RegistrationQuestions extends Component
         try {
             if ($this->editingQuestionId !== null) {
                 $question = $this->questionForEvent($event, $this->editingQuestionId);
-                $updateQuestion->handle($question, $attributes);
+                $updateQuestion->handle((string) $question->getKey(), $attributes);
                 $message = __('Registration question updated successfully.');
             } else {
-                $createQuestion->handle($this->questionTarget($event), $attributes);
+                [$scopeType, $scopeId] = $this->questionScope($event);
+                $createQuestion->handle($scopeType, $scopeId, $attributes);
                 $message = __('Registration question added successfully.');
             }
         } catch (ValidationException $exception) {
@@ -192,7 +192,7 @@ final class RegistrationQuestions extends Component
 
         try {
             $question = $this->questionForEvent($event, $questionId);
-            $archiveQuestion->handle($question);
+            $archiveQuestion->handle((string) $question->getKey());
             $this->successToast(__('Question archived. Existing registrations keep their recorded answers.'));
         } catch (Throwable $throwable) {
             report($throwable);
@@ -299,12 +299,15 @@ final class RegistrationQuestions extends Component
             ->all();
     }
 
-    private function questionTarget(Event $event): Model
+    /**
+     * @return array{0: 'event'|'occurrence'|'session', 1: string}
+     */
+    private function questionScope(Event $event): array
     {
         $scope = $this->normalizeScope($this->questionForm['scope'] ?? 'event');
 
         if ($scope === 'event') {
-            return $event;
+            return ['event', (string) $event->getKey()];
         }
 
         $occurrenceId = (string) ($this->questionForm['occurrence_id'] ?? '');
@@ -318,7 +321,7 @@ final class RegistrationQuestions extends Component
         $occurrence = $event->occurrences()->whereKey($occurrenceId)->firstOrFail();
 
         if ($scope === 'occurrence') {
-            return $occurrence;
+            return ['occurrence', (string) $occurrence->getKey()];
         }
 
         $sessionId = (string) ($this->questionForm['session_id'] ?? '');
@@ -329,7 +332,7 @@ final class RegistrationQuestions extends Component
             ]);
         }
 
-        return $occurrence->sessions()->whereKey($sessionId)->firstOrFail();
+        return ['session', (string) $occurrence->sessions()->whereKey($sessionId)->firstOrFail()->getKey()];
     }
 
     private function questionForEvent(Event $event, string $questionId): EventRegistrationQuestion

@@ -9,7 +9,7 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Affiliates\States\ReversedConversion;
 use AIArmada\CommerceSupport\Support\OwnerScope;
-use AIArmada\Events\Models\EventRegistration;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\ShareTracking\Api\EffectReceipts;
 use App\Features\ShareTracking\Api\EffectReceiptSnapshot;

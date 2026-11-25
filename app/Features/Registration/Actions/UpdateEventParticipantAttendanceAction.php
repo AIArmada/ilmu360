@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Actions;
 
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventAttendance;
-use AIArmada\Events\Models\EventAttendanceLog;
-use AIArmada\Events\Models\EventRegistration;
-use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Features\Attendance\Models\EventAttendance;
+use AIArmada\Events\Features\Attendance\Models\EventAttendanceLog;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationParticipant;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
 use App\Features\ShareTracking\Api\ParticipationAttribution;
 use App\Platform\Models\MorphModelResolver;

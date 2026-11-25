@@ -39,6 +39,14 @@ class SubmitPerson extends Component implements HasActions, HasForms
     public function mount(): void
     {
         OwnerContext::withOwner(null, function (): void {
+            $user = auth()->user();
+
+            abort_unless($user instanceof User, 403);
+
+            if (! $user->canSubmitDirectoryFeedback()) {
+                abort(403, $user->directoryFeedbackBanMessage());
+            }
+
             $this->contributionForm()->fill([
                 'address' => [
                     'country_id' => AddressCountry::query()->where('iso2', 'MY')->value('id'),
@@ -53,10 +61,10 @@ class SubmitPerson extends Component implements HasActions, HasForms
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return OwnerContext::withOwner(null, fn (): Schema => $schema
             ->model(Person::class)
             ->statePath('data')
-            ->components([PersonContributionFormSchema::publicTabs()]);
+            ->components([PersonContributionFormSchema::publicTabs()]));
     }
 
     public function submit(StagedContributionCreates $stagedCreates): void
@@ -65,6 +73,10 @@ class SubmitPerson extends Component implements HasActions, HasForms
             $user = auth()->user();
 
             abort_unless($user instanceof User, 403);
+
+            if (! $user->canSubmitDirectoryFeedback()) {
+                abort(403, $user->directoryFeedbackBanMessage());
+            }
 
             $stagedCreates->submit(
                 ContributionSubjectType::Person,

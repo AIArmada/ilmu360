@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
-use AIArmada\Events\Actions\CreateEventSessionAction;
-use AIArmada\Events\Actions\SyncEventLanguagesAction;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
-use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
-use AIArmada\Events\Models\VenueSpaceType;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;
+use AIArmada\Events\Features\Catalog\Actions\SyncEventLanguagesAction;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Governance\Models\EventSubmission as PackageEventSubmission;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\VenueSpaceType;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
@@ -152,7 +153,7 @@ final readonly class PersistSessionSubmissionAction
                 'relation' => $offset < 0 ? 'before' : 'after',
                 'offset_minutes' => abs($offset),
                 'display_label' => $submission->prayerDisplayText,
-                'resolver_class' => (string) config('events.prayer.resolver_class'),
+                'resolver_class' => (string) config('events.time_expressions.resolver'),
                 'metadata' => [
                     'prayer' => array_filter([
                         'source' => $submission->prayerSource ?? HardcodedPrayerFallback::SOURCE,
@@ -183,7 +184,8 @@ final readonly class PersistSessionSubmissionAction
 
         foreach ($locationIds as $order => $spaceId) {
             $space = $spaces->get($spaceId);
-            $session->locations()->create($scope + [
+            EventLocation::query()->create($scope + [
+                'event_session_id' => $session->getKey(),
                 'location_role' => $order === 0 ? 'primary' : 'additional',
                 'locationable_type' => $institution?->getMorphClass(),
                 'locationable_id' => $institution?->getKey(),

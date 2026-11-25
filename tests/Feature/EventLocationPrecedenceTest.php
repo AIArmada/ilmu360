@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Support\AddressingTableResolver;
-use AIArmada\Events\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventListPayloadPresenter;
 use App\Features\Events\Services\EventDetailPresenter;

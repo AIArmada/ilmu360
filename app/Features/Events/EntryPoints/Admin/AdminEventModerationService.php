@@ -25,7 +25,7 @@ final readonly class AdminEventModerationService implements AdminEventModeration
 
     public function canModerate(?AccountActor $actor = null): bool
     {
-        return $actor instanceof AccountActor && $actor->hasAnyRole(['super_admin', 'moderator']);
+        return $actor instanceof AccountActor && $actor->hasAnyRole(['super_admin', 'admin', 'moderator']);
     }
 
     /**

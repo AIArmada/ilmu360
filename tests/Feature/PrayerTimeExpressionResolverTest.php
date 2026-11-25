@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventSession;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Enums\InstitutionVenueRole;
 use App\Features\Institutions\Api\InstitutionVenueLinks;
@@ -28,7 +28,7 @@ it('returns null when anchor type is not prayer', function () {
         'anchor_code' => null,
     ]);
 
-    $result = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $result = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($result)->toBeNull();
 });
@@ -40,7 +40,7 @@ it('returns null when anchor code is null', function () {
         'anchor_code' => null,
     ]);
 
-    $result = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $result = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($result)->toBeNull();
 });
@@ -52,7 +52,7 @@ it('returns null when anchor code is not a valid prayer reference', function () 
         'anchor_code' => 'invalid_prayer',
     ]);
 
-    $result = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $result = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($result)->toBeNull();
 });
@@ -68,7 +68,7 @@ it('returns null when parent event is not found', function () {
 
     $expression->event_id = '00000000-0000-0000-0000-000000000000';
 
-    $result = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $result = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($result)->toBeNull();
 });
@@ -94,7 +94,7 @@ it('keeps the persisted instant for expressions without provenance', function ()
         'resolved_at' => now(),
     ]);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($resolved?->setTimezone('UTC')->format('Y-m-d H:i:s'))->toBe('2026-10-15 11:32:00');
 });
@@ -120,7 +120,7 @@ it('returns null when no provenance and no persisted instant exist', function ()
         'resolved_at' => null,
     ]);
 
-    expect(app(PrayerTimeExpressionResolver::class)->resolve($expression))->toBeNull();
+    expect(app(PrayerTimeExpressionResolver::class)->resolve($expression->toData()))->toBeNull();
 });
 
 it('round-trips every offset case through stored relation and magnitude', function () {
@@ -164,7 +164,7 @@ it('round-trips every offset case through stored relation and magnitude', functi
             ]],
         ]);
 
-        $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+        $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
         // Fixture maghrib anchor 11:02Z on D, plus the signed offset.
         $expectedInstant = CarbonImmutable::parse('2026-10-15 11:02:00', 'UTC')->addMinutes($expected->minutes());
@@ -213,7 +213,7 @@ it('treats a missing relation as after', function () {
         ]],
     ]);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($resolved?->setTimezone('UTC')->format('Y-m-d H:i:s'))->toBe('2026-10-15 11:17:00');
 });
@@ -260,7 +260,7 @@ it('re-resolves rolled provenance-bearing event expressions on the original pray
         ]],
     ]);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     // Fixture maghrib anchor 19:02 MYT on D + 30 min => 11:32Z on D:
     // re-resolution anchors on the prayer day, not the rolled start day.
@@ -332,7 +332,7 @@ it('re-resolves session expressions on the session prayer day instead of the par
         ]],
     ]);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     // The session anchor belongs to the session day, not the parent day.
     expect($resolved?->setTimezone('UTC')->format('Y-m-d H:i:s'))->toBe('2026-10-17 11:32:00');
@@ -367,7 +367,7 @@ it('keeps the persisted instant when providers are disabled', function () {
         'resolved_at' => now(),
     ]);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     // Disabled providers skip provider re-resolution even with usable
     // provenance; the persisted instant stands.
@@ -452,7 +452,7 @@ it('re-resolves no-GPS addresses through the persisted resolver coordinates', fu
         ]],
     ]);
 
-    $resolvedStart = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolvedStart = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     // Same anchor + same +5 offset as submission: the scoped UTC instant
     // round-trips exactly, with no live HTTP fallback.
@@ -538,7 +538,7 @@ it('borrows the venue owner address when re-resolving unpinned session expressio
         ]],
     ]);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     // The owner's KL address resolves the session-day anchor — the same
     // approximation submission used — instead of the persisted instant.
@@ -633,7 +633,7 @@ it('re-resolves online sessions through the persisted organizer targets', functi
         ]],
     ]);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($resolved?->toIso8601String())->toBe($submitted['starts_at']);
     Http::assertNothingSent();
@@ -689,7 +689,7 @@ it('re-resolves with the persisted country when the current address country chan
     $indonesia = ensureTestAddressCountry(iso2: 'ID', name: 'Indonesia', iso3: 'IDN', timezones: ['Asia/Jakarta'], phoneCode: '62');
     $address->update(['country_id' => $indonesia->getKey(), 'country_code' => 'ID']);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($resolved?->setTimezone('UTC')->format('Y-m-d H:i:s'))->toBe('2026-10-15 11:32:00');
     Http::assertNothingSent();
@@ -739,7 +739,7 @@ it('keeps the persisted instant when provenance lacks a coherent country', funct
         'resolved_at' => now(),
     ]);
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     expect($resolved?->setTimezone('UTC')->format('Y-m-d H:i:s'))->toBe('2026-10-15 12:00:00');
 });

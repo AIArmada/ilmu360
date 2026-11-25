@@ -5,21 +5,19 @@ declare(strict_types=1);
 namespace App\Features\Registration\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Actions\IssueEventRegistrationPassesAction;
-use AIArmada\Events\Actions\SyncEventOrderRegistrationsAction;
-use AIArmada\Events\Models\Event;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventRegistration;
-use AIArmada\Events\Support\EventTicketScope;
+use AIArmada\Events\Features\Catalog\Models\Event;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Commerce\Actions\IssueEventRegistrationPassesAction;
+use AIArmada\Events\Features\Commerce\Actions\SyncEventOrderRegistrationsAction;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration;
+use AIArmada\Events\Platform\EventTicketScope;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\States\PendingPayment;
-use AIArmada\Ticketing\Models\Pass;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Registration\Api\Enums\OfflineAdmissionPaymentMethod;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -165,11 +163,11 @@ final readonly class ConfirmOfflineAdmissionAction
             return [
                 'order' => $order->fresh(['items', 'payments']),
                 'registration' => $registration->fresh(['participants', 'items', 'passes']),
-                'passes' => new Collection,
+                'passes' => [],
             ];
         }));
 
-        /** @var array{order: Order, registration: EventRegistration, passes: Collection<int, Pass>} $result */
+        /** @var array{order: Order, registration: EventRegistration, passes: list<string>} $result */
         if ($result['order']->isPaid()) {
             // The offline flow must settle the registration synchronously:
             // queued OrderPaid fulfillment is not guaranteed to run yet.
@@ -190,17 +188,14 @@ final readonly class ConfirmOfflineAdmissionAction
                 throw new InvalidArgumentException('The offline admission registration could not be refreshed.');
             }
 
-            $result['passes'] = $this->issuePasses->handle($registration);
+            $result['passes'] = $this->issuePasses->handle((string) $registration->getKey());
             $result['registration'] = $registration->fresh(['participants', 'items', 'passes']);
         }
 
         return [
             'order_id' => (string) $result['order']->getKey(),
             'registration_id' => (string) $result['registration']->getKey(),
-            'pass_ids' => $result['passes']
-                ->map(static fn (Pass $pass): string => (string) $pass->getKey())
-                ->values()
-                ->all(),
+            'pass_ids' => array_values(array_map(strval(...), $result['passes'])),
             'amount' => (int) $result['order']->grand_total,
             'currency' => (string) $result['order']->currency,
         ];
@@ -208,7 +203,7 @@ final readonly class ConfirmOfflineAdmissionAction
 
     /**
      * @param  class-string<EventRegistration>  $registrationClass
-     * @return array{order: Order, registration: EventRegistration, passes: Collection<int, Pass>}
+     * @return array{order: Order, registration: EventRegistration, passes: list<string>}
      */
     private function existingResult(Order $order, string $registrationClass): array
     {
@@ -222,7 +217,11 @@ final readonly class ConfirmOfflineAdmissionAction
             throw new InvalidArgumentException('The paid order has no event registration.');
         }
 
-        $passes = $registration->passes()->get();
+        $passes = $registration->passes()
+            ->pluck('id')
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
 
         return [
             'order' => $order->fresh(['items', 'payments']),

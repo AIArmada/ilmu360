@@ -2,8 +2,8 @@
 
 namespace App\Features\Events\Support;
 
-use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Data\ScheduleKind;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerLocationData;

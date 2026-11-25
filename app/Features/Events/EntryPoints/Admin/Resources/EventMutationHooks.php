@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Admin\Resources;
 
 use AIArmada\Addressing\Support\ModelResolver;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;

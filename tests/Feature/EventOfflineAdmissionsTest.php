@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use AIArmada\Events\States\RegistrationStatus\Confirmed;
-use AIArmada\Events\States\RegistrationStatus\Pending;
+use AIArmada\Events\Features\Registrations\States\RegistrationStatus\Confirmed;
+use AIArmada\Events\Features\Registrations\States\RegistrationStatus\Pending;
 use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Orders\Models\Order;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Filament;
 
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\FilamentEvents\Contracts\TermFormExtension;
 use App\Features\Events\Actions\Authoring\SyncEventTermDomainMappingAction;
 use App\Features\Events\Api\EventTaxonomyCode;

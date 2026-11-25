@@ -90,12 +90,12 @@ it('renames a catalog entry through the Filament edit page', function () {
     Livewire::actingAs($admin)
         ->test(EditDonationBank::class, ['record' => $bank->getRouteKey()])
         ->fillForm([
-            'name' => 'Maybank2u (retail)',
+            'name' => 'Malayan Banking Berhad (retail)',
         ])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($bank->fresh()->name)->toBe('Maybank2u (retail)');
+    expect($bank->fresh()->name)->toBe('Malayan Banking Berhad (retail)');
 });
 
 it('rejects duplicate codes inside one country and allows them in another', function () {
@@ -221,7 +221,7 @@ it('denies catalog writes to moderators', function () {
     ], $bank))->toThrow(AuthorizationException::class)
         ->and(fn () => app(TransitionDonationBankStatusAction::class)->handle($bank, DonationBankStatus::Retired))->toThrow(AuthorizationException::class)
         ->and(fn () => app(DeleteDonationBankAction::class)->handle($bank))->toThrow(AuthorizationException::class)
-        ->and($bank->fresh()->name)->toBe('Maybank2u')
+        ->and($bank->fresh()->name)->toBe('Malayan Banking Berhad')
         ->and($bank->fresh()->status)->toBe(DonationBankStatus::Active);
 });
 

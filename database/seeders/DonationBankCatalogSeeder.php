@@ -11,21 +11,14 @@ use App\Features\DonationChannels\Models\DonationBank;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use JsonException;
 
 /**
- * Installs the initial country bank catalog for Malaysia, Indonesia and
- * Singapore.
+ * Installs the country bank catalog.
  *
- * The `donation_banks` table is the sole runtime source afterwards: this
- * seeder initializes each country once, so it never
- * overwrites administrator edits and never resurrects an entry that was
- * deliberately deleted or retired. Run it again through `db:seed` only to
- * (re)initialize a fresh install.
- *
- * Malaysia uses the FPX bank catalog shipped with the installed CHIP package
- * (the national FPX bank list rendered by the payment gateway). Retail
- * channels are exposed because donors pay from personal banking; the
- * business/b2b channel variants of the same banks are not offered.
+ * Malaysia, Indonesia and Singapore keep their curated domestic payment-rail
+ * lists. Malaysia keeps one CHIP FPX identifier per bank and uses the institution
+ * names published by Bank Negara Malaysia.
  *
  * Indonesia uses the BIC identifiers of the banks in Bank Indonesia's
  * BI-FAST participant list:
@@ -40,40 +33,59 @@ use Illuminate\Support\Str;
  * cites its source. Bank of Singapore Limited is a private bank without a
  * published FAST / GIRO bank code, so it stays out until an official
  * identifier exists.
+ *
+ * Every other country is initialized from
+ * database/seeders/data/donation-bank-catalogs.json: a filtered snapshot of
+ * the MIT-licensed SWIFT/BIC reference data (swiftbic.org 2024 community
+ * compilation, plus the PeterNotenboom/SwiftCodes 2015 archive only where the
+ * primary source has no records). The snapshot keeps active bank-like
+ * institutions, deduplicates each bank inside its country, and records its
+ * provenance in `source_url`. Territories without independent BIC records use
+ * their parent country's banking system through the catalog reader. The data
+ * is reference material for administrator review, not a payment instruction.
+ *
+ * The `donation_banks` table is the sole runtime source afterwards: this
+ * seeder initializes each country once, so it never overwrites administrator
+ * edits and never resurrects an entry that was deliberately deleted or
+ * retired. Run it again through `db:seed` only to (re)initialize a fresh
+ * install.
  */
 class DonationBankCatalogSeeder extends Seeder
 {
-    private const string CHIP_FPX_SOURCE = 'https://docs.chip-in.asia/chip-collect/overview/direct-post/fpx';
+    /**
+     * @var array<string, list<array{code: string, name: string, source_url: string}>>|null
+     */
+    private static ?array $globalCatalogs = null;
+
+    private const string MALAYSIA_SOURCE = 'https://www.bnm.gov.my/regulations/fsp-directory';
 
     private const string INDONESIA_SOURCE = 'https://www.bi.go.id/id/fungsi-utama/sistem-pembayaran/ritel/infrastruktur/Documents/List-Peserta-BI-FAST.pdf';
 
-    /**
-     * @var list<FpxBank>
-     */
-    private const array MALAYSIA_RETAIL_BANKS = [
-        FpxBank::AFFIN_BANK,
-        FpxBank::ALLIANCE_BANK,
-        FpxBank::AGRONET,
-        FpxBank::AMBANK,
-        FpxBank::BANK_ISLAM,
-        FpxBank::BANK_MUAMALAT,
-        FpxBank::BANK_RAKYAT,
-        FpxBank::BANK_OF_CHINA,
-        FpxBank::BNP_PARIBAS,
-        FpxBank::BSN,
-        FpxBank::CIMB_BANK,
-        FpxBank::CITIBANK_CORPORATE_BANKING,
-        FpxBank::DEUTSCHE_BANK,
-        FpxBank::HONG_LEONG_BANK,
-        FpxBank::HSBC_BANK,
-        FpxBank::KFH,
-        FpxBank::MAYBANK2U,
-        FpxBank::MBSB_BANK,
-        FpxBank::OCBC_BANK,
-        FpxBank::PUBLIC_BANK,
-        FpxBank::RHB_BANK,
-        FpxBank::STANDARD_CHARTERED,
-        FpxBank::UOB_BANK,
+    /** @var array<string, string> */
+    private const array MALAYSIAN_BANKS = [
+        FpxBank::AFFIN_BANK->value => 'Affin Bank Berhad',
+        FpxBank::ALLIANCE_BANK->value => 'Alliance Bank Malaysia Berhad',
+        FpxBank::AGRONET->value => 'Bank Pertanian Malaysia Berhad (Agrobank)',
+        FpxBank::AMBANK->value => 'AmBank (M) Berhad',
+        FpxBank::BANK_ISLAM->value => 'Bank Islam Malaysia Berhad',
+        FpxBank::BANK_MUAMALAT->value => 'Bank Muamalat Malaysia Berhad',
+        FpxBank::BANK_RAKYAT->value => 'Bank Kerjasama Rakyat Malaysia Berhad (Bank Rakyat)',
+        FpxBank::BANK_OF_CHINA->value => 'Bank of China (Malaysia) Berhad',
+        FpxBank::BNP_PARIBAS->value => 'BNP Paribas Malaysia Berhad',
+        FpxBank::BSN->value => 'Bank Simpanan Nasional',
+        FpxBank::CIMB_BANK->value => 'CIMB Bank Berhad',
+        FpxBank::CITIBANK_CORPORATE_BANKING->value => 'Citibank Berhad',
+        FpxBank::DEUTSCHE_BANK->value => 'Deutsche Bank (Malaysia) Berhad',
+        FpxBank::HONG_LEONG_BANK->value => 'Hong Leong Bank Berhad',
+        FpxBank::HSBC_BANK->value => 'HSBC Bank Malaysia Berhad',
+        FpxBank::KFH->value => 'Kuwait Finance House (Malaysia) Berhad',
+        FpxBank::MAYBANK2U->value => 'Malayan Banking Berhad',
+        FpxBank::MBSB_BANK->value => 'MBSB Bank Berhad',
+        FpxBank::OCBC_BANK->value => 'OCBC Bank (Malaysia) Berhad',
+        FpxBank::PUBLIC_BANK->value => 'Public Bank Berhad',
+        FpxBank::RHB_BANK->value => 'RHB Bank Berhad',
+        FpxBank::STANDARD_CHARTERED->value => 'Standard Chartered Bank Malaysia Berhad',
+        FpxBank::UOB_BANK->value => 'United Overseas Bank (Malaysia) Berhad',
     ];
 
     /**
@@ -234,20 +246,92 @@ class DonationBankCatalogSeeder extends Seeder
     public function run(): void
     {
         $catalogs = [
-            'MY' => $this->malaysianBanks(),
+            'MY' => $this->withSource(self::MALAYSIAN_BANKS, self::MALAYSIA_SOURCE),
             'ID' => $this->withSource(self::INDONESIA_BANKS, self::INDONESIA_SOURCE),
             'SG' => $this->singaporeanBanks(),
         ];
 
-        foreach ($catalogs as $iso2 => $entries) {
-            $country = AddressCountry::query()->where('iso2', $iso2)->first();
+        foreach ($this->globalCatalogs() as $iso2 => $entries) {
+            $catalogs[$iso2] ??= $entries;
+        }
 
-            if (! $country instanceof AddressCountry) {
+        $countryIds = AddressCountry::query()
+            ->whereIn('iso2', array_keys($catalogs))
+            ->pluck('id', 'iso2');
+
+        foreach ($catalogs as $iso2 => $entries) {
+            $countryId = $countryIds->get($iso2);
+
+            if (! is_string($countryId)) {
                 continue;
             }
 
-            $this->seedCountry((string) $country->getKey(), $entries);
+            $this->seedCountry($countryId, $entries);
         }
+    }
+
+    /**
+     * @return array<string, list<array{code: string, name: string, source_url: string}>>
+     */
+    private function globalCatalogs(): array
+    {
+        if (self::$globalCatalogs !== null) {
+            return self::$globalCatalogs;
+        }
+
+        $path = database_path('seeders/data/donation-bank-catalogs.json');
+
+        if (! is_file($path)) {
+            return self::$globalCatalogs = [];
+        }
+
+        try {
+            $payload = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return self::$globalCatalogs = [];
+        }
+
+        $countries = is_array($payload) ? ($payload['countries'] ?? null) : null;
+
+        if (! is_array($countries)) {
+            return self::$globalCatalogs = [];
+        }
+
+        $catalogs = [];
+
+        foreach ($countries as $iso2 => $catalog) {
+            if (! is_string($iso2) || ! is_array($catalog)) {
+                continue;
+            }
+
+            $sourceUrl = is_string($catalog['source_url'] ?? null) ? trim($catalog['source_url']) : '';
+            $entries = [];
+
+            foreach (($catalog['banks'] ?? []) as $bank) {
+                if (! is_array($bank)) {
+                    continue;
+                }
+
+                $code = is_string($bank['code'] ?? null) ? strtoupper(trim($bank['code'])) : '';
+                $name = is_string($bank['name'] ?? null) ? trim($bank['name']) : '';
+
+                if ($code === '' || $name === '' || $sourceUrl === '') {
+                    continue;
+                }
+
+                $entries[] = [
+                    'code' => $code,
+                    'name' => $name,
+                    'source_url' => $sourceUrl,
+                ];
+            }
+
+            if ($entries !== []) {
+                $catalogs[strtoupper($iso2)] = $entries;
+            }
+        }
+
+        return self::$globalCatalogs = $catalogs;
     }
 
     /**
@@ -265,38 +349,36 @@ class DonationBankCatalogSeeder extends Seeder
                 return;
             }
 
+            $now = now();
+            $rows = [];
+            $seenCodes = [];
+
             foreach ($entries as $entry) {
-                $bank = new DonationBank;
+                $code = strtoupper(trim((string) ($entry['code'] ?? '')));
+                $name = trim((string) ($entry['name'] ?? ''));
+                $sourceUrl = trim((string) ($entry['source_url'] ?? ''));
 
-                $bank->fill([
+                if ($code === '' || $name === '' || $sourceUrl === '' || isset($seenCodes[$code])) {
+                    continue;
+                }
+
+                $seenCodes[$code] = true;
+                $rows[] = [
+                    'id' => (string) Str::uuid(),
                     'country_id' => $countryId,
-                    'code' => $entry['code'],
-                    'name' => $entry['name'],
-                    'source_url' => $entry['source_url'],
-                    'status' => DonationBankStatus::Active,
-                ]);
+                    'code' => $code,
+                    'name' => $name,
+                    'source_url' => $sourceUrl,
+                    'status' => DonationBankStatus::Active->value,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
 
-                $bank->saveQuietly();
+            foreach (array_chunk($rows, 100) as $chunk) {
+                DB::table('donation_banks')->insert($chunk);
             }
         });
-    }
-
-    /**
-     * @return list<array{code: string, name: string, source_url: string}>
-     */
-    private function malaysianBanks(): array
-    {
-        $entries = [];
-
-        foreach (self::MALAYSIA_RETAIL_BANKS as $bank) {
-            $entries[] = [
-                'code' => $bank->value,
-                'name' => $bank->label(),
-                'source_url' => self::CHIP_FPX_SOURCE,
-            ];
-        }
-
-        return $entries;
     }
 
     /**

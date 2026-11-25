@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent\Create;
 use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;

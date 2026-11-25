@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Schedule;
 
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\EventModel;
 use App\Models\User;

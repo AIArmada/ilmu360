@@ -2,10 +2,10 @@
 
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Enums\EventRegistrationQuestionStatus;
-use AIArmada\Events\Enums\EventRegistrationQuestionType;
-use AIArmada\Events\Models\EventRegistrationQuestion;
-use AIArmada\Events\States\RegistrationStatus\Confirmed;
+use AIArmada\Events\Data\EventRegistrationQuestionStatus;
+use AIArmada\Events\Data\EventRegistrationQuestionType;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationQuestion;
+use AIArmada\Events\Features\Registrations\States\RegistrationStatus\Confirmed;
 use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Seating\Enums\SeatingMode;

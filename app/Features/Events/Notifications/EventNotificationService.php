@@ -2,7 +2,7 @@
 
 namespace App\Features\Events\Notifications;
 
-use AIArmada\Events\Models\EventSubmission;
+use AIArmada\Events\Features\Governance\Models\EventSubmission;
 use App\Features\Communications\Api\InAppNotificationPayload;
 use App\Features\Communications\Api\NotificationCadence;
 use App\Features\Communications\Api\NotificationCatalog;

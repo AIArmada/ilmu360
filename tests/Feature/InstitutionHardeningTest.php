@@ -1,8 +1,8 @@
 <?php
 
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\FacilityType;
-use AIArmada\Events\Models\VenueFacility;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\FacilityType;
+use AIArmada\Events\Features\Venues\Models\VenueFacility;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;

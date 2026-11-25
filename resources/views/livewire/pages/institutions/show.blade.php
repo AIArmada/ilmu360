@@ -780,10 +780,6 @@
                                                     </button>
                                                 </div>
                                             @endif
-
-                                            @if(filled($channel->reference_note))
-                                                <p class="text-xs leading-5 text-slate-500">{{ __('Rujukan') }}: <span class="font-semibold text-slate-700">{{ $channel->reference_note }}</span></p>
-                                            @endif
                                         </div>
 
                                         @if(filled($qrThumb))

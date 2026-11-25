@@ -9,7 +9,7 @@ use App\Features\DonationChannels\Models\DonationBank;
 use App\Features\Institutions\Models\Institution;
 use Illuminate\Validation\ValidationException;
 
-function bankCatalogForeignInstitution(string $iso2 = 'US', string $name = 'United States'): Institution
+function bankCatalogForeignInstitution(string $iso2 = 'AQ', string $name = 'Antarctica'): Institution
 {
     $country = ensureTestAddressCountry($iso2, $name);
     seedDonationBankCatalogForTests();
@@ -33,11 +33,89 @@ it('exposes the malaysia bank catalogue without routing codes and identifies unc
     expect($malaysia->country_code)->toBe('MY')
         ->and($malaysia->covers())->toBeTrue()
         ->and($malaysia->options())->toHaveKey('MB2U0227')
-        ->and($malaysia->name('mb2u0227'))->toBe('Maybank2u')
+        ->and($malaysia->name('mb2u0227'))->toBe('Malayan Banking Berhad')
+        ->and($malaysia->name('MBSB001'))->toBe('MBSB Bank Berhad')
+        ->and($malaysia->name('AGRO01'))->toBe('Bank Pertanian Malaysia Berhad (Agrobank)')
         ->and($malaysia->has('NOT-A-BANK'))->toBeFalse()
         ->and($malaysia->supports_routing_codes)->toBeFalse()
-        ->and($catalogs->forCountryCode('US')->covers())->toBeFalse()
+        ->and($catalogs->forCountryCode('AQ')->covers())->toBeFalse()
         ->and($catalogs->forCountryCode(null)->covers())->toBeFalse();
+});
+
+it('ships a sourced bank catalogue for countries beyond the curated payment rails', function () {
+    $path = database_path('seeders/data/donation-bank-catalogs.json');
+
+    expect($path)->toBeFile();
+
+    $payload = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+    $countries = $payload['countries'] ?? [];
+
+    expect($payload['meta']['license'] ?? null)->toBe('MIT')
+        ->and(count($countries))->toBeGreaterThan(200)
+        ->and($countries)->toHaveKeys(['US', 'GB', 'DE', 'NG', 'RU', 'AF'])
+        ->and($countries)->not->toHaveKeys(['MY', 'ID', 'SG']);
+
+    $duplicates = [];
+    $invalid = [];
+
+    foreach ($countries as $iso2 => $catalog) {
+        if (! is_string($catalog['source_url'] ?? null) || $catalog['source_url'] === '') {
+            $invalid[] = "{$iso2}:missing-source";
+        }
+
+        $seen = [];
+
+        foreach (($catalog['banks'] ?? []) as $bank) {
+            $code = is_string($bank['code'] ?? null) ? $bank['code'] : '';
+            $name = is_string($bank['name'] ?? null) ? $bank['name'] : '';
+
+            if ($code === '' || $name === '' || mb_strlen($name) > 255 || preg_match('/^[A-Z0-9]{8,11}$/', $code) !== 1) {
+                $invalid[] = "{$iso2}:{$code}";
+
+                continue;
+            }
+
+            if (isset($seen[$code])) {
+                $duplicates[] = "{$iso2}:{$code}";
+            }
+
+            $seen[$code] = true;
+        }
+    }
+
+    expect($duplicates)->toBeEmpty()
+        ->and($invalid)->toBeEmpty();
+});
+
+it('seeds global catalogues outside the curated payment rails and leaves uncovered countries empty', function () {
+    ensureTestAddressCountry('US', 'United States');
+    ensureTestAddressCountry('GB', 'United Kingdom');
+    ensureTestAddressCountry('AQ', 'Antarctica');
+    seedDonationBankCatalogForTests();
+
+    $catalogs = app(DonationBankCatalogs::class);
+
+    expect($catalogs->forCountryCode('US')->covers())->toBeTrue()
+        ->and(count($catalogs->forCountryCode('US')->options()))->toBeGreaterThan(100)
+        ->and($catalogs->forCountryCode('GB')->covers())->toBeTrue()
+        ->and($catalogs->forCountryCode('AQ')->covers())->toBeFalse();
+});
+
+it('falls back to the parent banking system for territories without their own catalog', function () {
+    ensureTestAddressCountry('FI', 'Finland');
+    ensureTestAddressCountry('AX', 'Aland');
+    ensureTestAddressCountry('IT', 'Italy');
+    ensureTestAddressCountry('VA', 'Vatican City');
+    seedDonationBankCatalogForTests();
+
+    $catalogs = app(DonationBankCatalogs::class);
+
+    expect($catalogs->forCountryCode('AX')->covers())->toBeTrue()
+        ->and($catalogs->forCountryCode('AX')->country_code)->toBe('AX')
+        ->and($catalogs->forCountryCode('AX')->name('AABAFI22'))->toBe('Bank of Aland')
+        ->and($catalogs->forCountryCode('VA')->covers())->toBeTrue()
+        ->and($catalogs->forCountryCode('VA')->country_code)->toBe('VA')
+        ->and($catalogs->forCountryCode('VA')->name('ALLFITMM'))->toBe('Allfunds Bank');
 });
 
 it('exposes the indonesian and singapore catalogues with their routing codes', function () {
@@ -92,7 +170,7 @@ it('derives the stored bank name from the selected catalogue bank', function () 
     ]);
 
     expect($channel->bank_code)->toBe('MB2U0227')
-        ->and($channel->bank_name)->toBe('Maybank2u')
+        ->and($channel->bank_name)->toBe('Malayan Banking Berhad')
         ->and($channel->currency)->toBe('MYR');
 });
 
@@ -105,11 +183,11 @@ it('accepts a supplied bank name that matches the catalogue name', function () {
         'recipient' => 'Masjid Al-Hidayah',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'maybank2u',
+        'bank_name' => 'malayan banking berhad',
         'account_number' => '123456789',
     ]);
 
-    expect($channel->bank_name)->toBe('Maybank2u');
+    expect($channel->bank_name)->toBe('Malayan Banking Berhad');
 });
 
 it('rejects a supplied bank name that does not match the selected bank', function () {
@@ -146,7 +224,7 @@ it('rejects a bank account for an owner in a country without catalogue coverage'
 
     $profile = app(DonationChannelCountryProfiles::class)->forOwner($institution);
 
-    expect($profile->country_code)->toBe('US')
+    expect($profile->country_code)->toBe('AQ')
         ->and($profile->methods)->toBeEmpty()
         ->and($profile->banks->covers())->toBeFalse()
         ->and($profile->supports_routing_codes)->toBeFalse()
@@ -194,7 +272,7 @@ it('keeps the stored bank while the bank name is derived on updates', function (
     ], $channel);
 
     expect($updated->bank_code)->toBe('MB2U0227')
-        ->and($updated->bank_name)->toBe('Maybank2u');
+        ->and($updated->bank_name)->toBe('Malayan Banking Berhad');
 });
 
 it('accepts a foreign catalogue bank and stores its routing code', function () {
@@ -283,7 +361,7 @@ it('removes a retired bank from new selection while keeping the stored channel p
     ], $channel);
 
     expect($updated->bank_code)->toBe('MB2U0227')
-        ->and($updated->bank_name)->toBe('Maybank2u')
+        ->and($updated->bank_name)->toBe('Malayan Banking Berhad')
         ->and($updated->status)->toBe(DonationChannelStatus::Verified)
         ->and($institution->fresh()->donationChannels()->count())->toBe(1);
 });

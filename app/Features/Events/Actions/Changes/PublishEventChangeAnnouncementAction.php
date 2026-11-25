@@ -2,6 +2,7 @@
 
 namespace App\Features\Events\Actions\Changes;
 
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\EventAuthoring;
 use App\Features\Events\Api\EventChangePublisher;
@@ -321,8 +322,9 @@ final readonly class PublishEventChangeAnnouncementAction implements EventChange
         }
 
         $snapshot = trim((string) ($location->space_name_snapshot ?? ''));
+        $space = $location->venueSpace;
 
-        return $snapshot !== '' ? $snapshot : $location->venueSpace?->name;
+        return $snapshot !== '' ? $snapshot : ($space instanceof VenueSpace ? $space->name : null);
     }
 
     /** @return array<string, mixed> */

@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use AIArmada\Events\Models\EventRole;
+use AIArmada\Events\Features\Catalog\Models\EventRole;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;

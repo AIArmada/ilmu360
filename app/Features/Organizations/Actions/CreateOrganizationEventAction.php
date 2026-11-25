@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Organizations\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Data\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Api\AdmissionEventCreator;

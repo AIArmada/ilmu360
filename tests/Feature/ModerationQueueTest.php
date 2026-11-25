@@ -1,12 +1,15 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Enums\EventEscalationType;
-use AIArmada\Events\Models\EventEscalation;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSubmission;
+use AIArmada\Events\Data\EventEscalationType;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Governance\Models\EventEscalation;
+use AIArmada\Events\Features\Governance\Models\EventSubmission;
+use App\Features\Events\Api\EventModeration;
 use App\Features\Events\EntryPoints\Filament\Pages\ModerationQueue;
+use App\Features\Events\EntryPoints\Filament\Resources\Events\Pages\ViewEvent;
 use App\Features\Events\Models\Event;
+use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
@@ -15,7 +18,10 @@ use App\Features\Reports\Models\Report;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Facades\Filament;
 use Livewire\Livewire;
+use Mockery\MockInterface;
+use Spatie\ModelStates\Exceptions\TransitionNotFound;
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -314,4 +320,222 @@ it('runs moderation queue actions through the events moderation boundary', funct
         ->assertHasNoTableActionErrors();
 
     expect((string) $event->fresh()->status)->toBe('approved');
+});
+
+it('shows all speakers verified when every linked speaker is verified', function () {
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $venue = Venue::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    $event = Event::factory()->create([
+        'status' => 'pending',
+        'institution_id' => $institution->id,
+        'default_venue_id' => $venue->id,
+    ]);
+    $event->persons()->attach($person);
+
+    $this->actingAs($moderator)
+        ->get('/admin/moderation-queue')
+        ->assertSuccessful()
+        ->assertSee('Persons Status')
+        ->assertSee('All verified')
+        ->assertDontSee('needs review');
+});
+
+it('allows admin role users to moderate and auto-verifies pending related records', function () {
+    $administrator = User::factory()->create();
+    $administrator->assignRole('admin');
+
+    $this->actingAs($administrator)
+        ->get('/admin/moderation-queue')
+        ->assertSuccessful();
+
+    $pendingPerson = Person::factory()->create(['status' => 'pending']);
+    $pendingInstitution = Institution::factory()->create(['status' => 'pending']);
+    $event = Event::factory()->create([
+        'status' => 'pending',
+        'institution_id' => $pendingInstitution->id,
+    ]);
+    $event->persons()->attach($pendingPerson);
+
+    Livewire::actingAs($administrator)
+        ->test(ModerationQueue::class)
+        ->callTableAction('approve', $event, data: ['note' => 'Approved by admin.'])
+        ->assertHasNoTableActionErrors()
+        ->assertNotified('Event approved');
+
+    expect((string) $event->fresh()->status)->toBe('approved')
+        ->and($pendingPerson->fresh()->status)->toBe('verified')
+        ->and($pendingInstitution->fresh()->status)->toBe(InstitutionStatus::Verified);
+});
+
+it('requests changes and rejects events through the moderation queue with notifications', function (): void {
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $needsChangesEvent = Event::factory()->create(['status' => 'pending']);
+    $rejectedEvent = Event::factory()->create(['status' => 'pending']);
+
+    $component = Livewire::actingAs($moderator)->test(ModerationQueue::class);
+
+    $component
+        ->callTableAction('needs_changes', $needsChangesEvent, data: [
+            'reason_code' => 'incomplete_info',
+            'note' => 'Please add speaker details.',
+        ])
+        ->assertNotified('Changes requested');
+
+    $component
+        ->callTableAction('reject', $rejectedEvent, data: [
+            'reason_code' => 'spam',
+            'note' => 'This is spam.',
+        ])
+        ->assertNotified('Event rejected');
+
+    expect((string) $needsChangesEvent->fresh()->status)->toBe('needs_changes')
+        ->and((string) $rejectedEvent->fresh()->status)->toBe('rejected');
+});
+
+it('reviews occurrence submissions through the moderation queue with notifications', function (): void {
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $event = Event::factory()->create(['status' => 'approved']);
+    $occurrence = EventOccurrence::factory()->create([
+        'event_id' => $event->getKey(),
+        'status' => 'draft',
+        'visibility' => 'private',
+    ]);
+    $submission = EventSubmission::query()->create([
+        'event_id' => $event->getKey(),
+        'event_occurrence_id' => $occurrence->getKey(),
+        'event_session_id' => null,
+        'status' => 'pending',
+        'submitted_at' => now(),
+    ]);
+
+    Livewire::actingAs($moderator)
+        ->test(ModerationQueue::class)
+        ->call('setActiveTab', 'pending_occurrences')
+        ->assertTableColumnExists('submission_kind')
+        ->callTableAction('approve_occurrence', $submission->getKey(), data: ['note' => 'Looks good.'])
+        ->assertNotified(__('Occurrence approved'));
+
+    expect((string) $submission->fresh()->status)->toBe('approved');
+});
+
+it('moderates events from the view page through the events boundary', function (): void {
+    Filament::setCurrentPanel('admin');
+
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $pendingEvent = Event::factory()->create(['status' => 'pending']);
+
+    Livewire::actingAs($moderator)
+        ->test(ViewEvent::class, ['record' => $pendingEvent->getRouteKey()])
+        ->callAction('approve', ['note' => 'Approved from the view page.'])
+        ->assertNotified('Event approved');
+
+    expect((string) $pendingEvent->fresh()->status)->toBe('approved');
+
+    $toReject = Event::factory()->create(['status' => 'pending']);
+
+    Livewire::actingAs($moderator)
+        ->test(ViewEvent::class, ['record' => $toReject->getRouteKey()])
+        ->callAction('reject', ['reason_code' => 'spam', 'note' => 'Not acceptable.'])
+        ->assertNotified('Event rejected');
+
+    expect((string) $toReject->fresh()->status)->toBe('rejected');
+
+    $toCancel = Event::factory()->create(['status' => 'approved']);
+
+    Livewire::actingAs($moderator)
+        ->test(ViewEvent::class, ['record' => $toCancel->getRouteKey()])
+        ->callAction('cancel', ['note' => 'Venue closed.'])
+        ->assertNotified('Event cancelled');
+
+    expect((string) $toCancel->fresh()->status)->toBe('cancelled');
+});
+
+it('shows a danger notification when a moderation action no longer matches the event state', function (): void {
+    Filament::setCurrentPanel('admin');
+
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $event = Event::factory()->create(['status' => 'pending']);
+
+    $this->mock(EventModeration::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('approve')
+            ->once()
+            ->andThrow(TransitionNotFound::make('approved', 'approved', Event::class));
+    });
+
+    Livewire::actingAs($moderator)
+        ->test(ViewEvent::class, ['record' => $event->getRouteKey()])
+        ->callAction('approve', ['note' => 'Stale moderation attempt.'])
+        ->assertNotified(__('This event is no longer in a state that allows this action. Please refresh to see its current status.'));
+
+    expect((string) $event->fresh()->status)->toBe('pending');
+});
+
+it('reverts a cancelled event to draft through the events boundary', function (): void {
+    Filament::setCurrentPanel('admin');
+
+    $moderator = User::factory()->create();
+    $moderator->assignRole('moderator');
+
+    $event = Event::factory()->create([
+        'status' => 'cancelled',
+        'cancelled_at' => now(),
+    ]);
+
+    Livewire::actingAs($moderator)
+        ->test(ViewEvent::class, ['record' => $event->getRouteKey()])
+        ->assertActionVisible('revert_to_draft')
+        ->callAction('revert_to_draft', ['note' => 'Bringing this back for edits.'])
+        ->assertNotified('Event reverted to draft');
+
+    expect((string) $event->fresh()->status)->toBe('draft');
+});
+
+it('does not count initial pending-event occurrence submissions in the queue badge', function (): void {
+    $pendingEvent = Event::factory()->create(['status' => 'pending']);
+    $approvedEvent = Event::factory()->create(['status' => 'approved']);
+
+    $pendingOccurrence = EventOccurrence::factory()->create([
+        'event_id' => $pendingEvent->getKey(),
+        'status' => 'draft',
+        'visibility' => 'private',
+    ]);
+
+    EventSubmission::query()->create([
+        'event_id' => $pendingEvent->getKey(),
+        'event_occurrence_id' => $pendingOccurrence->getKey(),
+        'event_session_id' => null,
+        'status' => 'pending',
+        'submitted_at' => now(),
+    ]);
+
+    $reviewableOccurrence = EventOccurrence::factory()->create([
+        'event_id' => $approvedEvent->getKey(),
+        'status' => 'draft',
+        'visibility' => 'private',
+    ]);
+
+    EventSubmission::query()->create([
+        'event_id' => $approvedEvent->getKey(),
+        'event_occurrence_id' => $reviewableOccurrence->getKey(),
+        'event_session_id' => null,
+        'status' => 'pending',
+        'submitted_at' => now(),
+    ]);
+
+    ModerationQueue::flushNavigationBadgeCache();
+
+    expect(ModerationQueue::getNavigationBadge())->toBe('2');
 });

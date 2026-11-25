@@ -8,8 +8,8 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\ReversedConversion;
 use AIArmada\Events\Contracts\RegistrationServiceInterface;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\FilamentAffiliates\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
@@ -1102,7 +1102,7 @@ test('registration refunds reverse attributed registration and check-in outcomes
     expect($registrationConversion->sharer_user_id)->toBe($this->sharer->getKey())
         ->and($checkinConversion->sharer_user_id)->toBe($this->sharer->getKey());
 
-    app(RegistrationServiceInterface::class)->refund($registration, 'Customer refund');
+    app(RegistrationServiceInterface::class)->refund((string) $registration->getKey(), 'Customer refund');
 
     expect($registrationConversion->fresh()->status)->toBeInstanceOf(ReversedConversion::class)
         ->and($checkinConversion->fresh()->status)->toBeInstanceOf(ReversedConversion::class);

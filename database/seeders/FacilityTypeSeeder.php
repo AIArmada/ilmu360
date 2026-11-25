@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use AIArmada\Events\Models\FacilityType;
+use AIArmada\Events\Features\Venues\Models\FacilityType;
 use Illuminate\Database\Seeder;
 
 class FacilityTypeSeeder extends Seeder

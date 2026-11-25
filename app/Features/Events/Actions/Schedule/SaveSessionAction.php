@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Schedule;
 
-use AIArmada\Events\Actions\CreateEventSessionAction;
-use AIArmada\Events\Actions\UpdateEventSessionAction;
-use AIArmada\Events\Models\Event;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;
+use AIArmada\Events\Features\Catalog\Actions\UpdateEventSessionAction;
+use AIArmada\Events\Features\Catalog\Models\Event;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**

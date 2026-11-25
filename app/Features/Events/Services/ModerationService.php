@@ -2,6 +2,7 @@
 
 namespace App\Features\Events\Services;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\States\EventStatus\Approved;
@@ -10,7 +11,6 @@ use App\Features\Events\States\EventStatus\Draft;
 use App\Features\Events\States\EventStatus\NeedsChanges;
 use App\Features\Events\States\EventStatus\Pending;
 use App\Features\Events\States\EventStatus\Rejected;
-use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;
 use App\Features\ShareTracking\Api\ShareOutcomeReversals;
 use App\Models\User;
@@ -20,12 +20,15 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Moderation Service per documentation B4 and B4a.
+ *
+ * Every transition locks the canonical event row inside an explicit-global
+ * owner context, so concurrent moderator clicks cannot double-transition a
+ * record and owner-scoped models always resolve.
  */
 class ModerationService
 {
     public function __construct(
         private readonly ShareOutcomeReversals $reverseShareOutcome,
-        private readonly ParticipationOutcomeReversals $participationOutcomeReversals,
         private readonly SignalRecorder $signals,
     ) {}
 
@@ -35,8 +38,10 @@ class ModerationService
     public function submitForModeration(Event $event): void
     {
         $previousStatus = (string) $event->status;
-        $event->status->transitionTo(Pending::class);
-        $event->refresh();
+
+        $this->transition($event, function (Event $lockedEvent): void {
+            $lockedEvent->status->transitionTo(Pending::class);
+        });
 
         $this->recordModerationSignal($event, 'submitted', previousStatus: $previousStatus);
     }
@@ -50,8 +55,10 @@ class ModerationService
         ?string $note = null
     ): void {
         $previousStatus = (string) $event->status;
-        $event->status->transitionTo(Approved::class, $moderator, $note);
-        $event->refresh();
+
+        $this->transition($event, function (Event $lockedEvent) use ($moderator, $note): void {
+            $lockedEvent->status->transitionTo(Approved::class, $moderator, $note);
+        });
 
         $this->recordModerationSignal($event, 'approved', $moderator, $previousStatus, note: $note);
     }
@@ -66,8 +73,10 @@ class ModerationService
         ?string $note = null
     ): void {
         $previousStatus = (string) $event->status;
-        $event->status->transitionTo(NeedsChanges::class, $moderator, $reasonCode, $note);
-        $event->refresh();
+
+        $this->transition($event, function (Event $lockedEvent) use ($moderator, $reasonCode, $note): void {
+            $lockedEvent->status->transitionTo(NeedsChanges::class, $moderator, $reasonCode, $note);
+        });
 
         $this->recordModerationSignal($event, 'needs_changes_requested', $moderator, $previousStatus, $reasonCode, $note);
     }
@@ -88,12 +97,11 @@ class ModerationService
     ): void {
         $previousStatus = (string) $event->status;
 
-        DB::transaction(function () use ($event, $moderator, $reasonCode, $note): void {
-            $event->status->transitionTo(Rejected::class, $moderator, $reasonCode, $note);
-            $event->refresh();
+        $this->transition($event, function (Event $lockedEvent) use ($moderator, $reasonCode, $note): void {
+            $lockedEvent->status->transitionTo(Rejected::class, $moderator, $reasonCode, $note);
 
             EventSubmission::query()
-                ->where('event_id', $event->getKey())
+                ->where('event_id', $lockedEvent->getKey())
                 ->whereNull('event_session_id')
                 ->lockForUpdate()
                 ->pluck('id')
@@ -114,8 +122,8 @@ class ModerationService
      *
      * Cancellation preserves history — source rows and frozen receipts
      * stay — but the event's participation outcomes no longer qualify:
-     * registrations and check-ins reverse in the same transaction as the
-     * canonical status transition, cancelling pending effects. Event
+     * registrations and check-ins reverse inside the canonical status
+     * transition (see CancelEvent), cancelling pending effects. Event
      * contributions such as submissions keep their own qualification.
      */
     public function cancel(
@@ -125,16 +133,8 @@ class ModerationService
     ): void {
         $previousStatus = (string) $event->status;
 
-        DB::transaction(function () use ($event, $moderator, $note): void {
-            $event->status->transitionTo(Cancelled::class, $moderator, $note);
-            $event->refresh();
-
-            $this->participationOutcomeReversals->reverse(
-                'event',
-                (string) $event->getKey(),
-                $moderator instanceof User ? (string) $moderator->getKey() : null,
-                'event_cancelled',
-            );
+        $this->transition($event, function (Event $lockedEvent) use ($moderator, $note): void {
+            $lockedEvent->status->transitionTo(Cancelled::class, $moderator, $note);
         });
 
         $this->recordModerationSignal($event, 'cancelled', $moderator, $previousStatus, note: $note);
@@ -149,8 +149,10 @@ class ModerationService
         ?string $note = null
     ): void {
         $previousStatus = (string) $event->status;
-        $event->status->transitionTo(Pending::class, $moderator, $note);
-        $event->refresh();
+
+        $this->transition($event, function (Event $lockedEvent) use ($moderator, $note): void {
+            $lockedEvent->status->transitionTo(Pending::class, $moderator, $note);
+        });
 
         $this->recordModerationSignal($event, 'reconsidered', $moderator, $previousStatus, note: $note);
     }
@@ -164,8 +166,10 @@ class ModerationService
         ?string $note = null
     ): void {
         $previousStatus = (string) $event->status;
-        $event->status->transitionTo(Draft::class, $moderator, $note);
-        $event->refresh();
+
+        $this->transition($event, function (Event $lockedEvent) use ($moderator, $note): void {
+            $lockedEvent->status->transitionTo(Draft::class, $moderator, $note);
+        });
 
         $this->recordModerationSignal($event, 'reverted_to_draft', $moderator, $previousStatus, note: $note);
     }
@@ -180,10 +184,34 @@ class ModerationService
         ?string $reasonCode = null,
     ): void {
         $previousStatus = (string) $event->status;
-        $event->status->transitionTo(Pending::class, $moderator, $note, $reasonCode);
-        $event->refresh();
+
+        $this->transition($event, function (Event $lockedEvent) use ($moderator, $note, $reasonCode): void {
+            $lockedEvent->status->transitionTo(Pending::class, $moderator, $note, $reasonCode);
+        });
 
         $this->recordModerationSignal($event, 'remoderated', $moderator, $previousStatus, $reasonCode, $note);
+    }
+
+    /**
+     * Run a status transition against the locked canonical row.
+     *
+     * @param  callable(Event): void  $transition
+     */
+    private function transition(Event $event, callable $transition): void
+    {
+        OwnerContext::withOwner(null, function () use ($event, $transition): void {
+            DB::transaction(function () use ($event, $transition): void {
+                $lockedEvent = Event::query()
+                    ->withoutOwnerScope()
+                    ->whereKey($event->getKey())
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $transition($lockedEvent);
+            });
+        });
+
+        $event->refresh();
     }
 
     private function recordModerationSignal(

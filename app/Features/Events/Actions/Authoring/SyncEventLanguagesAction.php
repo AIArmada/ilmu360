@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventLanguage;
+use AIArmada\Events\Features\Catalog\Models\EventLanguage;
 use App\Features\Events\Support\EventModel;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Model;

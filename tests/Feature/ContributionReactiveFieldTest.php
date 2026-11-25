@@ -1,11 +1,13 @@
 <?php
 
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitPerson;
+use App\Models\User;
 use Filament\Forms\Components\TextInput;
 use Livewire\Livewire;
 
 it('normalizes social media handles only after the field loses focus', function (): void {
-    $component = Livewire::test(SubmitPerson::class)
+    $component = Livewire::actingAs(User::factory()->create())
+        ->test(SubmitPerson::class)
         ->set('data.social_media', [[
             'platform' => 'facebook',
             'handle' => 'ilmu360',

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Series;
 
-use AIArmada\Events\Models\EventSeries;
+use AIArmada\Events\Features\Catalog\Models\EventSeries;
 use App\Features\Events\Support\EventModel;
 use App\Platform\Media\MediaCollectionSync;
 use Illuminate\Http\UploadedFile;

@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LogicException;
 use Spatie\ModelStates\Transition;
+use Throwable;
 
 class RejectEvent extends Transition implements HasColor, HasIcon, HasLabel
 {
@@ -58,17 +59,38 @@ class RejectEvent extends Transition implements HasColor, HasIcon, HasLabel
             ]);
             $this->event->resolveEscalations();
 
-            // Remove from search
-            $this->event->unsearchable();
+            $event = $this->event;
+            $reviewNotes = $review->notes;
+            $moderatorId = $moderator->id;
 
-            // Notify submitter
-            app(EventNotificationService::class)->notifySubmissionRejected($this->event, $review->notes);
+            // External effects only run once the surrounding transaction commits,
+            // so a rolled-back rejection never indexes, notifies, or logs. Each
+            // effect is contained individually so one failure cannot mask others.
+            DB::afterCommit(function () use ($event, $reviewNotes, $moderatorId, $reasonCode): void {
+                try {
+                    $event->unsearchable();
+                } catch (Throwable $exception) {
+                    Log::warning('Search index removal failed after rejection.', [
+                        'event_id' => (string) $event->getKey(),
+                        'exception' => $exception,
+                    ]);
+                }
 
-            Log::info('Event rejected', [
-                'event_id' => $this->event->id,
-                'moderator_id' => $moderator->id,
-                'reason_code' => $reasonCode,
-            ]);
+                try {
+                    app(EventNotificationService::class)->notifySubmissionRejected($event, $reviewNotes);
+                } catch (Throwable $exception) {
+                    Log::warning('Submission-rejected notification failed after rejection.', [
+                        'event_id' => (string) $event->getKey(),
+                        'exception' => $exception,
+                    ]);
+                }
+
+                Log::info('Event rejected', [
+                    'event_id' => $event->id,
+                    'moderator_id' => $moderatorId,
+                    'reason_code' => $reasonCode,
+                ]);
+            });
 
             return $this->event;
         });

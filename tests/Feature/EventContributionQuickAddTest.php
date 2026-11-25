@@ -1,9 +1,12 @@
 <?php
 
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
-use App\Features\Contributions\EntryPoints\Filament\Forms\EventContributionFormSchema;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Events\Api\EventTaxonomyCode;
+use App\Features\Events\Api\Filament\EventContributionFormContext;
+use App\Features\Events\Api\Filament\EventContributionFormMode;
+use App\Features\Events\Api\Filament\EventContributionFormSchema;
+use App\Features\Events\Support\EventContributionFormRules;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
@@ -54,9 +57,24 @@ function flattenEventContributionComponents(array $components): array
     return $flattened;
 }
 
+function eventContributionUpdateComponents(): array
+{
+    $schema = app(EventContributionFormSchema::class);
+    $context = new EventContributionFormContext(mode: EventContributionFormMode::Update);
+
+    return [
+        ...$schema->topicComponents($context),
+        ...$schema->scheduleComponents($context),
+        ...$schema->attendanceComponents($context),
+        ...$schema->organizerComponents($context),
+        ...$schema->locationComponents($context),
+        ...$schema->speakerComponents($context),
+    ];
+}
+
 function eventContributionSelect(string $name): Select
 {
-    $select = collect(flattenEventContributionComponents(EventContributionFormSchema::components()))
+    $select = collect(flattenEventContributionComponents(eventContributionUpdateComponents()))
         ->first(fn (mixed $component): bool => $component instanceof Select && $component->getName() === $name);
 
     expect($select)->toBeInstanceOf(Select::class);
@@ -144,10 +162,8 @@ it('creates pending tags from event update quick-add actions', function () {
 });
 
 it('keeps sebelum maghrib available outside ramadhan while restricting selepas tarawih', function (): void {
-    $method = new ReflectionMethod(EventContributionFormSchema::class, 'eventPrayerTimeOptions');
-
-    $outsideRamadhan = $method->invoke(null, '2027-03-20', 'Asia/Kuala_Lumpur');
-    $duringRamadhan = $method->invoke(null, '2027-02-20', 'Asia/Kuala_Lumpur');
+    $outsideRamadhan = EventContributionFormRules::prayerTimeOptions('2027-03-20', 'Asia/Kuala_Lumpur');
+    $duringRamadhan = EventContributionFormRules::prayerTimeOptions('2027-02-20', 'Asia/Kuala_Lumpur');
 
     expect($outsideRamadhan)
         ->toHaveKey(EventPrayerTime::SebelumMaghrib->value)
@@ -158,11 +174,9 @@ it('keeps sebelum maghrib available outside ramadhan while restricting selepas t
 });
 
 it('swaps zuhur for the jumaat pair on friday', function (): void {
-    $method = new ReflectionMethod(EventContributionFormSchema::class, 'eventPrayerTimeOptions');
-
     // 2026-10-02 is a Friday; 2026-10-03 is a Saturday.
-    $friday = $method->invoke(null, '2026-10-02', 'Asia/Kuala_Lumpur');
-    $saturday = $method->invoke(null, '2026-10-03', 'Asia/Kuala_Lumpur');
+    $friday = EventContributionFormRules::prayerTimeOptions('2026-10-02', 'Asia/Kuala_Lumpur');
+    $saturday = EventContributionFormRules::prayerTimeOptions('2026-10-03', 'Asia/Kuala_Lumpur');
 
     expect($friday)
         ->not->toHaveKey(EventPrayerTime::SelepasZuhur->value)

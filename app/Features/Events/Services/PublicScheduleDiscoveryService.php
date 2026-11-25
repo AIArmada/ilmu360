@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder;
@@ -303,7 +303,9 @@ final readonly class PublicScheduleDiscoveryService
             foreach ($event->occurrences as $occurrence) {
                 if ($occurrence->relationLoaded('locations')) {
                     foreach ($occurrence->locations as $location) {
-                        $locations->push($location);
+                        if ($location instanceof EventLocation) {
+                            $locations->push($location);
+                        }
                     }
                 }
 
@@ -317,7 +319,9 @@ final readonly class PublicScheduleDiscoveryService
                     }
 
                     foreach ($session->locations as $location) {
-                        $locations->push($location);
+                        if ($location instanceof EventLocation) {
+                            $locations->push($location);
+                        }
                     }
                 }
             }

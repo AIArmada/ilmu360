@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\VenueSpaceType;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\VenueSpaceType;
 use App\Features\Events\Api\EventLocations;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\EventModel;

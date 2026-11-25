@@ -219,9 +219,6 @@ class DonationChannelForm
 
                         return 'Only one default channel is allowed for this owner.';
                     }),
-                Textarea::make('reference_note')
-                    ->label('Reference Note')
-                    ->columnSpanFull(),
             ])->columns(2);
 
         return $schema

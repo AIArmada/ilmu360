@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use AIArmada\Events\Actions\SyncEventInvolvementsAction;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Actions\SyncEventInvolvementsAction;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use Illuminate\Database\Eloquent\Model;
 
@@ -25,12 +25,22 @@ final readonly class SyncEventKeyPeopleAction
     ) {}
 
     /**
-     * @param  list<string>  $personIds
-     * @param  list<array<string, mixed>>  $otherKeyPeople
+     * @param  list<string>|null  $personIds
+     * @param  list<array<string, mixed>>|null  $otherKeyPeople
      */
-    public function syncEvent(PackageEvent $event, array $personIds = [], array $otherKeyPeople = []): void
+    public function syncEvent(PackageEvent $event, ?array $personIds = [], ?array $otherKeyPeople = []): void
     {
-        $this->syncInvolvements->handle($event, $this->normalizeRows($personIds, $otherKeyPeople), $this->managedRoleCodes());
+        $speakerRole = EventKeyPersonRole::Speaker->value;
+        $roleCodes = array_values(array_filter(
+            $this->managedRoleCodes(),
+            static fn (string $roleCode): bool => $roleCode === $speakerRole ? $personIds !== null : $otherKeyPeople !== null,
+        ));
+
+        if ($roleCodes === []) {
+            return;
+        }
+
+        $this->syncInvolvements->handle($event, $this->normalizeRows($personIds ?? [], $otherKeyPeople ?? []), $roleCodes);
 
         $this->generateEventSlug->syncEventSlug($event);
     }

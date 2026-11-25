@@ -3,12 +3,14 @@
 namespace App\Features\Events\Models;
 
 use AIArmada\Contacting\Concerns\HasContactMethods;
-use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
+use AIArmada\Events\Features\Governance\Models\EventSubmission as PackageEventSubmission;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\EventSubmissionFactory;
 use OwenIt\Auditing\Contracts\Auditable;
 
-/** @extends PackageEventSubmission<Event> */
+/**
+ * @property-read Event|null $event
+ */
 class EventSubmission extends PackageEventSubmission implements Auditable
 {
     use AuditsModelChanges, HasContactMethods;

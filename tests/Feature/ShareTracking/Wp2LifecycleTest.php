@@ -22,9 +22,9 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Contracts\RegistrationServiceInterface;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
-use AIArmada\Events\Steps\CreateEventRegistrationsStep;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Commerce\EntryPoints\Checkout\CreateEventRegistrationsStep;
 use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
@@ -475,8 +475,8 @@ it('reverses registration outcomes on cancel and reject through the lifecycle li
     expect(AffiliateConversion::query()->count())->toBe(2);
 
     $registrations = app(RegistrationServiceInterface::class);
-    $registrations->cancel($cancelled, 'WP2 probe cancel');
-    $registrations->reject($rejected, 'WP2 probe reject');
+    $registrations->cancel((string) $cancelled->getKey(), 'WP2 probe cancel');
+    $registrations->reject((string) $rejected->getKey(), 'WP2 probe reject');
 
     expect(wp2lcConversionStatus(AffiliateConversion::query()->where('idempotency_key', hash('sha256', $cancelKey))->firstOrFail()))->toBe('reversed')
         ->and(ShareOutcomeCorrection::query()->where('business_key', $cancelKey)->value('reason'))->toBe('registration_cancelled')
@@ -1086,7 +1086,7 @@ it('scopes occurrence and session cancellations to their actual registrations', 
             'participants' => [['name' => $name, 'is_primary' => true]],
         ]);
 
-        return Registration::query()->whereKey($registration->getKey())->firstOrFail();
+        return Registration::query()->whereKey($registration)->firstOrFail();
     };
 
     $eventLevel = $makeRegistration(null, null, 'Event Level Guest');

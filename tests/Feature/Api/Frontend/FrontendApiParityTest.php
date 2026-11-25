@@ -871,7 +871,7 @@ it('rejects partially filled donation channels on public contribution update sug
                 'recipient' => 'Jawatankuasa Masjid',
                 'method' => 'bank_account',
                 'bank_code' => 'MB2U0227',
-                'bank_name' => 'Maybank2u',
+                'bank_name' => 'Malayan Banking Berhad',
                 'account_number' => '12345678',
             ],
             [
@@ -2067,7 +2067,7 @@ it('serializes institution detail payloads with address and donation metadata fo
         'label' => 'Tabung Utama',
         'recipient' => 'Masjid Detail DTO',
         'method' => 'bank_account',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'bank_code' => 'MB2U0227',
         'account_number' => '1234567890',
         'is_default' => true,

@@ -2,8 +2,8 @@
 
 namespace App\Features\Events\Models;
 
-use AIArmada\Events\Models\EventUpdate;
-use AIArmada\Events\Models\EventUpdateItem;
+use AIArmada\Events\Features\Changes\Models\EventUpdate;
+use AIArmada\Events\Features\Changes\Models\EventUpdateItem;
 use App\Features\Events\Actions\Changes\InitializeEventChangeAnnouncementAction;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\EventChangeSeverity;

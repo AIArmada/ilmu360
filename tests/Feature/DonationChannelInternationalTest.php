@@ -105,9 +105,9 @@ it('resolves the owner profile from the canonical primary address country', func
         ->and($profiles->forOwner($indonesian)->methods)->toBe(['bank_account'])
         ->and($profiles->forOwner($indonesian)->supports_routing_codes)->toBeTrue();
 
-    ['institution' => $uncovered] = internationalDonationInstitution('US', 'United States', '');
+    ['institution' => $uncovered] = internationalDonationInstitution('AQ', 'Antarctica', '');
 
-    expect($profiles->forOwner($uncovered)->country_code)->toBe('US')
+    expect($profiles->forOwner($uncovered)->country_code)->toBe('AQ')
         ->and($profiles->forOwner($uncovered)->methods)->toBeEmpty()
         ->and($profiles->forOwner($uncovered)->supports_routing_codes)->toBeFalse();
 
@@ -144,10 +144,10 @@ it('stores normalized bank details and encrypts the iban', function () {
     expect($channel->account_number)->toBeNull()
         ->and($channel->currency)->toBe('USD')
         ->and($channel->bank_code)->toBe('MB2U0227')
-        ->and($channel->bank_name)->toBe('Maybank2u')
+        ->and($channel->bank_name)->toBe('Malayan Banking Berhad')
         ->and($channel->iban)->toBe('GB82WEST12345698765432')
         ->and($channel->swift_bic)->toBe('MBBEMYKL')
-        ->and($channel->payment_details)->toBe('Maybank2u - GB82WEST12345698765432')
+        ->and($channel->payment_details)->toBe('Malayan Banking Berhad - GB82WEST12345698765432')
         ->and($reloaded->toArray())->not->toHaveKey('iban')
         ->and($storedIban)->not->toBe('GB82WEST12345698765432');
 });
@@ -236,13 +236,13 @@ it('defaults a new institution bank channel to the country currency', function (
     $channel = $institution->fresh()->donationChannels()->firstOrFail();
 
     expect($channel->currency)->toBe('MYR')
-        ->and($channel->bank_name)->toBe('CIMB Bank')
+        ->and($channel->bank_name)->toBe('CIMB Bank Berhad')
         ->and($channel->iban)->toBeNull()
         ->and($channel->swift_bic)->toBeNull();
 });
 
 it('rejects bank and malaysian-only channels for institutions outside catalogue coverage', function () {
-    ['institution' => $institution] = internationalDonationInstitution('US', 'United States', '');
+    ['institution' => $institution] = internationalDonationInstitution('AQ', 'Antarctica', '');
 
     expect(fn () => withGlobalOwnerContext(fn () => app(InstitutionWorkflow::class)->applyContribution((string) $institution->getKey(), [
         'donation_channels' => [[
@@ -299,7 +299,7 @@ it('rejects a country change that leaves a wrong-country bank behind', function 
             'donatable_type' => $institution->getMorphClass(),
             'donatable_id' => (string) $institution->getKey(),
             'bank_code' => 'MB2U0227',
-            'bank_name' => 'Maybank2u',
+            'bank_name' => 'Malayan Banking Berhad',
             'recipient' => 'Jawatankuasa Masjid',
         ])->verify();
     });
@@ -368,7 +368,7 @@ it('keeps verification when only payout formatting changes', function () {
     ], $channel);
 
     expect($saved->status)->toBe(DonationChannelStatus::Verified)
-        ->and($saved->bank_name)->toBe('Maybank2u')
+        ->and($saved->bank_name)->toBe('Malayan Banking Berhad')
         ->and($saved->iban)->toBe('GB82WEST12345698765432');
 });
 
@@ -426,7 +426,6 @@ it('keeps verification and the qr image for non-destination detail changes', fun
 
     $saved = app(SaveDonationChannelAction::class)->handle([
         'recipient' => 'Jawatankuasa Masjid Baharu',
-        'reference_note' => 'Dana am',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
         'account_number' => '1234567890',
@@ -465,7 +464,7 @@ it('matches formatted iban rows to the stored channel without losing verificatio
     expect($institution->fresh()->donationChannels()->count())->toBe(1)
         ->and($fresh->getKey())->toBe($channel->getKey())
         ->and($fresh->status)->toBe(DonationChannelStatus::Verified)
-        ->and($fresh->bank_name)->toBe('Maybank2u')
+        ->and($fresh->bank_name)->toBe('Malayan Banking Berhad')
         ->and($fresh->iban)->toBe('GB82WEST12345698765432');
 });
 
@@ -517,7 +516,7 @@ it('matches staged qr uploads across iban formatting', function () {
         'label' => 'Dana Antarabangsa',
         'currency' => 'MYR',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => null,
         'iban' => 'GB82WEST12345698765432',
         'swift_bic' => 'WESTGB2L',
@@ -572,7 +571,7 @@ it('fingerprints wallet and bank payout destinations without the derived bank na
     $withCatalogName = $workflow->donationChannelFingerprint([
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '123456789',
     ]);
 
@@ -603,7 +602,7 @@ it('renders catalogue bank details on the public institution page', function () 
         'method' => 'bank_account',
         'currency' => 'MYR',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '1234567890',
         'swift_bic' => 'MBBEMYKL',
         'label' => 'Dana Masjid',
@@ -614,7 +613,7 @@ it('renders catalogue bank details on the public institution page', function () 
         ->assertSuccessful()
         ->assertSee('Dana Masjid')
         ->assertSee('MYR')
-        ->assertSee('Maybank2u')
+        ->assertSee('Malayan Banking Berhad')
         ->assertSee('MBBEMYKL')
         ->assertSee('1234567890')
         ->assertDontSee('MB2U0227');

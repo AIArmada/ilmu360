@@ -3,8 +3,8 @@
 namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Data\RegistrationMode;
+use AIArmada\Events\Data\ScheduleKind;
 use App\Features\Events\Api\AdvancedEventCreator;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\TimingMode;

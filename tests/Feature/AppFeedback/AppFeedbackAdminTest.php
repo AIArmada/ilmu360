@@ -1,8 +1,11 @@
 <?php
 
+use App\Features\Feedback\Actions\TransitionAppFeedbackAction;
 use App\Features\Feedback\Actions\UpdateAppFeedbackInternalNotesAction;
 use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\AppFeedbackResource;
+use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Pages\ListAppFeedback;
 use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Pages\ViewAppFeedback;
+use App\Features\Feedback\Enums\AppFeedbackStatus;
 use App\Features\Feedback\Models\AppFeedback;
 use App\Features\Feedback\Models\AppFeedbackMessage;
 use App\Features\Feedback\Notifications\AppFeedbackClosedNotification;
@@ -16,7 +19,9 @@ use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Mockery\MockInterface;
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -222,4 +227,109 @@ it('replies to feedback from the admin view action', function () {
         ->and($message->body)->toBe('Kami sedang menyiasat isu ini.');
 
     Notification::assertSentTo($reporter, AppFeedbackRepliedNotification::class);
+});
+
+it('defaults the feedback list to the open tab and shows closed records on their tabs', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $new = AppFeedback::factory()->create();
+    $triaged = AppFeedback::factory()->triaged()->create();
+    $resolved = AppFeedback::factory()->resolved()->create();
+    $declined = AppFeedback::factory()->declined()->create();
+
+    $component = Livewire::actingAs($admin)->test(ListAppFeedback::class);
+
+    expect(array_keys($component->instance()->getTabs()))
+        ->toBe(['open', 'new', 'triaged', 'resolved', 'declined', 'all'])
+        ->and($component->instance()->getDefaultActiveTab())->toBe('open');
+
+    $component
+        ->assertSet('activeTab', 'open')
+        ->assertCanSeeTableRecords([$new, $triaged])
+        ->assertCanNotSeeTableRecords([$resolved, $declined])
+        ->set('activeTab', 'resolved')
+        ->assertCanSeeTableRecords([$resolved])
+        ->assertCanNotSeeTableRecords([$new, $triaged, $declined])
+        ->set('activeTab', 'declined')
+        ->assertCanSeeTableRecords([$declined])
+        ->assertCanNotSeeTableRecords([$new, $triaged, $resolved])
+        ->set('activeTab', 'all')
+        ->assertCanSeeTableRecords([$new, $triaged, $resolved, $declined]);
+});
+
+it('counts new and triaged feedback in the navigation badge and clears it when closed', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    AppFeedbackResource::flushNavigationBadgeCache();
+
+    expect(AppFeedbackResource::getNavigationBadge())->toBeNull();
+
+    AppFeedback::factory()->create();
+    $triaged = AppFeedback::factory()->triaged()->create();
+    AppFeedback::factory()->resolved()->create();
+
+    AppFeedbackResource::flushNavigationBadgeCache();
+
+    expect(AppFeedbackResource::getNavigationBadge())->toBe('2');
+
+    $triaged->forceFill([
+        'status' => AppFeedbackStatus::Resolved,
+        'resolved_at' => now(),
+        'resolution_note' => 'Selesai disemak.',
+        'last_state_change_at' => now(),
+    ])->save();
+
+    AppFeedbackResource::flushNavigationBadgeCache();
+
+    expect(AppFeedbackResource::getNavigationBadge())->toBe('1');
+});
+
+it('shows a danger notification when closing feedback that was already closed with another note', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $feedback = AppFeedback::factory()->triaged()->create();
+
+    $this->mock(TransitionAppFeedbackAction::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('handle')
+            ->once()
+            ->andThrow(ValidationException::withMessages([
+                'resolution_note' => __('app-feedback.validation.resolution_note_locked'),
+            ]));
+    });
+
+    Livewire::actingAs($admin)
+        ->test(ViewAppFeedback::class, ['record' => $feedback->getRouteKey()])
+        ->callAction('resolve', ['resolution_note' => 'Nota yang berbeza.'])
+        ->assertNotified(__('app-feedback.validation.resolution_note_locked'));
+
+    expect($feedback->fresh()->status)->toBe(AppFeedbackStatus::Triaged)
+        ->and($feedback->fresh()->resolution_note)->toBeNull();
+});
+
+it('shows the follow-up author name alongside the role on the admin view', function () {
+    $admin = User::factory()->create();
+    $admin->assignRole('super_admin');
+
+    $reporter = User::factory()->create(['name' => 'Nama Penghantar Unik']);
+    $feedback = AppFeedback::factory()->create(['reporter_id' => $reporter->getKey()]);
+
+    $message = new AppFeedbackMessage;
+    $message->fill([
+        'author_role' => 'reporter',
+        'visibility' => 'reporter',
+        'body' => 'Maklumat tambahan untuk pasukan semakan.',
+    ]);
+    $message->forceFill([
+        'feedback_id' => $feedback->getKey(),
+        'author_id' => $reporter->getKey(),
+    ]);
+    $message->save();
+
+    $this->actingAs($admin);
+
+    Livewire::test(ViewAppFeedback::class, ['record' => $feedback->getRouteKey()])
+        ->assertSee('Penghantar (Nama Penghantar Unik)');
 });

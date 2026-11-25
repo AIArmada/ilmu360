@@ -3,9 +3,9 @@
 namespace App\Features\Events\EntryPoints\Livewire\Pages\Dashboard\Events;
 
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Data\RegistrationMode;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;
 use App\Features\Events\Api\AdmissionEventCreator;

@@ -1326,3 +1326,52 @@ entries no donation channel references.
   sanitized parallel Pest selection, Pint, architecture and PHPStan after
   handoff.
 - Final review: a per-country initialization record keeps deliberately empty catalogs empty after a reseed. The admin edit page checks references even when its record lacks the preloaded reference flag. The affected run passed 516 of 518 tests, and both failures passed in the 26-test focused rerun after corrections. Pint and architecture/PHPStan passed. No existing database was migrated or seeded.
+
+## Public contribution form parity
+
+- [x] Review the form schema and submission flow against existing Maps and media contracts.
+- [x] Share institution section composition and align public owner context and media field configuration for institusi, penceramah, and rujukan.
+- [x] Add parity coverage for all three create and update pairs, with explicit allowances for institution Maps selection and the update review note.
+- [x] Verify affected contribution tests, formatting, and architecture checks.
+
+Review: The current create tests explicitly require server-verified Maps identity even when Places is disabled and reject a pasted URL as a substitute. Keep that identity requirement and the update-specific Maps rules. Filament's `getState()` runs relationship saves when hooks are enabled. Keep update's explicit save timing and only align create state extraction when its existing dehydration behavior is preserved.
+
+Results: Both institution pages now call one schema builder, and all three create pages build their schemas in the same public owner context as update. Penceramah and rujukan already shared their form builders. Authorized direct institution editors can remove logos and covers. Create state extraction retains Filament's dehydration hooks, and relationship callbacks require an existing record.
+
+Verification: The parallel Pest selection passed 159 of 161 cases. The two remaining parity cases had compared empty create repeaters with prefilled update rows. Both passed on a focused rerun after the test inputs were aligned. Scoped Pint, `composer arch:check` with PHPStan level 6, and `git diff --check` passed.
+
+## Public majlis create and update form parity
+
+- [x] Compare the create wizard and update tabs, including differences in field state keys and validation.
+- [x] Share editable field and section definitions through the Events feature. Preserve create-only review, guest contact, CAPTCHA, occurrence selection and scope, plus update prefill, moderation and scheduling behavior.
+- [x] Add regression coverage through both public Livewire entry points. Compare shared fields, order and requirements under equivalent state.
+- [x] Review Signals and verify affected tests, formatting and architecture checks.
+
+Results: Both public Livewire entry points compose the Events-owned Filament schema for topics, timing, attendance, organizer, location and speakers, and use the existing shared media section. Create uses a country-based timezone choice and one category. Update can edit the saved timezone and multiple categories. The existing submission Signals and progress events cover the shared controls.
+
+Verification: The broad parallel Pest selection passed 498 of 506 cases. The first pass exposed a wrong seeder namespace in four new parity tests and cached domain options in four existing update cases. The focused pass after those fixes passed all 46 cases, covering all eight failures, the adaptive wizard and quick-add flows. Scoped Pint, `composer arch:check` with PHPStan level 6, and `git diff --check` passed.
+
+## Contribution address comparison
+
+- [x] Compare submitted address fields with the matching original fields and hydrate the speaker's saved region.
+- [x] Cover unchanged country-only addresses, unchanged states, and real state edits through the public update form.
+- [x] Verify the affected contribution flows and code checks.
+
+Results: The initial contribution selection passed 98 of 100 cases. The two failures passed in the focused 12-case run after normalizing blank area selections and correcting the no-change assertion. Scoped Pint and PHPStan passed. The architecture scanner found no violations, and repository-wide PHPStan reported four errors in the contribution hub files outside this change.
+
+## Contribution update payload audit fixes
+
+- [x] Align event fields with the update form and preserve omitted event relations during approval.
+- [x] Normalize institution address controls, phone contacts, and donation channels for comparison.
+- [x] Preserve social link labels and compare the fields shown by the profile form.
+- [x] Verify changed payloads, explicit removals, approval, formatting, and architecture.
+
+Results: Event updates use the complete `space_ids` list and preserve omitted speakers, other roles, taxonomies, and locations. Existing language selections already use catalog IDs. Institution comparisons account for form-only Maps controls, phone formatting, and catalog-derived bank names. Social snapshots include stored labels, and rich text comparisons use Filament's hydrated editor value. The submission Signals and workflow entry points are unchanged.
+
+Verification: All 28 focused Pest cases passed. Scoped Pint, PHPStan, the repository architecture check, and `git diff --check` passed.
+
+## Membership claim roles by subject
+- [x] Apply the speaker and institution role rules across claim and review surfaces.
+- [x] Verify speaker Owner approvals and institution Owner rejection.
+
+Review: 54 focused tests passed. All 21 affected tests passed after the typed model accessor change. Pint and `composer arch:check` passed.

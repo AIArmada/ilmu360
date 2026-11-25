@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class ReportResource extends Resource
@@ -53,6 +54,27 @@ class ReportResource extends Resource
         $count = self::$openNavigationCount ?? 0;
 
         return $count > 0 ? (string) $count : null;
+    }
+
+    #[\Override]
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return self::getNavigationBadge() !== null ? 'danger' : null;
+    }
+
+    public static function flushNavigationBadgeCache(): void
+    {
+        self::$navigationBadgeScope = null;
+        self::$openNavigationCount = null;
+    }
+
+    /**
+     * @return Builder<Report>
+     */
+    #[\Override]
+    public static function getEloquentQuery(): Builder
+    {
+        return Report::query()->with(['entity', 'reporter', 'handler', 'media']);
     }
 
     #[\Override]

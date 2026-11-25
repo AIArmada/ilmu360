@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Projection;
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 

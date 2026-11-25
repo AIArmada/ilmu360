@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Filament\Resources\Events\Pages;
 
 use AIArmada\Events\Contracts\EventTemplateService;
-use AIArmada\Events\Models\EventTemplate;
+use AIArmada\Events\Features\Catalog\Models\EventTemplate;
 use App\Features\Events\Api\AdminEventWriter;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\Models\Event;
@@ -45,11 +45,12 @@ final class CreateEvent extends CreateRecord
                         ->required(),
                 ])
                 ->action(function (array $data): void {
-                    $template = EventTemplate::query()->findOrFail($data['event_template_id']);
+                    $templateId = (string) $data['event_template_id'];
+                    $template = EventTemplate::query()->findOrFail($templateId);
 
                     try {
-                        $event = app(EventTemplateService::class)->createFromTemplate($template);
-                        redirect(EventResource::getUrl('edit', ['record' => $event]));
+                        $eventId = app(EventTemplateService::class)->createFromTemplate((string) $template->getKey());
+                        redirect(EventResource::getUrl('edit', ['record' => $eventId]));
                     } catch (Throwable $exception) {
                         Notification::make()
                             ->title('Failed to create from template')

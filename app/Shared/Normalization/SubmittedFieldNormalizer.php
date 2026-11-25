@@ -22,7 +22,7 @@ final readonly class SubmittedFieldNormalizer
     }
 
     /**
-     * @param  list<array<string, mixed>>  $rows
+     * @param  array<array-key, mixed>  $rows
      * @return list<array<string, mixed>>
      */
     public static function normalizeDonationChannelRowsForComparison(array $rows): array

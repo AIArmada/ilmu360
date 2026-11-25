@@ -61,7 +61,6 @@ final readonly class InstitutionContributionProjection implements ContributionPr
                             ['name' => 'ewallet_provider', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(DonationChannelOptions::EWALLET_PROVIDERS)],
                             ['name' => 'ewallet_handle', 'type' => 'string', 'required' => false, 'max_length' => 255],
                             ['name' => 'ewallet_qr_payload', 'type' => 'string', 'required' => false, 'max_length' => 2000],
-                            ['name' => 'reference_note', 'type' => 'string', 'required' => false, 'max_length' => 255],
                             ['name' => 'is_default', 'type' => 'boolean', 'required' => false],
                         ],
                     ],
@@ -122,7 +121,6 @@ final readonly class InstitutionContributionProjection implements ContributionPr
             'donation_channels.*.ewallet_provider' => ['nullable', 'string', 'required_if:donation_channels.*.method,ewallet', Rule::in(array_keys(DonationChannelOptions::EWALLET_PROVIDERS))],
             'donation_channels.*.ewallet_handle' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.ewallet_qr_payload' => ['nullable', 'string', 'max:2000'],
-            'donation_channels.*.reference_note' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.is_default' => ['nullable', 'boolean'],
         ];
     }
@@ -193,7 +191,6 @@ final readonly class InstitutionContributionProjection implements ContributionPr
             'ewallet_provider' => $channel->ewallet_provider,
             'ewallet_handle' => $channel->ewallet_handle,
             'ewallet_qr_payload' => $channel->ewallet_qr_payload,
-            'reference_note' => $channel->reference_note,
             'is_default' => (bool) $channel->is_default,
         ];
     }

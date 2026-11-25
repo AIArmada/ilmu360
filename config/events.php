@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Events\Models\EventRegistrationQuestion;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationQuestion;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Queries\EventCardRelationshipProvider;
 use App\Features\Places\Models\Space;
@@ -24,20 +24,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Persisted prayer resolver
-    |--------------------------------------------------------------------------
-    |
-    | Event time expressions persist the resolver class so a title-only edit
-    | can re-resolve the original clock. The resolver stays conventional until
-    | the Prayer slice moves it; the feature reads only this config string.
-    |
-    */
-    'prayer' => [
-        'resolver_class' => App\Features\Prayer\Services\PrayerTimeExpressionResolver::class,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Moderation boundary adapter
     |--------------------------------------------------------------------------
     |
@@ -48,6 +34,10 @@ return [
     */
     'moderation' => [
         'adapter' => App\Features\Events\Services\EventModerationAdapter::class,
+    ],
+
+    'time_expressions' => [
+        'resolver' => App\Features\Prayer\Services\PrayerTimeExpressionResolver::class,
     ],
 
     'database' => [
@@ -72,7 +62,7 @@ return [
         'auto_allocate_seats' => env('EVENTS_AUTO_ALLOCATE_SEATS', true),
         'auto_revoke_passes_on_cancel' => env('EVENTS_AUTO_REVOKE_PASSES_ON_CANCEL', true),
         'owner' => [
-            'enabled' => env('EVENTS_OWNER_ENABLED', true),
+            'enabled' => env('EVENTS_OWNER_ENABLED', false),
             'include_global' => env('EVENTS_OWNER_INCLUDE_GLOBAL', false),
             'auto_assign_on_create' => env('EVENTS_OWNER_AUTO_ASSIGN', true),
         ],

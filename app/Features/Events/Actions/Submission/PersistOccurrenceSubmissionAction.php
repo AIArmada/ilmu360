@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
-use AIArmada\Events\Actions\CreateEventOccurrenceAction;
-use AIArmada\Events\Actions\SyncEventLanguagesAction;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventTimeExpression;
-use AIArmada\Events\Models\VenueSpaceType;
-use AIArmada\Events\Support\Normalization\EventContentNormalizer;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Features\Catalog\Actions\SyncEventLanguagesAction;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\VenueSpaceType;
+use AIArmada\Events\Platform\EventContentNormalizer;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
@@ -179,7 +180,7 @@ final readonly class PersistOccurrenceSubmissionAction
         $this->persistPrayerExpression($scope, $submission);
 
         if (($state['event_format'] ?? EventFormat::Physical->value) !== EventFormat::Online->value) {
-            $this->persistOccurrenceLocations($occurrence, $scope, $submission);
+            $this->persistOccurrenceLocations($scope, $submission);
         }
 
         $this->authoring->syncOccurrenceKeyPeople(
@@ -241,7 +242,7 @@ final readonly class PersistOccurrenceSubmissionAction
             'relation' => $offset < 0 ? 'before' : 'after',
             'offset_minutes' => abs($offset),
             'display_label' => $submission->prayerDisplayText,
-            'resolver_class' => (string) config('events.prayer.resolver_class'),
+            'resolver_class' => (string) config('events.time_expressions.resolver'),
             'metadata' => $expressionMetadata,
             'resolved_starts_at' => $submission->startsAt,
             'resolved_at' => now(),
@@ -252,7 +253,6 @@ final readonly class PersistOccurrenceSubmissionAction
      * @param  array<string, mixed>  $scope
      */
     private function persistOccurrenceLocations(
-        EventOccurrence $occurrence,
         array $scope,
         ValidatedEventSubmission $submission,
     ): void {
@@ -270,7 +270,7 @@ final readonly class PersistOccurrenceSubmissionAction
 
         foreach ($locationIds as $order => $spaceId) {
             $space = $spaces->get($spaceId);
-            $occurrence->locations()->create($scope + [
+            EventLocation::query()->create($scope + [
                 'location_role' => $order === 0 ? 'primary' : 'additional',
                 'locationable_type' => $institution?->getMorphClass(),
                 'locationable_id' => $institution?->getKey(),

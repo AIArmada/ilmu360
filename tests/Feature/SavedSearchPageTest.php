@@ -1,8 +1,8 @@
 <?php
 
 use AIArmada\Addressing\Models\State;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;

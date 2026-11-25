@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Models\Space;

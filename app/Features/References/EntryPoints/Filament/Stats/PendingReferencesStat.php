@@ -13,7 +13,7 @@ final readonly class PendingReferencesStat implements AdminStatProvider
 {
     public function stats(): iterable
     {
-        $count = Reference::query()->where('status', 'pending')->count();
+        $count = Reference::query()->withoutOwnerScope()->where('status', 'pending')->count();
 
         yield new AdminStat(
             label: 'References Needing Approval',

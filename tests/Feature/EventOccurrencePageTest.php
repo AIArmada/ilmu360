@@ -1,10 +1,10 @@
 <?php
 
-use AIArmada\Events\Actions\CreateEventSessionAction;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventRegistration;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventKeyPerson;

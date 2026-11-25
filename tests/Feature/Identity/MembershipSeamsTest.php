@@ -243,8 +243,7 @@ it('reads applications and invitations through the feature query boundaries', fu
     expect($applicantApplications[0]->application->id ?? null)->toBe($applicationId)
         ->and($applicantApplications[0]->subjectTitle)->toBe($institution->name)
         ->and($applicantApplications[0]->applicantPayload($applicantId)['can_cancel'])->toBeTrue()
-        ->and($applications->find($applicationId)?->reviewer?->id)->toBe((string) $reviewer->getKey())
-        ->and(array_keys($applications->reviewRoleOptions()))->toBe(['owner', 'admin', 'editor']);
+        ->and($applications->find($applicationId)?->reviewer?->id)->toBe((string) $reviewer->getKey());
 
     $inviter = User::factory()->create();
     $invitation = new MemberInvitation;

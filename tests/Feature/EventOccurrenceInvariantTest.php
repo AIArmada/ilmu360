@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\ModerationService;
 use Illuminate\Validation\ValidationException;
