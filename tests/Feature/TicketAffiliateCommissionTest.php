@@ -19,7 +19,7 @@ use AIArmada\Events\Contracts\RegistrationServiceInterface;
 use AIArmada\Events\Events\EventRegistrationCancelled;
 use AIArmada\Events\Events\EventRegistrationRefunded;
 use AIArmada\Events\Events\EventRegistrationRejected;
-use AIArmada\Events\Models\EventRegistrationItem;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationItem;
 use AIArmada\Orders\Models\Order;
 use AIArmada\Orders\Models\OrderItem;
 use AIArmada\Orders\States\Processing;
@@ -365,7 +365,17 @@ it('reverses ticket commissions for cancelled, rejected and refunded registratio
 
         expect(app(RecordTicketAffiliateCommissionsStep::class)->handle($session)->isSuccessful())->toBeTrue();
 
-        event(new $eventClass($fixture['registrations'][0], $reason));
+        $registration = $fixture['registrations'][0];
+        $registrationId = (string) $registration->getKey();
+        $eventId = (string) $registration->event_id;
+
+        $event = match ($eventClass) {
+            EventRegistrationRejected::class => new EventRegistrationRejected($registrationId, $eventId, $reason),
+            EventRegistrationRefunded::class => new EventRegistrationRefunded($registrationId, $eventId, reason: $reason),
+            default => new EventRegistrationCancelled($registrationId, $eventId, reason: $reason),
+        };
+
+        event($event);
 
         $conversion = AffiliateConversion::query()
             ->where('external_reference', 'ticket:'.$fixture['order']->getKey().':registration:'.$registrationIds[0])
@@ -426,7 +436,7 @@ it('finishes a registration refund and retries a payout-reserved commission reve
     ])->save();
     $payout = CreatePayout::run([(string) $conversion->getKey()]);
 
-    app(RegistrationServiceInterface::class)->refund($registration, 'Customer refund');
+    app(RegistrationServiceInterface::class)->refund((string) $registration->getKey(), 'Customer refund');
 
     $receipt = ShareEffectReceipt::query()
         ->where('effect_type', 'ticket_affiliate_reversal')

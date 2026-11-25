@@ -306,10 +306,12 @@ it('resolves model tables returned through casted, plain, and elvis config fallb
     try {
         $castedOrderWriter = $project->writer('Orders', 'PlaceCastedOrder');
         $elvisOrderWriter = $project->writer('Orders', 'PlaceElvisOrder');
+        $coalesceOrderWriter = $project->writer('Orders', 'PlaceCoalesceOrder');
         $project->feature('Orders', [
             'table:orders' => ['App\\Features\\Orders\\Actions\\PlaceOrder'],
             'table:cast_orders' => [$castedOrderWriter],
             'table:elvis_orders' => [$elvisOrderWriter],
+            'table:coalesce_orders' => [$coalesceOrderWriter],
         ]);
         $project->write('app/Features/Orders/Models/Order.php', <<<'PHP'
 <?php
@@ -344,6 +346,19 @@ class ElvisOrder extends \Illuminate\Database\Eloquent\Model
     }
 }
 PHP);
+        $project->write('app/Features/Orders/Models/CoalesceOrder.php', <<<'PHP'
+<?php
+namespace App\Features\Orders\Models;
+class CoalesceOrder extends \Illuminate\Database\Eloquent\Model
+{
+    protected $table = null;
+
+    public function getTable(): string
+    {
+        return $this->table ?? config('orders.database.tables.coalesce_orders', 'coalesce_orders');
+    }
+}
+PHP);
         $project->write('app/Features/Orders/Actions/PlaceOrder.php', <<<'PHP'
 <?php
 namespace App\Features\Orders\Actions;
@@ -375,6 +390,18 @@ use App\Features\Orders\Models\ElvisOrder;
 class PlaceElvisOrder
 {
     public function handle(ElvisOrder $order): void
+    {
+        $order->save();
+    }
+}
+PHP);
+        $project->write('app/Features/Orders/Actions/PlaceCoalesceOrder.php', <<<'PHP'
+<?php
+namespace App\Features\Orders\Actions;
+use App\Features\Orders\Models\CoalesceOrder;
+class PlaceCoalesceOrder
+{
+    public function handle(CoalesceOrder $order): void
     {
         $order->save();
     }

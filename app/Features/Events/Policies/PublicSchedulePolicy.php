@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Policies;
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use App\Features\Events\Models\Event;
 
 final class PublicSchedulePolicy

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use App\Features\Events\Api\PublicScheduleSlug;
 use App\Features\Events\Models\Event;
 use Illuminate\Database\Eloquent\Relations\Relation;

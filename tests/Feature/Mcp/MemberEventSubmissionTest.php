@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;

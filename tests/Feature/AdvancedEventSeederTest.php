@@ -1,9 +1,9 @@
 <?php
 
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventRole;
-use AIArmada\Events\Models\EventTimeExpression;
-use AIArmada\Events\Models\VenueSpaceType;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventRole;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Venues\Models\VenueSpaceType;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;

@@ -2,7 +2,7 @@
 
 use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Support\PublicHttpUrlGuard;
-use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Data\ScheduleKind;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;

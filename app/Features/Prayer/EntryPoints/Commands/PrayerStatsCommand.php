@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Prayer\EntryPoints\Commands;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Prayer\Persistence\PrayerCircuitBreaker;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;

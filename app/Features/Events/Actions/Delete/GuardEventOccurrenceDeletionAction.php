@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Delete;
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Api\EventDeletionScope;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\EventRegistrationDeletion;

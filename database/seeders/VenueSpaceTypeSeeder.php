@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use AIArmada\Events\Models\VenueSpaceType;
+use AIArmada\Events\Features\Venues\Models\VenueSpaceType;
 use Illuminate\Database\Seeder;
 
 final class VenueSpaceTypeSeeder extends Seeder

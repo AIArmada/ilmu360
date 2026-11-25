@@ -2,8 +2,8 @@
 
 namespace App\Features\Registration\Models;
 
-use AIArmada\Events\Models\EventAttendance;
-use AIArmada\Events\Models\EventAttendanceLog;
+use AIArmada\Events\Features\Attendance\Models\EventAttendance;
+use AIArmada\Events\Features\Attendance\Models\EventAttendanceLog;
 use App\Models\User;
 use Database\Factories\EventCheckinFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

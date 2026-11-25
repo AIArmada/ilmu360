@@ -6,9 +6,9 @@ namespace App\Features\Events\Queries;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\CommerceSupport\Support\UserTimezoneResolver;
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventReference;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventReference;
 use App\Features\Events\Api\Data\EventSubmissionCard;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\PublicScheduleSlug;
@@ -110,7 +110,10 @@ final readonly class EventSubmissionCardProjector
                 'time_label' => $timeLabel,
                 'url' => $url,
             ],
-            details: $this->details($event, $occurrence),
+            details: $this->details(
+                $event instanceof Event ? $event : null,
+                $occurrence instanceof EventOccurrence ? $occurrence : null,
+            ),
         );
     }
 

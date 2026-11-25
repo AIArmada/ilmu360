@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Actions\Discovery\RefreshOccurrenceDiscoveryAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

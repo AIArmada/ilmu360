@@ -2,11 +2,11 @@
 
 namespace App\Features\Events\Actions\Scheduling;
 
-use AIArmada\Events\Actions\SyncPrimaryEventOccurrenceAction;
-use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Data\ScheduleKind;
+use AIArmada\Events\Features\Catalog\Actions\SyncPrimaryEventOccurrenceAction;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Support\AdminEventTimeMapper;
 use App\Features\Prayer\Api\HardcodedPrayerFallback;
@@ -82,7 +82,7 @@ final readonly class SyncEventScheduleAction
                         'relation' => $offsetMinutes < 0 ? 'before' : 'after',
                         'offset_minutes' => abs($offsetMinutes),
                         'display_label' => $prayerDisplayText,
-                        'resolver_class' => (string) config('events.prayer.resolver_class'),
+                        'resolver_class' => (string) config('events.time_expressions.resolver'),
                     ],
                 );
 

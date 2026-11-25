@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
-use AIArmada\Events\Models\FacilityType;
-use AIArmada\Events\Models\VenueFacility;
-use AIArmada\Events\Models\VenueSpace;
+use AIArmada\Events\Features\Venues\Models\FacilityType;
+use AIArmada\Events\Features\Venues\Models\VenueFacility;
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Places\Actions\Venues\SaveVenueAction;
 use App\Features\Places\Models\Venue;

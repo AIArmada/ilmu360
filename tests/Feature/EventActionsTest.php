@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
-use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
-use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Models\EventAccessPolicy;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Data\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Data\ScheduleKind;
+use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;

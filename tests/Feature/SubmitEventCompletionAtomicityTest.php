@@ -1,11 +1,11 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Actions\CreateEventSessionAction;
-use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Data\RegistrationMode;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;

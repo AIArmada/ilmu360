@@ -1,9 +1,9 @@
 <?php
 
-use AIArmada\Events\Models\EventAudience;
-use AIArmada\Events\Models\EventAudienceProfile;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Catalog\Models\EventAudience;
+use AIArmada\Events\Features\Catalog\Models\EventAudienceProfile;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Actions\Submission\ValidateEventSubmissionInputAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;

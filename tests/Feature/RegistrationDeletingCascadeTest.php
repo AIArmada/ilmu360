@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventAttendanceLog;
-use AIArmada\Events\Models\EventRegistrationAnswer;
-use AIArmada\Events\Models\EventRegistrationItem;
+use AIArmada\Events\Features\Attendance\Models\EventAttendanceLog;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationAnswer;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationItem;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\Registration\Models\Registration;

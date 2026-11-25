@@ -5,11 +5,11 @@ use AIArmada\Addressing\Models\City;
 use AIArmada\Authz\Models\Role;
 use AIArmada\CommerceSupport\Models\Currency;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
-use AIArmada\Events\Models\EventTimeExpression;
-use AIArmada\Events\Models\FacilityType;
+use AIArmada\Events\Data\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
+use AIArmada\Events\Features\Venues\Models\FacilityType;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
 use AIArmada\Organizations\Models\Organization;
@@ -1571,7 +1571,7 @@ it('exposes donation channel write schema and can create and update donation cha
         'recipient' => 'Rejected Status',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '123456789012',
         'status' => 'unverified',
     ])->assertUnprocessable()
@@ -1585,11 +1585,10 @@ it('exposes donation channel write schema and can create and update donation cha
         'method' => 'bank_account',
         'currency' => 'usd',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '123456789012',
         'iban' => 'GB82WEST12345698765432',
         'swift_bic' => 'WESTGB2L',
-        'reference_note' => 'Primary donation channel.',
         'status' => 'verified',
         'is_default' => true,
         'qr' => fakeGeneratedImageUpload('admin-api-donation-channel-qr.png', 640, 640),
@@ -1605,7 +1604,7 @@ it('exposes donation channel write schema and can create and update donation cha
         ->and($donationChannel->method)->toBe('bank_account')
         ->and($donationChannel->currency)->toBe('USD')
         ->and($donationChannel->bank_code)->toBe('MB2U0227')
-        ->and($donationChannel->bank_name)->toBe('Maybank2u')
+        ->and($donationChannel->bank_name)->toBe('Malayan Banking Berhad')
         ->and($donationChannel->account_number)->toBe('123456789012')
         ->and($donationChannel->iban)->toBe('GB82WEST12345698765432')
         ->and($donationChannel->swift_bic)->toBe('WESTGB2L')
@@ -1631,7 +1630,6 @@ it('exposes donation channel write schema and can create and update donation cha
         'ewallet_provider' => 'tng',
         'ewallet_handle' => '60123456789',
         'ewallet_qr_payload' => 'duitnow://payment/ilmu360',
-        'reference_note' => 'Fallback donation channel.',
         'status' => 'inactive',
         'is_default' => false,
         'clear_qr' => true,
@@ -1665,7 +1663,7 @@ it('surfaces donation channel update semantics through the admin api schema', fu
         'recipient' => 'Schema Donation Channel',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '1234567890',
         'status' => 'verified',
     ]);
@@ -1682,7 +1680,7 @@ it('surfaces donation channel update semantics through the admin api schema', fu
         ->and(data_get($fields->get('method'), 'mutation_semantics'))->toBe('replace_scalar_with_method_partition_reset')
         ->and(data_get($fields->get('method'), 'switch_clears_fields.duitnow'))->toContain('bank_name', 'account_number')
         ->and(data_get($fields->get('label'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
-        ->and(data_get($fields->get('reference_note'), 'normalization.empty_string_at_mutation_layer'))->toBe('null');
+        ->and($fields->has('reference_note'))->toBeFalse();
 });
 
 it('uses canonical donation channel owner types and clears method-specific strings through the admin api', function () {
@@ -1698,9 +1696,8 @@ it('uses canonical donation channel owner types and clears method-specific strin
         'recipient' => 'Canonical Recipient',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '1234567890',
-        'reference_note' => 'Canonical note',
         'status' => 'verified',
     ])->assertCreated();
 
@@ -1714,19 +1711,16 @@ it('uses canonical donation channel owner types and clears method-specific strin
         'method' => 'duitnow',
         'duitnow_type' => 'mobile',
         'duitnow_value' => '60112233445',
-        'reference_note' => '',
         'status' => 'verified',
         'is_default' => false,
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.label', null)
-        ->assertJsonPath('data.record.attributes.reference_note', null)
         ->assertJsonPath('data.record.attributes.method', 'duitnow');
 
     $donationChannel = DonationChannel::query()->findOrFail($donationChannelRouteKey);
 
     expect($donationChannel->donatable_type)->toBe((string) (new Institution)->getMorphClass())
         ->and($donationChannel->label)->toBeNull()
-        ->and($donationChannel->reference_note)->toBeNull()
         ->and($donationChannel->bank_code)->toBeNull()
         ->and($donationChannel->bank_name)->toBeNull()
         ->and($donationChannel->account_number)->toBeNull()
@@ -1778,7 +1772,7 @@ it('accepts the canonical organization owner type through the admin api', functi
 
     expect($channel->donatable_type)->toBe('organization')
         ->and($channel->donatable_id)->toBe((string) $organization->getKey())
-        ->and($channel->bank_name)->toBe('Maybank2u');
+        ->and($channel->bank_name)->toBe('Malayan Banking Berhad');
 });
 
 it('exposes membership claim review schema and can approve claims through the admin workflow endpoints', function () {

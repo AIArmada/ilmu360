@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Contributors;
 
-use AIArmada\Events\Models\EventAttendanceLog;
-use AIArmada\Events\Models\EventRegistrationAnswer;
-use AIArmada\Events\Models\EventRegistrationItem;
-use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Features\Attendance\Models\EventAttendanceLog;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationAnswer;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationItem;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationParticipant;
 use App\Features\Events\Api\EventAccountOwnership;
 use App\Features\Registration\Actions\ManageRegistrationAccountLinksAction;
 use App\Platform\Models\MorphModelResolver;

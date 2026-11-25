@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Authz\Models\Role;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\CreateEventTerm;
 use AIArmada\FilamentEvents\Resources\EventTermResource\Pages\EditEventTerm;
 use App\Features\Events\Actions\Authoring\SyncEventTermDomainMappingAction;

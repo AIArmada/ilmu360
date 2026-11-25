@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use AIArmada\Events\Enums\EventRegistrationQuestionStatus;
-use AIArmada\Events\Models\EventRegistrationQuestion;
+use AIArmada\Events\Data\EventRegistrationQuestionStatus;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationQuestion;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\RegistrationQuestions;
 use App\Models\User;

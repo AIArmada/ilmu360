@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Events\Actions\Discovery\SyncEventSearchIndexAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

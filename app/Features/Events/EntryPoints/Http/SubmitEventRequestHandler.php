@@ -2,8 +2,8 @@
 
 namespace App\Features\Events\EntryPoints\Http;
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use App\Features\Events\Actions\Submission\PrepareEventSubmissionAction;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Api\EventSubmissionCompletion;

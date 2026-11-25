@@ -545,6 +545,10 @@ final class OwnedWriteRule implements Rule
             return $this->literalTable($expression->expr);
         }
 
+        if ($expression instanceof Node\Expr\BinaryOp\Coalesce) {
+            return $this->literalTable($expression->left) ?? $this->literalTable($expression->right);
+        }
+
         if ($expression instanceof Node\Expr\Ternary
             && $expression->if === null
             && $expression->cond instanceof Node\Expr\FuncCall

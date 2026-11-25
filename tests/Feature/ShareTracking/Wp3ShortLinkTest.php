@@ -7,7 +7,7 @@ use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\Links\Actions\CreatePublicLink;
 use AIArmada\Links\Actions\DeactivateLink;
 use AIArmada\Links\Models\Link;

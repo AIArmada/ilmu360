@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Registration\Actions;
 
 use AIArmada\Events\Contracts\EventCheckInService;
-use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
 use App\Features\Registration\Api\AttendanceCommands;
 use App\Features\Registration\Api\CheckInNotifier;
 use App\Features\ShareTracking\Api\ParticipationAttribution;
@@ -67,9 +67,7 @@ final readonly class RecordSelfCheckInAction implements AttendanceCommands
                 'check_in_source' => $method,
             ]);
 
-            $checkin = $result->attendance instanceof $checkinClass
-                ? $result->attendance
-                : $checkinClass::query()->findOrFail($result->attendance->getKey());
+            $checkin = $checkinClass::query()->findOrFail($result->attendance->id);
 
             $checkin->refresh();
 

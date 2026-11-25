@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Actions;
 
-use AIArmada\Events\Actions\ProcessEventRegistrationRefundAction;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventRegistration;
+use AIArmada\Events\Data\EventRefundResultData;
+use AIArmada\Events\Features\Commerce\Actions\ProcessEventRegistrationRefundAction;
+use AIArmada\Orders\Enums\RefundStatus;
 use AIArmada\Orders\Models\OrderRefund;
 use App\Features\Registration\Api\AdmissionRefunds;
 use App\Platform\Models\MorphModelResolver;
@@ -15,7 +15,8 @@ use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
  * Owns the app Registration morph-resolution seam and delegates paid admission
- * refund orchestration to the canonical events package action.
+ * refund orchestration to the canonical events package action. The provider
+ * result is reported through the authoritative order refund record state.
  */
 final readonly class ProcessAdmissionRefundAction implements AdmissionRefunds
 {
@@ -35,38 +36,34 @@ final readonly class ProcessAdmissionRefundAction implements AdmissionRefunds
         bool $organizerOverride = false,
         ?string $reason = null,
     ): array {
-        $eventClass = MorphModelResolver::resolve('event');
-        $registrationClass = MorphModelResolver::resolve('registration');
         $userClass = MorphModelResolver::resolve('user');
-
-        /** @var PackageEvent $event */
-        $event = $eventClass::query()->findOrFail($eventId);
-
-        /** @var EventRegistration $registration */
-        $registration = $registrationClass::query()->findOrFail($registrationId);
 
         /** @var Model $actor */
         $actor = $userClass::query()->findOrFail($actorId);
 
-        $refund = $this->handle($event, $registration, $actor, $organizerOverride, $reason);
+        $result = $this->handle($eventId, $registrationId, $actor, $organizerOverride, $reason);
+
+        $refundId = (string) $result->refundId;
+        $refund = $refundId !== '' ? OrderRefund::query()->find($refundId) : null;
+        $status = $refund instanceof OrderRefund ? $refund->status->value : $result->status;
 
         return [
-            'refund_id' => (string) $refund->getKey(),
-            'status' => $refund->status->value,
-            'is_pending' => $refund->isPending(),
+            'refund_id' => $refundId,
+            'status' => $status,
+            'is_pending' => $status === RefundStatus::Pending->value,
         ];
     }
 
     public function handle(
-        PackageEvent $event,
-        EventRegistration $registration,
+        string $eventId,
+        string $registrationId,
         Model $actor,
         bool $organizerOverride = false,
         ?string $reason = null,
-    ): OrderRefund {
+    ): EventRefundResultData {
         return $this->refunds->handle(
-            event: $event,
-            registration: $registration,
+            eventId: $eventId,
+            registrationId: $registrationId,
             actor: $actor,
             organizerOverride: $organizerOverride,
             reason: $reason,

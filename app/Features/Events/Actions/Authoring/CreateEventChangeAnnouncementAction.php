@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use AIArmada\Events\Models\EventUpdate;
+use AIArmada\Events\Features\Changes\Models\EventUpdate;
 use App\Features\Events\Api\EventAuthoring;
 
 /**

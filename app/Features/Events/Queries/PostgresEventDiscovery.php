@@ -10,9 +10,10 @@ use AIArmada\Addressing\Support\GeoDistance;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
-use AIArmada\Events\Models\EventLanguage;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventLanguage;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
 use App\Features\Events\Api\Data\AdminEventCard;
@@ -2625,9 +2626,12 @@ final readonly class PostgresEventDiscovery implements EventDirectoryProjectionP
             }
         }
 
+        $primaryLocation = $event->primaryLocation;
+        $primarySpace = $primaryLocation?->venueSpace;
+
         $location = app(SpaceLocation::class)->name(
-            (string) ($event->primaryLocation->space_name_snapshot ?? ''),
-            $event->primaryLocation?->venueSpace?->name,
+            (string) ($primaryLocation->space_name_snapshot ?? ''),
+            $primarySpace instanceof VenueSpace ? $primarySpace->name : null,
         ) ?? $event->venue->name
             ?? $event->institution->display_name
             ?? (string) __('Location to be confirmed');

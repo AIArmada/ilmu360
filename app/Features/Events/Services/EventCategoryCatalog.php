@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Data\EventTermData;
 use App\Features\Events\Api\EventCategoryCatalog as EventCategoryCatalogContract;
 use App\Shared\Cache\SelectionCatalogCache;
 
@@ -19,7 +19,7 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
     {
         $taxonomy = $this->hierarchy->taxonomy(self::TAXONOMY_CODE);
 
-        return $taxonomy?->is_active ? (string) $taxonomy->getKey() : null;
+        return $taxonomy?->isActive ? $taxonomy->id : null;
     }
 
     public function tree(): array
@@ -82,12 +82,12 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
             return [];
         }
 
-        $terms = $this->hierarchy->terms(self::TAXONOMY_CODE);
+        $terms = collect($this->hierarchy->terms(self::TAXONOMY_CODE));
         $selected = array_fill_keys($this->validTermIds($termIds), true);
 
         return $terms
-            ->filter(fn (EventTerm $term): bool => isset($selected[(string) $term->getKey()]))
-            ->map(fn (EventTerm $term): string => (string) $term->name)
+            ->filter(fn (EventTermData $term): bool => isset($selected[$term->id]))
+            ->map(fn (EventTermData $term): string => $term->name)
             ->values()
             ->all();
     }
@@ -104,9 +104,9 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
 
         $selected = array_fill_keys($this->validTermIds($termIds), true);
 
-        return $this->hierarchy->terms(self::TAXONOMY_CODE)
-            ->filter(fn (EventTerm $term): bool => isset($selected[(string) $term->getKey()]))
-            ->map(fn (EventTerm $term): string => (string) $term->code)
+        return collect($this->hierarchy->terms(self::TAXONOMY_CODE))
+            ->filter(fn (EventTermData $term): bool => isset($selected[$term->id]))
+            ->map(fn (EventTermData $term): string => $term->code)
             ->values()
             ->all();
     }

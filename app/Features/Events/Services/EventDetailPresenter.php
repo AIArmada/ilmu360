@@ -5,19 +5,21 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Models\EventAccessPolicy;
-use AIArmada\Events\Models\EventLink;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventMaterial;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventReference;
-use AIArmada\Events\Models\EventSession;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Data\RegistrationMode;
+use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
+use AIArmada\Events\Features\Catalog\Models\EventLink;
+use AIArmada\Events\Features\Catalog\Models\EventMaterial;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventReference;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use AIArmada\Seating\Models\SeatMap;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Api\SpaceLocation;
+use App\Features\Places\Models\Venue;
 use App\Features\References\Models\Reference as CatalogReference;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -621,10 +623,13 @@ final readonly class EventDetailPresenter
         }
 
         $locations = $scope instanceof EventOccurrence
-            ? $scope->locations->filter(fn (EventLocation $location): bool => $location->event_occurrence_id === $scope->getKey()
+            ? $scope->locations->filter(fn (mixed $location): bool => $location instanceof EventLocation
+                && $location->event_occurrence_id === $scope->getKey()
                 && $location->event_session_id === null)
-            : $scope->locations->filter(fn (EventLocation $location): bool => $location->event_session_id === $scope->getKey());
+            : $scope->locations->filter(fn (mixed $location): bool => $location instanceof EventLocation
+                && $location->event_session_id === $scope->getKey());
 
+        /** @var Collection<int, EventLocation> $locations */
         return $locations->firstWhere('location_role', 'primary')
             ?? $locations->first();
     }
@@ -636,6 +641,8 @@ final readonly class EventDetailPresenter
         }
 
         $label = trim((string) ($location->label ?? ''));
+        $space = $location->venueSpace;
+        $venue = $location->relationLoaded('venue') ? $location->venue : null;
 
         if ($label !== '') {
             return $label;
@@ -643,8 +650,8 @@ final readonly class EventDetailPresenter
 
         return app(SpaceLocation::class)->name(
             (string) ($location->space_name_snapshot ?? ''),
-            $location->venueSpace?->name,
-        ) ?? ($location->relationLoaded('venue') ? $location->venue?->name : null);
+            $space instanceof VenueSpace ? $space->name : null,
+        ) ?? ($venue instanceof Venue ? $venue->name : null);
     }
 
     /**

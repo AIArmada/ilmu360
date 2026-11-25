@@ -5,7 +5,7 @@ namespace App\Features\Events\Api;
 /**
  * Registration scope used by the advanced event flow.
  *
- * This is distinct from AIArmada\Events\Enums\RegistrationMode, which
+ * This is distinct from AIArmada\Events\Data\RegistrationMode, which
  * describes whether registration is required, optional, or open-door.
  */
 enum RegistrationScope: string

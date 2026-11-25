@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Events\Models\EventAttendance;
-use AIArmada\Events\Models\EventRegistrationItem;
+use AIArmada\Events\Features\Attendance\Models\EventAttendance;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationItem;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;

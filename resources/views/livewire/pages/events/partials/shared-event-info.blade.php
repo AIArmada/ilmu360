@@ -23,7 +23,7 @@
         ? nl2br(e($sharedDescription))
         : '';
     $sharedSummary = trim((string) ($event->summary ?? ''));
-    $hasOccurrenceContext = $occurrence instanceof \AIArmada\Events\Models\EventOccurrence;
+    $hasOccurrenceContext = $occurrence instanceof \AIArmada\Events\Features\Catalog\Models\EventOccurrence;
     $occurrenceOwnsSubmissionContent = $hasOccurrenceContext
         && is_array($occurrence->metadata['public_submission'] ?? null);
     $occurrenceAudiences = $occurrenceOwnsSubmissionContent && $occurrence->relationLoaded('audiences')

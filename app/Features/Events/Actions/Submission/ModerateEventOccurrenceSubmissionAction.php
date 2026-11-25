@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
-use AIArmada\Events\States\EventModerationStatus\Approved as SubmissionApproved;
-use AIArmada\Events\States\EventModerationStatus\Pending as SubmissionPending;
-use AIArmada\Events\States\EventModerationStatus\Rejected as SubmissionRejected;
+use AIArmada\Events\Features\Governance\States\EventModerationStatus\Approved as SubmissionApproved;
+use AIArmada\Events\Features\Governance\States\EventModerationStatus\Pending as SubmissionPending;
+use AIArmada\Events\Features\Governance\States\EventModerationStatus\Rejected as SubmissionRejected;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\OccurrenceSubmissionReviews;
 use App\Features\Events\Contracts\OccurrenceReviewNotifier;

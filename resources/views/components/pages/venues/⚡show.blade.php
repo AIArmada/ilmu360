@@ -1,7 +1,7 @@
 <?php
 
-use App\Features\Events\Api\EventPageSchedule;
 use App\Features\Events\Api\Data\EventScheduleCard;
+use App\Features\Events\Api\EventPageSchedule;
 use App\Features\Places\Models\Venue;
 use Illuminate\Support\Collection;
 use Livewire\Component;
@@ -149,7 +149,7 @@ new class extends Component
         ->values();
     $venue->loadMissing('facilities.facilityType');
     $facilityLabels = $venue->facilities
-        ->map(fn (\AIArmada\Events\Models\VenueFacility $facility): ?string => $facility->facilityType?->name)
+        ->map(fn (\AIArmada\Events\Features\Venues\Models\VenueFacility $facility): ?string => $facility->facilityType?->name)
         ->filter(fn (?string $label): bool => filled($label))
         ->map(fn (string $label): string => trim($label))
         ->values();

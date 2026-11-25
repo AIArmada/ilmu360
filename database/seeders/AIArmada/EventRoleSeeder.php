@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders\AIArmada;
 
-use AIArmada\Events\Models\EventRole;
+use AIArmada\Events\Features\Catalog\Models\EventRole;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use Illuminate\Database\Seeder;
 

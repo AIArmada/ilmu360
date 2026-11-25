@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Features\Institutions\Models\Institution;

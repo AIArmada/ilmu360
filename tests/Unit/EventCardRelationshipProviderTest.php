@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Events\Resolvers\DefaultEventSearchRelationProvider;
+use AIArmada\Events\Platform\DefaultEventSearchRelationProvider;
 use App\Features\Events\Queries\EventCardRelationshipProvider;
 
 it('composes package relations with application-owned event card relations', function (): void {

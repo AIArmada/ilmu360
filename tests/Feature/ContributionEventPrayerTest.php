@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
@@ -672,7 +672,7 @@ it('preserves non-default prayer offsets on UI direct title-only edits', functio
         ->and($event->starts_at->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
 
     // Warm-cache re-resolution honors the preserved offset.
-    expect(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh())?->toIso8601String())
+    expect(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh()->toData())?->toIso8601String())
         ->toBe($expectedStart->utc()->toIso8601String());
 })->with([
     'before 30' => [PrayerOffset::Before30],
@@ -707,7 +707,7 @@ it('preserves non-default prayer offsets on API direct title-only edits', functi
         ->and($expression?->offset_minutes)->toBe(abs($offset->minutes()))
         ->and($expression?->display_label)->toBe($offset->displayText(PrayerReference::Maghrib))
         ->and($event->starts_at->toIso8601String())->toBe($expectedStart->utc()->toIso8601String())
-        ->and(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh())?->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
+        ->and(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh()->toData())?->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
 })->with([
     'before 30' => [PrayerOffset::Before30],
     'after 30' => [PrayerOffset::After30],
@@ -747,7 +747,7 @@ it('preserves non-default prayer offsets when a title-only proposal is approved'
         ->and($expression?->offset_minutes)->toBe(abs($offset->minutes()))
         ->and($expression?->display_label)->toBe($offset->displayText(PrayerReference::Maghrib))
         ->and($event->starts_at->toIso8601String())->toBe($expectedStart->utc()->toIso8601String())
-        ->and(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh())?->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
+        ->and(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh()->toData())?->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
 })->with([
     'before 30' => [PrayerOffset::Before30],
     'after 30' => [PrayerOffset::After30],

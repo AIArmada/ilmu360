@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
-use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use App\Features\Events\Actions\Projection\InvalidateEventTaxonomyCatalogAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

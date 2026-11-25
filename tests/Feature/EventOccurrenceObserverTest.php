@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Events\Models\Event;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Scout\Jobs\MakeSearchable;

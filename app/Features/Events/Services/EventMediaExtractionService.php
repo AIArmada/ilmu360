@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Ai\Api\AiBudget;
 use App\Features\Events\Agents\EventMediaExtractionAgent;
 use App\Features\Events\Api\Enums\EventAgeGroup;

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Livewire\Pages\Dashboard\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\Event;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\Event;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Events\Actions\Schedule\SaveOccurrenceAction;
 use App\Features\Events\Actions\Schedule\SaveSessionAction;

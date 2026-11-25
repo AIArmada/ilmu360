@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Events\PaymentRefunded;
-use AIArmada\Events\Listeners\CompletePendingRefundOnPaymentRefunded;
-use AIArmada\Events\Models\EventAttendanceLog;
-use AIArmada\Events\Models\EventRegistrationAnswer;
-use AIArmada\Events\Models\EventRegistrationItem;
+use AIArmada\Events\Features\Attendance\Models\EventAttendanceLog;
+use AIArmada\Events\Features\Commerce\EntryPoints\Listeners\CompletePendingRefundOnPaymentRefunded;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationAnswer;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationItem;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Actions\ConfirmOfflineAdmissionAction;
 use App\Features\Registration\Actions\IssueOfflineAdmissionAction;
@@ -189,7 +189,7 @@ it('registers the pending refund completion listener exactly once', function ():
     $listeners = EventFacade::getRawListeners()[PaymentRefunded::class] ?? [];
 
     expect($listeners)->toHaveCount(1)
-        ->and($listeners[0])->toBe([CompletePendingRefundOnPaymentRefunded::class, 'handle']);
+        ->and($listeners[0])->toBe(CompletePendingRefundOnPaymentRefunded::class);
 });
 
 it('binds the admission registration boundary to the free admission action', function (): void {

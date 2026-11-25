@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Support;
 
-use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Data\RegistrationMode;
 use AIArmada\Ticketing\Enums\PricingMode;
 
 /**

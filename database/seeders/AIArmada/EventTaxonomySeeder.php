@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Seeders\AIArmada;
 
-use AIArmada\Events\Models\EventClassification;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
-use AIArmada\Events\Models\EventTermPolicy;
+use AIArmada\Events\Features\Taxonomy\Models\EventClassification;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTermPolicy;
 use App\Features\Events\Services\EventCategoryCatalog;
 use App\Shared\Cache\SelectionCatalogCache;
 use Illuminate\Database\Seeder;

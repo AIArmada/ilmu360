@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Schedule;
 
-use AIArmada\Events\Actions\CreateEventOccurrenceAction;
-use AIArmada\Events\Actions\UpdateEventOccurrenceAction;
-use AIArmada\Events\Models\Event;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Features\Catalog\Actions\UpdateEventOccurrenceAction;
+use AIArmada\Events\Features\Catalog\Models\Event;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**

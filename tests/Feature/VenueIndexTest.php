@@ -3,8 +3,8 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Events\Models\FacilityType;
-use AIArmada\Events\Models\VenueFacility;
+use AIArmada\Events\Features\Venues\Models\FacilityType;
+use AIArmada\Events\Features\Venues\Models\VenueFacility;
 use App\Features\Places\Models\Venue;
 use Illuminate\Support\Str;
 use Livewire\Livewire;

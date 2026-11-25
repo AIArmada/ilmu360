@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Registration\Actions;
 
 use AIArmada\Events\Contracts\EventCheckInService;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventAttendance;
-use AIArmada\Events\Models\EventRegistration;
-use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Features\Attendance\Models\EventAttendance;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationParticipant;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
 use App\Features\ShareTracking\Api\ParticipationAttribution;
 use App\Platform\Models\MorphModelResolver;
@@ -169,9 +169,7 @@ final readonly class RecordEventParticipantCheckInAction
                 ],
             ]);
 
-            $checkin = $result->attendance instanceof $checkinClass
-                ? $result->attendance
-                : $checkinClass::query()->findOrFail($result->attendance->getKey());
+            $checkin = $checkinClass::query()->findOrFail($result->attendance->id);
 
             if ($result->created) {
                 $checkin->refresh();

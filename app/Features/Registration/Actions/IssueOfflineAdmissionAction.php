@@ -5,23 +5,23 @@ declare(strict_types=1);
 namespace App\Features\Registration\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Actions\CreateRegistrationsFromOrderAction;
-use AIArmada\Events\Actions\IssueEventRegistrationPassesAction;
-use AIArmada\Events\Actions\SyncEventOrderRegistrationsAction;
-use AIArmada\Events\Models\Event;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventRegistration;
-use AIArmada\Events\Support\EventTicketScope;
+use AIArmada\Events\Features\Catalog\Models\Event;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Commerce\Actions\CreateRegistrationsFromOrderAction;
+use AIArmada\Events\Features\Commerce\Actions\IssueEventRegistrationPassesAction;
+use AIArmada\Events\Features\Commerce\Actions\SyncEventOrderRegistrationsAction;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration;
+use AIArmada\Events\Platform\EventTicketScope;
 use AIArmada\Orders\Contracts\OrderServiceInterface;
 use AIArmada\Orders\Models\Order;
-use AIArmada\Ticketing\Models\Pass;
 use AIArmada\Ticketing\Models\TicketType;
 use App\Features\Registration\Api\AdmissionIssuance;
 use App\Features\Registration\Api\Enums\OfflineAdmissionPaymentMethod;
 use App\Features\ShareTracking\Api\ParticipationAttribution;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -120,6 +120,13 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
             throw new InvalidArgumentException('The selected ticket does not have a valid event scope.');
         }
 
+        $scopeType = match (true) {
+            $target instanceof EventOccurrence => 'occurrence',
+            $target instanceof EventSession => 'session',
+            default => 'event',
+        };
+        $scopeId = (string) $target->getKey();
+
         $participant = $this->normalizeParticipant($participant);
         $basePrice = max(0, (int) ($ticketType->price ?? 0));
 
@@ -174,7 +181,8 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
             $registrationClass,
             $registrationPaymentStatus,
             $registrationStatus,
-            $target,
+            $scopeId,
+            $scopeType,
             $ticketType,
             $unitPrice,
             $userClass,
@@ -223,9 +231,10 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
                 throw new InvalidArgumentException('The offline admission order has no item.');
             }
 
-            $registrations = $this->registrations->handle(
-                target: $target,
-                orderItem: $orderItem,
+            $registrationIds = $this->registrations->handle(
+                scopeType: $scopeType,
+                scopeId: $scopeId,
+                orderItemId: (string) $orderItem->getKey(),
                 participants: [$participant],
                 purchaser: $actor,
                 options: [
@@ -239,11 +248,15 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
                     'notes' => $notes,
                 ],
             );
-            $registration = $registrations->first();
 
-            if (! $registration instanceof $registrationClass) {
+            $registrationId = $registrationIds[0] ?? null;
+
+            if ($registrationId === null) {
                 throw new InvalidArgumentException('The offline admission registration could not be created.');
             }
+
+            /** @var EventRegistration $registration */
+            $registration = $registrationClass::query()->findOrFail($registrationId);
 
             // Organizer-issued admissions are canonical registrations and
             // freeze provenance in the same transaction. The participant
@@ -267,7 +280,7 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
                 ],
             );
 
-            $passes = new Collection;
+            $passes = [];
 
             if ($paymentState === 'confirmed') {
                 $order = $this->orders->confirmPayment(
@@ -290,7 +303,7 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
             ];
         }));
 
-        /** @var array{order: Order, registration: EventRegistration, passes: Collection<int, Pass>} $result */
+        /** @var array{order: Order, registration: EventRegistration, passes: list<string>} $result */
         if ($paymentState === 'confirmed') {
             // The offline flow must settle the registration synchronously:
             // queued OrderPaid fulfillment is not guaranteed to run yet.
@@ -311,7 +324,7 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
                 throw new InvalidArgumentException('The offline admission registration could not be refreshed.');
             }
 
-            $result['passes'] = $this->issuePasses->handle($registration);
+            $result['passes'] = $this->issuePasses->handle((string) $registration->getKey());
             $result['registration'] = $registration->fresh(['participants', 'items', 'passes']);
         }
 
@@ -418,7 +431,7 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
     }
 
     /**
-     * @param  Collection<int, Pass>  $passes
+     * @param  list<string>  $passes
      * @return array{
      *     order_id: string,
      *     registration_id: string,
@@ -427,15 +440,12 @@ final readonly class IssueOfflineAdmissionAction implements AdmissionIssuance
      *     currency: string
      * }
      */
-    private function receipt(Order $order, EventRegistration $registration, Collection $passes): array
+    private function receipt(Order $order, EventRegistration $registration, array $passes): array
     {
         return [
             'order_id' => (string) $order->getKey(),
             'registration_id' => (string) $registration->getKey(),
-            'pass_ids' => $passes
-                ->map(static fn (Pass $pass): string => (string) $pass->getKey())
-                ->values()
-                ->all(),
+            'pass_ids' => array_values(array_map(strval(...), $passes)),
             'amount' => (int) $order->grand_total,
             'currency' => (string) $order->currency,
         ];

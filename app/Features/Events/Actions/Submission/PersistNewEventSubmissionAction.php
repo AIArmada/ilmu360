@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Submission;
 
-use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSubmission as PackageEventSubmission;
-use AIArmada\Events\States\OccurrenceStatus\Scheduled;
+use AIArmada\Events\Data\ScheduleKind;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\States\OccurrenceStatus\Scheduled;
+use AIArmada\Events\Features\Governance\Models\EventSubmission as PackageEventSubmission;
 use App\Features\Events\Actions\Authoring\SyncEventAssociationsAction;
 use App\Features\Events\Actions\Scheduling\ResolveInstitutionalPrayerSlotGroupAction;
 use App\Features\Events\Api\Enums\EventVisibility;

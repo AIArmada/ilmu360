@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Events\Enums\EventEscalationType;
-use AIArmada\Events\Models\EventEscalation;
+use AIArmada\Events\Data\EventEscalationType;
+use AIArmada\Events\Features\Governance\Models\EventEscalation;
 use App\Features\Events\EntryPoints\Jobs\EscalatePendingEvents;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Notifications\EventEscalationNotification;

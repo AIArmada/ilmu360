@@ -1,12 +1,12 @@
 <?php
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\States\EventModerationStatus\EventModerationStatus;
-use AIArmada\Events\States\OccurrenceStatus\Draft;
-use AIArmada\Events\States\OccurrenceStatus\Live;
-use AIArmada\Events\States\OccurrenceStatus\OccurrenceStatus;
-use AIArmada\Events\States\OccurrenceStatus\Published;
-use AIArmada\Events\States\RegistrationStatus\RegistrationStatus;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\States\OccurrenceStatus\Draft;
+use AIArmada\Events\Features\Catalog\States\OccurrenceStatus\Live;
+use AIArmada\Events\Features\Catalog\States\OccurrenceStatus\OccurrenceStatus;
+use AIArmada\Events\Features\Catalog\States\OccurrenceStatus\Published;
+use AIArmada\Events\Features\Governance\States\EventModerationStatus\EventModerationStatus;
+use AIArmada\Events\Features\Registrations\States\RegistrationStatus\RegistrationStatus;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class);

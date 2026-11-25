@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Models\EventTemplate;
+use AIArmada\Events\Features\Catalog\Models\EventTemplate;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
 use App\Features\Ai\EntryPoints\Filament\Resources\AiModelPricings\AiModelPricingResource;

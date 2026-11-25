@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Projection;
 
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Shared\Cache\SelectionCatalogCache;
 

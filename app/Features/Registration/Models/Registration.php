@@ -3,8 +3,8 @@
 namespace App\Features\Registration\Models;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
-use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration as PackageEventRegistration;
+use AIArmada\Events\Features\Registrations\Models\EventRegistrationParticipant;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\EventRegistrationDeletion;
 use App\Features\Registration\Api\RegistrationExportRecord;
@@ -20,7 +20,9 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-/** @extends PackageEventRegistration<Event> */
+/**
+ * @property-read Event|null $event
+ */
 class Registration extends PackageEventRegistration implements AuditableContract, RegistrationExportRecord
 {
     #[\Override]

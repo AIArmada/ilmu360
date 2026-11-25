@@ -3,12 +3,12 @@
 namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Actions\CreateEventSessionAction;
-use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventRole;
-use AIArmada\Events\Models\EventSession;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Data\ScheduleKind;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventRole;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;

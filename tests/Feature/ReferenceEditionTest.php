@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
 use App\Features\Events\Models\Event;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\Api\ReferenceWorkflow;

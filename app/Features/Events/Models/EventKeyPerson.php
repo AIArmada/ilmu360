@@ -2,7 +2,7 @@
 
 namespace App\Features\Events\Models;
 
-use AIArmada\Events\Models\EventInvolvement;
+use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
 use App\Features\Persons\Models\Person;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

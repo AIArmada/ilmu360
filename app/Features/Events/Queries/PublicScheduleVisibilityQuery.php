@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Api\PublicScheduleVisibility;
 use App\Features\Events\Policies\PublicSchedulePolicy;
 

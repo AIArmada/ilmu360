@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Events\Contracts\EventRefundEligibility;
-use AIArmada\Events\Models\EventAttendanceLog;
+use AIArmada\Events\Features\Attendance\Models\EventAttendanceLog;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Api\Enums\EventAttendanceStatus;
 use App\Features\Registration\EntryPoints\Livewire\Pages\Dashboard\Events\Participants;

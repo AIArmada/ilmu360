@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Models\Event;
@@ -342,7 +342,7 @@ it('preserves complete provenance including country on a title-only edit during 
         ->where('anchor_type', 'prayer')
         ->firstOrFail();
 
-    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression);
+    $resolved = app(PrayerTimeExpressionResolver::class)->resolve($expression->toData());
 
     // Changed anchor: maghrib 19:12 + Immediately (+5) => 19:17.
     expect($resolved?->setTimezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:17');
@@ -545,7 +545,7 @@ it('preserves non-default prayer offsets on title-only admin saves', function (P
         ->and($event->starts_at->toIso8601String())->toBe($expectedStart->utc()->toIso8601String());
 
     // Warm-cache re-resolution honors the preserved offset.
-    expect(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh())?->toIso8601String())
+    expect(app(PrayerTimeExpressionResolver::class)->resolve($expression->fresh()->toData())?->toIso8601String())
         ->toBe($expectedStart->utc()->toIso8601String());
 })->with([
     'before 30' => [PrayerOffset::Before30],

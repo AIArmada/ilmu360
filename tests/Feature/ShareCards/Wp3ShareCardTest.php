@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\Venue;
-use AIArmada\Events\Models\VenueSpace;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\Venue;
+use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\EventShareCardCache;

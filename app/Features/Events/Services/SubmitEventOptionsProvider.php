@@ -6,9 +6,9 @@ namespace App\Features\Events\Services;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
@@ -19,9 +19,9 @@ use App\Features\Events\Support\SubmissionTimingPolicy;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Institutions\Api\InstitutionSubmissionOptionsCache;
 use App\Features\Persons\Api\PersonSubmissionOptionsCache;
-use App\Models\User;
 use App\Platform\Language\MalaysiaLanguageCatalog;
 use App\Platform\Language\Models\Language;
+use App\Shared\Auth\AccountActor;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
@@ -48,7 +48,7 @@ final class SubmitEventOptionsProvider
     /**
      * @return array<string, string>
      */
-    public function institutionOptions(?User $submitter, ?string $countryId, ?string $scopedInstitutionId): array
+    public function institutionOptions(?AccountActor $submitter, ?string $countryId, ?string $scopedInstitutionId): array
     {
         if ($scopedInstitutionId !== null) {
             $label = app(InstitutionLookup::class)->displayName($scopedInstitutionId);
@@ -56,7 +56,7 @@ final class SubmitEventOptionsProvider
             return $label !== null ? [$scopedInstitutionId => $label] : [];
         }
 
-        $memoKey = 'institutions:'.($countryId ?? 'all').':'.($submitter instanceof User ? (string) $submitter->getKey() : 'guest');
+        $memoKey = 'institutions:'.($countryId ?? 'all').':'.($submitter?->actorId() ?? 'guest');
 
         if (array_key_exists($memoKey, $this->optionMemo)) {
             return $this->optionMemo[$memoKey];
@@ -69,7 +69,7 @@ final class SubmitEventOptionsProvider
         // Guest scope is identical for every guest, so it is safe to share
         // across requests; member scopes stay request-local to avoid any
         // cross-user membership leakage.
-        return $this->optionMemo[$memoKey] = $submitter instanceof User
+        return $this->optionMemo[$memoKey] = $submitter !== null
             ? $load()
             : $this->institutionSubmissionOptionsCache->rememberGuestOptions($countryId, $load);
     }
@@ -77,9 +77,9 @@ final class SubmitEventOptionsProvider
     /**
      * @return array<string, string>
      */
-    public function personOptions(?User $submitter): array
+    public function personOptions(?AccountActor $submitter): array
     {
-        $memoKey = 'persons:'.($submitter instanceof User ? (string) $submitter->getKey() : 'guest');
+        $memoKey = 'persons:'.($submitter?->actorId() ?? 'guest');
 
         if (array_key_exists($memoKey, $this->optionMemo)) {
             return $this->optionMemo[$memoKey];
@@ -89,7 +89,7 @@ final class SubmitEventOptionsProvider
 
         $load = fn (): array => $access->personOptions($submitter);
 
-        return $this->optionMemo[$memoKey] = $submitter instanceof User
+        return $this->optionMemo[$memoKey] = $submitter !== null
             ? $load()
             : $this->personSubmissionOptionsCache->rememberGuestPersonOptions($load);
     }
@@ -133,10 +133,10 @@ final class SubmitEventOptionsProvider
     /**
      * @return array<string, string>
      */
-    public function tagOptions(EventTaxonomyCode $type, string $cachePrefix): array
+    public function tagOptions(EventTaxonomyCode $type, ?string $cachePrefix = null): array
     {
-        return $this->submissionOptionsCache->rememberTaxonomyTagOptions($cachePrefix, app()->getLocale(), function () use ($type): array {
-            $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->value('id');
+        $load = static function () use ($type): array {
+            $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->where('is_active', true)->value('id');
 
             if ($taxonomyId === null) {
                 return [];
@@ -150,7 +150,11 @@ final class SubmitEventOptionsProvider
                 ->pluck('name', 'id')
                 ->mapWithKeys(fn (mixed $name, mixed $id): array => [(string) $id => (string) $name])
                 ->all();
-        });
+        };
+
+        return $cachePrefix === null
+            ? $load()
+            : $this->submissionOptionsCache->rememberTaxonomyTagOptions($cachePrefix, app()->getLocale(), $load);
     }
 
     /**

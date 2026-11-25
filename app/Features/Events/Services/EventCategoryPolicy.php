@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\Events\Models\EventTermPolicy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTermPolicy;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 

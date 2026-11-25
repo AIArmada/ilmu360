@@ -3,8 +3,8 @@
 namespace App\Features\Events\EntryPoints\Ui;
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\Events\Models\EventAccessPolicy;
-use AIArmada\Events\Models\Venue;
+use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
+use AIArmada\Events\Features\Venues\Models\Venue;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventChangeAnnouncement;
@@ -25,7 +25,7 @@ class EventJsonLd extends Component
      * @param  string|null  $name  Title override for that date page.
      * @param  CarbonInterface|null  $startsAt  Date-level start time override.
      * @param  CarbonInterface|null  $endsAt  Date-level end time override.
-     * @param  Venue<\AIArmada\Events\Models\VenueSpace>|null  $venue  Scoped venue, including a package-level venue.
+     * @param  Venue<\AIArmada\Events\Features\Venues\Models\VenueSpace>|null  $venue  Scoped venue, including a package-level venue.
      */
     public function __construct(
         public Event $event,

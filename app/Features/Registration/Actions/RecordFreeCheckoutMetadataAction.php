@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Registration\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventRegistration;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration;
 use App\Platform\Models\MorphModelResolver;
 use Lorisleiva\Actions\Concerns\AsAction;
 

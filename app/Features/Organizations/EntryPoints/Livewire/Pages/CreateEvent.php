@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Organizations\EntryPoints\Livewire\Pages;
 
-use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Data\RegistrationMode;
 use AIArmada\Organizations\Models\Organization;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Ticketing\Enums\PricingMode;

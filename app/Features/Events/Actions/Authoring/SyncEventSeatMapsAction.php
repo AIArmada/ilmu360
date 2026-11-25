@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
 use AIArmada\Seating\Models\SeatMap;
 
 /**

@@ -1,9 +1,9 @@
 <?php
 
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
-use AIArmada\Events\Models\EventTermPolicy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTermPolicy;
 use App\Features\Events\Api\EventCategoryCatalog;
 use App\Features\Events\Api\EventCategoryPolicyResolver;
 use Database\Seeders\AIArmada\FoundationSeeder;

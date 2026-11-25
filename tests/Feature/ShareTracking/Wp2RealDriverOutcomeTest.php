@@ -27,7 +27,7 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\Services\FraudDetectionService;
 use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Engagement\Models\Response;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
 use App\Features\Registration\Models\Registration;
 use App\Features\ShareTracking\Api\OutcomeCorrectionSnapshot;

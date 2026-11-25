@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Data\RegistrationMode;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\SignalIdentity;
 use AIArmada\Signals\Models\SignalSession;

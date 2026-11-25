@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\CommerceSupport\Support\MoneyNormalizer;
-use AIArmada\Events\Actions\EnsureTicketTypeForOccurrenceAction;
-use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Models\Event;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Data\RegistrationMode;
+use AIArmada\Events\Features\Catalog\Models\Event;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Commerce\Actions\EnsureTicketTypeForOccurrenceAction;
 use AIArmada\Seating\Enums\SeatingMode;
 use AIArmada\Seating\Models\Seat;
 use AIArmada\Seating\Models\SeatMap;
 use AIArmada\Seating\Models\SeatSection;
 use AIArmada\Ticketing\Enums\PricingMode;
-use AIArmada\Ticketing\Models\TicketType;
 use AIArmada\Ticketing\Models\TicketTypeSeatingOption;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -69,7 +68,7 @@ final readonly class ConfigureEventAdmissionAction
             $requiresSeating = $requiresSeating || $seatingMode->requiresAllocation();
             $totalQuota += (int) ($ticket['quota'] ?? 0);
 
-            $ticketTypes[] = $this->ensureTicketType->handle($occurrence, [
+            $ticketTypes[] = $this->ensureTicketType->handle('occurrence', (string) $occurrence->getKey(), [
                 'code' => $ticket['code'],
                 'name' => $ticket['name'],
                 'description' => $ticket['description'],
@@ -242,7 +241,7 @@ final readonly class ConfigureEventAdmissionAction
     }
 
     /**
-     * @param  list<TicketType>  $ticketTypes
+     * @param  list<string>  $ticketTypes
      * @param  list<array{code: string, name: string, description: ?string, price: int, max_quantity: ?int, quota: ?int, seating_mode: string}>  $tickets
      */
     private function attachGeneralAdmissionSections(array $ticketTypes, array $tickets, SeatMap $seatMap): void
@@ -253,16 +252,16 @@ final readonly class ConfigureEventAdmissionAction
             throw new InvalidArgumentException('At least one seating section is required.');
         }
 
-        foreach ($ticketTypes as $index => $ticketType) {
+        foreach ($ticketTypes as $index => $ticketTypeId) {
             if (($tickets[$index]['seating_mode'] ?? SeatingMode::None->value) !== SeatingMode::GeneralAdmission->value) {
                 continue;
             }
 
             TicketTypeSeatingOption::query()->create([
-                'ticket_type_id' => $ticketType->getKey(),
+                'ticket_type_id' => $ticketTypeId,
                 'seat_section_id' => $section->getKey(),
                 'included_quantity' => 1,
-                'allowed_quantity' => $ticketType->max_quantity,
+                'allowed_quantity' => $tickets[$index]['max_quantity'] ?? null,
             ]);
         }
     }

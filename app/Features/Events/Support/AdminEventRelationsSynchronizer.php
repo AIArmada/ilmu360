@@ -2,7 +2,7 @@
 
 namespace App\Features\Events\Support;
 
-use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
 use App\Features\Events\Actions\Authoring\SyncEventAssociationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventResourceRelationsAction;
 use App\Features\Events\Actions\Authoring\SyncEventSeatMapsAction;

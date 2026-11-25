@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Features\Places\Actions\Venues;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Enums\FacilityAvailability;
-use AIArmada\Events\Models\FacilityType;
-use AIArmada\Events\Models\VenueFacility;
+use AIArmada\Events\Data\FacilityAvailability;
+use AIArmada\Events\Features\Venues\Models\FacilityType;
+use AIArmada\Events\Features\Venues\Models\VenueFacility;
 use App\Features\Places\Models\Venue;
 use App\Platform\Models\MorphModelResolver;
 use Illuminate\Database\Eloquent\Collection;

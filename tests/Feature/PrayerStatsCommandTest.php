@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Events\Enums\ScheduleKind;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Data\ScheduleKind;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;

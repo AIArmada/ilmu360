@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Features\Registration\Actions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Actions\RegisterForFreeAction;
-use AIArmada\Events\Models\Event as PackageEvent;
-use AIArmada\Events\Models\EventRegistration;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Registrations\Actions\RegisterForFreeAction;
 use App\Features\Registration\Api\AdmissionRegistration;
 use App\Features\ShareTracking\Api\ParticipationAttribution;
 use App\Platform\Models\MorphModelResolver;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -81,9 +79,14 @@ final readonly class RegisterFreeAdmissionAction implements AdmissionRegistratio
             : [];
         unset($options['attribution_metadata']);
 
+        $idempotencyKey = isset($options['idempotency_key']) && is_string($options['idempotency_key'])
+            ? $options['idempotency_key']
+            : null;
+
         return DB::transaction(function () use (
             $attributionMetadata,
             $event,
+            $idempotencyKey,
             $participants,
             $registrant,
             $registrationClass,
@@ -91,10 +94,26 @@ final readonly class RegisterFreeAdmissionAction implements AdmissionRegistratio
             $userClass,
             $options,
         ): array {
-            $created = OwnerContext::withOwner(null, fn (): Collection => $this->registerForFree->execute(
-                target: $event,
+            // Idempotent replays return the rows recorded under the same key.
+            // Resolving the pre-existing ids first lets this call report
+            // created vs replayed rows without hydrating models.
+            $existingIds = $idempotencyKey === null
+                ? []
+                : array_flip($registrationClass::query()
+                    ->where('event_id', $event->getKey())
+                    ->whereNull('event_occurrence_id')
+                    ->whereNull('event_session_id')
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->pluck('id')
+                    ->map(static fn (mixed $id): string => (string) $id)
+                    ->all());
+
+            $createdIds = OwnerContext::withOwner(null, fn (): array => $this->registerForFree->execute(
+                scopeType: 'event',
+                scopeId: (string) $event->getKey(),
                 participants: $participants,
-                registrant: $registrant,
+                registrantType: $registrant instanceof Model ? $registrant->getMorphClass() : null,
+                registrantId: $registrant instanceof Model ? (string) $registrant->getKey() : null,
                 options: $options,
             ));
 
@@ -104,25 +123,16 @@ final readonly class RegisterFreeAdmissionAction implements AdmissionRegistratio
             /** @var list<array{registration_id: string, created: bool}> $registrations */
             $registrations = [];
 
-            foreach ($created as $registration) {
+            foreach ($createdIds as $registrationId) {
                 // The free-registration authority returns pre-existing rows
                 // on idempotent replay. Only transitions created by this
                 // call freeze a decision; earlier unattributed/noop
                 // registrations can never earn later through a new cookie.
-                $freshlyCreated = $registration->wasRecentlyCreated;
+                $freshlyCreated = ! isset($existingIds[$registrationId]);
 
-                if (! $registration instanceof $registrationClass) {
-                    $registration = $registrationClass::query()
-                        ->whereKey($registration->getKey())
-                        ->firstOrFail();
-                }
-
-                /** @var EventRegistration $registration */
                 if ($freshlyCreated) {
-                    $registration->refresh();
-
                     $this->attribution->recordFreeRegistration(
-                        registrationId: (string) $registration->getKey(),
+                        registrationId: $registrationId,
                         eventId: (string) $event->getKey(),
                         actorId: $actor?->getKey() !== null ? (string) $actor->getKey() : null,
                         guest: ! $actor instanceof Model,
@@ -132,7 +142,7 @@ final readonly class RegisterFreeAdmissionAction implements AdmissionRegistratio
                 }
 
                 $registrations[] = [
-                    'registration_id' => (string) $registration->getKey(),
+                    'registration_id' => $registrationId,
                     'created' => $freshlyCreated,
                 ];
             }

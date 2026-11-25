@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\EntryPoints\Mcp\McpEventSearchService;
 use App\Features\Events\Models\Event;

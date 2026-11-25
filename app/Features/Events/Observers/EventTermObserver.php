@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Observers;
 
-use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Events\Actions\Projection\InvalidateEventTermCatalogAction;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

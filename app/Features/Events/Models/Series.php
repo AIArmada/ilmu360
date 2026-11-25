@@ -4,10 +4,10 @@ namespace App\Features\Events\Models;
 
 use AIArmada\Engagement\Contracts\Followable;
 use AIArmada\Engagement\Models\Follow;
-use AIArmada\Events\Models\EventSeries as PackageEventSeries;
-use AIArmada\Events\Models\EventSeriesItem;
-use AIArmada\Events\Models\EventSeriesItemPivot;
-use AIArmada\Events\Models\EventSeriesRule;
+use AIArmada\Events\Features\Catalog\Models\EventSeries as PackageEventSeries;
+use AIArmada\Events\Features\Catalog\Models\EventSeriesItem;
+use AIArmada\Events\Features\Catalog\Models\EventSeriesItemPivot;
+use AIArmada\Events\Features\Catalog\Models\EventSeriesRule;
 use App\Models\User;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Platform\Models\Concerns\HasLanguages;

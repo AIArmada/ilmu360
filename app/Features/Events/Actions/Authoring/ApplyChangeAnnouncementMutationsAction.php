@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Features\Events\Actions\Authoring;
 
 use AIArmada\Events\Contracts\EventLifecycleWorkflow;
-use AIArmada\Events\Models\Event as PackageEvent;
+use AIArmada\Events\Features\Catalog\Models\Event as PackageEvent;
 use App\Features\Events\Api\Enums\EventChangeType;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Support\EventModel;
 use App\Features\Places\Api\SpaceEligibility;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use DateTimeInterface;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Apply the event-side mutations represented by a published change announcement.
@@ -75,11 +79,16 @@ final readonly class ApplyChangeAnnouncementMutationsAction
             EventChangeType::RescheduledLater,
             EventChangeType::ScheduleChanged,
         ], true)) {
-            $startsAt = $changes['starts_at'] ?? null;
-            $endsAt = $changes['ends_at'] ?? null;
+            $startsAt = $this->resolveChangeInstant($event, $changes['starts_at'] ?? null);
+            $endsAt = $this->resolveChangeInstant($event, $changes['ends_at'] ?? null);
 
-            if ($occurrence && $startsAt && $endsAt) {
-                $this->eventLifecycleWorkflow->reschedule($occurrence, $startsAt, $endsAt);
+            if ($occurrence && $startsAt instanceof DateTimeInterface && $endsAt instanceof DateTimeInterface) {
+                $this->eventLifecycleWorkflow->reschedule(
+                    'occurrence',
+                    (string) $occurrence->getKey(),
+                    $startsAt,
+                    $endsAt,
+                );
                 $changedFields[] = 'occurrence_status';
             }
         }
@@ -251,6 +260,30 @@ final readonly class ApplyChangeAnnouncementMutationsAction
         $value = trim($value);
 
         return $value !== '' ? $value : null;
+    }
+
+    private function resolveChangeInstant(Event $event, mixed $value): ?CarbonImmutable
+    {
+        if ($value instanceof CarbonInterface) {
+            return CarbonImmutable::instance($value);
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return CarbonImmutable::instance($value);
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse(
+                $value,
+                is_string($event->timezone) && $event->timezone !== '' ? $event->timezone : null,
+            );
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**

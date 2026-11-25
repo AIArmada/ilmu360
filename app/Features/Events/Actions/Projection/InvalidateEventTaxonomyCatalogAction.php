@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Projection;
 
-use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use App\Shared\Cache\SelectionCatalogCache;
 
 final readonly class InvalidateEventTaxonomyCatalogAction

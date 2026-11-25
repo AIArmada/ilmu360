@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\VenueSpaceType;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
+use AIArmada\Events\Features\Venues\Models\VenueSpaceType;
 use App\Features\Events\EntryPoints\Http\Data\EventPayloadData;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;

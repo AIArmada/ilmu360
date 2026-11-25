@@ -1,9 +1,9 @@
 <?php
 
-use AIArmada\Events\Actions\CreateEventOccurrenceAction;
-use AIArmada\Events\Actions\CreateEventSessionAction;
-use AIArmada\Events\Models\EventLocation;
-use AIArmada\Events\Models\EventReference;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;
+use AIArmada\Events\Features\Catalog\Models\EventReference;
+use AIArmada\Events\Features\Venues\Models\EventLocation;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Discovery\Api\Data\EventSearchPage;
 use App\Features\Discovery\Services\EventSearchService;

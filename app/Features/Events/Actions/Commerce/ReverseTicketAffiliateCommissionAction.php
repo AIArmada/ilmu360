@@ -11,7 +11,7 @@ use AIArmada\Affiliates\States\FailedPayout;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\CommerceSupport\Support\OwnerTuple\OwnerTupleParser;
-use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
+use AIArmada\Events\Features\Registrations\Models\EventRegistration as PackageEventRegistration;
 use App\Features\Events\Api\TicketAffiliateReversals;
 use App\Features\ShareTracking\Api\EffectReceipts;
 
