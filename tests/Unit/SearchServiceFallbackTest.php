@@ -39,9 +39,9 @@ beforeEach(function (): void {
 
 function remoteAvailableEngineResolver(int $limit = 250): SearchEngineResolver
 {
-    return new class($limit) implements SearchEngineResolver
+    return new readonly class($limit) implements SearchEngineResolver
     {
-        public function __construct(private readonly int $limit) {}
+        public function __construct(private int $limit) {}
 
         public function activeDriver(): string
         {

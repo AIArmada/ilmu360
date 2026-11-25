@@ -15,10 +15,10 @@ it('slices ordered ids before hydrating without emitting CASE WHEN SQL', functio
     $third = Institution::factory()->create(['name' => 'Gamma Masjid', 'status' => 'verified']);
     $hidden = Institution::factory()->create(['name' => 'Hidden Masjid', 'status' => 'rejected']);
 
-    $adapter = new class([(string) $third->id, (string) $hidden->id, (string) $first->id, (string) $second->id]) implements PublicDiscoveryAdapter
+    $adapter = new readonly class([(string) $third->id, (string) $hidden->id, (string) $first->id, (string) $second->id]) implements PublicDiscoveryAdapter
     {
         /** @param list<string> $ids */
-        public function __construct(private readonly array $ids) {}
+        public function __construct(private array $ids) {}
 
         public function publicSearchIds(string $search): array
         {

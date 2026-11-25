@@ -155,7 +155,7 @@ final class PublicDiscovery
         int $perPage,
         int $page,
     ): LengthAwarePaginator {
-        return (new LengthAwarePaginator(
+        return new LengthAwarePaginator(
             items: $items,
             total: $total,
             perPage: $perPage,
@@ -164,6 +164,6 @@ final class PublicDiscovery
                 'path' => Paginator::resolveCurrentPath(),
                 'pageName' => 'page',
             ],
-        ))->appends($request->query());
+        )->appends($request->query());
     }
 }

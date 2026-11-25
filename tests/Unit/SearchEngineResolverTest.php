@@ -20,7 +20,7 @@ it('resolves discovery search driver override before falling back to scout drive
         ->and($resolver->usesScout())->toBeTrue()
         ->and($resolver->usesTypesense())->toBeFalse();
 
-    config()->set('discovery.search.driver', null);
+    config()->set('discovery.search.driver');
 
     expect($resolver->activeDriver())->toBe('typesense')
         ->and($resolver->usesTypesense())->toBeTrue();
@@ -33,7 +33,7 @@ it('reports scout and remote availability across supported drivers', function ()
 
     $resolver = app(SearchEngineResolver::class);
 
-    config()->set('discovery.search.driver', null);
+    config()->set('discovery.search.driver');
     config()->set('scout.driver', 'typesense');
     expect($resolver->usesScout())->toBeTrue()
         ->and($resolver->usesTypesense())->toBeTrue()

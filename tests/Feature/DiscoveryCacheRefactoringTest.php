@@ -115,7 +115,7 @@ it('busts discovery cache scopes and reports status via artisan commands', funct
     expect($cache->version((string) config('discovery.cache.versions.events_schedule')))->not->toBe($eventsBefore)
         ->and($cache->version((string) config('discovery.cache.versions.persons_search')))->toBe($personsBefore);
 
-    config()->set('discovery.search.driver', null);
+    config()->set('discovery.search.driver');
     config()->set('scout.driver', 'typesense');
     config()->set('scout.typesense.client-settings', ['api_key' => 'test', 'nodes' => []]);
     $probe = Mockery::mock(SearchHealthProbe::class);

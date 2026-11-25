@@ -78,10 +78,7 @@ function assertMajlisCacheWasCleared(array $keys): void
 {
     $currentVersion = app(DiscoveryCache::class)->version((string) config('discovery.cache.versions.events_schedule'));
 
-    foreach ($keys as $key) {
-        expect(str_ends_with($key, ":{$currentVersion}"))
-            ->toBeFalse("Expected majlis version for [{$key}] to have bumped.");
-    }
+    expect($keys)->each->not->toEndWith(":{$currentVersion}");
 }
 
 /**
@@ -91,10 +88,7 @@ function assertHomepageStatsCacheWasCleared(array $keys): void
 {
     $currentVersion = app(DiscoveryCache::class)->version((string) config('discovery.cache.versions.homepage_stats'));
 
-    foreach ($keys as $key) {
-        expect(str_ends_with($key, ":{$currentVersion}"))
-            ->toBeFalse("Expected homepage stats version for [{$key}] to have bumped.");
-    }
+    expect($keys)->each->not->toEndWith(":{$currentVersion}");
 }
 
 it('reads homepage counts through their feature-owned caches', function (): void {

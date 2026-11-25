@@ -11,14 +11,14 @@ pest()->extend(TestCase::class);
 
 beforeEach(function (): void {
     config()->set('discovery.cache.enabled', true);
-    config()->set('discovery.cache.store', null);
+    config()->set('discovery.cache.store');
     config()->set('cache.default', 'array');
     app('cache')->setDefaultDriver('array');
     Cache::flush();
 });
 
 it('returns false when active search driver is not typesense', function (): void {
-    config()->set('discovery.search.driver', null);
+    config()->set('discovery.search.driver');
     config()->set('scout.driver', 'database');
 
     $probe = Mockery::mock(SearchHealthProbe::class);
@@ -29,7 +29,7 @@ it('returns false when active search driver is not typesense', function (): void
 });
 
 it('consults the host probe once and caches the health result via DiscoveryCache', function (): void {
-    config()->set('discovery.search.driver', null);
+    config()->set('discovery.search.driver');
     config()->set('scout.driver', 'typesense');
     config()->set('scout.typesense.client-settings', ['api_key' => 'test', 'nodes' => []]);
     config()->set('discovery.cache.ttls.health_check', 30);
@@ -48,7 +48,7 @@ it('consults the host probe once and caches the health result via DiscoveryCache
 });
 
 it('does not call the host probe for incomplete configuration', function (): void {
-    config()->set('discovery.search.driver', null);
+    config()->set('discovery.search.driver');
     config()->set('scout.driver', 'typesense');
     config()->set('scout.typesense.client-settings');
 
@@ -60,7 +60,7 @@ it('does not call the host probe for incomplete configuration', function (): voi
 });
 
 it('re-probes health after busting the cached health version', function (): void {
-    config()->set('discovery.search.driver', null);
+    config()->set('discovery.search.driver');
     config()->set('scout.driver', 'typesense');
     config()->set('scout.typesense.client-settings', ['api_key' => 'test', 'nodes' => []]);
 

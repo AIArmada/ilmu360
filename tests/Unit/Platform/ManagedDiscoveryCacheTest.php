@@ -14,7 +14,7 @@ pest()->extend(TestCase::class);
 
 beforeEach(function (): void {
     config()->set('discovery.cache.enabled', true);
-    config()->set('discovery.cache.store', null);
+    config()->set('discovery.cache.store');
     config()->set('cache.default', 'array');
     app('cache')->setDefaultDriver('array');
     Cache::flush();

@@ -132,7 +132,6 @@ final readonly class EventScheduleOccurrencePaginator
         array $filters,
         int $page,
         int $perPage,
-        string $sort = 'time',
     ): array {
         $occurrencesTable = (new EventOccurrence)->getTable();
         $parentFilters = $filters;

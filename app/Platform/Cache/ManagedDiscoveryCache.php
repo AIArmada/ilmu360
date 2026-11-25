@@ -81,10 +81,7 @@ final class ManagedDiscoveryCache implements DiscoveryCache
         $version = $this->version($versionKey);
         $store = $this->store();
 
-        /** @var mixed $value */
-        $value = $store->remember("{$key}:{$version}", $ttlSeconds, $resolver);
-
-        return $value;
+        return $store->remember("{$key}:{$version}", $ttlSeconds, $resolver);
     }
 
     public function rememberInt(string $versionKey, string $key, int $ttlSeconds, Closure $resolver): int

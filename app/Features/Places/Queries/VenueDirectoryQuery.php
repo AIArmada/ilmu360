@@ -277,7 +277,7 @@ final readonly class VenueDirectoryQuery
 
         $venues->each(static fn (Venue $venue): Venue => $venue->makeHidden('matching_total'));
 
-        return (new LengthAwarePaginator($venues, $total, $perPage, $page, $paginationMeta))
+        return new LengthAwarePaginator($venues, $total, $perPage, $page, $paginationMeta)
             ->appends($paginationMeta['query']);
     }
 
@@ -341,7 +341,7 @@ final readonly class VenueDirectoryQuery
         $paginatedIds = array_slice($orderedIds, ($page - 1) * $perPage, $perPage);
 
         if ($paginatedIds === []) {
-            return (new LengthAwarePaginator(collect(), count($orderedIds), $perPage, $page, $paginationMeta))
+            return new LengthAwarePaginator(collect(), count($orderedIds), $perPage, $page, $paginationMeta)
                 ->appends($paginationMeta['query']);
         }
 
@@ -353,7 +353,7 @@ final readonly class VenueDirectoryQuery
             ->sortBy(static fn (Venue $venue): int => $positions[(string) $venue->id] ?? PHP_INT_MAX)
             ->values();
 
-        return (new LengthAwarePaginator($venues, count($orderedIds), $perPage, $page, $paginationMeta))
+        return new LengthAwarePaginator($venues, count($orderedIds), $perPage, $page, $paginationMeta)
             ->appends($paginationMeta['query']);
     }
 
@@ -384,7 +384,7 @@ final readonly class VenueDirectoryQuery
      */
     private function emptyPaginator(int $page, array $paginationMeta, int $perPage): LengthAwarePaginator
     {
-        return (new LengthAwarePaginator(collect(), 0, $perPage, max(1, $page), $paginationMeta))
+        return new LengthAwarePaginator(collect(), 0, $perPage, max(1, $page), $paginationMeta)
             ->appends($paginationMeta['query']);
     }
 }

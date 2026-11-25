@@ -46,6 +46,6 @@ it('extracts normalized ids from typesense, meilisearch, algolia, and generic sc
         ->and($extractor->extractIds($algolia))->toBe(['alg-1', 'alg-2'])
         ->and($extractor->extractIds($genericResults))->toBe(['model-1', 'arr-1'])
         ->and($extractor->extractIds(['raw-1', 'raw-2']))->toBe(['raw-1', 'raw-2'])
-        ->and($extractor->extractIds(null))->toBe([])
-        ->and($extractor->extractIds([]))->toBe([]);
+        ->and($extractor->extractIds(null))->toBeEmpty()
+        ->and($extractor->extractIds([]))->toBeEmpty();
 });
