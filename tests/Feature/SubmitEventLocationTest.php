@@ -51,7 +51,7 @@ function submitEventLocationFormData(array $overrides = []): array
 }
 
 it('prefills the existing venue when an institution organizer adds a session', function (): void {
-    $this->user->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+    $this->user->assignRole(AIArmada\Authz\Features\Authorization\Models\Role::findOrCreate('admin', 'web'));
 
     $institution = Institution::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
@@ -94,7 +94,7 @@ it('preserves a separate location institution when prefilling a session', functi
 });
 
 it('flashes actual private parent visibility after submitting a public session', function (): void {
-    $this->user->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+    $this->user->assignRole(AIArmada\Authz\Features\Authorization\Models\Role::findOrCreate('admin', 'web'));
 
     $institution = Institution::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $person = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);

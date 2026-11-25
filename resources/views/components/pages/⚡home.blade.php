@@ -210,7 +210,7 @@ new
         public function featuredPersons(): Collection
         {
             /** @var list<string> $ids */
-            $ids = app(\AIArmada\CommerceSupport\Support\VersionedCache::class)->remember(
+            $ids = app(\AIArmada\CommerceSupport\Persistence\VersionedCache::class)->remember(
                 Person::FEATURED_IDS_CACHE_KEY,
                 'home:featured_person_ids',
                 300,

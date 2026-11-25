@@ -66,7 +66,7 @@ it('preloads the title catalog once and reuses its shared cache on the person up
 
 it('hydrates and saves a selected title from the preloaded title catalog', function (): void {
     $user = User::factory()->create();
-    $user->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+    $user->assignRole(AIArmada\Authz\Features\Authorization\Models\Role::findOrCreate('admin', 'web'));
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);

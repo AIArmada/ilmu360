@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Features\SlugRedirects\Integration;
 
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
+use AIArmada\CommerceSupport\Data\RecordReference;
 use App\Features\SlugRedirects\Api\SlugRedirectCommands;
-use Illuminate\Database\Eloquent\Model;
 
 final readonly class CanonicalSlugRedirectRecorder implements SlugRedirectRecorder
 {
@@ -14,18 +14,11 @@ final readonly class CanonicalSlugRedirectRecorder implements SlugRedirectRecord
         private SlugRedirectCommands $slugRedirectCommands,
     ) {}
 
-    public function record(Model $model, ?string $previousSlug): bool
+    public function record(RecordReference $record, ?string $previousSlug, string $currentSlug): bool
     {
-        $id = $model->getKey();
-        $currentSlug = $model->getAttribute('slug');
-
-        if ($id === null || ! is_string($currentSlug)) {
-            return false;
-        }
-
         return $this->slugRedirectCommands->record(
-            $model->getMorphClass(),
-            (string) $id,
+            $record->type,
+            $record->id,
             $currentSlug,
             $previousSlug,
         );

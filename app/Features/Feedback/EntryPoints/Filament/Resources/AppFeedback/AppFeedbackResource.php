@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback;
 
-use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Pages\ListAppFeedback;
 use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Pages\ViewAppFeedback;
 use App\Features\Feedback\EntryPoints\Filament\Resources\AppFeedback\Schemas\AppFeedbackInfolist;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Language\Models;
 
-use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
+use AIArmada\CommerceSupport\Features\ReferenceData\Models\Language as CommerceLanguage;
 use Illuminate\Support\Str;
 
 class Language extends CommerceLanguage

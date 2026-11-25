@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;

@@ -2,7 +2,7 @@
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressingTableResolver;
-use AIArmada\CommerceSupport\Models\Currency;
+use AIArmada\CommerceSupport\Features\ReferenceData\Models\Currency;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\DonationChannels\Actions\SaveDonationChannelAction;
 use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;

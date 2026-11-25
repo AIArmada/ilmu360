@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use App\Features\Identity\EntryPoints\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\RelationManagers\MembersRelationManager;

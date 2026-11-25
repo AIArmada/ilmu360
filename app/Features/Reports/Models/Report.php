@@ -2,8 +2,8 @@
 
 namespace App\Features\Reports\Models;
 
-use AIArmada\CommerceSupport\Models\Report as BaseReport;
-use AIArmada\CommerceSupport\Support\CacheVersionStore;
+use AIArmada\CommerceSupport\Features\Reporting\Models\Report as BaseReport;
+use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use App\Features\Reports\Actions\InitializeReportDefaultsAction;
 use App\Features\Reports\Contracts\ReportLifecycle;
 use App\Platform\Auditing\AuditsModelChanges;

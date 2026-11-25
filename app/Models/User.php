@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use AIArmada\Authz\Facades\Authz;
-use AIArmada\Authz\Models\Permission;
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Permission;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\CanInteract;
 use AIArmada\Engagement\Models\Follow;

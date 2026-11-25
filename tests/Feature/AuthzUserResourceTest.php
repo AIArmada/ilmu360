@@ -1,7 +1,7 @@
 <?php
 
 use AIArmada\Authz\Facades\Authz;
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Services\MembershipRoleSyncService;

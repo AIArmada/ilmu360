@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\DonationChannels\Services;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use AIArmada\CommerceSupport\Models\Currency;
+use AIArmada\CommerceSupport\Features\ReferenceData\Models\Currency;
 use App\Features\DonationChannels\Api\Data\DonationBankCatalog;
 use App\Features\DonationChannels\Api\Data\DonationChannelCountryProfile;
 use App\Features\DonationChannels\Api\DonationBankCatalogs;

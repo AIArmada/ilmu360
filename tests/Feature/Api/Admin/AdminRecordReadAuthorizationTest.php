@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use App\Features\Persons\Models\Person;
 use App\Models\User;
 use App\Platform\Api\Admin\AdminResourceService;

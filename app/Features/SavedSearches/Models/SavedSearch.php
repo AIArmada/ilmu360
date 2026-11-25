@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\SavedSearches\Models;
 
-use AIArmada\CommerceSupport\Models\SavedSearch as BaseSavedSearch;
+use AIArmada\CommerceSupport\Features\UserPreferences\Models\SavedSearch as BaseSavedSearch;
 use App\Features\SavedSearches\Actions\AssignSavedSearchUserMorphTypeAction;
 use Database\Factories\SavedSearchFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;

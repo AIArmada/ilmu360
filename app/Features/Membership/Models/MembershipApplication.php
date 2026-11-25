@@ -2,7 +2,7 @@
 
 namespace App\Features\Membership\Models;
 
-use AIArmada\CommerceSupport\Support\CacheVersionStore;
+use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use AIArmada\Membership\Models\MembershipApplication as BaseMembershipApplication;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Platform\Auditing\AuditsModelChanges;

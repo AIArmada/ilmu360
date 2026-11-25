@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Persistence;
 
-use AIArmada\CommerceSupport\Support\CacheVersionStore;
-use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
+use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\Institutions\Api\InstitutionSearchCache;
 use Closure;
 

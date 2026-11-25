@@ -256,7 +256,7 @@ it('accepts canonical localized description arrays', function () {
 
 it('persists localized descriptions to sessions as locale scalars', function () {
     $owner = User::factory()->create();
-    $owner->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+    $owner->assignRole(AIArmada\Authz\Features\Authorization\Models\Role::findOrCreate('admin', 'web'));
     $organizer = Person::factory()->create(['status' => 'verified', 'allow_public_event_submission' => true]);
     $venue = Venue::factory()->create(['status' => 'verified']);
 

@@ -2,7 +2,7 @@
 
 namespace App\Features\Reports\EntryPoints\Filament\Resources\Reports;
 
-use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\Pages\CreateReport;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\Pages\EditReport;
 use App\Features\Reports\EntryPoints\Filament\Resources\Reports\Pages\ListReports;

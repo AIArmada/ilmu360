@@ -12,7 +12,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Checkout\Models\CheckoutSession;
-use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
+use AIArmada\CommerceSupport\Features\ReferenceData\Models\Language as CommerceLanguage;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Customers\Models\Customer;

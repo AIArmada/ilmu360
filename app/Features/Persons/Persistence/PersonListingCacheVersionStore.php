@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Persistence;
 
-use AIArmada\CommerceSupport\Support\CacheVersionStore;
+use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use App\Features\Events\Api\EventInvolvementFingerprint;
 use App\Features\Persons\Api\PersonListingCacheVersion;
 

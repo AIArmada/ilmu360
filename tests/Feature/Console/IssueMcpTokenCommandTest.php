@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;
 use App\Platform\Mcp\McpTokenManager;

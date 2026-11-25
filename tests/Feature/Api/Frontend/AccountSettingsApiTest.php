@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use App\Features\Identity\Api\AccountPreferences;
 use App\Features\Identity\Api\PrayerType;
 use App\Features\Institutions\Models\Institution;

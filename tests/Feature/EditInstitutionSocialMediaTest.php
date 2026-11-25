@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Features\Institutions\Models\Institution;
 use App\Models\User;

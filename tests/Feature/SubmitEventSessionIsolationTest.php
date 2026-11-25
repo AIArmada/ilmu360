@@ -87,7 +87,7 @@ function submitSessionRequest(): Request
 
 function submitSessionContainer(User $owner, Person $organizer): Event
 {
-    $owner->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+    $owner->assignRole(AIArmada\Authz\Features\Authorization\Models\Role::findOrCreate('admin', 'web'));
 
     $event = Event::factory()->create([
         'status' => 'approved',
@@ -737,7 +737,7 @@ it('reflects the saved private session visibility without touching the parent', 
 
 it('keeps scoped session submissions honest with no parent auto-approval', function () {
     $user = User::factory()->create();
-    $user->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+    $user->assignRole(AIArmada\Authz\Features\Authorization\Models\Role::findOrCreate('admin', 'web'));
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     $institution->members()->syncWithoutDetaching([$user->id]);

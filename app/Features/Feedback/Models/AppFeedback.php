@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Feedback\Models;
 
-use AIArmada\CommerceSupport\Support\CacheVersionStore;
+use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use App\Features\Feedback\Enums\AppFeedbackCategory;
 use App\Features\Feedback\Enums\AppFeedbackGitHubStatus;
 use App\Features\Feedback\Enums\AppFeedbackStatus;

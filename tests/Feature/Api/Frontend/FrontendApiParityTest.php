@@ -2,7 +2,7 @@
 
 use AIArmada\Addressing\Actions\NormalizeGoogleMapsInputAction;
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Shared\Cache;
 
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\CommerceSupport\Support\CacheVersionStore;
-use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
+use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Persons\Models\Title;
 use App\Platform\Language\Models\Language;

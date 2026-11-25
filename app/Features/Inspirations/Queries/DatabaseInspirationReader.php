@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Inspirations\Queries;
 
-use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\Inspirations\Api\InspirationCard;
 use App\Features\Inspirations\Api\InspirationReader;
 use App\Features\Inspirations\Enums\InspirationCategory;

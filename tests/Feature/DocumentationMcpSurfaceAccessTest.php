@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Mcp\EntryPoints\Mcp\Tools\AdminDocumentationFetchTool;
 use App\Features\Mcp\EntryPoints\Mcp\Tools\AdminDocumentationSearchTool;

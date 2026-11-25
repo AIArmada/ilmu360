@@ -2,7 +2,7 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests;
 
-use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Schemas\ContributionRequestInfolist;

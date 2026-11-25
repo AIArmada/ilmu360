@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Events\Features\Venues\Models\FacilityType;
 use AIArmada\Events\Features\Venues\Models\VenueFacility;
 use AIArmada\Events\Features\Venues\Models\VenueSpace;

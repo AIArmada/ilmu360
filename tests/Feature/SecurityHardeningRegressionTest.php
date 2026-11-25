@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use AIArmada\Addressing\Models\Address;
-use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Pages\CreateDonationChannel;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Persistence\EventHomepageStatsCacheStore;

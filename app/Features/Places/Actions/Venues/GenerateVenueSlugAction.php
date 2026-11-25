@@ -7,7 +7,7 @@ namespace App\Features\Places\Actions\Venues;
 use AIArmada\Addressing\Support\AddressAssignments;
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
-use AIArmada\CommerceSupport\Support\CanonicalSlug;
+use AIArmada\CommerceSupport\Persistence\CanonicalSlug;
 use AIArmada\CommerceSupport\Support\StableModelOrder;
 use AIArmada\CommerceSupport\Support\UniqueSlug;
 use App\Features\Places\Models\Venue;

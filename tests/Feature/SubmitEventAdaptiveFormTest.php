@@ -525,7 +525,7 @@ it('prefills canonical reference ids when a published event title is selected', 
 
 it('updates the editable session schedule when another occurrence is selected', function (): void {
     $owner = User::factory()->create();
-    $owner->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+    $owner->assignRole(AIArmada\Authz\Features\Authorization\Models\Role::findOrCreate('admin', 'web'));
     $event = Event::factory()->create([
         'created_by_type' => $owner->getMorphClass(),
         'created_by_id' => $owner->getKey(),

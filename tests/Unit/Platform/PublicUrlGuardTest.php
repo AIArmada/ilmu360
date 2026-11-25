@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\CommerceSupport\Http\PinnedHttpClient;
+use AIArmada\CommerceSupport\Drivers\Http\PinnedHttpClient;
 use AIArmada\CommerceSupport\Support\PublicHttpUrlGuard;
 use AIArmada\CommerceSupport\Support\ValidatedHttpTarget;
 use Illuminate\Http\Client\PendingRequest;

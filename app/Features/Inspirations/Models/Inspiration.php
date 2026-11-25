@@ -2,7 +2,7 @@
 
 namespace App\Features\Inspirations\Models;
 
-use AIArmada\CommerceSupport\Support\CacheVersionStore;
+use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use App\Features\Inspirations\Enums\InspirationCategory;
 use App\Platform\Auditing\AuditsModelChanges;
 use Database\Factories\InspirationFactory;

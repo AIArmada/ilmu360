@@ -4,7 +4,7 @@ namespace App\Features\Persons\Models;
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Traits\HasAddresses;
-use AIArmada\CommerceSupport\Support\CacheVersionStore;
+use AIArmada\CommerceSupport\Persistence\CacheVersionStore;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Contracts\Followable;

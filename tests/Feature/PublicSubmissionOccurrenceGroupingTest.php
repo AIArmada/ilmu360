@@ -416,7 +416,7 @@ it('does not reuse a private or terminal parent candidate', function (): void {
 
 it('matches an existing ordinary event from its canonical institution category and prayer expression', function (): void {
     $admin = User::factory()->create();
-    $admin->assignRole(AIArmada\Authz\Models\Role::findOrCreate('admin', 'web'));
+    $admin->assignRole(AIArmada\Authz\Features\Authorization\Models\Role::findOrCreate('admin', 'web'));
 
     $institution = publicOccurrenceGroupingInstitution();
     $institution->members()->syncWithoutDetaching([$admin->getKey()]);

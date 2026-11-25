@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Events\Api\Enums\EventAgeGroup;

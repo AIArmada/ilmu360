@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use App\Features\Feedback\Api\FeedbackActor;
 use App\Features\Identity\Support\GlobalRole;
 use App\Models\User;

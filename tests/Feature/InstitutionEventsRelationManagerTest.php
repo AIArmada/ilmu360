@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Pages\EditInstitution;

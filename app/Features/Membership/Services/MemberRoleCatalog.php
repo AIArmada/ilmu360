@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\Services;
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Models\User;

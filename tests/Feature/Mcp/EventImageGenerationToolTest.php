@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\CommerceSupport\Support\PublicHttpUrlGuard;
 use AIArmada\Events\Data\ScheduleKind;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;

@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Authz\Models\Role;
+use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Events\Data\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Data\ScheduleKind;
 use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;

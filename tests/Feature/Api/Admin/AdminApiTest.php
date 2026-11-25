@@ -2,8 +2,8 @@
 
 use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\City;
-use AIArmada\Authz\Models\Role;
-use AIArmada\CommerceSupport\Models\Currency;
+use AIArmada\Authz\Features\Authorization\Models\Role;
+use AIArmada\CommerceSupport\Features\ReferenceData\Models\Currency;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Data\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;

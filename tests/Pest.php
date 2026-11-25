@@ -9,7 +9,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressingTableResolver;
-use AIArmada\CommerceSupport\Models\Timezone;
+use AIArmada\CommerceSupport\Features\ReferenceData\Models\Timezone;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Data\ScheduleKind;
 use AIArmada\Events\Features\Catalog\Models\EventOccurrence;

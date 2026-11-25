@@ -2,7 +2,7 @@
 
 namespace App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications;
 
-use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Pages\ListMembershipApplications;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Pages\ViewMembershipApplication;
