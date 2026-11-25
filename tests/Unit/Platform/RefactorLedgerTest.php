@@ -173,7 +173,7 @@ it('matches the current architecture write-exception inventory', function (): vo
         ),
     ));
 
-    expect($provenWrites)->toHaveCount(62)
+    expect($provenWrites)->toHaveCount(64)
         ->and($unapproved)->toBeEmpty()
         ->and(count($writeExceptions))->toBeLessThan(count($provenWrites));
 });
