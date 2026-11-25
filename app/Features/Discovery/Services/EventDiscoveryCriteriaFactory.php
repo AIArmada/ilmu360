@@ -11,10 +11,10 @@ use Carbon\CarbonImmutable;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Str;
 
-final class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder
+final readonly class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder
 {
     public function __construct(
-        private readonly SpatialAddressQuery $spatialAddressQuery = new SpatialAddressQuery,
+        private SpatialAddressQuery $spatialAddressQuery = new SpatialAddressQuery,
     ) {}
 
     /**

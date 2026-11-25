@@ -129,7 +129,7 @@ final readonly class PostgresEventDiscovery implements EventCollections, EventDi
         int $perPage,
         string $sort = 'time',
     ): array {
-        return $this->schedulePaginator->paginatePublicScheduleOccurrences($query, $filters, $page, $perPage, $sort);
+        return $this->schedulePaginator->paginatePublicScheduleOccurrences($query, $filters, $page, $perPage);
     }
 
     /**

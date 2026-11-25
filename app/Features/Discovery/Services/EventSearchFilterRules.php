@@ -195,7 +195,7 @@ final readonly class EventSearchFilterRules implements SearchFilterRules
     private function validBoundingBoxRule(): \Closure
     {
         return static function (string $attribute, mixed $value, \Closure $fail): void {
-            if ($value === null || $value === '' || $value === []) {
+            if (in_array($value, [null, '', []], true)) {
                 return;
             }
 
