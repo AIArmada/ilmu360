@@ -41,7 +41,7 @@ it('refreshes institution space options while keeping other organizer synchroniz
             return true;
         });
 });
-it('keeps repeater person linking and guest contact requirements client-side', function (): void {
+it('synchronizes repeater person linking while keeping guest contact requirements client-side', function (): void {
     Livewire::test(Create::class)
         ->assertFormFieldExists('other_key_people', function (Repeater $field): bool {
             $involveableField = collect($field->getChildComponents())
@@ -49,7 +49,7 @@ it('keeps repeater person linking and guest contact requirements client-side', f
 
             expect($involveableField)
                 ->toBeInstanceOf(Select::class)
-                ->and($involveableField?->isLive())->toBeFalse()
+                ->and($involveableField?->isLive())->toBeTrue()
                 ->and(implode("\n", $involveableField?->getAfterStateUpdatedJs() ?? []))
                 ->toContain('display_name', 'involveable_type');
 
