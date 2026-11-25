@@ -5,6 +5,7 @@ use App\Models\User;
 use Database\Seeders\AdvancedEventSeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DonationBankCatalogSeeder;
 use Database\Seeders\DonationChannelSeeder;
 use Database\Seeders\EventSeeder;
 use Database\Seeders\EventSubmissionSeeder;
@@ -24,6 +25,8 @@ use Database\Seeders\ScopedMemberRolesSeeder;
 use Database\Seeders\SeriesSeeder;
 use Database\Seeders\SpaceSeeder;
 use Database\Seeders\SpeakerSeeder;
+use Database\Seeders\TitleCategorySeeder;
+use Database\Seeders\TitleSeeder;
 use Database\Seeders\UserSeeder;
 use Database\Seeders\VenueSeeder;
 use Database\Seeders\VenueSpaceTypeSeeder;
@@ -46,8 +49,9 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         ->toContain([FacilityTypeSeeder::class, VenueSpaceTypeSeeder::class, SpaceSeeder::class])
         ->toContain([InstitutionSeeder::class])
         ->toContain([VenueSeeder::class])
+        ->toContain([TitleCategorySeeder::class, TitleSeeder::class])
         ->toContain([SpeakerSeeder::class])
-        ->toContain([SeriesSeeder::class, EventSeeder::class, AdvancedEventSeeder::class, ReferenceSeeder::class, InspirationSeeder::class, DonationChannelSeeder::class, MediaLinkSeeder::class])
+        ->toContain([SeriesSeeder::class, EventSeeder::class, AdvancedEventSeeder::class, ReferenceSeeder::class, InspirationSeeder::class, DonationBankCatalogSeeder::class, DonationChannelSeeder::class, MediaLinkSeeder::class])
         ->toContain([EventSubmissionSeeder::class, ModerationReviewSeeder::class, ReportSeeder::class, SavedSearchSeeder::class, RegistrationSeeder::class]);
 
 });

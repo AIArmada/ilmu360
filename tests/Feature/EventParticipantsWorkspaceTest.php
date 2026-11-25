@@ -136,7 +136,7 @@ it('clears attendance evidence when an attended participant is marked absent', f
     expect($attendance->attendance_type)->toBe(EventAttendanceStatus::DidNotAttend->value)
         ->and($attendance->checked_in_at)->toBeNull()
         ->and(data_get($attendance->metadata, 'attendance.original_checked_in_at'))->toBeString()
-        ->and(app(EventRefundEligibility::class)->hasAttendanceEvidence($registration->fresh()))->toBeFalse();
+        ->and(app(EventRefundEligibility::class)->hasAttendanceEvidence((string) $registration->getKey()))->toBeFalse();
 });
 
 it('keeps occurrence check-in separate from event attendance', function () {

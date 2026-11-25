@@ -270,6 +270,9 @@ class ContributionsHubPresenter
         /** @var array<mixed> $original */
         $original = $request->original_data ?? [];
 
+        // JSON object key order is not preserved by PostgreSQL jsonb.
+        ksort($proposed, SORT_STRING);
+
         $summaries = [];
 
         foreach ($proposed as $key => $proposedValue) {
@@ -301,6 +304,8 @@ class ContributionsHubPresenter
     {
         /** @var array<mixed> $proposed */
         $proposed = $request->proposed_data ?? [];
+
+        ksort($proposed, SORT_STRING);
 
         $summaries = [];
 

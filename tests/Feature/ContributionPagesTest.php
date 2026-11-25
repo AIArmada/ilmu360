@@ -1579,12 +1579,13 @@ it('applies direct institution edits when an existing phone contact is present o
         'subjectType' => 'institution',
         'subjectId' => $institution->slug,
     ])
+        ->set('data.name', 'Masjid Baru')
         ->call('submit')
         ->assertHasNoErrors();
 
-    expect(withGlobalOwnerContext(fn () => $institution->fresh()->contactMethods()->where('type', ContactMethodType::Phone->value)->value('value')))
-        ->not->toBeNull()
-        ->not->toBeEmpty()
+    expect($institution->fresh()->name)->toBe('Masjid Baru')
+        ->and(withGlobalOwnerContext(fn () => $institution->fresh()->contactMethods()->where('type', ContactMethodType::Phone->value)->value('value')))
+        ->toBe('+60112223344')
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
@@ -2730,7 +2731,7 @@ it('captures only changed fields in a non-owner person update request', function
     expect($request->type)->toBe(ContributionRequestType::Update)
         ->and($request->status)->toBe(ContributionRequestStatus::Pending)
         ->and($request->proposer_note)->toBe('Betulkan nama tengah')
-        ->and(array_keys($request->proposed_data))->toBe($changeState ? ['middle_name', 'address'] : ['middle_name'])
+        ->and(array_keys($request->proposed_data))->toEqualCanonicalizing($changeState ? ['middle_name', 'address'] : ['middle_name'])
         ->and($request->proposed_data['middle_name'])->toBe('Hasan')
         ->and(data_get($request->proposed_data, 'address.state_id'))->toBe($changeState ? $stateId : null);
 })->with([

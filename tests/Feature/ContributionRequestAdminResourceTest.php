@@ -354,7 +354,7 @@ it('shows a changes summary for update requests in the table', function () {
 
     $summary = app(ContributionsHubPresenter::class)->requestSummaryLine($request);
 
-    expect($summary)->not->toBeNull();
+    expect($summary)->toBe(__('Changed: :fields', ['fields' => __('City').', '.__('Description')]));
 
     Livewire::actingAs($moderator)
         ->test(ListContributionRequests::class)

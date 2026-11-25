@@ -250,7 +250,7 @@ it('uses the generated geographic slug when admins create institutions in filame
         ->where('name', 'Masjid Sultan Salahudin Abdul Aziz Shah')
         ->firstOrFail();
 
-    expect($institution->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-shah-alam-selangor-my');
+    expect($institution->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-shah-alam-petaling-selangor-my');
 });
 
 it('persists administrator supplied institution names through the Directory workflow', function (): void {

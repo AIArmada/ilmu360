@@ -879,9 +879,9 @@ it('summarises recent activity cards meaningfully and opens the receipt instead 
     $component = Livewire::actingAs($user)->test(ContributionsIndex::class);
 
     $expectedSummary = __('Changed: :fields', ['fields' => implode(', ', [
+        __('Address'),
         __('Biography'),
         __('Social Media'),
-        __('Address'),
     ])]);
 
     $component->assertSee(__('Your latest contributions across all types, newest first.'))

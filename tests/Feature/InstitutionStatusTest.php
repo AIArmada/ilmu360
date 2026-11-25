@@ -22,7 +22,7 @@ it('exposes only supported institution lifecycle statuses in the admin form', fu
             ->test(EditInstitution::class, ['record' => $institution->getKey()])
             ->assertFormFieldExists('status', function (Select $field): bool {
                 expect($field->getOptions())->toBe([
-                    'pending' => 'Pending',
+                    'pending' => __('Pending'),
                     'verified' => 'Disahkan',
                     'rejected' => 'Ditolak',
                     'inactive' => 'Inactive',

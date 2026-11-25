@@ -3,6 +3,7 @@
 use AIArmada\Addressing\Database\Seeders\AddressingSeeder;
 use App\Features\Places\Models\Space;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DonationBankCatalogSeeder;
 use Database\Seeders\FacilityTypeSeeder;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\LanguageSeeder;
@@ -78,6 +79,7 @@ it('production seeder only calls deterministic bootstrap seeders', function () {
         VenueSpaceTypeSeeder::class,
         SpaceSeeder::class,
         InspirationSeeder::class,
+        DonationBankCatalogSeeder::class,
     ]);
 });
 
