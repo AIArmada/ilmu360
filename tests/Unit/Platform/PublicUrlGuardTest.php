@@ -76,9 +76,6 @@ it('follows safe public redirects and rejects redirects to internal addresses', 
         guard: $guard,
         method: 'GET',
         url: 'https://start.example.com/go',
-        configure: static function (PendingRequest $request): void {
-            $request->timeout(5);
-        },
     );
 
     expect($response->status())->toBe(200)
@@ -87,8 +84,18 @@ it('follows safe public redirects and rejects redirects to internal addresses', 
     Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://final.example.org/done');
 
     Http::fake([
+        'https://start.example.com/configured' => Http::response('', 302, ['Location' => 'https://final.example.org/done']),
         'https://start.example.com/evil' => Http::response('', 302, ['Location' => 'http://127.0.0.1/internal']),
     ]);
+
+    expect(fn () => $client->sendFollowingRedirects(
+        guard: $guard,
+        method: 'GET',
+        url: 'https://start.example.com/configured',
+        configure: static function (PendingRequest $request): void {
+            $request->timeout(5);
+        },
+    ))->toThrow(InvalidArgumentException::class);
 
     expect(fn () => $client->sendFollowingRedirects(guard: $guard, method: 'GET', url: 'https://start.example.com/evil'))
         ->toThrow(InvalidArgumentException::class);
