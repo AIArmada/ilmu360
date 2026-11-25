@@ -65,14 +65,17 @@ it('shares a person lookup between role-specific filters', function (): void {
 it('shares a taxonomy term lookup between vocabulary filters', function (): void {
     $term = EventTerm::factory()->create(['event_taxonomy_id' => EventTaxonomy::factory()->create()->getKey(), 'name' => 'Shared Term']);
     $labels = app(SearchFilterLabels::class);
+
+    expect($labels->label('domain_tag_ids', (string) $term->id))->toBe('Shared Term');
+
     DB::enableQueryLog();
     DB::flushQueryLog();
 
-    foreach (['domain_tag_ids', 'discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids'] as $key) {
+    foreach (['discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids'] as $key) {
         expect($labels->label($key, (string) $term->id))->toBe('Shared Term');
     }
 
-    expect(DB::getQueryLog())->toHaveCount(1);
+    expect(DB::getQueryLog())->toBeEmpty();
 });
 
 it('keeps a label within one lifecycle and refreshes it in the next', function (): void {

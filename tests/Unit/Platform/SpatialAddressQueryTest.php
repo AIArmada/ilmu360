@@ -14,8 +14,6 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Database\Query\Processors\PostgresProcessor;
 use Illuminate\Database\SQLiteConnection;
-use InvalidArgumentException;
-use LogicException;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class);
@@ -222,8 +220,9 @@ it('builds PostGIS dual-owner ST_DWithin, ST_MakeEnvelope, and ST_GeomFromText S
 });
 
 it('falls back to GeoDistance Haversine and bounding-box SQL on sqlite connections', function (): void {
+    config()->set('database.connections.sqlite', ['driver' => 'sqlite', 'database' => ':memory:']);
     $spatial = new SpatialAddressQuery;
-    $query = Institution::query();
+    $query = Institution::on('sqlite');
 
     expect($query->getConnection())->toBeInstanceOf(SQLiteConnection::class)
         ->and($spatial->isPostgisActive($query->getConnection()))->toBeFalse();
@@ -251,7 +250,7 @@ it('falls back to GeoDistance Haversine and bounding-box SQL on sqlite connectio
             10,
         ]);
 
-    $boundsQuery = Institution::query();
+    $boundsQuery = Institution::on('sqlite');
     $spatial->applyPrimaryAddressWithinBounds($boundsQuery, 'institutions', 'id', 'institution', 101.5, 3.0, 101.8, 3.3);
     $boundsSql = strtolower($boundsQuery->toSql());
 
@@ -261,11 +260,12 @@ it('falls back to GeoDistance Haversine and bounding-box SQL on sqlite connectio
 });
 
 it('falls back to GeoDistance and bounding-box SQL for dual-owner event queries on sqlite connections', function (): void {
+    config()->set('database.connections.sqlite', ['driver' => 'sqlite', 'database' => ':memory:']);
     $spatial = new SpatialAddressQuery;
     $effectiveVenue = 'coalesce(events.default_venue_id, (select el.venue_id from event_locations as el))';
     $venueExists = "exists (select 1 from venues where venues.id = ({$effectiveVenue}))";
 
-    $nearbyEvents = Event::query();
+    $nearbyEvents = Event::on('sqlite');
     $spatial->applyEventNearby(
         $nearbyEvents,
         3.1390,
@@ -304,7 +304,7 @@ it('falls back to GeoDistance and bounding-box SQL for dual-owner event queries 
             20,
         ]);
 
-    $boundsEvents = Event::query();
+    $boundsEvents = Event::on('sqlite');
     $spatial->applyEventWithinBounds($boundsEvents, 101.5, 3.0, 101.8, 3.3, 'events', $effectiveVenue, $venueExists, 'venue', 'institution');
     $boundsSql = strtolower($boundsEvents->toSql());
 

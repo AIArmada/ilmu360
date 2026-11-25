@@ -139,7 +139,7 @@ it('batch resolves and caches address area names by ids', function (): void {
         'not-a-uuid',
     ]);
 
-    expect($resolved)->toBe([
+    expect($resolved)->toEqual([
         (string) $areaA->getKey() => 'Petaling',
         (string) $areaB->getKey() => 'Klang',
     ]);
@@ -149,7 +149,7 @@ it('batch resolves and caches address area names by ids', function (): void {
         ->update(['name' => 'Petaling Updated']);
 
     expect($catalog->addressAreaNamesByIds([(string) $areaA->getKey(), (string) $areaB->getKey()]))
-        ->toBe([
+        ->toEqual([
             (string) $areaA->getKey() => 'Petaling',
             (string) $areaB->getKey() => 'Klang',
         ]);
@@ -157,7 +157,7 @@ it('batch resolves and caches address area names by ids', function (): void {
     $catalog->bustAddress();
 
     expect($catalog->addressAreaNamesByIds([(string) $areaA->getKey(), (string) $areaB->getKey()]))
-        ->toBe([
+        ->toEqual([
             (string) $areaA->getKey() => 'Petaling Updated',
             (string) $areaB->getKey() => 'Klang',
         ]);

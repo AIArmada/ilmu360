@@ -35,10 +35,11 @@ it('scores candidates using FuzzySearchPolicy and optional short-query token gua
 });
 
 it('applies LIKE candidate patterns on non-postgres drivers', function (): void {
+    config()->set('database.connections.sqlite', ['driver' => 'sqlite', 'database' => ':memory:']);
     $matcher = new DatabaseFuzzyMatcher;
 
     $query = $matcher->applyColumnsFilter(
-        Institution::query(),
+        Institution::on('sqlite'),
         ['institutions.name'],
         'hidayh',
     );
