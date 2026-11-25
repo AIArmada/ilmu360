@@ -247,8 +247,8 @@ it('lists institution, speaker and reference requests on the directory tab and c
 
     $component->call('cancelContributionRequest', (string) $institutionRequest->id);
 
-    expect($institutionRequest->fresh()->status)->toBe(ContributionRequestStatus::Cancelled);
-    expect($reference->fresh()->status)->toBe('verified');
+    expect($institutionRequest->fresh()->status)->toBe(ContributionRequestStatus::Cancelled)
+        ->and($reference->fresh()->status)->toBe('verified');
 });
 
 it('forbids cancelling another proposer contribution request', function (): void {
@@ -651,9 +651,8 @@ it('returns immutable feedback snapshots through the reader boundary', function 
         ->and($page->items[0])->toBeInstanceOf(AppFeedbackSnapshot::class)
         ->and($page->items[0]->status)->toBe('triaged')
         ->and($page->items[0]->visibleMessagesCount)->toBe(1)
-        ->and($page->items[0]->threadUrl)->toBe(route('app-feedback.index', ['lihat' => $feedback->id]).'#maklum-balas-'.$feedback->id);
-
-    expect($reader->countsByStatusForReporter((string) $user->getKey()))->toBe(['triaged' => 1])
+        ->and($page->items[0]->threadUrl)->toBe(route('app-feedback.index', ['lihat' => $feedback->id]).'#maklum-balas-'.$feedback->id)
+        ->and($reader->countsByStatusForReporter((string) $user->getKey()))->toBe(['triaged' => 1])
         ->and($reader->recentForReporter((string) $user->getKey()))->toHaveCount(1)
         ->and($reader->pageForReporter((string) $user->getKey(), 8, 1, 'resolved')->total)->toBe(0);
 
@@ -1263,9 +1262,8 @@ it('formats receipt payload values without raw json, html or uuid leaks', functi
         ->and($presenter->formatPayloadValue('language_ids', [$uuidA]))->toBe(trans_choice(':count item selected|:count items selected', 1, ['count' => 1]))
         ->and($presenter->formatPayloadValue('source_tags', ['ceramah', 'kuliah']))->toBe('ceramah, kuliah')
         ->and($presenter->formatPayloadValue('meta', ['submission_key' => $uuidA, 'visible' => 'yes']))->toBe('yes')
-        ->and($presenter->formatPayloadValue('website', 'https://example.test'))->toBe('https://example.test');
-
-    expect($presenter->fieldLabel('biography'))->toBe(__('Biography'))
+        ->and($presenter->formatPayloadValue('website', 'https://example.test'))->toBe('https://example.test')
+        ->and($presenter->fieldLabel('biography'))->toBe(__('Biography'))
         ->and($presenter->fieldLabel('family_name'))->toBe(__('Family Name'))
         ->and($presenter->fieldLabel('domain_tags'))->toBe(__('Main Topics'))
         ->and($presenter->fieldLabel('age_group'))->toBe(__('Age Group'))

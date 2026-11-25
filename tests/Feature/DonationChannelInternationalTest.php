@@ -91,7 +91,7 @@ it('applies country-aware donation method and currency profiles', function () {
 
     expect($unknownProfile->country_code)->toBeNull()
         ->and($unknownProfile->default_currency)->toBeNull()
-        ->and($unknownProfile->methods)->toBe([])
+        ->and($unknownProfile->methods)->toBeEmpty()
         ->and($unknownProfile->supports_routing_codes)->toBeFalse()
         ->and($profiles->currencyOptions())->toHaveKey('MYR');
 });
@@ -108,7 +108,7 @@ it('resolves the owner profile from the canonical primary address country', func
     ['institution' => $uncovered] = internationalDonationInstitution('AQ', 'Antarctica', '');
 
     expect($profiles->forOwner($uncovered)->country_code)->toBe('AQ')
-        ->and($profiles->forOwner($uncovered)->methods)->toBe([])
+        ->and($profiles->forOwner($uncovered)->methods)->toBeEmpty()
         ->and($profiles->forOwner($uncovered)->supports_routing_codes)->toBeFalse();
 
     $institution = Institution::factory()->create();
@@ -119,7 +119,7 @@ it('resolves the owner profile from the canonical primary address country', func
     $institution->unsetRelation('addresses');
 
     expect($profiles->forOwner($institution)->country_code)->toBeNull()
-        ->and($profiles->forOwner($institution)->methods)->toBe([]);
+        ->and($profiles->forOwner($institution)->methods)->toBeEmpty();
 });
 
 it('stores normalized bank details and encrypts the iban', function () {
@@ -162,34 +162,31 @@ it('rejects invalid bank identifiers and missing accounts', function () {
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
         'iban' => 'NOT-AN-IBAN',
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn () => app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'institution',
-        'donatable_id' => (string) $institution->getKey(),
-        'recipient' => 'Yayasan Antarabangsa',
-        'method' => 'bank_account',
-        'bank_code' => 'MB2U0227',
-        'iban' => 'GB82WEST99999999999999',
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn () => app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'institution',
-        'donatable_id' => (string) $institution->getKey(),
-        'recipient' => 'Yayasan Antarabangsa',
-        'method' => 'bank_account',
-        'bank_code' => 'MB2U0227',
-        'iban' => 'GB82WEST12345698765432',
-        'swift_bic' => 'BAD',
-    ]))->toThrow(ValidationException::class);
-
-    expect(fn () => app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'institution',
-        'donatable_id' => (string) $institution->getKey(),
-        'recipient' => 'Yayasan Antarabangsa',
-        'method' => 'bank_account',
-        'bank_code' => 'MB2U0227',
-    ]))->toThrow(ValidationException::class);
+    ]))->toThrow(ValidationException::class)
+        ->and(fn () => app(SaveDonationChannelAction::class)->handle([
+            'donatable_type' => 'institution',
+            'donatable_id' => (string) $institution->getKey(),
+            'recipient' => 'Yayasan Antarabangsa',
+            'method' => 'bank_account',
+            'bank_code' => 'MB2U0227',
+            'iban' => 'GB82WEST99999999999999',
+        ]))->toThrow(ValidationException::class)
+        ->and(fn () => app(SaveDonationChannelAction::class)->handle([
+            'donatable_type' => 'institution',
+            'donatable_id' => (string) $institution->getKey(),
+            'recipient' => 'Yayasan Antarabangsa',
+            'method' => 'bank_account',
+            'bank_code' => 'MB2U0227',
+            'iban' => 'GB82WEST12345698765432',
+            'swift_bic' => 'BAD',
+        ]))->toThrow(ValidationException::class)
+        ->and(fn () => app(SaveDonationChannelAction::class)->handle([
+            'donatable_type' => 'institution',
+            'donatable_id' => (string) $institution->getKey(),
+            'recipient' => 'Yayasan Antarabangsa',
+            'method' => 'bank_account',
+            'bank_code' => 'MB2U0227',
+        ]))->toThrow(ValidationException::class);
 });
 
 it('rejects an explicit currency that is not in the currency catalog', function () {
@@ -254,18 +251,16 @@ it('rejects bank and malaysian-only channels for institutions outside catalogue 
             'bank_code' => 'MB2U0227',
             'account_number' => '1234567890',
         ]],
-    ])))->toThrow(ValidationException::class);
-
-    expect(fn () => withGlobalOwnerContext(fn () => app(InstitutionWorkflow::class)->applyContribution((string) $institution->getKey(), [
-        'donation_channels' => [[
-            'recipient' => 'Jawatankuasa Surau',
-            'method' => 'duitnow',
-            'duitnow_type' => 'business',
-            'duitnow_value' => '12345678',
-        ]],
-    ])))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+    ])))->toThrow(ValidationException::class)
+        ->and(fn () => withGlobalOwnerContext(fn () => app(InstitutionWorkflow::class)->applyContribution((string) $institution->getKey(), [
+            'donation_channels' => [[
+                'recipient' => 'Jawatankuasa Surau',
+                'method' => 'duitnow',
+                'duitnow_type' => 'business',
+                'duitnow_value' => '12345678',
+            ]],
+        ])))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
 
 it('rejects a country change that leaves malaysian-only channels behind', function () {
@@ -653,9 +648,8 @@ it('rejects a wrong-country bank for a covered international owner', function ()
         'method' => 'bank_account',
         'bank_code' => 'CENAIDJA',
         'account_number' => '123456789',
-    ]))->toThrow(ValidationException::class);
-
-    expect($institution->fresh()->donationChannels()->count())->toBe(0);
+    ]))->toThrow(ValidationException::class)
+        ->and($institution->fresh()->donationChannels()->count())->toBe(0);
 });
 
 it('requires reverification when the routing code changes on an international bank', function () {

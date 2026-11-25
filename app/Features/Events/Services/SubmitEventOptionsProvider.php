@@ -69,7 +69,7 @@ final class SubmitEventOptionsProvider
         // Guest scope is identical for every guest, so it is safe to share
         // across requests; member scopes stay request-local to avoid any
         // cross-user membership leakage.
-        return $this->optionMemo[$memoKey] = $submitter !== null
+        return $this->optionMemo[$memoKey] = $submitter instanceof AccountActor
             ? $load()
             : $this->institutionSubmissionOptionsCache->rememberGuestOptions($countryId, $load);
     }
@@ -89,7 +89,7 @@ final class SubmitEventOptionsProvider
 
         $load = fn (): array => $access->personOptions($submitter);
 
-        return $this->optionMemo[$memoKey] = $submitter !== null
+        return $this->optionMemo[$memoKey] = $submitter instanceof AccountActor
             ? $load()
             : $this->personSubmissionOptionsCache->rememberGuestPersonOptions($load);
     }

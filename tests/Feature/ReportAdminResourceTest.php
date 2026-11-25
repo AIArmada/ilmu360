@@ -231,9 +231,8 @@ it('rejects stale report triage transitions with a validation error', function (
         'triage',
         null,
         $administrator,
-    ))->toThrow(ValidationException::class);
-
-    expect($report->fresh()->status)->toBe(Report::STATUS_RESOLVED);
+    ))->toThrow(ValidationException::class)
+        ->and($report->fresh()->status)->toBe(Report::STATUS_RESOLVED);
 });
 
 it('shows a danger notification when a report transition is stale on the edit page', function () {

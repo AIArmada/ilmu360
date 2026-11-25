@@ -50,7 +50,7 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
 
         // Storage keeps magnitude in offset_minutes and the sign in relation;
         // reconstruct signed minutes so every offset case round-trips.
-        $offsetMinutes = abs((int) ($expression->offsetMinutes ?? 0));
+        $offsetMinutes = abs($expression->offsetMinutes ?? 0);
         $signedMinutes = $expression->relation === 'before' ? -$offsetMinutes : $offsetMinutes;
 
         // Provenance-bearing expressions re-resolve through the provider

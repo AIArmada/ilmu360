@@ -41,7 +41,7 @@ final readonly class SyncInstitutionRelationsAction
             if (array_key_exists('donation_channels', $payload) || array_key_exists('address', $payload)) {
                 $this->donationChannels->syncInstitution(
                     (string) $institution->getKey(),
-                    array_key_exists('donation_channels', $payload) ? $payload['donation_channels'] : null,
+                    $payload['donation_channels'] ?? null,
                 );
             }
         });

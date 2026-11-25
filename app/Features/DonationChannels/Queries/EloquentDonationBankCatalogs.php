@@ -100,12 +100,6 @@ final readonly class EloquentDonationBankCatalogs implements DonationBankCatalog
             return false;
         }
 
-        foreach ($countries as $candidate) {
-            if (is_string($candidate) && mb_strtoupper(trim($candidate)) === $countryCode) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($countries, fn ($candidate) => is_string($candidate) && mb_strtoupper(trim($candidate)) === $countryCode);
     }
 }

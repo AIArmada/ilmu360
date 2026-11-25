@@ -120,7 +120,7 @@ final class DonationPayoutNormalizer
         foreach (str_split($rearranged) as $character) {
             $digits = ctype_digit($character)
                 ? $character
-                : (string) (ord($character) - 55);
+                : (string) (ord($character[0]) - 55);
 
             foreach (str_split($digits) as $digit) {
                 $remainder = ($remainder * 10 + (int) $digit) % 97;

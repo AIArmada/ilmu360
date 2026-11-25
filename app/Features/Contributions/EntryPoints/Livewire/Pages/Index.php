@@ -635,7 +635,7 @@ class Index extends Component
                 __($claim->roleLabel),
                 filled($claim->justification) ? Str::limit((string) $claim->justification, 90) : null,
                 $claim->evidence !== []
-                    ? (string) trans_choice(':count evidence file|:count evidence files', count($claim->evidence), ['count' => count($claim->evidence)])
+                    ? trans_choice(':count evidence file|:count evidence files', count($claim->evidence), ['count' => count($claim->evidence)])
                     : null,
             ])));
 
@@ -662,7 +662,7 @@ class Index extends Component
             $summary = implode(' · ', array_values(array_filter([
                 Str::limit((string) $feedback->description, 90),
                 $feedback->visibleMessagesCount > 0
-                    ? (string) trans_choice(':count reply|:count replies', $feedback->visibleMessagesCount, ['count' => $feedback->visibleMessagesCount])
+                    ? trans_choice(':count reply|:count replies', $feedback->visibleMessagesCount, ['count' => $feedback->visibleMessagesCount])
                     : null,
             ])));
 

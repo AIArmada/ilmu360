@@ -180,7 +180,7 @@ final readonly class PersistOccurrenceSubmissionAction
         $this->persistPrayerExpression($scope, $submission);
 
         if (($state['event_format'] ?? EventFormat::Physical->value) !== EventFormat::Online->value) {
-            $this->persistOccurrenceLocations($occurrence, $scope, $submission);
+            $this->persistOccurrenceLocations($scope, $submission);
         }
 
         $this->authoring->syncOccurrenceKeyPeople(
@@ -253,7 +253,6 @@ final readonly class PersistOccurrenceSubmissionAction
      * @param  array<string, mixed>  $scope
      */
     private function persistOccurrenceLocations(
-        EventOccurrence $occurrence,
         array $scope,
         ValidatedEventSubmission $submission,
     ): void {

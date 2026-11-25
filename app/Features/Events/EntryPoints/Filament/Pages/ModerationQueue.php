@@ -166,13 +166,11 @@ class ModerationQueue extends Page implements HasTable
 
     public static function getNavigationBadge(): ?string
     {
-        $count = Cache::remember('moderation_queue:pending_badge', now()->addSeconds(30), static function (): int {
-            return Event::query()
-                ->withoutOwnerScope()
-                ->where('status', Pending::$name)
-                ->count()
-                + self::pendingOccurrenceSubmissionsBaseQuery()->count();
-        });
+        $count = Cache::remember('moderation_queue:pending_badge', now()->addSeconds(30), static fn (): int => Event::query()
+            ->withoutOwnerScope()
+            ->where('status', Pending::$name)
+            ->count()
+            + self::pendingOccurrenceSubmissionsBaseQuery()->count());
 
         return $count > 0 ? (string) $count : null;
     }
@@ -195,15 +193,13 @@ class ModerationQueue extends Page implements HasTable
 
         return $table
             ->query(fn (): Builder => $this->getTableQuery())
-            ->defaultSort(function (Builder $query, string $direction): Builder {
-                return $query
-                    ->orderByRaw(
-                        'case when exists (select 1 from event_escalations where event_escalations.event_id = events.id and event_escalations.type = ? and event_escalations.resolved_at is null) then 1 else 0 end desc',
-                        [EventEscalationType::Priority->value],
-                    )
-                    ->orderBy('events.starts_at', $direction)
-                    ->orderByDesc('events.created_at');
-            })
+            ->defaultSort(fn (Builder $query, string $direction): Builder => $query
+                ->orderByRaw(
+                    'case when exists (select 1 from event_escalations where event_escalations.event_id = events.id and event_escalations.type = ? and event_escalations.resolved_at is null) then 1 else 0 end desc',
+                    [EventEscalationType::Priority->value],
+                )
+                ->orderBy('events.starts_at', $direction)
+                ->orderByDesc('events.created_at'))
             ->columns([
                 IconColumn::make('priority')
                     ->label('Priority')
@@ -405,7 +401,7 @@ class ModerationQueue extends Page implements HasTable
                     ->sortable(),
                 TextColumn::make('submitter')
                     ->label(__('Submitter'))
-                    ->state(fn (EventSubmission $record): string => self::submitterLabel($record))
+                    ->state(fn (EventSubmission $record): string => $this->submitterLabel($record))
                     ->description(function (EventSubmission $record): ?string {
                         $submitter = $record->submitter;
                         $email = $submitter instanceof Model ? $submitter->getAttribute('email') : null;
@@ -437,11 +433,11 @@ class ModerationQueue extends Page implements HasTable
                         return collect($labels)
                             ->filter(fn (string $label, string $key): bool => array_key_exists($key, $values))
                             ->map(function (string $label, string $key) use ($values, $original): string {
-                                $proposed = self::submissionValueText($values[$key] ?? null);
+                                $proposed = $this->submissionValueText($values[$key] ?? null);
                                 $before = $original[$key] ?? null;
 
-                                if ($before !== null && self::submissionValueText($before) !== $proposed) {
-                                    return $label.' — '.self::submissionValueText($before).' → '.$proposed;
+                                if ($before !== null && $this->submissionValueText($before) !== $proposed) {
+                                    return $label.' — '.$this->submissionValueText($before).' → '.$proposed;
                                 }
 
                                 return $label.' — '.$proposed;
@@ -460,7 +456,7 @@ class ModerationQueue extends Page implements HasTable
             ])
             ->recordActions([
                 Action::make('approve_occurrence')
-                    ->authorize(fn (EventSubmission $record): bool => self::canReviewOccurrence($record))
+                    ->authorize(fn (EventSubmission $record): bool => $this->canReviewOccurrence($record))
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
@@ -484,17 +480,17 @@ class ModerationQueue extends Page implements HasTable
                                 filled($data['note'] ?? null) ? (string) $data['note'] : null,
                             );
                         } catch (ValidationException $exception) {
-                            self::notifyDanger(self::validationMessage($exception, __('Could not approve this occurrence.')));
+                            $this->notifyDanger($this->validationMessage($exception, __('Could not approve this occurrence.')));
 
                             return;
                         } catch (AuthorizationException $exception) {
-                            self::notifyDanger($exception->getMessage() !== ''
+                            $this->notifyDanger($exception->getMessage() !== ''
                                 ? $exception->getMessage()
                                 : __('You are not authorized to review this occurrence submission.'));
 
                             return;
-                        } catch (CouldNotPerformTransition|TransitionNotFound $exception) {
-                            self::notifyDanger(__('This submission is no longer pending review. Please refresh to see its current status.'));
+                        } catch (CouldNotPerformTransition|TransitionNotFound) {
+                            $this->notifyDanger(__('This submission is no longer pending review. Please refresh to see its current status.'));
 
                             return;
                         }
@@ -507,7 +503,7 @@ class ModerationQueue extends Page implements HasTable
                             ->send();
                     }),
                 Action::make('reject_occurrence')
-                    ->authorize(fn (EventSubmission $record): bool => self::canReviewOccurrence($record))
+                    ->authorize(fn (EventSubmission $record): bool => $this->canReviewOccurrence($record))
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
@@ -545,17 +541,17 @@ class ModerationQueue extends Page implements HasTable
                                 (string) $data['note'],
                             );
                         } catch (ValidationException $exception) {
-                            self::notifyDanger(self::validationMessage($exception, __('Could not reject this occurrence.')));
+                            $this->notifyDanger($this->validationMessage($exception, __('Could not reject this occurrence.')));
 
                             return;
                         } catch (AuthorizationException $exception) {
-                            self::notifyDanger($exception->getMessage() !== ''
+                            $this->notifyDanger($exception->getMessage() !== ''
                                 ? $exception->getMessage()
                                 : __('You are not authorized to review this occurrence submission.'));
 
                             return;
-                        } catch (CouldNotPerformTransition|TransitionNotFound $exception) {
-                            self::notifyDanger(__('This submission is no longer pending review. Please refresh to see its current status.'));
+                        } catch (CouldNotPerformTransition|TransitionNotFound) {
+                            $this->notifyDanger(__('This submission is no longer pending review. Please refresh to see its current status.'));
 
                             return;
                         }
@@ -626,7 +622,7 @@ class ModerationQueue extends Page implements HasTable
         return $this->cachedOpenReportEntityIds ??= app(ReportReader::class)->openEntityIds('event');
     }
 
-    private static function canReviewOccurrence(EventSubmission $record): bool
+    private function canReviewOccurrence(EventSubmission $record): bool
     {
         $reviewer = auth()->user();
 
@@ -635,7 +631,7 @@ class ModerationQueue extends Page implements HasTable
                 || (string) $record->submitter_id !== (string) $reviewer->getKey());
     }
 
-    private static function submitterLabel(EventSubmission $record): string
+    private function submitterLabel(EventSubmission $record): string
     {
         $submitter = $record->submitter;
 
@@ -654,7 +650,7 @@ class ModerationQueue extends Page implements HasTable
         return is_string($email) && $email !== '' ? $email : (string) __('Guest');
     }
 
-    private static function submissionValueText(mixed $value): string
+    private function submissionValueText(mixed $value): string
     {
         if ($value === null || $value === '') {
             return (string) __('Empty');
@@ -673,14 +669,14 @@ class ModerationQueue extends Page implements HasTable
         return is_string($encoded) ? $encoded : (string) __('Empty');
     }
 
-    private static function validationMessage(ValidationException $exception, string $fallback): string
+    private function validationMessage(ValidationException $exception, string $fallback): string
     {
         $message = collect($exception->errors())->flatten()->first();
 
         return is_string($message) && $message !== '' ? $message : $fallback;
     }
 
-    private static function notifyDanger(string $title): void
+    private function notifyDanger(string $title): void
     {
         Notification::make()
             ->title($title !== '' ? $title : __('Could not review this submission.'))

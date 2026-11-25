@@ -500,8 +500,8 @@ final class EventContributionFormSchemaService implements EventContributionFormS
                         })
                         ->afterStateUpdatedJs("\$set('space_ids', [])")
                         ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution'))")
-                        ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice($get, $keys)
-                            && ! self::isOnlineEventFormat($get($keys[EventContributionFormFields::EVENT_FORMAT])))
+                        ->required(fn (Get $get): bool => $this->requiresSeparateLocationChoice($get, $keys)
+                            && ! $this->isOnlineEventFormat($get($keys[EventContributionFormFields::EVENT_FORMAT])))
                         ->afterStateUpdatedJs($context->progressUpdateJs),
                     $this->withConfiguredSelect(
                         Select::make($keys[EventContributionFormFields::LOCATION_INSTITUTION_ID])
@@ -514,8 +514,8 @@ final class EventContributionFormSchemaService implements EventContributionFormS
                             ->afterStateUpdated(fn (Set $set) => $set($keys[EventContributionFormFields::SPACE_IDS], []))
                             ->afterStateUpdatedJs("\$set('space_ids', [])")
                             ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
-                            ->required(fn (Get $get): bool => ! self::isOnlineEventFormat($get($keys[EventContributionFormFields::EVENT_FORMAT]))
-                                && self::requiresSeparateLocationChoice($get, $keys)
+                            ->required(fn (Get $get): bool => ! $this->isOnlineEventFormat($get($keys[EventContributionFormFields::EVENT_FORMAT]))
+                                && $this->requiresSeparateLocationChoice($get, $keys)
                                 && $get($keys[EventContributionFormFields::LOCATION_TYPE]) === 'institution')
                             ->afterStateUpdatedJs($context->progressUpdateJs),
                         $configureInstitutionSelect,
@@ -530,8 +530,8 @@ final class EventContributionFormSchemaService implements EventContributionFormS
                         ->afterStateUpdated(fn (Set $set) => $set($keys[EventContributionFormFields::SPACE_IDS], []))
                         ->afterStateUpdatedJs("\$set('space_ids', [])")
                         ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
-                        ->required(fn (Get $get): bool => ! self::isOnlineEventFormat($get($keys[EventContributionFormFields::EVENT_FORMAT]))
-                            && self::requiresSeparateLocationChoice($get, $keys)
+                        ->required(fn (Get $get): bool => ! $this->isOnlineEventFormat($get($keys[EventContributionFormFields::EVENT_FORMAT]))
+                            && $this->requiresSeparateLocationChoice($get, $keys)
                             && $get($keys[EventContributionFormFields::LOCATION_TYPE]) === 'venue')
                         ->afterStateUpdatedJs($context->progressUpdateJs)
                         ->createOptionForm(app(VenueQuickAdd::class)->formComponents(includeLocationPicker: true))
@@ -949,7 +949,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
         }
 
         return $field
-            ->afterStateUpdatedJs(self::customTimeWatcherJs())
+            ->afterStateUpdatedJs($this->customTimeWatcherJs())
             ->rule(fn (Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get, $keys): void {
                 $eventDate = $get($keys[EventContributionFormFields::EVENT_DATE]);
 
@@ -1001,7 +1001,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
         }
 
         return $field
-            ->afterStateUpdatedJs(self::endTimeWatcherJs())
+            ->afterStateUpdatedJs($this->endTimeWatcherJs())
             ->rule(fn (Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get, $keys): void {
                 if (! $value) {
                     return;
@@ -1018,13 +1018,13 @@ final class EventContributionFormSchemaService implements EventContributionFormS
                     return;
                 }
 
-                if (self::endTimePrecedesStartTime((string) $value, $startTime)) {
+                if ($this->endTimePrecedesStartTime((string) $value, $startTime)) {
                     $fail(__('Masa akhir mestilah selepas masa mula.'));
                 }
             });
     }
 
-    private static function customTimeWatcherJs(): string
+    private function customTimeWatcherJs(): string
     {
         return str_replace(
             '__END_TIME_VALIDATION_MESSAGE__',
@@ -1053,7 +1053,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
         );
     }
 
-    private static function endTimeWatcherJs(): string
+    private function endTimeWatcherJs(): string
     {
         return str_replace(
             '__END_TIME_VALIDATION_MESSAGE__',
@@ -1329,7 +1329,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
             return;
         }
 
-        if (self::endTimePrecedesStartTime((string) $endTime, $startTime)) {
+        if ($this->endTimePrecedesStartTime((string) $endTime, $startTime)) {
             $set($keys[EventContributionFormFields::END_TIME], null);
         }
     }
@@ -1483,14 +1483,10 @@ final class EventContributionFormSchemaService implements EventContributionFormS
             );
         }
 
-        return self::withSelectedLabels(
-            app(InstitutionLookup::class)->visibleDisplayNameOptions(),
-            EventContributionFormRules::normalizeStringList([
-                $this->eventFor($context)?->primaryOrganizerInvolvement?->involveable_id,
-                $this->eventFor($context)?->institution_id,
-            ]),
-            static fn (array $ids): array => app(InstitutionLookup::class)->displayNamesByIds($ids),
-        );
+        return $this->withSelectedLabels(app(InstitutionLookup::class)->visibleDisplayNameOptions(), EventContributionFormRules::normalizeStringList([
+            $this->eventFor($context)?->primaryOrganizerInvolvement?->involveable_id,
+            $this->eventFor($context)?->institution_id,
+        ]), static fn (array $ids): array => app(InstitutionLookup::class)->displayNamesByIds($ids));
     }
 
     /**
@@ -1504,13 +1500,9 @@ final class EventContributionFormSchemaService implements EventContributionFormS
             );
         }
 
-        return self::withSelectedLabels(
-            app(PlaceCatalog::class)->venueOptionsForStatuses(['verified', 'pending']),
-            EventContributionFormRules::normalizeStringList([
-                $this->eventFor($context)?->default_venue_id,
-            ]),
-            static fn (array $ids): array => app(PlaceCatalog::class)->venueNamesByIds($ids),
-        );
+        return $this->withSelectedLabels(app(PlaceCatalog::class)->venueOptionsForStatuses(['verified', 'pending']), EventContributionFormRules::normalizeStringList([
+            $this->eventFor($context)?->default_venue_id,
+        ]), static fn (array $ids): array => app(PlaceCatalog::class)->venueNamesByIds($ids));
     }
 
     /**
@@ -1522,11 +1514,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
             return $this->options->personOptions($context->submitter);
         }
 
-        return self::withSelectedLabels(
-            app(PersonLookup::class)->submissionNameOptions(),
-            $this->selectedPersonIds($context),
-            static fn (array $ids): array => app(PersonLookup::class)->namesByIds($ids),
-        );
+        return $this->withSelectedLabels(app(PersonLookup::class)->submissionNameOptions(), $this->selectedPersonIds($context), static fn (array $ids): array => app(PersonLookup::class)->namesByIds($ids));
     }
 
     /**
@@ -1566,11 +1554,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
             return $this->options->languageOptions();
         }
 
-        return self::withSelectedLabels(
-            app(SelectionCatalogCache::class)->languageOptions('id'),
-            $this->selectedLanguageIds($context),
-            static fn (array $ids): array => app(SelectionCatalogCache::class)->languageOptions('id'),
-        );
+        return $this->withSelectedLabels(app(SelectionCatalogCache::class)->languageOptions('id'), $this->selectedLanguageIds($context), static fn (array $ids): array => app(SelectionCatalogCache::class)->languageOptions('id'));
     }
 
     /**
@@ -1636,7 +1620,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
      * @param  Closure(list<string>): array<string, string>  $labels
      * @return array<string, string>
      */
-    private static function withSelectedLabels(array $options, array $selectedIds, Closure $labels): array
+    private function withSelectedLabels(array $options, array $selectedIds, Closure $labels): array
     {
         $missing = array_values(array_diff($selectedIds, array_map(strval(...), array_keys($options))));
 
@@ -1715,7 +1699,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
     /**
      * @param  array<string, string>  $keys
      */
-    private static function requiresSeparateLocationChoice(Get $get, array $keys): bool
+    private function requiresSeparateLocationChoice(Get $get, array $keys): bool
     {
         return EventContributionFormRules::selectedPrimaryOrganizerKind(
             $get($keys[EventContributionFormFields::PRIMARY_ORGANIZER_KIND]),
@@ -1724,7 +1708,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
             || ! $get($keys[EventContributionFormFields::LOCATION_SAME_AS_INSTITUTION]);
     }
 
-    private static function isOnlineEventFormat(mixed $eventFormat): bool
+    private function isOnlineEventFormat(mixed $eventFormat): bool
     {
         $normalizedEventFormat = $eventFormat instanceof EventFormat
             ? $eventFormat
@@ -1733,7 +1717,7 @@ final class EventContributionFormSchemaService implements EventContributionFormS
         return $normalizedEventFormat === EventFormat::Online;
     }
 
-    private static function endTimePrecedesStartTime(string $endTime, string $startTime): bool
+    private function endTimePrecedesStartTime(string $endTime, string $startTime): bool
     {
         $startParts = explode(':', $startTime);
         $endParts = explode(':', $endTime);

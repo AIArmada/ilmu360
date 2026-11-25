@@ -309,7 +309,7 @@ final class EventModerationActions
             $callback();
 
             ModerationQueue::flushNavigationBadgeCache();
-        } catch (CouldNotPerformTransition|TransitionNotFound $exception) {
+        } catch (CouldNotPerformTransition|TransitionNotFound) {
             self::notifyDanger(__('This event is no longer in a state that allows this action. Please refresh to see its current status.'));
 
             return;

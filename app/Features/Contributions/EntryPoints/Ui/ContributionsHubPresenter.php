@@ -29,7 +29,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class ContributionsHubPresenter
 {
     /** @var list<string> */
-    private const INTERNAL_PAYLOAD_KEYS = ['submission_key', '_token'];
+    private const array INTERNAL_PAYLOAD_KEYS = ['submission_key', '_token'];
 
     /**
      * Public URL of the request entity, or null when the record is not public.
@@ -229,7 +229,7 @@ class ContributionsHubPresenter
 
     public function formatPayloadValue(string $key, mixed $value, int $maxLength = 320): string
     {
-        if ($value === null || $value === '' || $value === []) {
+        if (in_array($value, [null, '', []], true)) {
             return '—';
         }
 
@@ -311,7 +311,7 @@ class ContributionsHubPresenter
                 continue;
             }
 
-            if ($value === null || $value === '' || $value === []) {
+            if (in_array($value, [null, '', []], true)) {
                 continue;
             }
 
@@ -444,7 +444,7 @@ class ContributionsHubPresenter
         if ($this->isUuidList($key, $value)) {
             $count = count($value);
 
-            return (string) trans_choice(':count item selected|:count items selected', $count, ['count' => $count]);
+            return trans_choice(':count item selected|:count items selected', $count, ['count' => $count]);
         }
 
         if ($this->isListOfArrays($value)) {
@@ -610,7 +610,7 @@ class ContributionsHubPresenter
         }
 
         if ($unnamed > 0) {
-            $labels[] = (string) trans_choice(':count institution|:count institutions', $unnamed, ['count' => $unnamed]);
+            $labels[] = trans_choice(':count institution|:count institutions', $unnamed, ['count' => $unnamed]);
         }
 
         return $labels;
@@ -637,13 +637,7 @@ class ContributionsHubPresenter
      */
     private function allItemsAreUuids(array $value): bool
     {
-        foreach ($value as $item) {
-            if (! is_string($item) || ! Str::isUuid($item)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($value, fn ($item) => is_string($item) && Str::isUuid($item));
     }
 
     /**
@@ -651,13 +645,7 @@ class ContributionsHubPresenter
      */
     private function isListOfArrays(array $value): bool
     {
-        foreach ($value as $item) {
-            if (! is_array($item)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($value, fn ($item) => is_array($item));
     }
 
     /**

@@ -92,9 +92,8 @@ it('rejects donation options outside the canonical catalog before saving', funct
         'recipient' => 'Masjid Al-Hidayah',
         'method' => $method,
         ...$details,
-    ]))->toThrow(ValidationException::class, __('validation.in', ['attribute' => $field]));
-
-    expect($institution->donationChannels()->exists())->toBeFalse();
+    ]))->toThrow(ValidationException::class, __('validation.in', ['attribute' => $field]))
+        ->and($institution->donationChannels()->exists())->toBeFalse();
 })->with([
     'personal identity number' => ['duitnow', ['duitnow_type' => 'nric', 'duitnow_value' => '123456789'], 'duitnow type'],
     'unknown wallet provider' => ['ewallet', ['ewallet_provider' => 'unsupported', 'ewallet_handle' => '0123456789'], 'ewallet provider'],

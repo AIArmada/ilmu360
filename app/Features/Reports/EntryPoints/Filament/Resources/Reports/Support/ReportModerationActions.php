@@ -173,11 +173,7 @@ final class ReportModerationActions
             self::notifyDanger($exception->getMessage() !== ''
                 ? $exception->getMessage()
                 : __('You are not authorized to moderate this report.'));
-        } catch (InvalidArgumentException $exception) {
-            self::notifyDanger($exception->getMessage() !== ''
-                ? $exception->getMessage()
-                : __('Could not moderate this report.'));
-        } catch (RuntimeException $exception) {
+        } catch (InvalidArgumentException|RuntimeException $exception) {
             self::notifyDanger($exception->getMessage() !== ''
                 ? $exception->getMessage()
                 : __('Could not moderate this report.'));

@@ -189,7 +189,7 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
     {
         $subjectType = $this->normalizedSubjectType($request);
 
-        if ($subjectType === null) {
+        if (! $subjectType instanceof ContributionSubjectType) {
             return false;
         }
 

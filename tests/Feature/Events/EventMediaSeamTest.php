@@ -128,9 +128,8 @@ it('rejects staged donation QR media that matches no donation channel instead of
         $request->getMorphClass(),
         (string) $request->getKey(),
         [(string) $staged->getKey()],
-    ))->toThrow(ValidationException::class);
-
-    expect($event->refresh()->getMedia('donation_qr'))->toBeEmpty()
+    ))->toThrow(ValidationException::class)
+        ->and($event->refresh()->getMedia('donation_qr'))->toBeEmpty()
         ->and(Media::query()->whereKey($staged->getKey())->exists())->toBeTrue()
         ->and($request->fresh()->getMedia('pending_media'))->toHaveCount(1);
 });

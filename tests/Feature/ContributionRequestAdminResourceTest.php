@@ -434,9 +434,8 @@ it('throws an authorization exception when the proposer rejects their own update
     ]);
 
     expect(fn () => RejectContributionRequestAction::run($request, $proposer, 'other'))
-        ->toThrow(AuthorizationException::class, __('A different reviewer must review this update.'));
-
-    expect($request->fresh()->status)->toBe(ContributionRequestStatus::Pending);
+        ->toThrow(AuthorizationException::class, __('A different reviewer must review this update.'))
+        ->and($request->fresh()->status)->toBe(ContributionRequestStatus::Pending);
 });
 
 it('shows a danger notification when approving an update whose target record no longer exists', function () {

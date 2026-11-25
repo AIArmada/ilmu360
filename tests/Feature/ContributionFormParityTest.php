@@ -151,10 +151,10 @@ it('keeps reference fields, order, and required rules aligned across dynamic rec
 
     foreach ([$create, $update] as $form) {
         $form->set('data.record_kind', 'edition')
-            ->set('data.publisher', null)
-            ->set('data.publication_year', null)
-            ->set('data.isbn', null)
-            ->set('data.edition_number', null);
+            ->set('data.publisher')
+            ->set('data.publication_year')
+            ->set('data.isbn')
+            ->set('data.edition_number');
     }
 
     $createEditionFields = contributionParityFields($create);

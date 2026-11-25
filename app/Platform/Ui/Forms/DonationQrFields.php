@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Platform\Ui\Forms;
 
 use App\Shared\Normalization\SubmittedFieldNormalizer;
