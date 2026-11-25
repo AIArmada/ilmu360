@@ -10,6 +10,7 @@ use App\Features\Events\Api\Enums\EventGenderRestriction;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Prayer\Api\EventPrayerTime;
+use App\Platform\Location\SpatialAddressQuery;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
@@ -73,6 +74,8 @@ final class EventSearchFilterNormalizer implements SearchFilterNormalizer
         $this->normalizeTimeScope($normalizedFilters);
         $this->normalizeTimeScalarFilter($normalizedFilters, 'starts_time_from');
         $this->normalizeTimeScalarFilter($normalizedFilters, 'starts_time_until');
+        $this->normalizeBoundingBoxFilter($normalizedFilters);
+        $this->normalizePolygonFilter($normalizedFilters);
 
         foreach (['children_allowed', 'is_muslim_only', 'has_event_url', 'has_live_url', 'has_end_time'] as $booleanFilter) {
             $this->normalizeBooleanScalarFilter($normalizedFilters, $booleanFilter);
@@ -411,5 +414,45 @@ final class EventSearchFilterNormalizer implements SearchFilterNormalizer
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function normalizeBoundingBoxFilter(array &$filters): void
+    {
+        if (! array_key_exists('bbox', $filters)) {
+            return;
+        }
+
+        $parsed = (new SpatialAddressQuery)->parseBoundingBox($filters['bbox']);
+
+        if ($parsed === null) {
+            unset($filters['bbox']);
+
+            return;
+        }
+
+        $filters['bbox'] = $parsed;
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function normalizePolygonFilter(array &$filters): void
+    {
+        if (! array_key_exists('polygon', $filters)) {
+            return;
+        }
+
+        $normalized = (new SpatialAddressQuery)->normalizePolygonWkt($filters['polygon']);
+
+        if ($normalized === null) {
+            unset($filters['polygon']);
+
+            return;
+        }
+
+        $filters['polygon'] = $normalized;
     }
 }

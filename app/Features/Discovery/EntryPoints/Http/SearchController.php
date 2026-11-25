@@ -40,6 +40,8 @@ final class SearchController extends FrontendController
         $lat = $coordinates['lat'];
         $lng = $coordinates['lng'];
         $radius = $this->searchRequestNormalizer->normalizedRadiusKm($request);
+        $bbox = $this->searchRequestNormalizer->resolvedBoundingBox($request);
+        $eventFilters = $bbox !== null ? ['bbox' => $bbox] : [];
         $hasLocation = $lat !== null && $lng !== null;
 
         $eventPage = $hasLocation
@@ -49,16 +51,19 @@ final class SearchController extends FrontendController
                     lat: $lat ?? 0.0,
                     lng: $lng ?? 0.0,
                     radiusKm: $radius,
+                    filters: $eventFilters,
                     perPage: 6,
                 )
                 : $this->eventSearch->searchNearby(
                     lat: $lat ?? 0.0,
                     lng: $lng ?? 0.0,
                     radiusKm: $radius,
+                    filters: $eventFilters,
                     perPage: 6,
                 ))
             : $this->eventSearch->search(
                 query: $search,
+                filters: $eventFilters,
                 perPage: 6,
                 sort: $search !== null ? 'relevance' : 'time',
             );

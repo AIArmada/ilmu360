@@ -16,6 +16,8 @@ final readonly class SearchFilterKeys
             'state_id',
             'city_id',
             'area_assignments',
+            'bbox',
+            'polygon',
             'institution_id',
             'venue_id',
             'person_ids',

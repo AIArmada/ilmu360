@@ -6,7 +6,6 @@ namespace App\Features\Events\Queries\Postgres;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Support\AddressingTableResolver;
-use AIArmada\Addressing\Support\GeoDistance;
 use AIArmada\CommerceSupport\Support\StringSimilarity;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
@@ -31,6 +30,7 @@ use App\Features\Prayer\Api\EventPrayerTime;
 use App\Features\Prayer\Api\PrayerOffset;
 use App\Features\Prayer\Api\PrayerReference;
 use App\Features\References\Api\ReferenceQueries;
+use App\Platform\Location\SpatialAddressQuery;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Connection;
@@ -53,6 +53,7 @@ final readonly class EventFilterQueryBuilder
         private EventCategoryCatalog $categoryCatalog,
         private ReferenceQueries $referenceQueries,
         private PublicReferenceConstraint $publicReferenceConstraint,
+        private SpatialAddressQuery $spatialAddressQuery,
     ) {}
 
     public function search(EventDiscoveryCriteria $criteria): EventDiscoveryPage
@@ -246,6 +247,41 @@ final readonly class EventFilterQueryBuilder
         }
 
         $this->applyLocationAddressFilter($queryBuilder, $this->filterSet->location($filters));
+
+        $bbox = $this->spatialAddressQuery->parseBoundingBox($filters['bbox'] ?? null);
+
+        if ($bbox !== null) {
+            [$effectiveVenue, $venueExists, $venueMorphType, $institutionMorphType] = $this->eventSpatialOwnerContext($table);
+
+            $this->spatialAddressQuery->applyEventWithinBounds(
+                $queryBuilder,
+                $bbox['west'],
+                $bbox['south'],
+                $bbox['east'],
+                $bbox['north'],
+                $table,
+                $effectiveVenue,
+                $venueExists,
+                $venueMorphType,
+                $institutionMorphType,
+            );
+        }
+
+        $polygon = $this->spatialAddressQuery->normalizePolygonWkt($filters['polygon'] ?? null);
+
+        if ($polygon !== null) {
+            [$effectiveVenue, $venueExists, $venueMorphType, $institutionMorphType] = $this->eventSpatialOwnerContext($table);
+
+            $this->spatialAddressQuery->applyEventWithinPolygon(
+                $queryBuilder,
+                $polygon,
+                $table,
+                $effectiveVenue,
+                $venueExists,
+                $venueMorphType,
+                $institutionMorphType,
+            );
+        }
 
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
 
@@ -1012,49 +1048,43 @@ final readonly class EventFilterQueryBuilder
      */
     private function paginateNearby(EventBuilder $queryBuilder, float $lat, float $lng, int $radiusKm, int $perPage, ?array $columns = null): LengthAwarePaginator
     {
-        $addressablesTable = AddressingTableResolver::resolve('addressables');
-        $addressesTable = AddressingTableResolver::resolve('addresses');
         $eventsTable = (new Event)->getTable();
-        $institutionIdExpression = "{$eventsTable}.institution_id";
+        [$effectiveVenue, $venueExists, $venueMorphType, $institutionMorphType] = $this->eventSpatialOwnerContext($eventsTable);
 
+        $this->spatialAddressQuery->applyEventNearby(
+            $queryBuilder,
+            $lat,
+            $lng,
+            $radiusKm,
+            $eventsTable,
+            $effectiveVenue,
+            $venueExists,
+            $venueMorphType,
+            $institutionMorphType,
+            $columns,
+        );
+
+        return $queryBuilder
+            ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', $eventsTable).' asc')
+            ->paginate($perPage);
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string, 3: string}
+     */
+    private function eventSpatialOwnerContext(string $eventsTable): array
+    {
         $primaryPackageVenue = PrimaryLocationSql::venueId($eventsTable);
         $effectiveVenue = "coalesce({$eventsTable}.default_venue_id, {$primaryPackageVenue})";
         $venueTable = $this->placeCatalog->venueTable();
         $venueExists = "exists (select 1 from {$venueTable} where {$venueTable}.id = ({$effectiveVenue}))";
-        $latitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.latitude when {$venueExists} then venue_addresses.latitude end";
-        $longitudeExpression = "case when ({$effectiveVenue}) is null then institution_addresses.longitude when {$venueExists} then venue_addresses.longitude end";
-        $connection = $queryBuilder->getConnection();
-        $driver = $connection instanceof Connection ? $connection->getDriverName() : null;
-        $castType = $driver === 'sqlite' ? 'real' : 'double precision';
-        $box = GeoDistance::boundingBox($lat, $lng, (float) $radiusKm);
-        $distanceSql = GeoDistance::haversineSql($latitudeExpression, $longitudeExpression, $driver);
-        $distanceBindings = GeoDistance::haversineBindings($lat, $lng);
-        $venueMorphType = $this->placeCatalog->venueMorphType();
-        $institutionMorphType = $this->institutionLookup->institutionMorphType();
 
-        return $queryBuilder
-            ->leftJoin("{$addressablesTable} as venue_addressables", function ($join) use ($venueMorphType, $effectiveVenue): void {
-                $join->whereRaw("venue_addressables.addressable_id = {$effectiveVenue}")
-                    ->where('venue_addressables.addressable_type', $venueMorphType)
-                    ->where('venue_addressables.is_primary', true);
-            })
-            ->leftJoin("{$addressesTable} as venue_addresses", 'venue_addresses.id', '=', 'venue_addressables.address_id')
-            ->leftJoin("{$addressablesTable} as institution_addressables", function ($join) use ($institutionIdExpression, $institutionMorphType): void {
-                $join->whereRaw("institution_addressables.addressable_id = {$institutionIdExpression}")
-                    ->where('institution_addressables.addressable_type', $institutionMorphType)
-                    ->where('institution_addressables.is_primary', true);
-            })
-            ->leftJoin("{$addressesTable} as institution_addresses", 'institution_addresses.id', '=', 'institution_addressables.address_id')
-            ->whereRaw("{$latitudeExpression} is not null")
-            ->whereRaw("{$longitudeExpression} is not null")
-            ->whereRaw("({$latitudeExpression}) between cast(? as {$castType}) and cast(? as {$castType})", [$box['min_lat'], $box['max_lat']])
-            ->whereRaw("({$longitudeExpression}) between cast(? as {$castType}) and cast(? as {$castType})", [$box['min_lng'], $box['max_lng']])
-            ->select($columns ?? ["{$eventsTable}.*"])
-            ->selectRaw("{$distanceSql} as distance_km", $distanceBindings)
-            ->whereRaw("{$distanceSql} <= ?", [...$distanceBindings, $radiusKm])
-            ->orderBy('distance_km', 'asc')
-            ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc')
-            ->paginate($perPage);
+        return [
+            $effectiveVenue,
+            $venueExists,
+            $this->placeCatalog->venueMorphType(),
+            $this->institutionLookup->institutionMorphType(),
+        ];
     }
 
     /**

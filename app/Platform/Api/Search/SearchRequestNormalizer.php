@@ -2,6 +2,7 @@
 
 namespace App\Platform\Api\Search;
 
+use App\Platform\Location\SpatialAddressQuery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -183,5 +184,13 @@ class SearchRequestNormalizer
     public function requestedCountryId(Request $request): ?string
     {
         return $this->normalizedUuid($request->query('country_id'));
+    }
+
+    /**
+     * @return array{west: float, south: float, east: float, north: float}|null
+     */
+    public function resolvedBoundingBox(Request $request): ?array
+    {
+        return app(SpatialAddressQuery::class)->parseBoundingBox($request->query('bbox'));
     }
 }

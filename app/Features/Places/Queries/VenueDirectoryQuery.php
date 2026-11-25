@@ -7,6 +7,7 @@ namespace App\Features\Places\Queries;
 use App\Features\Events\Api\EventScheduleReads;
 use App\Features\Places\Models\Venue;
 use App\Features\Places\Services\VenueSearchService;
+use App\Platform\Location\SpatialAddressQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -16,11 +17,13 @@ final readonly class VenueDirectoryQuery
     public function __construct(
         private VenueSearchService $searchService,
         private EventScheduleReads $scheduleReads,
+        private SpatialAddressQuery $spatialAddressQuery,
     ) {}
 
     /**
      * @param  array<string, string>  $areas
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
+     * @param  array<string, mixed>|string|null  $bounds
      * @return LengthAwarePaginator<int, Venue>
      */
     public function paginate(
@@ -32,12 +35,19 @@ final readonly class VenueDirectoryQuery
         int $page = 1,
         array $paginationMeta = ['path' => '/', 'query' => []],
         int $perPage = 12,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?int $radiusKm = null,
+        array|string|null $bounds = null,
+        ?string $polygon = null,
     ): LengthAwarePaginator {
         $page = max(1, $page);
         $normalizedSearch = $this->searchService->normalizedSearch($search ?? '');
+        $parsedBounds = $this->spatialAddressQuery->parseBoundingBox($bounds);
+        $normalizedPolygon = $this->spatialAddressQuery->normalizePolygonWkt($polygon);
 
         if ($normalizedSearch === null) {
-            $query = $this->baseVenuesQuery($countryId, $stateId, $areas, $venueType)
+            $query = $this->baseVenuesQuery($countryId, $stateId, $areas, $venueType, $latitude, $longitude, $radiusKm, $parsedBounds, $normalizedPolygon)
                 ->orderBy('venues.name');
 
             $paginator = $this->paginateWithWindowTotal($query, $page, $paginationMeta, $perPage);
@@ -55,6 +65,11 @@ final readonly class VenueDirectoryQuery
             $page,
             $paginationMeta,
             $perPage,
+            $latitude,
+            $longitude,
+            $radiusKm,
+            $parsedBounds,
+            $normalizedPolygon,
         );
 
         if ($directMatches->total() > 0 || mb_strlen($normalizedSearch) < 3) {
@@ -72,6 +87,11 @@ final readonly class VenueDirectoryQuery
             $page,
             $paginationMeta,
             $perPage,
+            $latitude,
+            $longitude,
+            $radiusKm,
+            $parsedBounds,
+            $normalizedPolygon,
         );
 
         $this->attachEventCounts($fuzzyMatches->items());
@@ -82,6 +102,7 @@ final readonly class VenueDirectoryQuery
     /**
      * @param  array<string, string>  $areas
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
+     * @param  array{west: float, south: float, east: float, north: float}|null  $bounds
      * @return LengthAwarePaginator<int, Venue>
      */
     private function paginateDirectSearch(
@@ -93,8 +114,13 @@ final readonly class VenueDirectoryQuery
         int $page,
         array $paginationMeta,
         int $perPage,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?int $radiusKm = null,
+        ?array $bounds = null,
+        ?string $polygon = null,
     ): LengthAwarePaginator {
-        if (! $this->hasScopedFilters($countryId, $stateId, $areas, $venueType)) {
+        if (! $this->hasScopedFilters($countryId, $stateId, $areas, $venueType, $latitude, $longitude, $bounds, $polygon)) {
             $orderedIds = $this->filterSearchIdsToCurrentScope(
                 $this->searchService->publicSearchIds($search),
                 $countryId,
@@ -120,7 +146,7 @@ final readonly class VenueDirectoryQuery
             );
         }
 
-        $query = $this->baseVenuesQuery($countryId, $stateId, $areas, $venueType);
+        $query = $this->baseVenuesQuery($countryId, $stateId, $areas, $venueType, $latitude, $longitude, $radiusKm, $bounds, $polygon);
         $query = $this->searchService->applyPublicSearch($query, $search)
             ->orderBy('venues.name');
 
@@ -130,6 +156,7 @@ final readonly class VenueDirectoryQuery
     /**
      * @param  array<string, string>  $areas
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
+     * @param  array{west: float, south: float, east: float, north: float}|null  $bounds
      * @return LengthAwarePaginator<int, Venue>
      */
     private function fuzzySearch(
@@ -141,6 +168,11 @@ final readonly class VenueDirectoryQuery
         int $page,
         array $paginationMeta,
         int $perPage,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?int $radiusKm = null,
+        ?array $bounds = null,
+        ?string $polygon = null,
     ): LengthAwarePaginator {
         $orderedIds = $this->filterSearchIdsToCurrentScope(
             $this->searchService->publicFuzzySearchIds($search),
@@ -148,6 +180,12 @@ final readonly class VenueDirectoryQuery
             $stateId,
             $areas,
             $venueType,
+            false,
+            $latitude,
+            $longitude,
+            $radiusKm,
+            $bounds,
+            $polygon,
         );
 
         if ($orderedIds === []) {
@@ -163,22 +201,40 @@ final readonly class VenueDirectoryQuery
             $page,
             $paginationMeta,
             $perPage,
+            $latitude,
+            $longitude,
+            $radiusKm,
+            $bounds,
+            $polygon,
         );
     }
 
     /**
      * @param  array<string, string>  $areas
+     * @param  array{west: float, south: float, east: float, north: float}|null  $bounds
      */
-    private function hasScopedFilters(?string $countryId, ?string $stateId, array $areas, ?string $venueType): bool
-    {
+    private function hasScopedFilters(
+        ?string $countryId,
+        ?string $stateId,
+        array $areas,
+        ?string $venueType,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?array $bounds = null,
+        ?string $polygon = null,
+    ): bool {
         return $countryId !== null
             || $stateId !== null
             || $areas !== []
-            || ($venueType !== null && $venueType !== '');
+            || ($venueType !== null && $venueType !== '')
+            || ($latitude !== null && $longitude !== null)
+            || $bounds !== null
+            || $polygon !== null;
     }
 
     /**
      * @param  array<string, string>  $areas
+     * @param  array{west: float, south: float, east: float, north: float}|null  $bounds
      * @return Builder<Venue>
      */
     private function baseVenuesQuery(
@@ -186,9 +242,24 @@ final readonly class VenueDirectoryQuery
         ?string $stateId,
         array $areas,
         ?string $venueType,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?int $radiusKm = null,
+        ?array $bounds = null,
+        ?string $polygon = null,
     ): Builder {
-        return $this->scopedVenuesQuery($countryId, $stateId, $areas, $venueType)
-            ->select('venues.*')
+        return $this->scopedVenuesQuery(
+            $countryId,
+            $stateId,
+            $areas,
+            $venueType,
+            $latitude,
+            $longitude,
+            $radiusKm,
+            $bounds,
+            $polygon,
+            withDistanceProjection: true,
+        )
             ->with([
                 'addresses.areaAssignments.area',
                 'media' => static function (MorphMany $relation): void {
@@ -199,6 +270,7 @@ final readonly class VenueDirectoryQuery
 
     /**
      * @param  array<string, string>  $areas
+     * @param  array{west: float, south: float, east: float, north: float}|null  $bounds
      * @return Builder<Venue>
      */
     private function scopedVenuesQuery(
@@ -206,6 +278,12 @@ final readonly class VenueDirectoryQuery
         ?string $stateId,
         array $areas,
         ?string $venueType,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?int $radiusKm = null,
+        ?array $bounds = null,
+        ?string $polygon = null,
+        bool $withDistanceProjection = false,
     ): Builder {
         $query = Venue::query()
             ->active()
@@ -215,7 +293,86 @@ final readonly class VenueDirectoryQuery
             $query->where('venue_type', $venueType);
         }
 
-        return $this->applyLocationScope($query, $countryId, $stateId, $areas);
+        $query = $this->applyLocationScope($query, $countryId, $stateId, $areas);
+
+        return $this->applySpatialScope($query, $latitude, $longitude, $radiusKm, $bounds, $polygon, $withDistanceProjection);
+    }
+
+    /**
+     * @param  Builder<Venue>  $query
+     * @param  array{west: float, south: float, east: float, north: float}|null  $bounds
+     * @return Builder<Venue>
+     */
+    private function applySpatialScope(
+        Builder $query,
+        ?float $latitude,
+        ?float $longitude,
+        ?int $radiusKm,
+        ?array $bounds,
+        ?string $polygon,
+        bool $withDistanceProjection,
+    ): Builder {
+        $morphType = (new Venue)->getMorphClass();
+
+        if ($withDistanceProjection) {
+            $query->select('venues.*');
+        }
+
+        if ($bounds !== null) {
+            $this->spatialAddressQuery->applyPrimaryAddressWithinBounds(
+                $query,
+                'venues',
+                'id',
+                $morphType,
+                $bounds['west'],
+                $bounds['south'],
+                $bounds['east'],
+                $bounds['north'],
+            );
+        }
+
+        if ($polygon !== null) {
+            $this->spatialAddressQuery->applyPrimaryAddressWithinPolygon(
+                $query,
+                'venues',
+                'id',
+                $morphType,
+                $polygon,
+            );
+        }
+
+        if ($latitude !== null && $longitude !== null) {
+            if ($radiusKm !== null) {
+                $this->spatialAddressQuery->applyPrimaryAddressNearby(
+                    $query,
+                    'venues',
+                    'id',
+                    $morphType,
+                    $latitude,
+                    $longitude,
+                    $radiusKm,
+                    'venue_spatial',
+                    $withDistanceProjection ? ['venues.*'] : ['venues.id'],
+                );
+
+                if (! $withDistanceProjection) {
+                    $query->reorder();
+                }
+            } elseif ($withDistanceProjection) {
+                $this->spatialAddressQuery->selectPrimaryAddressDistance(
+                    $query,
+                    'venues',
+                    'id',
+                    $morphType,
+                    $latitude,
+                    $longitude,
+                    'venue_distance',
+                    ['venues.*'],
+                );
+            }
+        }
+
+        return $query;
     }
 
     /**
@@ -284,6 +441,7 @@ final readonly class VenueDirectoryQuery
     /**
      * @param  list<string>  $orderedIds
      * @param  array<string, string>  $areas
+     * @param  array{west: float, south: float, east: float, north: float}|null  $bounds
      * @return list<string>
      */
     private function filterSearchIdsToCurrentScope(
@@ -293,12 +451,17 @@ final readonly class VenueDirectoryQuery
         array $areas,
         ?string $venueType,
         bool $useDirectoryOrder = false,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?int $radiusKm = null,
+        ?array $bounds = null,
+        ?string $polygon = null,
     ): array {
         if ($orderedIds === []) {
             return [];
         }
 
-        $scopedQuery = $this->scopedVenuesQuery($countryId, $stateId, $areas, $venueType)
+        $scopedQuery = $this->scopedVenuesQuery($countryId, $stateId, $areas, $venueType, $latitude, $longitude, $radiusKm, $bounds, $polygon)
             ->whereIn('venues.id', $orderedIds);
 
         if ($useDirectoryOrder) {
@@ -326,6 +489,7 @@ final readonly class VenueDirectoryQuery
      * @param  list<string>  $orderedIds
      * @param  array<string, string>  $areas
      * @param  array{path: string, query: array<string, mixed>}  $paginationMeta
+     * @param  array{west: float, south: float, east: float, north: float}|null  $bounds
      * @return LengthAwarePaginator<int, Venue>
      */
     private function orderedIdPaginator(
@@ -337,6 +501,11 @@ final readonly class VenueDirectoryQuery
         int $page,
         array $paginationMeta,
         int $perPage,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?int $radiusKm = null,
+        ?array $bounds = null,
+        ?string $polygon = null,
     ): LengthAwarePaginator {
         $paginatedIds = array_slice($orderedIds, ($page - 1) * $perPage, $perPage);
 
@@ -347,7 +516,7 @@ final readonly class VenueDirectoryQuery
 
         $positions = array_flip($paginatedIds);
 
-        $venues = $this->baseVenuesQuery($countryId, $stateId, $areas, $venueType)
+        $venues = $this->baseVenuesQuery($countryId, $stateId, $areas, $venueType, $latitude, $longitude, $radiusKm, $bounds, $polygon)
             ->whereIn('venues.id', $paginatedIds)
             ->get()
             ->sortBy(static fn (Venue $venue): int => $positions[(string) $venue->id] ?? PHP_INT_MAX)

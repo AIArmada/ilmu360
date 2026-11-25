@@ -10,6 +10,8 @@ use App\Features\Discovery\Api\EventSearchReader;
 use App\Features\Discovery\Api\SearchFilterKeys;
 use App\Features\Events\Api\AdminEventSearch;
 use App\Features\Events\Api\Enums\TimingMode;
+use App\Platform\Location\SpatialAddressQuery;
+use Closure;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Pagination\Paginator;
@@ -46,6 +48,7 @@ class McpEventSearchService implements AdminEventSearch
 
     public function __construct(
         private readonly EventSearchReader $eventSearchService,
+        private readonly SpatialAddressQuery $spatialAddressQuery = new SpatialAddressQuery,
     ) {}
 
     /**
@@ -153,6 +156,26 @@ class McpEventSearchService implements AdminEventSearch
             'lat' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'lng' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
             'radius_km' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000'],
+            'bbox' => [
+                'sometimes',
+                'nullable',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if ($value !== null && $value !== '' && $this->spatialAddressQuery->parseBoundingBox($value) === null) {
+                        $fail('The bbox field must be a valid "west,south,east,north" string or {west,south,east,north} bounds.');
+                    }
+                },
+            ],
+            'polygon' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:65535',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (is_string($value) && trim($value) !== '' && $this->spatialAddressQuery->normalizePolygonWkt($value) === null) {
+                        $fail('The polygon field must be a valid WKT POLYGON or MULTIPOLYGON geometry.');
+                    }
+                },
+            ],
             'country_id' => ['sometimes', 'nullable'],
             'state_id' => ['sometimes', 'nullable'],
             'city_id' => ['sometimes', 'nullable'],
@@ -199,7 +222,7 @@ class McpEventSearchService implements AdminEventSearch
             'starts_before' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'starts_on_local_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'time_scope' => ['sometimes', 'nullable', 'string', 'in:upcoming,past,all'],
-            'prayer_time' => ['sometimes', 'nullable', function (string $attribute, mixed $value, \Closure $fail): void {
+            'prayer_time' => ['sometimes', 'nullable', function (string $attribute, mixed $value, Closure $fail): void {
                 $values = is_array($value) ? $value : [$value];
 
                 if (! array_is_list($values)) {
@@ -256,6 +279,12 @@ class McpEventSearchService implements AdminEventSearch
             ),
             'radius_km' => $schema->integer()->default(15)->description(
                 'Search radius in kilometres when lat+lng are provided. Default 15, max 1000.'
+            ),
+            'bbox' => $schema->string()->nullable()->description(
+                'Optional WGS 84 bounding box filter as "west,south,east,north" (uses PostGIS ST_Intersects on PostgreSQL).'
+            ),
+            'polygon' => $schema->string()->nullable()->description(
+                'Optional WGS 84 WKT POLYGON or MULTIPOLYGON boundary filter (evaluated with PostGIS ST_Intersects on PostgreSQL).'
             ),
             'country_id' => $schema->string()->nullable()->description(
                 'UUID of the package-backed country record. Use the catalogs or addressing-backed discovery endpoints to obtain valid IDs.'
@@ -401,6 +430,8 @@ class McpEventSearchService implements AdminEventSearch
         $filters['person_name_search'] = $this->normalizeOptionalString($filters['person_name_search'] ?? null);
         $filters['starts_time_from'] = $this->normalizeOptionalString($filters['starts_time_from'] ?? null);
         $filters['starts_time_until'] = $this->normalizeOptionalString($filters['starts_time_until'] ?? null);
+        $filters['bbox'] = $this->spatialAddressQuery->parseBoundingBox($filters['bbox'] ?? null);
+        $filters['polygon'] = $this->spatialAddressQuery->normalizePolygonWkt($filters['polygon'] ?? null);
 
         // Scope toggles: default to true when absent; must survive array_filter as they can be false.
         $includeInstitutions = isset($filters['search_include_institutions'])

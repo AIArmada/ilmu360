@@ -11,6 +11,7 @@ use App\Features\Discovery\Api\SearchFilterCatalog;
 use App\Features\Discovery\Api\SearchFilterKeys;
 use App\Features\Discovery\Api\SearchFilterRules;
 use App\Features\Events\Api\EventTaxonomyCode;
+use App\Platform\Location\SpatialAddressQuery;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
@@ -30,6 +31,8 @@ final readonly class EventSearchFilterRules implements SearchFilterRules
             'filters.city_id' => ['nullable', 'uuid', Rule::exists(ModelResolver::cityClass(), 'id')],
             'filters.area_assignments' => 'nullable|array',
             'filters.area_assignments.*' => ['nullable', 'uuid', Rule::exists(ModelResolver::areaClass(), 'id')],
+            'filters.bbox' => ['nullable', $this->validBoundingBoxRule()],
+            'filters.polygon' => ['nullable', 'string', 'max:65535', $this->validPolygonWktRule()],
             'filters.institution_id' => 'nullable|uuid|exists:institutions,id',
             'filters.venue_id' => 'nullable|uuid|exists:venues,id',
             'filters.language_codes' => 'nullable|array',
@@ -185,6 +188,32 @@ final readonly class EventSearchFilterRules implements SearchFilterRules
 
                     return;
                 }
+            }
+        };
+    }
+
+    private function validBoundingBoxRule(): \Closure
+    {
+        return static function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null || $value === '' || $value === []) {
+                return;
+            }
+
+            if ((new SpatialAddressQuery)->parseBoundingBox($value) === null) {
+                $fail('The '.$attribute.' field must be a valid WGS 84 bounding box (west,south,east,north).');
+            }
+        };
+    }
+
+    private function validPolygonWktRule(): \Closure
+    {
+        return static function (string $attribute, mixed $value, \Closure $fail): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            if ((new SpatialAddressQuery)->normalizePolygonWkt($value) === null) {
+                $fail('The '.$attribute.' field must be a valid WKT POLYGON or MULTIPOLYGON.');
             }
         };
     }

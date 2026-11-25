@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Queries;
 
 use AIArmada\Addressing\Support\AddressHierarchyFormatter;
-use AIArmada\Addressing\Support\AddressingTableResolver;
-use AIArmada\Addressing\Support\GeoDistance;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
 use App\Features\Events\Api\Enums\EventVisibility;
@@ -19,7 +17,7 @@ use App\Features\Institutions\Models\InstitutionName;
 use App\Features\Institutions\Services\InstitutionSearchService;
 use App\Features\Persons\Api\PersonLookup;
 use App\Platform\Api\Frontend\Data\CountryData;
-use Illuminate\Database\Connection;
+use App\Platform\Location\SpatialAddressQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -28,6 +26,7 @@ final readonly class InstitutionCardsQuery implements InstitutionCards
     public function __construct(
         private InstitutionSearchService $search,
         private SubjectFollows $subjectFollows,
+        private SpatialAddressQuery $spatialAddressQuery,
     ) {}
 
     /**
@@ -144,54 +143,29 @@ final readonly class InstitutionCardsQuery implements InstitutionCards
         $hasLocation = $lat !== null && $lng !== null;
 
         if ($hasLocation) {
-            $this->applyNearbyScope($base, $lat, $lng, $radiusKm);
+            $this->spatialAddressQuery->applyPrimaryAddressNearby(
+                $base,
+                'institutions',
+                'id',
+                (new Institution)->getMorphClass(),
+                $lat,
+                $lng,
+                $radiusKm,
+                'institution',
+                ['institutions.*'],
+            );
         }
 
         $total = $hasLocation ? (clone $base)->count() : count($institutionIds);
         $items = $base
-            ->orderBy('name')
+            ->orderBy('institutions.name')
+            ->orderBy('institutions.id')
             ->limit(max(1, $limit))
             ->get()
             ->map(fn (Institution $institution): array => $this->toArray($institution, false))
             ->all();
 
         return ['items' => $items, 'total' => $total];
-    }
-
-    /**
-     * @param  Builder<Institution>  $query
-     */
-    private function applyNearbyScope(Builder $query, float $lat, float $lng, int $radiusKm): void
-    {
-        $addressMorphType = (new Institution)->getMorphClass();
-        $addressablesTable = AddressingTableResolver::resolve('addressables');
-        $addressesTable = AddressingTableResolver::resolve('addresses');
-        $connection = $query->getConnection();
-        $driver = $connection instanceof Connection ? $connection->getDriverName() : null;
-        $box = GeoDistance::boundingBox($lat, $lng, (float) $radiusKm);
-        $distanceSql = GeoDistance::haversineSql('institution_addresses.latitude', 'institution_addresses.longitude', $driver);
-        $distanceBindings = GeoDistance::haversineBindings($lat, $lng);
-
-        if ($query->getQuery()->columns === null) {
-            $query->select('institutions.*');
-        }
-
-        $query
-            ->join($addressablesTable.' as institution_addressables', function ($join) use ($addressMorphType): void {
-                $join->on('institution_addressables.addressable_id', '=', 'institutions.id')
-                    ->where('institution_addressables.addressable_type', $addressMorphType)
-                    ->where('institution_addressables.is_primary', true);
-            })
-            ->join($addressesTable.' as institution_addresses', 'institution_addresses.id', '=', 'institution_addressables.address_id')
-            ->whereRaw('institution_addresses.latitude is not null')
-            ->whereRaw('institution_addresses.longitude is not null')
-            ->whereBetween('institution_addresses.latitude', [$box['min_lat'], $box['max_lat']])
-            ->whereBetween('institution_addresses.longitude', [$box['min_lng'], $box['max_lng']])
-            ->selectRaw("{$distanceSql} as distance_km", $distanceBindings)
-            ->whereRaw("{$distanceSql} <= ?", [...$distanceBindings, $radiusKm])
-            ->orderBy('distance_km')
-            ->orderBy('institutions.name')
-            ->orderBy('institutions.id');
     }
 
     /**

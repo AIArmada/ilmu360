@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Institutions\EntryPoints\Http;
 
 use AIArmada\Addressing\Data\AddressLocationData;
-use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Addressing\Support\AddressLocationScope;
-use AIArmada\Addressing\Support\GeoDistance;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\Engagement\Api\EngagementSubjectType;
 use App\Features\Engagement\Api\SubjectFollows;
@@ -29,6 +27,7 @@ use App\Platform\Api\ApiPagination;
 use App\Platform\Api\Frontend\SearchPayloadTransformer;
 use App\Platform\Api\Search\SearchRequestNormalizer;
 use App\Platform\Http\FrontendController;
+use App\Platform\Location\SpatialAddressQuery;
 use App\Platform\Models\SlugOrUuidResolver;
 use App\Platform\Search\PublicDiscovery;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -36,7 +35,6 @@ use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
 use Dedoc\Scramble\Attributes\Response;
 use Filament\Support\Contracts\HasLabel;
-use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,6 +75,7 @@ final class InstitutionDirectoryController extends FrontendController
         private readonly InstitutionCards $institutionCards,
         private readonly SubjectFollows $subjectFollows,
         private readonly SearchPayloadTransformer $searchPayloadTransformer,
+        private readonly SpatialAddressQuery $spatialAddressQuery,
     ) {}
 
     #[Group('Institution', 'Public institution directory and detail endpoints.')]
@@ -121,6 +120,7 @@ final class InstitutionDirectoryController extends FrontendController
         $lat = $coordinates['lat'];
         $lng = $coordinates['lng'];
         $radius = $this->searchRequestNormalizer->normalizedRadiusKm($request);
+        $bbox = $this->searchRequestNormalizer->resolvedBoundingBox($request);
         $hasNearbyLocation = $lat !== null && $lng !== null;
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 12), default: 12, max: 50);
         $followingOnly = $request->boolean('following');
@@ -136,8 +136,31 @@ final class InstitutionDirectoryController extends FrontendController
             adminArea2Id: $adminArea2Id,
         );
 
+        if ($bbox !== null) {
+            $this->spatialAddressQuery->applyPrimaryAddressWithinBounds(
+                $baseQuery,
+                'institutions',
+                'id',
+                (new Institution)->getMorphClass(),
+                $bbox['west'],
+                $bbox['south'],
+                $bbox['east'],
+                $bbox['north'],
+            );
+        }
+
         if ($hasNearbyLocation) {
-            $this->applyInstitutionNearbyScope($baseQuery, $lat, $lng, $radius);
+            $this->spatialAddressQuery->applyPrimaryAddressNearby(
+                $baseQuery,
+                'institutions',
+                'id',
+                (new Institution)->getMorphClass(),
+                $lat,
+                $lng,
+                $radius,
+                'institution',
+            );
+            $baseQuery->orderBy('institutions.name')->orderBy('institutions.id');
         }
 
         if ($followingOnly) {
@@ -367,42 +390,6 @@ final class InstitutionDirectoryController extends FrontendController
                 'administrative_subdivision' => $adminArea2Id,
             ]),
         ));
-    }
-
-    /**
-     * @param  Builder<Institution>  $query
-     */
-    private function applyInstitutionNearbyScope(Builder $query, float $lat, float $lng, int $radiusKm): void
-    {
-        $addressMorphType = (new Institution)->getMorphClass();
-        $addressablesTable = AddressingTableResolver::resolve('addressables');
-        $addressesTable = AddressingTableResolver::resolve('addresses');
-        $connection = $query->getConnection();
-        $driver = $connection instanceof Connection ? $connection->getDriverName() : null;
-        $box = GeoDistance::boundingBox($lat, $lng, (float) $radiusKm);
-        $distanceSql = GeoDistance::haversineSql('institution_addresses.latitude', 'institution_addresses.longitude', $driver);
-        $distanceBindings = GeoDistance::haversineBindings($lat, $lng);
-
-        if ($query->getQuery()->columns === null) {
-            $query->select('institutions.*');
-        }
-
-        $query
-            ->join($addressablesTable.' as institution_addressables', function ($join) use ($addressMorphType): void {
-                $join->on('institution_addressables.addressable_id', '=', 'institutions.id')
-                    ->where('institution_addressables.addressable_type', $addressMorphType)
-                    ->where('institution_addressables.is_primary', true);
-            })
-            ->join($addressesTable.' as institution_addresses', 'institution_addresses.id', '=', 'institution_addressables.address_id')
-            ->whereRaw('institution_addresses.latitude is not null')
-            ->whereRaw('institution_addresses.longitude is not null')
-            ->whereBetween('institution_addresses.latitude', [$box['min_lat'], $box['max_lat']])
-            ->whereBetween('institution_addresses.longitude', [$box['min_lng'], $box['max_lng']])
-            ->selectRaw("{$distanceSql} as distance_km", $distanceBindings)
-            ->whereRaw("{$distanceSql} <= ?", [...$distanceBindings, $radiusKm])
-            ->orderBy('distance_km')
-            ->orderBy('institutions.name')
-            ->orderBy('institutions.id');
     }
 
     /**

@@ -24,6 +24,7 @@ use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceLocation;
 use App\Features\References\Api\ReferenceQueries;
+use App\Platform\Location\SpatialAddressQuery;
 use App\Platform\Search\DatabaseFuzzyMatcher;
 use Tests\Support\RecordingEventSearchRelationProvider;
 
@@ -50,6 +51,7 @@ it('returns immutable PostgreSQL search hits without importing event models into
         categoryCatalog: app(EventCategoryCatalog::class),
         referenceQueries: $referenceQueries,
         publicReferenceConstraint: $publicReferenceConstraint,
+        spatialAddressQuery: app(SpatialAddressQuery::class),
     );
     $scheduleHydrator = new EventScheduleHydrator($provider);
     $schedulePaginator = new EventScheduleOccurrencePaginator($filterQueryBuilder, $scheduleHydrator);

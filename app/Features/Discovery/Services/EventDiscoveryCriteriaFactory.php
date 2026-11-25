@@ -6,12 +6,17 @@ namespace App\Features\Discovery\Services;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Discovery\Api\Data\EventDiscoveryCriteria;
+use App\Platform\Location\SpatialAddressQuery;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Str;
 
 final class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api\EventDiscoveryCriteriaBuilder
 {
+    public function __construct(
+        private readonly SpatialAddressQuery $spatialAddressQuery = new SpatialAddressQuery,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $filters
      */
@@ -47,7 +52,7 @@ final class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api
                 'search_include_institutions', 'search_include_persons', 'search_include_references',
             ]),
             relationFilters: $this->select($normalizedFilters, [
-                'country_id', 'state_id', 'city_id', 'area_assignments',
+                'country_id', 'state_id', 'city_id', 'area_assignments', 'bbox', 'polygon',
                 'institution_id', 'venue_id', 'person_ids', 'reference_ids', 'language_codes',
                 'person_in_charge_ids', 'person_in_charge_search', 'person_name_search',
                 'domain_tag_ids', 'discipline_tag_ids',
@@ -74,6 +79,10 @@ final class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api
         foreach ($filters as $key => $value) {
             if ($key === 'area_assignments') {
                 $normalized[$key] = is_array($value) ? $value : [];
+            } elseif ($key === 'bbox') {
+                $normalized[$key] = $this->spatialAddressQuery->parseBoundingBox($value);
+            } elseif ($key === 'polygon') {
+                $normalized[$key] = $this->spatialAddressQuery->normalizePolygonWkt($value);
             } else {
                 $normalized[$key] = $this->normalizeValue($value);
             }
@@ -179,7 +188,9 @@ final class EventDiscoveryCriteriaFactory implements \App\Features\Discovery\Api
             || $this->normalizeText($filters['person_name_search'] ?? null) !== null
             || $this->normalizeText($filters['starts_time_from'] ?? null) !== null
             || $this->normalizeText($filters['starts_time_until'] ?? null) !== null
-            || filled($filters['venue_id'] ?? null);
+            || filled($filters['venue_id'] ?? null)
+            || $this->spatialAddressQuery->parseBoundingBox($filters['bbox'] ?? null) !== null
+            || $this->spatialAddressQuery->normalizePolygonWkt($filters['polygon'] ?? null) !== null;
     }
 
     /**
