@@ -1,8 +1,9 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\PersonNameType;
@@ -25,7 +26,6 @@ use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
 use App\Features\Institutions\Models\Institution;
-use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Affiliation;
 use App\Features\Persons\Models\Person;
 use App\Features\Places\Models\Venue;
@@ -69,7 +69,7 @@ function giveContributionPagesInstitutionMapsPlace(Institution $institution, str
 {
     $address = $institution->primaryAddress();
 
-    if (! $address instanceof AIArmada\Addressing\Models\Address) {
+    if (! $address instanceof Address) {
         return;
     }
 
@@ -755,8 +755,11 @@ it('renders the suggest update page with translated event form copy when the loc
             __('Penceramah & Media'),
         ])
         ->assertSee('Terangkan perubahan')
-        ->assertSee('Audiens & Bahasa')
-        ->assertSee('Penganjur & Lokasi')
+        ->assertSee(__('Kehadiran'))
+        ->assertSee(__('Format & Pautan'))
+        ->assertSee(__('Penganjur'))
+        ->assertSee(__('Lokasi'))
+        ->assertSee(__('Penceramah'))
         ->assertSee('bg-white pb-0', false)
         ->assertSee('max-w-5xl flex-col gap-2 px-4 py-2', false)
         ->assertDontSee('rounded-3xl border border-slate-200 bg-white px-4 py-5 shadow-sm', false)
@@ -1788,7 +1791,8 @@ it('enforces the public submission aspect ratios on the event update page', func
 });
 
 it('uses the canonical 1:1 square ratio on the public speaker form', function () {
-    Livewire::test(SubmitPerson::class)
+    Livewire::actingAs(User::factory()->create())
+        ->test(SubmitPerson::class)
         ->assertFormFieldExists('square', function (FileUpload $upload): bool {
             expect($upload->getImageAspectRatio())->toBe('1:1');
 
@@ -2111,25 +2115,30 @@ it('renders contribution requests and event submissions without approval control
 
     $this->actingAs($user);
 
-    Livewire::test(ContributionsIndex::class)
+    $component = Livewire::test(ContributionsIndex::class)
+        ->assertSee('data-active-tab="overview"', false)
         ->assertSee(__('Event'))
         ->assertSee(__('Institution'))
         ->assertSee(__('Speaker'))
-        ->assertSee('living-majlis-header-button--gold', false)
-        ->assertSee('living-majlis-header-button--cream', false)
-        ->assertDontSee('xl:grid-cols-[1.15fr_0.85fr]', false)
-        ->assertSee(__('Event Submissions'))
-        ->assertSee(__('New Submissions'))
-        ->assertSee(__('Update Submissions'))
-        ->assertSee(__('Report Submissions'))
-        ->assertSee(__('Requests for new institutions and speakers.'))
-        ->assertSee(__('Updates you submit here will appear with their status and review notes.'))
-        ->assertSee(__('Reports you submit here will appear with their status and review notes.'))
-        ->assertSee(__('Membership Claims'))
-        ->assertDontSee('Jika anda benar-benar mengurus institusi atau penceramah tertentu, cari rekodnya di sini dan teruskan ke borang tuntutan. Laluan ini diletakkan di halaman sumbangan kerana ia hanya relevan kepada sebilangan kecil pengguna.')
+        ->assertSee(__('Claim Management'))
+        ->assertSee(__('App Feedback'))
+        ->assertDontSee(__('Pending Approvals'))
+        ->assertDontSee(__('Approve'))
+        ->assertDontSee(__('Reject'));
+
+    $component->call('selectTab', 'directory')
+        ->assertSee(__('New Directory Records'))
         ->assertSee($createRequest->proposed_data['name'])
+        ->assertSee($createRequest->proposer_note);
+
+    $component->call('selectTab', 'updates')
+        ->assertSee(__('Update Suggestions'))
         ->assertSee($updateRequest->entity->name)
-        ->assertSee(__('Event Submission'))
+        ->assertSee($updateRequest->proposed_data['name'])
+        ->assertSee($updateRequest->original_data['name']);
+
+    $component->call('selectTab', 'events')
+        ->assertSee(__('Event Submissions'))
         ->assertSee(__('Occurrence'))
         ->assertSee($occurrence->title)
         ->assertSeeInOrder([$occurrence->title, $event->title])
@@ -2140,12 +2149,11 @@ it('renders contribution requests and event submissions without approval control
         ->assertDontSee(route('events.show', $ownedEvent), false)
         ->assertSee(__('Institution: :name', ['name' => $eventInstitution->display_name]))
         ->assertSee(__('Speakers: :names', ['names' => $person->formatted_name]))
-        ->assertSee(__('References: :names', ['names' => $reference->title]))
-        ->assertSee(__('Report Submission'))
-        ->assertSeeInOrder([__('Institution'), $reportInstitution->name, __('Wrong information')])
-        ->assertDontSee(__('Pending Approvals'))
-        ->assertDontSee(__('Approve'))
-        ->assertDontSee(__('Reject'));
+        ->assertSee(__('References: :names', ['names' => $reference->title]));
+
+    $component->call('selectTab', 'reports')
+        ->assertSee(__('Report Submissions'))
+        ->assertSeeInOrder([__('Institution'), $reportInstitution->name, __('Wrong information')]);
 });
 
 it('falls back to the parent event when a submission has no occurrence', function () {
@@ -2166,27 +2174,32 @@ it('falls back to the parent event when a submission has no occurrence', functio
 
     $this->actingAs($user);
 
-    Livewire::test(ContributionsIndex::class)
+    Livewire::withQueryParams(['tab' => 'events'])
+        ->test(ContributionsIndex::class)
         ->assertSee('Majlis Tanpa Tarikh')
         ->assertSee(route('events.show', $event), false);
 });
 
-it('restores the active contributions section from the query string', function () {
+it('restores the active contributions tab from the query string', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
 
-    Livewire::withQueryParams(['section' => 'reports'])
+    Livewire::withQueryParams(['tab' => 'reports'])
         ->test(ContributionsIndex::class)
         ->assertSet('activeTab', 'reports');
 
-    $this->get(route('contributions.index', ['section' => 'reports']))
+    Livewire::withQueryParams(['tab' => 'unknown'])
+        ->test(ContributionsIndex::class)
+        ->assertSet('activeTab', 'overview');
+
+    $this->get(route('contributions.index', ['tab' => 'reports']))
         ->assertOk()
         ->assertSee('data-active-tab="reports"', false);
 
-    $this->get(route('contributions.index', ['section' => 'unknown']))
+    $this->get(route('contributions.index', ['tab' => 'unknown']))
         ->assertOk()
-        ->assertSee('data-active-tab="events"', false);
+        ->assertSee('data-active-tab="overview"', false);
 });
 
 it('formats institution membership claim options with the location hierarchy', function () {
@@ -2201,20 +2214,21 @@ it('formats institution membership claim options with the location hierarchy', f
 
     $this->actingAs($user);
 
-    $component = withGlobalOwnerContext(function () {
-        $instance = app(ContributionsIndex::class);
-        $instance->mount();
+    $component = Livewire::actingAs($user)->test(ContributionsIndex::class);
+    $component->call('selectTab', 'membership');
+    $component->set('claimSubjectType', 'institution');
+    $component->set('claimSearch', 'Payung');
 
-        return $instance;
-    });
+    $results = $component->instance()->claimSearchResults;
+    $match = collect($results)->firstWhere('identifier', (string) $institution->getKey());
 
-    $searchOptions = Closure::bind(fn () => $this->membershipApplicationSearchOptions(MemberSubjectType::Institution->value, 'Payung'), $component, ContributionsIndex::class)();
+    expect($match)->not->toBeNull()
+        ->and($match['label'])->toBe('Masjid Payung')
+        ->and($match['subtitle'])->toBe('Shah Alam, Petaling, Selangor');
 
-    $selectedLabel = Closure::bind(fn () => $this->membershipApplicationOptionLabel(MemberSubjectType::Institution->value, $institution->getKey()), $component, ContributionsIndex::class)();
-
-    expect($searchOptions)->toHaveKey($institution->getKey())
-        ->and($searchOptions[$institution->getKey()])->toBe('Masjid Payung - Shah Alam, Petaling, Selangor')
-        ->and($selectedLabel)->toBe('Masjid Payung - Shah Alam, Petaling, Selangor');
+    $component->call('selectClaimRecord', (string) $institution->getKey(), 'Masjid Payung')
+        ->assertSee('Masjid Payung')
+        ->assertSet('selectedClaimIdentifier', (string) $institution->getKey());
 });
 
 it('paginates contribution status sections when the lists grow', function () {
@@ -2237,7 +2251,7 @@ it('paginates contribution status sections when the lists grow', function () {
         'status' => 'verified',
     ]);
 
-    ContributionRequest::factory()->count(6)->create([
+    ContributionRequest::factory()->count(9)->create([
         'type' => ContributionRequestType::Create,
         'subject_type' => ContributionSubjectType::Institution,
         'entity_type' => null,
@@ -2249,7 +2263,7 @@ it('paginates contribution status sections when the lists grow', function () {
         ],
     ]);
 
-    ContributionRequest::factory()->count(6)->create([
+    ContributionRequest::factory()->count(9)->create([
         'type' => ContributionRequestType::Update,
         'subject_type' => ContributionSubjectType::Institution,
         'entity_type' => $requestInstitution->getMorphClass(),
@@ -2264,9 +2278,9 @@ it('paginates contribution status sections when the lists grow', function () {
         ],
     ]);
 
-    EventSubmission::factory()->count(6)->for($event)->for($user, 'submitter')->create();
+    EventSubmission::factory()->count(9)->for($event)->for($user, 'submitter')->create();
 
-    Report::factory()->count(6)->create([
+    Report::factory()->count(9)->create([
         'reporter_id' => $user->id,
         'entity_type' => $reportInstitution->getMorphClass(),
         'entity_id' => $reportInstitution->id,
@@ -2279,8 +2293,8 @@ it('paginates contribution status sections when the lists grow', function () {
     $component = Livewire::test(ContributionsIndex::class)->instance();
 
     expect($component->submittedEvents->hasPages())->toBeTrue()
-        ->and($component->myRequests->hasPages())->toBeTrue()
-        ->and($component->myUpdateRequests->hasPages())->toBeTrue()
+        ->and($component->directorySubmissions->hasPages())->toBeTrue()
+        ->and($component->updateRequests->hasPages())->toBeTrue()
         ->and($component->myReports->hasPages())->toBeTrue();
 });
 
@@ -2294,7 +2308,7 @@ it('lets proposers cancel their own pending requests from the contributions inbo
     $this->actingAs($proposer);
 
     Livewire::test(ContributionsIndex::class)
-        ->call('cancel', $request->id);
+        ->call('cancelContributionRequest', $request->id);
 
     expect($request->fresh()->status)->toBe(ContributionRequestStatus::Cancelled)
         ->and($request->fresh()->cancelled_at)->not->toBeNull();
@@ -2366,6 +2380,39 @@ it('forbids users banned from directory feedback from opening update and report 
     $this->get(route('reports.create', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment(), 'subjectId' => $person->slug]))
         ->assertForbidden();
 });
+
+it('forbids users banned from directory feedback from opening contribution create pages', function (string $pageClass, string $routeName) {
+    $user = User::factory()->create();
+    $user->givePermissionTo('feedback.blocked');
+
+    $this->actingAs($user);
+
+    $this->get(route($routeName))->assertForbidden();
+
+    Livewire::actingAs($user)->test($pageClass)->assertForbidden();
+})->with([
+    'institution' => [SubmitInstitution::class, 'contributions.submit-institution'],
+    'speaker' => [SubmitPerson::class, 'contributions.submit-person'],
+    'reference' => [SubmitReference::class, 'contributions.submit-reference'],
+]);
+
+it('blocks contribution create submissions when the contributor is banned after opening the form', function (string $pageClass, string $routeName) {
+    $user = User::factory()->create();
+
+    $component = Livewire::actingAs($user)->test($pageClass);
+
+    $user->givePermissionTo('feedback.blocked');
+
+    $this->actingAs($user->fresh());
+
+    $component->call('submit')->assertForbidden();
+
+    expect(ContributionRequest::query()->count())->toBe(0);
+})->with([
+    'institution' => [SubmitInstitution::class, 'contributions.submit-institution'],
+    'speaker' => [SubmitPerson::class, 'contributions.submit-person'],
+    'reference' => [SubmitReference::class, 'contributions.submit-reference'],
+]);
 
 it('resolves person slugs on the update suggestion page without uuid casting errors', function () {
     $user = User::factory()->create();
@@ -2489,10 +2536,10 @@ it('does not treat unchanged person update forms as changes when current address
             'subjectId' => $person->slug,
         ])
         ->call('submit')
-        ->assertRedirect();
+        ->assertHasErrors('data');
 
     expect($person->fresh('addresses')?->primaryAddress()?->line1)->toBe('Alamat Warisan')
-        ->and($person->fresh('addresses')?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869');
+        ->and($person->fresh('addresses')?->primaryAddress()?->google_maps_url)->toBe('https://maps.google.com/?q=3.1390,101.6869');
 });
 
 it('resolves institution slugs on the report page without uuid casting errors', function () {
@@ -2642,31 +2689,95 @@ it('redirects uuid-based reference contribution and report pages to the canonica
         ]));
 });
 
-it('captures middle name changes in a non-owner person update request', function () {
+it('captures only changed fields in a non-owner person update request', function (bool $hasState, bool $changeState) {
     $user = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
+        'middle_name' => null,
     ]);
+    $geography = createTestPackageGeography();
+    $stateId = (string) $geography['state']->getKey();
+    $address = Address::query()->create([
+        'country_id' => $geography['country']->getKey(),
+        'state_id' => $hasState ? $stateId : null,
+    ]);
+    $person->attachAddress($address, type: 'primary', isPrimary: true);
 
     $this->actingAs($user);
 
-    Livewire::test(SuggestUpdate::class, [
+    $component = Livewire::test(SuggestUpdate::class, [
         'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
-        'subjectId' => $person->slug,
+        'subjectId' => $person->refresh()->slug,
     ])
-        ->set('data.middle_name', 'Ustaz')
-        ->set('data.proposer_note', 'Ujian e2e: tambah nama tengah Ustaz.')
+        ->assertSet('data.address.country_id', $address->country_id)
+        ->assertSet('data.address.state_id', $hasState ? $stateId : null)
+        ->set('data.middle_name', 'Hasan')
+        ->set('data.proposer_note', 'Betulkan nama tengah');
+
+    if ($changeState) {
+        $component->set('data.address.state_id', $stateId);
+    }
+
+    $component
         ->call('submit')
         ->assertHasNoErrors();
 
     $request = ContributionRequest::query()
         ->where('subject_type', ContributionSubjectType::Person->value)
-        ->latest()
-        ->first();
+        ->where('entity_id', $person->getKey())
+        ->sole();
 
-    expect($request)->not->toBeNull()
-        ->and($request->type)->toBe(ContributionRequestType::Update)
+    expect($request->type)->toBe(ContributionRequestType::Update)
         ->and($request->status)->toBe(ContributionRequestStatus::Pending)
-        ->and($request->proposer_note)->toBe('Ujian e2e: tambah nama tengah Ustaz.')
-        ->and(data_get($request->proposed_data, 'middle_name'))->toBe('Ustaz');
-});
+        ->and($request->proposer_note)->toBe('Betulkan nama tengah')
+        ->and(array_keys($request->proposed_data))->toBe($changeState ? ['middle_name', 'address'] : ['middle_name'])
+        ->and($request->proposed_data['middle_name'])->toBe('Hasan')
+        ->and(data_get($request->proposed_data, 'address.state_id'))->toBe($changeState ? $stateId : null);
+})->with([
+    'unchanged country-only address' => [false, false],
+    'unchanged state' => [true, false],
+    'state added' => [false, true],
+]);
+
+it('keeps unchanged social links out of reference suggestions and saves label edits', function (string $platform, string $field, string $value, bool $editLabel): void {
+    $proposer = User::factory()->create();
+    $reviewer = User::factory()->create();
+    $reviewer->assignRole('admin');
+    $reference = Reference::factory()->create(['status' => 'verified']);
+
+    withGlobalOwnerContext(fn () => $reference->socialProfiles()->create([
+        'platform' => $platform,
+        'label' => 'Official link',
+        $field => $value,
+        'is_primary' => true,
+        'is_public' => false,
+    ]));
+
+    $form = Livewire::actingAs($proposer)->test(SuggestUpdate::class, [
+        'subjectType' => ContributionSubjectType::Reference->publicRouteSegment(),
+        'subjectId' => $reference->slug,
+    ]);
+    $row = array_key_first($form->get('data.social_media'));
+    $form->assertSet("data.social_media.{$row}.label", 'Official link');
+
+    if ($editLabel) {
+        $form->set("data.social_media.{$row}.label", 'Updated label');
+    } else {
+        $form->set('data.description', 'Corrected description.');
+    }
+
+    $form->call('submit')->assertHasNoErrors();
+
+    $request = ContributionRequest::query()->where('entity_id', $reference->getKey())->sole();
+    expect(array_keys($request->proposed_data))->toBe([$editLabel ? 'social_media' : 'description']);
+
+    app(ApproveContributionRequestAction::class)->handle($request, $reviewer);
+
+    $profile = withGlobalOwnerContext(fn () => $reference->socialProfiles()->sole());
+    expect($profile->label)->toBe($editLabel ? 'Updated label' : 'Official link')
+        ->and($profile->getAttribute($field))->toBe($value);
+})->with([
+    'unchanged handle' => ['facebook', 'handle', 'reference-page', false],
+    'unchanged URL' => ['website', 'url', 'https://example.org/reference', false],
+    'edited label' => ['facebook', 'handle', 'reference-page', true],
+]);

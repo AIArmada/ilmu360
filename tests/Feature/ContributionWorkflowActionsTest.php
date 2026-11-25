@@ -4,6 +4,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\CancelContributionRequestAction;
 use App\Features\Contributions\Actions\NormalizeContributionSubmissionAction;
+use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\Contributions\Actions\ResolveContributionChangedPayloadAction;
 use App\Features\Contributions\Actions\SubmitContributionCreateRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
@@ -583,4 +584,118 @@ it('resolves only the proposer owned contribution request for cancel flows', fun
         ->and(fn () => ContributionRequest::query()->with('entity')->findOrFail(
             $reader->findRequestIdForProposer((string) $stranger->getKey(), $request->id)
         ))->toThrow(ModelNotFoundException::class);
+});
+
+it('deactivates the staged record when a pending create request is cancelled', function (string $subjectType) {
+    $proposer = User::factory()->create();
+
+    $entity = match ($subjectType) {
+        ContributionSubjectType::Institution->value => Institution::factory()->create(['status' => 'pending']),
+        ContributionSubjectType::Person->value => Person::factory()->create(['status' => 'pending']),
+        ContributionSubjectType::Reference->value => Reference::factory()->create(['status' => 'pending']),
+    };
+
+    $request = ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Create,
+        'subject_type' => $subjectType,
+        'entity_type' => $entity->getMorphClass(),
+        'entity_id' => (string) $entity->getKey(),
+        'proposer_id' => $proposer->id,
+        'status' => ContributionRequestStatus::Pending,
+        'proposed_data' => ['name' => 'Staged record'],
+    ]);
+
+    $cancelled = CancelContributionRequestAction::run($request, $proposer);
+    $status = $entity->fresh()->getAttribute('status');
+
+    expect($cancelled->status)->toBe(ContributionRequestStatus::Cancelled)
+        ->and($cancelled->cancelled_at)->not->toBeNull()
+        ->and($status instanceof BackedEnum ? $status->value : (string) $status)->toBe('inactive');
+})->with([
+    'institution' => [ContributionSubjectType::Institution->value],
+    'speaker' => [ContributionSubjectType::Person->value],
+    'reference' => [ContributionSubjectType::Reference->value],
+]);
+
+it('leaves verified staged records untouched when a create request is cancelled', function () {
+    $proposer = User::factory()->create();
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    $request = ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Create,
+        'subject_type' => ContributionSubjectType::Institution,
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => (string) $institution->getKey(),
+        'proposer_id' => $proposer->id,
+        'status' => ContributionRequestStatus::Pending,
+        'proposed_data' => ['name' => $institution->name],
+    ]);
+
+    CancelContributionRequestAction::run($request, $proposer);
+
+    $status = $institution->fresh()->getAttribute('status');
+
+    expect($status instanceof BackedEnum ? $status->value : (string) $status)->toBe('verified');
+});
+
+it('notifies the proposer when an update request is approved', function () {
+    $proposer = User::factory()->create();
+    $reviewer = User::factory()->create();
+
+    $institution = Institution::factory()->create([
+        'description' => 'Before update',
+        'status' => 'verified',
+    ]);
+
+    $request = ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Update,
+        'subject_type' => ContributionSubjectType::Institution,
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => $institution->id,
+        'proposer_id' => $proposer->id,
+        'status' => ContributionRequestStatus::Pending,
+        'proposed_data' => ['description' => 'After update'],
+        'original_data' => ['description' => 'Before update'],
+    ]);
+
+    $approved = ApproveContributionRequestAction::run($request, $reviewer, 'Approved update.');
+
+    expect($approved->status)->toBe(ContributionRequestStatus::Approved)
+        ->and($institution->fresh()->description)->toBe('After update');
+
+    $this->assertDatabaseHas('notification_inboxes', [
+        'recipient_id' => $proposer->id,
+        'trigger' => 'event_published',
+    ]);
+});
+
+it('notifies the proposer when an update request is rejected', function () {
+    $proposer = User::factory()->create();
+    $reviewer = User::factory()->create();
+
+    $institution = Institution::factory()->create([
+        'description' => 'Unchanged description',
+        'status' => 'verified',
+    ]);
+
+    $request = ContributionRequest::factory()->create([
+        'type' => ContributionRequestType::Update,
+        'subject_type' => ContributionSubjectType::Institution,
+        'entity_type' => $institution->getMorphClass(),
+        'entity_id' => $institution->id,
+        'proposer_id' => $proposer->id,
+        'status' => ContributionRequestStatus::Pending,
+        'proposed_data' => ['description' => 'Rejected update'],
+        'original_data' => ['description' => 'Unchanged description'],
+    ]);
+
+    $rejected = RejectContributionRequestAction::run($request, $reviewer, 'incorrect_information', 'The description is wrong.');
+
+    expect($rejected->status)->toBe(ContributionRequestStatus::Rejected)
+        ->and($institution->fresh()->description)->toBe('Unchanged description');
+
+    $this->assertDatabaseHas('notification_inboxes', [
+        'recipient_id' => $proposer->id,
+        'trigger' => 'event_cancelled',
+    ]);
 });

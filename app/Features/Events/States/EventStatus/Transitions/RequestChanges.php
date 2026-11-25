@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LogicException;
 use Spatie\ModelStates\Transition;
+use Throwable;
 
 class RequestChanges extends Transition implements HasColor, HasIcon, HasLabel
 {
@@ -58,14 +59,29 @@ class RequestChanges extends Transition implements HasColor, HasIcon, HasLabel
             ]);
             $this->event->resolveEscalations();
 
-            // Notify submitter and institution admins
-            app(EventNotificationService::class)->notifySubmissionNeedsChanges($this->event, $review->notes);
+            $event = $this->event;
+            $reviewNotes = $review->notes;
+            $moderatorId = $moderator->id;
 
-            Log::info('Event needs changes', [
-                'event_id' => $this->event->id,
-                'moderator_id' => $moderator->id,
-                'reason_code' => $reasonCode,
-            ]);
+            // External effects only run once the surrounding transaction commits,
+            // so a rolled-back request never notifies or logs. Each effect is
+            // contained individually so one failure cannot mask others.
+            DB::afterCommit(function () use ($event, $reviewNotes, $moderatorId, $reasonCode): void {
+                try {
+                    app(EventNotificationService::class)->notifySubmissionNeedsChanges($event, $reviewNotes);
+                } catch (Throwable $exception) {
+                    Log::warning('Submission-needs-changes notification failed after request.', [
+                        'event_id' => (string) $event->getKey(),
+                        'exception' => $exception,
+                    ]);
+                }
+
+                Log::info('Event needs changes', [
+                    'event_id' => $event->id,
+                    'moderator_id' => $moderatorId,
+                    'reason_code' => $reasonCode,
+                ]);
+            });
 
             return $this->event;
         });

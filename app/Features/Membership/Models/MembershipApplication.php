@@ -34,6 +34,13 @@ class MembershipApplication extends BaseMembershipApplication implements Auditab
         ]);
     }
 
+    public function subjectType(): ?MemberSubjectType
+    {
+        $subjectType = $this->getAttribute('subject_type');
+
+        return $subjectType instanceof MemberSubjectType ? $subjectType : null;
+    }
+
     /**
      * @return MorphTo<Model, $this>
      */

@@ -7,6 +7,7 @@ namespace App\Features\Events\Actions\Delete;
 use App\Features\Engagement\Api\EventEngagementDeletion;
 use App\Features\Events\Api\EventDeletion;
 use App\Features\Events\Api\EventModeration;
+use App\Features\Events\Models\EventSubmission;
 use App\Features\Events\Support\EventModel;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;
@@ -20,9 +21,10 @@ use App\Features\Registration\Api\EventRegistrationDeletion;
  * event involvements/key people, access policies, reference records,
  * submissions, moderation reviews, change announcements and media links.
  * Engagement and Registration cleanup delegate to their owning features before
- * the event row is deleted. The vendor EventDeleteCascade runs afterward in the
- * synchronous lifecycle observer while the event is still available to its owner-scoped
- * child queries, so it removes the remaining package-owned children.
+ * the event row is deleted. The vendor DeleteCatalogScopeDependents cascade runs
+ * afterward in the synchronous lifecycle observer while the event is still
+ * available to its owner-scoped child queries, so it removes the remaining
+ * package-owned children.
  * The event-scoped package tables without app write paths (links, audiences,
  * languages, locations, classifications, time expressions, series items) are
  * still removed by that vendor cascade.
@@ -59,9 +61,11 @@ final readonly class CleanupEventAction implements EventDeletion
 
         $this->registrationDeletion->deleteForEvent($eventId);
 
-        $event->submissions()->each(static function ($submission): void {
-            $submission->delete();
-        });
+        EventSubmission::query()
+            ->where('event_id', $eventId)
+            ->each(static function (EventSubmission $submission): void {
+                $submission->delete();
+            });
         $this->eventModeration->deleteReviewsForEvent($eventId);
         $event->changeAnnouncements()->each(static function ($announcement): void {
             $announcement->delete();

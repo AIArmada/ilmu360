@@ -5,8 +5,8 @@ namespace App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent;
 use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
 use AIArmada\Addressing\Actions\FetchGooglePlacePhotoPreviewsAction;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventSession;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
@@ -18,6 +18,7 @@ use App\Features\Events\Api\EventInstitutionQuickAddMapsProofStore;
 use App\Features\Events\Api\EventMediaExtraction;
 use App\Features\Events\Api\EventMediaExtractionSource;
 use App\Features\Events\Api\EventTaxonomyCode;
+use App\Features\Events\Api\Filament\EventContributionFormSchema;
 use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Http\SubmitEventRequestHandler;
 use App\Features\Events\Enums\Terms\DomainTermCode;
@@ -507,8 +508,11 @@ class Create extends Component implements HasActions, HasForms
             requestedOccurrenceId: $this->eventOccurrenceId,
         );
 
-        return new EventSubmissionFormSchema($context, app(SubmitEventOptionsProvider::class))
-            ->form($schema, $this->wizardStep);
+        return new EventSubmissionFormSchema(
+            $context,
+            app(SubmitEventOptionsProvider::class),
+            app(EventContributionFormSchema::class),
+        )->form($schema, $this->wizardStep);
     }
 
     public function beginInstitutionQuickAddMapsSelection(string $formStatePath, string $ownerStatePath): string

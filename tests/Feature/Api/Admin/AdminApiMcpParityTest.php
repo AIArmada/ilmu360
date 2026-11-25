@@ -382,23 +382,23 @@ it('keeps admin api and admin mcp contribution request review workflows aligned'
         ->and($mcpInstitution->fresh()?->description)->toBe('After review');
 });
 
-it('keeps admin api and admin mcp membership claim review workflows aligned', function () {
+it('keeps admin api and admin mcp membership claim review workflows aligned', function (string $subjectClass, array $allowedRoles, string $grantedRole) {
     $admin = parityAdminUser('super_admin');
 
-    $apiInstitution = Institution::factory()->create();
-    $mcpInstitution = Institution::factory()->create();
+    $apiSubject = $subjectClass::factory()->create();
+    $mcpSubject = $subjectClass::factory()->create();
     $apiClaimant = User::factory()->create();
     $mcpClaimant = User::factory()->create();
 
     $apiClaim = MembershipApplication::factory()
-        ->for($apiInstitution, 'subject')
+        ->for($apiSubject, 'subject')
         ->create([
             'applicant_id' => $apiClaimant->getKey(),
             'status' => 'pending',
         ]);
 
     $mcpClaim = MembershipApplication::factory()
-        ->for($mcpInstitution, 'subject')
+        ->for($mcpSubject, 'subject')
         ->create([
             'applicant_id' => $mcpClaimant->getKey(),
             'status' => 'pending',
@@ -407,7 +407,8 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
     Sanctum::actingAs($admin);
 
     $apiSchemaResponse = $this->getJson('/api/v1/admin/membership-applications/'.$apiClaim->getRouteKey().'/review-schema')
-        ->assertOk();
+        ->assertOk()
+        ->assertJsonPath('data.schema.fields.1.allowed_values', $allowedRoles);
 
     $mcpSchemaResponse = AdminServer::actingAs($admin)
         ->tool(AdminGetMembershipApplicationReviewSchemaTool::class, [
@@ -419,7 +420,7 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
 
     $payload = [
         'action' => 'approve',
-        'granted_role' => 'admin',
+        'granted_role' => $grantedRole,
         'reviewer_note' => 'Approved through the parity test.',
     ];
 
@@ -441,9 +442,14 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
         ->toEqual(paritySelectedAttributes(data_get($mcpAction, 'record.attributes', []), ['status', 'granted_role', 'reviewer_id', 'reviewer_note']))
         ->and($apiClaim->fresh()?->status?->value)->toBe($mcpClaim->fresh()?->status?->value)
         ->and($apiClaim->fresh()?->status?->value)->toBe('approved')
-        ->and($apiInstitution->fresh()?->members()->whereKey($apiClaimant->getKey())->exists())->toBeTrue()
-        ->and($mcpInstitution->fresh()?->members()->whereKey($mcpClaimant->getKey())->exists())->toBeTrue();
-});
+        ->and($apiClaim->fresh()?->granted_role)->toBe($grantedRole)
+        ->and($mcpClaim->fresh()?->granted_role)->toBe($grantedRole)
+        ->and($apiSubject->fresh()?->members()->whereKey($apiClaimant->getKey())->exists())->toBeTrue()
+        ->and($mcpSubject->fresh()?->members()->whereKey($mcpClaimant->getKey())->exists())->toBeTrue();
+})->with([
+    'institution' => [Institution::class, ['admin', 'editor'], 'admin'],
+    'speaker' => [Person::class, ['owner', 'admin', 'editor'], 'owner'],
+]);
 
 function parityAdminUser(string $role): User
 {

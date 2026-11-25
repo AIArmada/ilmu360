@@ -34,12 +34,12 @@ final readonly class ApproveMembershipApplicationAction
         string $grantedRole,
         ?string $note = null,
     ): Model {
-        if (! array_key_exists($grantedRole, MembershipApplicationFormRules::applicationRoleOptions())) {
-            throw new InvalidArgumentException('Unsupported membership application approval role.');
-        }
-
         return OwnerContext::withOwner(null, function () use ($applicationId, $grantedRole, $note, $reviewerAccountId): Model {
             $application = $this->applicationClass()::query()->findOrFail($applicationId);
+            if (! array_key_exists($grantedRole, MembershipApplicationFormRules::roleOptions($application->subjectType()))) {
+                throw new InvalidArgumentException('Unsupported membership application approval role.');
+            }
+
             $reviewer = $this->accountClass()::query()->findOrFail($reviewerAccountId);
 
             $this->approveApplication->handle(

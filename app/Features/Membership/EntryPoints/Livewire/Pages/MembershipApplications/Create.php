@@ -119,7 +119,7 @@ class Create extends Component implements HasForms
             $subjectType?->membershipSubjectType(),
             $institutionType,
         );
-        $applicationRoleOptions = MembershipApplicationFormRules::applicationRoleOptions();
+        $roleOptions = MembershipApplicationFormRules::roleOptions($subjectType?->membershipSubjectType());
         $accountId = (string) auth()->id();
         $accountProfile = app(AccountDirectory::class)->profile($accountId);
 
@@ -131,11 +131,11 @@ class Create extends Component implements HasForms
                     ->schema([
                         Select::make('applied_role')
                             ->label(__('Requested role'))
-                            ->options($applicationRoleOptions)
-                            ->rule(Rule::in(array_keys($applicationRoleOptions)))
+                            ->options($roleOptions)
+                            ->rule(Rule::in(array_keys($roleOptions)))
                             ->required()
                             ->afterStateUpdatedJs(
-                                $subjectType !== MembershipApplicationSubjectType::Institution
+                                $subjectType === MembershipApplicationSubjectType::Person
                                     ? <<<'JS'
                                         if ($state === 'owner') {
                                             $set('relationship', 'self')
@@ -151,9 +151,9 @@ class Create extends Component implements HasForms
                             ->live()
                             ->native(false)
                             ->default($subjectType === MembershipApplicationSubjectType::Institution ? null : 'self')
-                            ->disabled(fn (Get $get): bool => $subjectType !== MembershipApplicationSubjectType::Institution && $get('applied_role') === MemberRole::Owner->value)
+                            ->disabled(fn (Get $get): bool => $subjectType === MembershipApplicationSubjectType::Person && $get('applied_role') === MemberRole::Owner->value)
                             ->extraInputAttributes(
-                                $subjectType !== MembershipApplicationSubjectType::Institution
+                                $subjectType === MembershipApplicationSubjectType::Person
                                     ? ['x-bind:disabled' => "\$get('applied_role') === 'owner'"]
                                     : []
                             ),
@@ -220,7 +220,7 @@ class Create extends Component implements HasForms
         $appliedRole = $rawAppliedRole instanceof MemberRole
             ? $rawAppliedRole->value
             : (string) $rawAppliedRole;
-        if (! array_key_exists($appliedRole, MembershipApplicationFormRules::applicationRoleOptions())) {
+        if (! array_key_exists($appliedRole, MembershipApplicationFormRules::roleOptions($subjectType->membershipSubjectType()))) {
             $this->addError('data.applied_role', __('Please select a valid role.'));
 
             return;
@@ -229,7 +229,8 @@ class Create extends Component implements HasForms
         $memberRole = MemberRole::from($appliedRole);
 
         $relationship = (string) ($state['relationship'] ?? ($subjectType === MembershipApplicationSubjectType::Institution ? '' : 'self'));
-        if ($subjectType !== MembershipApplicationSubjectType::Institution && $memberRole === MemberRole::Owner) {
+
+        if ($subjectType === MembershipApplicationSubjectType::Person && $memberRole === MemberRole::Owner) {
             $relationship = 'self';
         }
 

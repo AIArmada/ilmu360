@@ -667,7 +667,7 @@
                                     $method = (string) $channel->method;
                                     $methodLabel = match ($method) {
                                         'bank_account' => __('Akaun Bank'),
-                                        'duitnow' => 'DuitNow',
+                                        'duitnow' => __('DuitNow Transfer'),
                                         'ewallet' => __('E-Dompet'),
                                         default => $channel->method_display ?: \Illuminate\Support\Str::headline($method),
                                     };
@@ -688,17 +688,11 @@
                                     $copyLabel = match ($method) {
                                         'bank_account' => filled($channel->iban) ? 'IBAN' : __('No. Akaun'),
                                         'duitnow' => __('ID DuitNow'),
-                                        'ewallet' => __('ID E-Dompet'),
+                                        'ewallet' => filled($channel->ewallet_handle) ? __('ID E-Dompet') : __('E-Wallet QR Payload'),
                                         default => __('No. Akaun'),
                                     };
-                                    $duitnowTypeLabel = $channel->duitnow_type ? \Illuminate\Support\Str::headline((string) $channel->duitnow_type) : null;
-                                    $ewalletProviderLabel = $channel->ewallet_provider ? match (strtolower((string) $channel->ewallet_provider)) {
-                                        'tng' => "Touch 'n Go",
-                                        'grab' => 'GrabPay',
-                                        'shopee' => 'ShopeePay',
-                                        'boost' => 'Boost',
-                                        default => \Illuminate\Support\Str::headline((string) $channel->ewallet_provider),
-                                    } : null;
+                                    $duitnowTypeLabel = \App\Features\DonationChannels\Api\DonationChannelOptions::duitNowIdTypes()[$channel->duitnow_type] ?? null;
+                                    $ewalletProviderLabel = \App\Features\DonationChannels\Api\DonationChannelOptions::EWALLET_PROVIDERS[$channel->ewallet_provider] ?? null;
                                     $bankName = filled($channel->bank_name) ? (string) $channel->bank_name : null;
                                     $bankDisplay = $bankName;
                                     $qrThumb = $channel->getFirstMedia('qr')?->getAvailableUrl(['thumb']) ?: $channel->getFirstMediaUrl('qr');
@@ -758,9 +752,9 @@
                                                 </p>
                                             @endif
 
-                                            @if($method === 'duitnow' && filled($channel->duitnow_value))
+                                            @if($method === 'duitnow' && filled($duitnowTypeLabel))
                                                 <p class="text-xs font-semibold text-slate-600">
-                                                    DuitNow{{ $duitnowTypeLabel ? ' • '.$duitnowTypeLabel : '' }}
+                                                    {{ $duitnowTypeLabel }}
                                                 </p>
                                             @endif
 
@@ -785,10 +779,6 @@
                                                         <span x-text="copiedId === @js((string) $channel->id) ? @js(__('Disalin!')) : @js(__('Salin'))"></span>
                                                     </button>
                                                 </div>
-                                            @endif
-
-                                            @if(filled($channel->reference_note))
-                                                <p class="text-xs leading-5 text-slate-500">{{ __('Rujukan') }}: <span class="font-semibold text-slate-700">{{ $channel->reference_note }}</span></p>
                                             @endif
                                         </div>
 

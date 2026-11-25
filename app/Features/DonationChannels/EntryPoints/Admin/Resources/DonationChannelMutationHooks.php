@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\DonationChannels\EntryPoints\Admin\Resources;
 
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\DonationChannels\Api\DonationChannelWorkflow;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
@@ -84,12 +85,11 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
             'iban' => ['nullable', 'string', 'max:34'],
             'swift_bic' => ['nullable', 'string', 'max:11'],
             'routing_code' => ['nullable', 'string', 'max:20'],
-            'duitnow_type' => ['nullable', 'string', 'max:64', 'required_if:method,duitnow'],
+            'duitnow_type' => ['nullable', 'string', 'required_if:method,duitnow', Rule::in(array_keys(DonationChannelOptions::DUITNOW_ID_TYPES))],
             'duitnow_value' => ['nullable', 'string', 'max:255', 'required_if:method,duitnow'],
-            'ewallet_provider' => ['nullable', 'string', 'max:64', 'required_if:method,ewallet'],
+            'ewallet_provider' => ['nullable', 'string', 'required_if:method,ewallet', Rule::in(array_keys(DonationChannelOptions::EWALLET_PROVIDERS))],
             'ewallet_handle' => ['nullable', 'string', 'max:255'],
             'ewallet_qr_payload' => ['nullable', 'string'],
-            'reference_note' => ['nullable', 'string'],
             'status' => [$required, Rule::enum(DonationChannelStatus::class)],
             'is_default' => ['sometimes', 'boolean'],
             'qr' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
@@ -181,7 +181,6 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
             'ewallet_provider' => null,
             'ewallet_handle' => null,
             'ewallet_qr_payload' => null,
-            'reference_note' => null,
             'status' => DonationChannelStatus::Pending->value,
             'is_default' => false,
             'clear_qr' => false,
@@ -212,7 +211,6 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
             'ewallet_provider' => $record->ewallet_provider,
             'ewallet_handle' => $record->ewallet_handle,
             'ewallet_qr_payload' => $record->ewallet_qr_payload,
-            'reference_note' => $record->reference_note,
             'status' => $record->status->value,
             'is_default' => (bool) $record->is_default,
             'clear_qr' => false,
@@ -301,12 +299,11 @@ final readonly class DonationChannelMutationHooks implements AdminMutationHooks
                 'used_when' => 'bank_account',
                 'supported_when' => 'owner_country_catalog_supports_routing_codes',
             ]),
-            $this->field('duitnow_type', 'string', required: false, maxLength: 64),
+            $this->field('duitnow_type', 'string', required: false, allowedValues: array_keys(DonationChannelOptions::DUITNOW_ID_TYPES)),
             $this->field('duitnow_value', 'string', required: false, maxLength: 255),
-            $this->field('ewallet_provider', 'string', required: false, maxLength: 64),
+            $this->field('ewallet_provider', 'string', required: false, allowedValues: array_keys(DonationChannelOptions::EWALLET_PROVIDERS)),
             $this->field('ewallet_handle', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
             $this->field('ewallet_qr_payload', 'string', required: false, meta: $this->trimmedStringMutationMeta()),
-            $this->field('reference_note', 'string', required: false, meta: $this->trimmedStringMutationMeta()),
             $this->field('status', 'string', required: true, default: DonationChannelStatus::Pending->value, allowedValues: $this->enumValues(DonationChannelStatus::class)),
             $this->field('is_default', 'boolean', required: false, default: false),
             $this->field('qr', 'file', required: false, acceptedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'], maxFileSizeKb: $this->maxUploadSizeKb()),

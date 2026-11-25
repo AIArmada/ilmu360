@@ -325,6 +325,15 @@ return [
             'body' => 'Hantaran ini telah ditolak.',
             'body_with_note' => 'Hantaran ini telah ditolak. Nota: :note',
         ],
+        'directory_update_approved' => [
+            'title' => 'Kemas kini :subject diluluskan: :title',
+            'body' => 'Kemas kini anda telah diluluskan dan kini dipaparkan pada rekod awam.',
+        ],
+        'directory_update_rejected' => [
+            'title' => 'Kemas kini :subject ditolak: :title',
+            'body' => 'Cadangan kemas kini anda telah ditolak.',
+            'body_with_note' => 'Cadangan kemas kini anda telah ditolak. Nota: :note',
+        ],
         'submission_needs_changes' => [
             'title' => 'Pembetulan diminta untuk :title',
             'body' => 'Moderator meminta anda semak semula hantaran ini.',

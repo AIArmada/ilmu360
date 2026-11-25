@@ -17,7 +17,7 @@ it('creates a bank account donation channel', function () {
         'recipient' => 'Masjid Al-Hidayah',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '123456789',
     ]);
 
@@ -26,7 +26,7 @@ it('creates a bank account donation channel', function () {
         ->and($channel->donatable_id)->toBe((string) $institution->getKey())
         ->and($channel->method)->toBe('bank_account')
         ->and($channel->bank_code)->toBe('MB2U0227')
-        ->and($channel->bank_name)->toBe('Maybank2u')
+        ->and($channel->bank_name)->toBe('Malayan Banking Berhad')
         ->and($channel->account_number)->toBe('123456789')
         ->and($channel->duitnow_type)->toBeNull()
         ->and($channel->ewallet_provider)->toBeNull()
@@ -83,6 +83,23 @@ it('creates an ewallet donation channel', function () {
         ->and($channel->duitnow_type)->toBeNull();
 });
 
+it('rejects donation options outside the canonical catalog before saving', function (string $method, array $details, string $field) {
+    $institution = Institution::factory()->create();
+
+    expect(fn () => app(SaveDonationChannelAction::class)->handle([
+        'donatable_type' => 'institution',
+        'donatable_id' => (string) $institution->getKey(),
+        'recipient' => 'Masjid Al-Hidayah',
+        'method' => $method,
+        ...$details,
+    ]))->toThrow(ValidationException::class, __('validation.in', ['attribute' => $field]));
+
+    expect($institution->donationChannels()->exists())->toBeFalse();
+})->with([
+    'personal identity number' => ['duitnow', ['duitnow_type' => 'nric', 'duitnow_value' => '123456789'], 'duitnow type'],
+    'unknown wallet provider' => ['ewallet', ['ewallet_provider' => 'unsupported', 'ewallet_handle' => '0123456789'], 'ewallet provider'],
+]);
+
 it('updates an existing donation channel and requires reverification when its bank destination changes', function () {
     $institution = Institution::factory()->create();
 
@@ -90,7 +107,7 @@ it('updates an existing donation channel and requires reverification when its ba
         'donatable_type' => $institution->getMorphClass(),
         'donatable_id' => (string) $institution->getKey(),
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'status' => DonationChannelStatus::Verified,
     ]);
 
@@ -98,14 +115,14 @@ it('updates an existing donation channel and requires reverification when its ba
         'recipient' => 'Updated Recipient',
         'method' => 'bank_account',
         'bank_code' => 'BCBB0235',
-        'bank_name' => 'CIMB Bank',
+        'bank_name' => 'CIMB Bank Berhad',
         'account_number' => $channel->account_number,
         'status' => 'verified',
     ], $channel);
 
     expect($updated->fresh()->recipient)->toBe('Updated Recipient')
         ->and($updated->fresh()->bank_code)->toBe('BCBB0235')
-        ->and($updated->fresh()->bank_name)->toBe('CIMB Bank')
+        ->and($updated->fresh()->bank_name)->toBe('CIMB Bank Berhad')
         ->and($updated->fresh()->status)->toBe(DonationChannelStatus::Pending);
 });
 
@@ -118,7 +135,7 @@ it('assigns a channel to a person owner', function () {
         'recipient' => 'Ustaz Ahmad',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '987654321',
         'status' => 'pending',
     ]);
@@ -146,7 +163,7 @@ it('rejects an invalid owner type', function () {
         'recipient' => 'Test',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '123456789',
         'status' => 'pending',
     ]);
@@ -161,7 +178,7 @@ it('rejects empty recipient', function () {
         'recipient' => '',
         'method' => 'bank_account',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => '123456789',
         'status' => 'pending',
     ]);

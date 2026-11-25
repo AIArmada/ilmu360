@@ -7,15 +7,11 @@ use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Support\MembershipApplicationAdminPresenter;
+use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Support\MembershipApplicationModerationActions;
 use App\Features\Membership\Models\MembershipApplication;
-use App\Models\User;
-use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -56,9 +52,14 @@ class MembershipApplicationsTable
                     ->label('Applied Role')
                     ->state(fn (MembershipApplication $record): string => MembershipApplicationAdminPresenter::appliedRoleLabel($record))
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('applicant.email')
+                TextColumn::make('applicant.name')
                     ->label('Claimant')
-                    ->searchable()
+                    ->description(function (MembershipApplication $record): ?string {
+                        $email = $record->applicant?->getAttribute('email');
+
+                        return is_string($email) && $email !== '' ? $email : null;
+                    })
+                    ->searchable(['name', 'email'])
                     ->placeholder('-'),
                 TextColumn::make('reviewer.email')
                     ->label('Reviewer')
@@ -90,74 +91,9 @@ class MembershipApplicationsTable
                     ]),
             ])
             ->recordActions([
-                Action::make('approve')
-                    ->label('Approve')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('Approve Membership Application')
-                    ->modalDescription('Approve this application and choose the role to grant.')
-                    ->schema(fn (MembershipApplication $record): array => [
-                        Select::make('granted_role')
-                            ->label('Granted Role')
-                            ->options(MembershipApplicationAdminPresenter::approvalRoleOptions())
-                            ->default($record->meta['applied_role'] ?? null)
-                            ->required(),
-                        Textarea::make('reviewer_note')
-                            ->label('Reviewer Note')
-                            ->rows(3)
-                            ->maxLength(2000),
-                    ])
-                    ->action(function (MembershipApplication $record, array $data, MembershipApplications $membershipApplications): void {
-                        $user = auth()->user();
-                        abort_unless($user instanceof User, 403);
-
-                        $membershipApplications->approve(
-                            (string) $record->getKey(),
-                            (string) $user->getKey(),
-                            (string) $data['granted_role'],
-                            filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
-                        );
-                        Notification::make()
-                            ->title('Membership application approved')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn (MembershipApplication $record): bool => $record->status === ApplicationStatus::Pending),
-                Action::make('reject')
-                    ->label('Reject')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->modalHeading('Reject Membership Application')
-                    ->modalDescription('Reject this application and optionally leave guidance for the applicant.')
-                    ->schema([
-                        Textarea::make('reviewer_note')
-                            ->label('Reviewer Note')
-                            ->rows(3)
-                            ->maxLength(2000),
-                    ])
-                    ->action(function (MembershipApplication $record, array $data, MembershipApplications $membershipApplications): void {
-                        $user = auth()->user();
-                        abort_unless($user instanceof User, 403);
-
-                        $membershipApplications->reject(
-                            (string) $record->getKey(),
-                            (string) $user->getKey(),
-                            filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
-                        );
-
-                        Notification::make()
-                            ->title('Membership application rejected')
-                            ->danger()
-                            ->send();
-                    })
-                    ->visible(fn (MembershipApplication $record): bool => $record->status === ApplicationStatus::Pending),
-                Action::make('open_subject')
-                    ->label('Open Record')
-                    ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->url(fn (MembershipApplication $record): ?string => MembershipApplicationAdminPresenter::subjectAdminUrl($record))
-                    ->openUrlInNewTab()
-                    ->visible(fn (MembershipApplication $record): bool => filled(MembershipApplicationAdminPresenter::subjectAdminUrl($record))),
+                MembershipApplicationModerationActions::approveAction(),
+                MembershipApplicationModerationActions::rejectAction(),
+                MembershipApplicationModerationActions::openSubjectAction(),
                 ViewAction::make(),
             ])
             ->recordUrl(fn (MembershipApplication $record): string => MembershipApplicationResource::getUrl('view', ['record' => $record]))
@@ -194,6 +130,8 @@ class MembershipApplicationsTable
                                     }
                                 }
                             }
+
+                            MembershipApplicationResource::flushNavigationBadgeCache();
 
                             $action->reportBulkProcessingSuccessfulRecordsCount($successCount);
                         })

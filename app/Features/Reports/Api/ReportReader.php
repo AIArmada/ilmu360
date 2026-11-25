@@ -11,7 +11,16 @@ interface ReportReader
     /** @return list<ReportSnapshot> */
     public function forReporter(string $reporterId, ?int $limit = null): array;
 
-    public function pageForReporter(string $reporterId, int $perPage = 5, int $page = 1): ReportPage;
+    public function pageForReporter(
+        string $reporterId,
+        int $perPage = 5,
+        int $page = 1,
+        ?string $status = null,
+        ?string $search = null,
+    ): ReportPage;
+
+    /** @return array<string, int> */
+    public function countsByStatusForReporter(string $reporterId): array;
 
     /** @return list<string> */
     public function openEntityIds(string $entityType): array;

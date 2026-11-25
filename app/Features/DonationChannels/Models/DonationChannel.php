@@ -48,6 +48,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
         'account_number',
         'iban',
         'duitnow_value',
+        'reference_note',
     ];
 
     /**
@@ -72,7 +73,6 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
         'ewallet_provider',
         'ewallet_handle',
         'ewallet_qr_payload',
-        'reference_note',
         'verified_by',
         'is_default',
     ];
@@ -180,7 +180,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     {
         return match ($this->method) {
             'bank_account' => 'Bank Account',
-            'duitnow' => 'DuitNow',
+            'duitnow' => 'DuitNow Transfer',
             'ewallet' => 'E-Wallet',
             default => $this->method,
         };

@@ -325,6 +325,15 @@ return [
             'body' => 'This submission was rejected.',
             'body_with_note' => 'This submission was rejected. Note: :note',
         ],
+        'directory_update_approved' => [
+            'title' => ':subject update approved: :title',
+            'body' => 'Your update is approved and now reflected on the public record.',
+        ],
+        'directory_update_rejected' => [
+            'title' => ':subject update rejected: :title',
+            'body' => 'Your update suggestion was rejected.',
+            'body_with_note' => 'Your update suggestion was rejected. Note: :note',
+        ],
         'submission_needs_changes' => [
             'title' => 'Changes requested for :title',
             'body' => 'A moderator asked you to revise this submission.',

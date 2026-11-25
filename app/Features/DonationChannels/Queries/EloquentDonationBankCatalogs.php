@@ -14,12 +14,35 @@ use App\Features\DonationChannels\Models\DonationBank;
 /**
  * Bank catalogs read straight from the admin-managed `donation_banks` table.
  *
- * The database is the sole runtime source: there is no in-code fallback list,
- * so an entry an administrator retired or deleted never reappears through a
- * resolver. Countries without rows resolve to an empty catalog.
+ * The database is the sole runtime source: there is no in-code fallback bank
+ * list, so an entry an administrator retired or deleted never reappears
+ * through a resolver. Countries without rows resolve to an empty catalog,
+ * except the territories in TERRITORY_FALLBACKS, which use their parent
+ * country's banking system.
  */
 final readonly class EloquentDonationBankCatalogs implements DonationBankCatalogs
 {
+    /**
+     * Territories that share another country's banking system but have no
+     * independent BIC records. The requested country code is preserved.
+     *
+     * @var array<string, string>
+     */
+    private const array TERRITORY_FALLBACKS = [
+        'AX' => 'FI',
+        'BL' => 'FR',
+        'CC' => 'AU',
+        'CX' => 'AU',
+        'MF' => 'FR',
+        'NF' => 'AU',
+        'NU' => 'NZ',
+        'PN' => 'NZ',
+        'SJ' => 'NO',
+        'TK' => 'NZ',
+        'UM' => 'US',
+        'VA' => 'IT',
+    ];
+
     public function __construct(private AddressCountryResolver $countries) {}
 
     public function forCountryCode(?string $countryCode): DonationBankCatalog
@@ -30,9 +53,15 @@ final readonly class EloquentDonationBankCatalogs implements DonationBankCatalog
             return new DonationBankCatalog(null);
         }
 
+        $banks = $this->banksFor($countryCode);
+
+        if ($banks === [] && isset(self::TERRITORY_FALLBACKS[$countryCode])) {
+            $banks = $this->banksFor(self::TERRITORY_FALLBACKS[$countryCode]);
+        }
+
         return new DonationBankCatalog(
             $countryCode,
-            $this->banksFor($countryCode),
+            $banks,
             supports_routing_codes: $this->supportsRoutingCodes($countryCode),
         );
     }

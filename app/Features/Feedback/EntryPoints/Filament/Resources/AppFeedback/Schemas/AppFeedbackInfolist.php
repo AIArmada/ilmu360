@@ -185,9 +185,12 @@ class AppFeedbackInfolist
                     default => 'Penghantar',
                 };
 
+                $authorName = $message->author?->getAttribute('name');
+                $sender = is_string($authorName) && trim($authorName) !== '' ? $role.' ('.$authorName.')' : $role;
+
                 $visibility = $message->visibility === 'internal' ? ' (dalaman)' : '';
 
-                return '['.$message->created_at->format('d M Y, h:i A').'] '.$role.$visibility.': '.$message->body;
+                return '['.$message->created_at->format('d M Y, h:i A').'] '.$sender.$visibility.': '.$message->body;
             })
             ->implode("\n\n");
     }

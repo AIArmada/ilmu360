@@ -1,7 +1,9 @@
 <?php
 
-use App\Features\Contributions\EntryPoints\Filament\Forms\EventContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
+use App\Features\Events\Api\Filament\EventContributionFormContext;
+use App\Features\Events\Api\Filament\EventContributionFormMode;
+use App\Features\Events\Api\Filament\EventContributionFormSchema;
 use App\Features\Events\EntryPoints\Filament\Resources\Series\Schemas\SeriesForm;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Schemas\PersonForm;
 use App\Features\Places\EntryPoints\Filament\Resources\Spaces\Schemas\SpaceForm;
@@ -62,7 +64,17 @@ function selectPlaceholders(array $components): array
 }
 
 it('uses contextual placeholders for contribution multi-selects', function () {
-    $selects = selectPlaceholders(EventContributionFormSchema::components());
+    $schema = app(EventContributionFormSchema::class);
+    $context = new EventContributionFormContext(mode: EventContributionFormMode::Update);
+
+    $selects = selectPlaceholders([
+        ...$schema->topicComponents($context),
+        ...$schema->scheduleComponents($context),
+        ...$schema->attendanceComponents($context),
+        ...$schema->organizerComponents($context),
+        ...$schema->locationComponents($context),
+        ...$schema->speakerComponents($context),
+    ]);
 
     expect($selects)->toHaveKeys([
         'event_category_ids',

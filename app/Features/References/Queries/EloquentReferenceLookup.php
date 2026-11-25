@@ -161,6 +161,46 @@ final readonly class EloquentReferenceLookup implements ReferenceLookup
     }
 
     /**
+     * @return list<array{id: string, slug: string, title: string, subtitle: ?string}>
+     */
+    public function searchPublicContributionTargets(string $search = '', int $limit = 12): array
+    {
+        $query = Reference::query()->active();
+        $term = trim($search);
+
+        if ($term !== '') {
+            $pattern = "%{$term}%";
+            $query->where(function (Builder $referenceQuery) use ($pattern): void {
+                $referenceQuery->whereLike('title', $pattern)->orWhereLike('publisher', $pattern);
+            });
+        }
+
+        /** @var list<array{id: string, slug: string, title: string, subtitle: ?string}> $targets */
+        $targets = $query
+            ->orderBy('title')
+            ->limit(max($limit, 1))
+            ->get()
+            ->map(function (Reference $reference): array {
+                $publisher = $reference->publisher;
+                $meta = array_values(array_filter([
+                    is_string($publisher) && $publisher !== '' ? $publisher : null,
+                    $reference->year !== null ? (string) $reference->year : null,
+                ]));
+
+                return [
+                    'id' => (string) $reference->getKey(),
+                    'slug' => filled($reference->slug) ? (string) $reference->slug : (string) $reference->getKey(),
+                    'title' => $reference->displayTitle(),
+                    'subtitle' => $meta !== [] ? implode(' · ', $meta) : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return $targets;
+    }
+
+    /**
      * @return array<string, string>
      */
     public function searchOptions(string $search, int $limit = 50): array

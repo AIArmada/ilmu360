@@ -7,7 +7,7 @@ namespace App\Features\Contributions\Support;
 use App\Features\Contributions\Models\ContributionRequest;
 
 /**
- * Contributor notifications for reviewed create requests.
+ * Contributor notifications for reviewed contribution requests.
  *
  * The conventional notification service keeps recipient lookup, locale
  * switching and dispatch; Contributions triggers it after the review
@@ -15,7 +15,7 @@ use App\Features\Contributions\Models\ContributionRequest;
  */
 interface ContributionRequestNotifier
 {
-    public function notifyCreateRequestApproved(ContributionRequest $request): void;
+    public function notifyRequestApproved(ContributionRequest $request): void;
 
-    public function notifyCreateRequestRejected(ContributionRequest $request): void;
+    public function notifyRequestRejected(ContributionRequest $request): void;
 }

@@ -384,7 +384,7 @@ When the user asks you to “look for” a named place, start with the most like
 - Member event update schemas inherit the same event semantics because the member MCP surface delegates to the shared admin write service.
 - Series write schemas now expose additional field semantics for `description`, `languages`, and `slug`.
 - For series, `title`, `slug`, and `visibility` remain required on update; `description` clears on `null` / trimmed empty input and `languages` follows omit-preserve / null-clear / array-replace semantics.
-- Donation channel write schemas now expose additional field semantics for `donatable_type`, `method`, `label`, `reference_note`, and the method-specific bank / DuitNow / ewallet fields.
+- Donation channel write schemas now expose additional field semantics for `donatable_type`, `method`, `label`, and the method-specific bank / DuitNow / ewallet fields.
 - For donation channels, `donatable_type` must be the canonical stored morph value (`institution`, `person`, `event`, or `organization`); method switches clear unrelated field groups, `routing_code` is accepted only for owner countries whose bank catalog uses local routing / sort codes (Indonesia, Singapore), and destructive QR clear flags remain unsupported through MCP.
 - Inspiration write schemas now expose additional field semantics for `content`, `source`, and `main`.
 - For inspirations, `category`, `locale`, `title`, and `content` remain required on update; `source` clears on `null` / trimmed empty input, and the single `main` media field can only be replaced through MCP, not directly cleared through a destructive flag.
@@ -664,7 +664,7 @@ Use this as the quick scan list when you want ChatGPT to reason about the connec
 | `admin-moderate-event` | Run one explicit moderation action on an event | `record_key`, `action`, `reason_code?`, `note?` |
 | `admin-triage-report` | Run one explicit triage action on a report | `record_key`, `action`, `resolution_note?` |
 | `admin-review-contribution-request` | Approve or reject one pending contribution request | `record_key`, `action`, `reason_code?`, `reviewer_note?` |
-| `admin-review-membership-application` | Approve or reject one pending membership application | `record_key`, `action`, `granted_role_slug?`, `reviewer_note?` |
+| `admin-review-membership-application` | Approve or reject one pending membership application | `record_key`, `action`, `granted_role?`, `reviewer_note?` |
 | `admin-create-record` | Create or preview a writable admin record | `resource_key`, `payload`, `validate_only?`, `apply_defaults?` |
 | `admin-batch-create-records` | Batch create up to 100 records for a writable admin resource | `resource_key`, `items` (array, max 100), `validate_only?` — each item: `payload` + optional `external_row_id` |
 | `admin-update-record` | Update or preview a writable admin record | `resource_key`, `record_key`, `payload`, `validate_only?`, `apply_defaults?` |

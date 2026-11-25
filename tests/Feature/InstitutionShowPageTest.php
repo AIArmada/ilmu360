@@ -656,11 +656,13 @@ it('displays donation channels', function () {
         'label' => 'Infaq Bulanan',
     ]);
     $channel->verify();
+    $channel->forceFill(['reference_note' => 'Private donation note from an existing record'])->save();
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
         ->assertSee('Tabung Masjid Al-Ikhlas')
-        ->assertSee('Infaq Bulanan');
+        ->assertSee('Infaq Bulanan')
+        ->assertDontSee('Private donation note from an existing record');
 });
 
 it('renders donation qr thumbnails without the rounded border shell', function () {

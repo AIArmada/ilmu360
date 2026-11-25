@@ -727,7 +727,7 @@ it('attaches staged donation QR media to an iban-only bank channel', function ()
         'label' => 'Dana Masjid',
         'currency' => 'MYR',
         'bank_code' => 'MB2U0227',
-        'bank_name' => 'Maybank2u',
+        'bank_name' => 'Malayan Banking Berhad',
         'account_number' => null,
         'iban' => 'GB82WEST12345698765432',
     ]);

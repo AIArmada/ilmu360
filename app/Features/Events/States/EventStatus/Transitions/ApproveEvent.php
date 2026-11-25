@@ -64,7 +64,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             // event, a moderator implicitly verifies these entities. An
             // ordinary member's auto-approved publication must not grant
             // entity verification.
-            if ($this->moderator instanceof User && $this->moderator->hasAnyRole(['moderator', 'super_admin'])) {
+            if ($this->moderator instanceof User && $this->moderator->hasAnyRole(['moderator', 'admin', 'super_admin'])) {
                 $this->verifyPendingRelatedRecords($this->event);
             }
 
@@ -154,6 +154,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
 
         // Verify references (taxonomy is package EventTerm/Classification — no Spatie tag dual path)
         $event->references()
+            ->withoutOwnerScope()
             ->where('status', 'pending')
             ->get()
             ->each(function (Reference $reference): void {

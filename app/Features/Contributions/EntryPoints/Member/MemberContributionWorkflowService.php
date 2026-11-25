@@ -9,7 +9,6 @@ use App\Features\Contributions\Api\ContributionRequestReader;
 use App\Features\Contributions\Api\ContributionReviewAccess;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
-use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
@@ -18,6 +17,7 @@ use App\Features\References\Models\Reference;
 use App\Models\User;
 use BackedEnum;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -165,7 +165,7 @@ final readonly class MemberContributionWorkflowService
             'reviewed_at' => $this->optionalDateTimeString($request->reviewed_at),
             'cancelled_at' => $this->optionalDateTimeString($request->cancelled_at),
             'can_cancel' => $request->isPending() && (string) $request->proposer_id === (string) $currentUser->getKey(),
-            'can_review' => $request->status === ContributionRequestStatus::Pending,
+            'can_review' => $request->isPending() && Gate::forUser($currentUser)->allows('review', $request),
             'presentation' => $presentation,
             'proposer' => $request->proposer?->only(['id', 'name', 'email']),
             'reviewer' => $request->reviewer?->only(['id', 'name', 'email']),

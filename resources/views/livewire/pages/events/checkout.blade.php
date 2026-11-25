@@ -99,16 +99,16 @@
                                     @endif
                                 </div>
 
-                                @if ($registrationQuestions->isNotEmpty())
+                                @if ($registrationQuestions !== [])
                                     <div class="mt-5 border-t border-slate-200 pt-5">
                                         <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#b27b1b]">{{ __('Additional details') }}</p>
                                         <p class="mt-1 text-sm text-slate-500">{{ __('Please answer these questions for this participant.') }}</p>
                                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
                                             @foreach ($registrationQuestions as $question)
                                                 @php
-                                                    $questionPath = 'participants.' . $index . '.answers.' . $question->field_key;
-                                                    $questionId = 'participant-' . $index . '-question-' . $question->field_key;
-                                                    $questionRequired = $question->is_required;
+                                                    $questionPath = 'participants.' . $index . '.answers.' . $question->fieldKey;
+                                                    $questionId = 'participant-' . $index . '-question-' . $question->fieldKey;
+                                                    $questionRequired = $question->isRequired;
                                                 @endphp
                                                 <div wire:key="participant-question-{{ $index }}-{{ $question->id }}" class="{{ $question->type->value === 'textarea' ? 'sm:col-span-2' : '' }}">
                                                     @if ($question->type->value === 'checkbox')

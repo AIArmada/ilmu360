@@ -94,16 +94,16 @@
                             </div>
                         </div>
 
-                        @if($registrationQuestions->isNotEmpty())
+                        @if($registrationQuestions !== [])
                             <div class="space-y-5">
                                 <div>
                                     <p class="text-xs font-bold uppercase tracking-[0.14em] text-violet-700">{{ __('Participant questions') }}</p>
                                     <p class="mt-1 text-sm text-slate-600">{{ __('Answer the same questions that appear in the normal registration flow.') }}</p>
                                 </div>
                                 @foreach($registrationQuestions as $question)
-                                    @php($answerPath = 'participant.answers.' . $question->field_key)
+                                    @php($answerPath = 'participant.answers.' . $question->fieldKey)
                                     <div>
-                                        <label for="offline-question-{{ $question->id }}" class="text-sm font-semibold text-slate-800">{{ $question->question }} @if($question->is_required)<span class="text-rose-600">*</span>@endif</label>
+                                        <label for="offline-question-{{ $question->id }}" class="text-sm font-semibold text-slate-800">{{ $question->question }} @if($question->isRequired)<span class="text-rose-600">*</span>@endif</label>
                                         @if($question->description)<p class="mt-1 text-xs leading-5 text-slate-500">{{ $question->description }}</p>@endif
                                         @if($question->type->value === 'textarea')
                                             <textarea id="offline-question-{{ $question->id }}" wire:model.blur="{{ $answerPath }}" rows="3" class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"></textarea>

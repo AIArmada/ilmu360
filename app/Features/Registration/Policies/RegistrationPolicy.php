@@ -101,7 +101,11 @@ class RegistrationPolicy
         $event = $registration->event;
 
         return $event instanceof Event
-            && app(EventRefundEligibility::class)->canSelfServiceRefund($user, $event, $registration);
+            && app(EventRefundEligibility::class)->canSelfServiceRefund(
+                $user,
+                (string) $event->getKey(),
+                (string) $registration->getKey(),
+            );
     }
 
     /**

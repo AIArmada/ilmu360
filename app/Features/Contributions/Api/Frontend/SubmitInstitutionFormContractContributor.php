@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Api\Frontend;
 
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\Institutions\Api\Enums\InstitutionType;
 use App\Models\User;
 use App\Platform\Api\Frontend\Contracts\FrontendFormContractContributor;
@@ -88,12 +89,11 @@ final readonly class SubmitInstitutionFormContractContributor implements Fronten
                             ['name' => 'iban', 'type' => 'string', 'required' => false, 'max_length' => 34],
                             ['name' => 'swift_bic', 'type' => 'string', 'required' => false, 'max_length' => 11],
                             ['name' => 'routing_code', 'type' => 'string', 'required' => false, 'max_length' => 20],
-                            ['name' => 'duitnow_type', 'type' => 'string', 'required' => false, 'max_length' => 255],
+                            ['name' => 'duitnow_type', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(DonationChannelOptions::DUITNOW_ID_TYPES)],
                             ['name' => 'duitnow_value', 'type' => 'string', 'required' => false, 'max_length' => 2000],
-                            ['name' => 'ewallet_provider', 'type' => 'string', 'required' => false, 'max_length' => 255],
+                            ['name' => 'ewallet_provider', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(DonationChannelOptions::EWALLET_PROVIDERS)],
                             ['name' => 'ewallet_handle', 'type' => 'string', 'required' => false, 'max_length' => 255],
                             ['name' => 'ewallet_qr_payload', 'type' => 'string', 'required' => false, 'max_length' => 2000],
-                            ['name' => 'reference_note', 'type' => 'string', 'required' => false, 'max_length' => 255],
                             ['name' => 'is_default', 'type' => 'boolean', 'required' => false],
                         ],
                     ],

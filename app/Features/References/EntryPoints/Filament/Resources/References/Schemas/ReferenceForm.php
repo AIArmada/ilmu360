@@ -29,6 +29,7 @@ class ReferenceForm
                             ->options([
                                 'pending' => 'Pending',
                                 'verified' => 'Verified',
+                                'rejected' => 'Rejected',
                                 'inactive' => 'Inactive',
                             ])
                             ->default('verified')

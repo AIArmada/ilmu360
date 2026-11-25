@@ -372,7 +372,6 @@ class EventContributionUpdateStateMapper
         $organizerType = self::resolvedPrimaryOrganizerType($primaryOrganizerId);
         $locationInstitutionId = self::normalizeOptionalString($state['location_institution_id'] ?? null);
         $locationVenueId = self::normalizeOptionalString($state['location_venue_id'] ?? null);
-        $spaceId = self::normalizeOptionalString($state['space_id'] ?? null);
         $sameAsInstitution = (bool) ($state['location_same_as_institution'] ?? true);
         $locationType = in_array($state['location_type'] ?? null, ['institution', 'venue'], true)
             ? $state['location_type']
@@ -397,9 +396,9 @@ class EventContributionUpdateStateMapper
             }
         }
 
-        $state['space_id'] = $state['institution_id'] !== null && $state['venue_id'] === null
-            ? $spaceId
-            : null;
+        if ($state['institution_id'] === null && $state['venue_id'] === null) {
+            $state['space_ids'] = [];
+        }
 
         unset(
             $state['primary_organizer_kind'],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\EntryPoints\Mcp\Tools;
 
+use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Models\User;
 use App\Platform\Mcp\McpAuthenticatedUserResolver;
@@ -61,7 +62,7 @@ class AdminGetMembershipApplicationReviewSchemaTool extends AbstractAdminTool
                                 'name' => 'granted_role',
                                 'type' => 'string',
                                 'required' => false,
-                                'allowed_values' => array_keys($this->membershipApplications->reviewRoleOptions()),
+                                'allowed_values' => array_keys(MembershipApplicationFormRules::roleOptions($application->application->subjectType)),
                             ],
                             [
                                 'name' => 'reviewer_note',

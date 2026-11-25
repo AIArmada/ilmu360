@@ -18,7 +18,8 @@ use App\Features\ShareTracking\Api\ParticipationOutcomeReversals;
  * commit or roll back with the source change. Event-wide cancellations
  * reverse the event's registrations/check-ins; occurrence/session
  * cancellations reverse only their actual scoped rows, never unrelated
- * event contributions.
+ * event contributions. The event payload carries scalar scope identity so
+ * the listener never hydrates package models.
  */
 final readonly class ReverseScheduleCancellationShareOutcome
 {
@@ -30,13 +31,13 @@ final readonly class ReverseScheduleCancellationShareOutcome
     {
         match (true) {
             $event instanceof EventOccurrenceCancelled => $this->reverseParticipation->reverse(
-                'occurrence', (string) $event->occurrence->getKey(), null, 'occurrence_cancelled',
+                'occurrence', $event->occurrenceId, null, 'occurrence_cancelled',
             ),
             $event instanceof EventSessionCancelled => $this->reverseParticipation->reverse(
-                'session', (string) $event->session->getKey(), null, 'session_cancelled',
+                'session', $event->sessionId, null, 'session_cancelled',
             ),
             default => $this->reverseParticipation->reverse(
-                'event', (string) $event->target->getKey(), null, 'event_cancelled',
+                'event', $event->eventId, null, 'event_cancelled',
             ),
         };
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Membership\EntryPoints\Http;
 
+use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Platform\Http\FrontendController;
 use App\Shared\Auth\AccountActor;
@@ -40,7 +41,7 @@ class MembershipApplicationReviewController extends FrontendController
                     'defaults' => ['action' => 'approve', 'granted_role' => null, 'reviewer_note' => null],
                     'fields' => [
                         ['name' => 'action', 'type' => 'string', 'required' => true, 'default' => 'approve', 'allowed_values' => ['approve', 'reject']],
-                        ['name' => 'granted_role', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys($this->membershipApplications->reviewRoleOptions())],
+                        ['name' => 'granted_role', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(MembershipApplicationFormRules::roleOptions($application->application->subjectType))],
                         ['name' => 'reviewer_note', 'type' => 'string', 'required' => false, 'max_length' => 2000],
                     ],
                     'conditional_rules' => [
@@ -69,7 +70,7 @@ class MembershipApplicationReviewController extends FrontendController
                 Rule::requiredIf(fn (): bool => (string) $request->input('action') === 'approve'),
                 'nullable',
                 'string',
-                Rule::in(array_keys($this->membershipApplications->reviewRoleOptions())),
+                Rule::in(array_keys(MembershipApplicationFormRules::roleOptions($application->application->subjectType))),
             ],
             'reviewer_note' => ['nullable', 'string', 'max:2000'],
         ]);

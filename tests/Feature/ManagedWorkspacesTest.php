@@ -151,7 +151,7 @@ it('shows speaker events and authorizes event editing through the speaker member
         ->assertSee('Manage speaker events')
         ->assertSee('Speaker Managed Event')
         ->assertSee('Speaker Draft Event')
-        ->assertSee('Approved')
+        ->assertSee(__('Approved'))
         ->assertSee($editUrl, false)
         ->assertSee($createUrl, false)
         ->assertDontSee('Outside Speaker Event');

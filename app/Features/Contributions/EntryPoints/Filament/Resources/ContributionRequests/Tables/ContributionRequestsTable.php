@@ -4,25 +4,24 @@ namespace App\Features\Contributions\EntryPoints\Filament\Resources\Contribution
 
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\ContributionRequestResource;
+use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestModerationActions;
 use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
-use App\Features\Contributions\Enums\ContributionRequestStatus;
-use App\Features\Contributions\Exceptions\ContributionRequestAlreadyReviewedException;
-use App\Features\Contributions\Exceptions\ContributionRequestNotPendingException;
+use App\Features\Contributions\EntryPoints\Ui\ContributionsHubPresenter;
+use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
-use App\Models\User;
+use App\Features\Events\Models\Event;
+use App\Features\Institutions\Models\Institution;
+use App\Features\Persons\Models\Person;
+use App\Features\References\Models\Reference;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ContributionRequestsTable
@@ -35,6 +34,11 @@ class ContributionRequestsTable
                 TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn (mixed $state): string => ContributionRequestPresenter::labelForType($state))
+                    ->color(fn (mixed $state): string => match ($state instanceof ContributionRequestType ? $state->value : (string) $state) {
+                        ContributionRequestType::Create->value => 'info',
+                        ContributionRequestType::Update->value => 'primary',
+                        default => 'gray',
+                    })
                     ->sortable(),
                 TextColumn::make('subject_type')
                     ->label('Subject')
@@ -44,16 +48,36 @@ class ContributionRequestsTable
                 TextColumn::make('entity_summary')
                     ->label('Record')
                     ->state(fn (ContributionRequest $record): string => ContributionRequestPresenter::entityTitle($record))
-                    ->url(fn (ContributionRequest $record): string => ContributionRequestResource::getUrl('view', ['record' => $record])),
+                    ->url(fn (ContributionRequest $record): string => ContributionRequestResource::getUrl('view', ['record' => $record]))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query
+                        ->orWhere('proposed_data', 'like', '%'.$search.'%')
+                        ->orWhere('proposer_note', 'like', '%'.$search.'%')
+                        ->orWhereHasMorph('entity', [Institution::class], fn (Builder $entityQuery): Builder => $entityQuery->where('name', 'like', '%'.$search.'%'))
+                        ->orWhereHasMorph('entity', [Person::class], fn (Builder $entityQuery): Builder => $entityQuery->where('name', 'like', '%'.$search.'%'))
+                        ->orWhereHasMorph('entity', [Event::class], fn (Builder $entityQuery): Builder => $entityQuery->where('title', 'like', '%'.$search.'%'))
+                        ->orWhereHasMorph('entity', [Reference::class], fn (Builder $entityQuery): Builder => $entityQuery->where('title', 'like', '%'.$search.'%'))),
                 TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (mixed $state): string => ContributionRequestPresenter::labelForStatus($state))
                     ->color(fn (mixed $state): string => ContributionRequestPresenter::statusColor($state))
                     ->sortable(),
-                TextColumn::make('proposer.email')
+                TextColumn::make('proposer.name')
                     ->label('Proposer')
-                    ->searchable()
+                    ->description(fn (ContributionRequest $record): ?string => $record->proposer?->email)
+                    ->searchable(['name', 'email'])
                     ->placeholder('-'),
+                TextColumn::make('changes_summary')
+                    ->label('Summary')
+                    ->state(fn (ContributionRequest $record): string => app(ContributionsHubPresenter::class)->requestSummaryLine($record) ?? '-')
+                    ->limit(60)
+                    ->wrap()
+                    ->tooltip(fn (ContributionRequest $record): ?string => app(ContributionsHubPresenter::class)->requestSummaryLine($record)),
+                TextColumn::make('proposer_note')
+                    ->label('Proposer Note')
+                    ->limit(60)
+                    ->tooltip(fn (ContributionRequest $record): ?string => $record->proposer_note)
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('reviewer.email')
                     ->label('Reviewer')
                     ->toggleable(isToggledHiddenByDefault: true)
@@ -78,111 +102,8 @@ class ContributionRequestsTable
                     ->options(ContributionRequestPresenter::subjectOptions()),
             ])
             ->recordActions([
-                Action::make('approve')
-                    ->label('Approve')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('Approve Contribution Request')
-                    ->modalDescription('Approve this request and apply the proposed change.')
-                    ->schema([
-                        Textarea::make('reviewer_note')
-                            ->label('Reviewer Note')
-                            ->rows(3)
-                            ->maxLength(2000),
-                    ])
-                    ->action(function (ContributionRequest $record, array $data, ContributionRequestLifecycle $contributionRequestLifecycle): void {
-                        $user = auth()->user();
-
-                        abort_unless($user instanceof User, 403);
-
-                        try {
-                            $contributionRequestLifecycle->approve(
-                                (string) $record->getKey(),
-                                (string) $user->getKey(),
-                                filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
-                            );
-                        } catch (ContributionRequestAlreadyReviewedException $exception) {
-                            Notification::make()
-                                ->title($exception->getMessage())
-                                ->danger()
-                                ->send();
-
-                            return;
-                        } catch (ValidationException $exception) {
-                            $message = collect($exception->errors())->flatten()->first();
-
-                            Notification::make()
-                                ->title(is_string($message) && $message !== '' ? $message : __('Could not approve this request.'))
-                                ->danger()
-                                ->send();
-
-                            return;
-                        } catch (LockTimeoutException) {
-                            Notification::make()
-                                ->title(__('The review service is busy. Please try again in a moment.'))
-                                ->danger()
-                                ->send();
-
-                            return;
-                        } catch (ContributionRequestNotPendingException) {
-                            Notification::make()
-                                ->title(__('This request is no longer pending review. Please refresh to see its current status.'))
-                                ->danger()
-                                ->send();
-
-                            return;
-                        }
-
-                        Notification::make()
-                            ->title('Contribution request approved')
-                            ->success()
-                            ->send();
-                    })
-                    ->visible(fn (ContributionRequest $record): bool => $record->status === ContributionRequestStatus::Pending),
-                Action::make('reject')
-                    ->label('Reject')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->modalHeading('Reject Contribution Request')
-                    ->modalDescription('Reject this request and record the moderation reason.')
-                    ->schema([
-                        Select::make('reason_code')
-                            ->label('Reason')
-                            ->options(ContributionRequestPresenter::rejectionReasonOptions())
-                            ->required(),
-                        Textarea::make('reviewer_note')
-                            ->label('Reviewer Note')
-                            ->rows(3)
-                            ->maxLength(2000),
-                    ])
-                    ->action(function (ContributionRequest $record, array $data, ContributionRequestLifecycle $contributionRequestLifecycle): void {
-                        $user = auth()->user();
-
-                        abort_unless($user instanceof User, 403);
-
-                        try {
-                            $contributionRequestLifecycle->reject(
-                                (string) $record->getKey(),
-                                (string) $user->getKey(),
-                                (string) $data['reason_code'],
-                                filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
-                            );
-                        } catch (ContributionRequestNotPendingException) {
-                            Notification::make()
-                                ->title(__('This request is no longer pending review. Please refresh to see its current status.'))
-                                ->danger()
-                                ->send();
-
-                            return;
-                        }
-
-                        Notification::make()
-                            ->title('Contribution request rejected')
-                            ->danger()
-                            ->send();
-                    })
-                    ->visible(fn (ContributionRequest $record): bool => $record->status === ContributionRequestStatus::Pending),
+                ContributionRequestModerationActions::approveAction(),
+                ContributionRequestModerationActions::rejectAction(),
                 Action::make('view_entity')
                     ->label('Open Record')
                     ->icon('heroicon-o-arrow-top-right-on-square')

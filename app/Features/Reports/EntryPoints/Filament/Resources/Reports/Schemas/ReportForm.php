@@ -10,6 +10,8 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class ReportForm
@@ -22,12 +24,34 @@ class ReportForm
                     ->components([
                         Select::make('entity_type')
                             ->options(app(ResolveReportEntityMetadataAction::class)->options())
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set): void {
+                                $category = $get('category');
+
+                                if (! is_string($category) || $category === '') {
+                                    return;
+                                }
+
+                                $entityType = $get('entity_type');
+
+                                if (! is_string($entityType) || $entityType === '') {
+                                    return;
+                                }
+
+                                $options = app(ResolveReportCategoryOptionsAction::class)->handle($entityType);
+
+                                if (! array_key_exists($category, $options)) {
+                                    $set('category', null);
+                                }
+                            })
                             ->required(),
                         TextInput::make('entity_id')
                             ->required()
                             ->maxLength(36),
                         Select::make('category')
-                            ->options(app(ResolveReportCategoryOptionsAction::class)->handle())
+                            ->options(fn (Get $get): array => app(ResolveReportCategoryOptionsAction::class)->handle(
+                                is_string($get('entity_type')) ? $get('entity_type') : null,
+                            ))
                             ->required(),
                         Textarea::make('description')
                             ->columnSpanFull()

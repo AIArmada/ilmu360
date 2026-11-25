@@ -154,7 +154,6 @@ final readonly class DonationQrMediaService implements DonationQrWorkflow
             'ewallet_provider' => $channel->getAttribute('ewallet_provider'),
             'ewallet_handle' => $channel->getAttribute('ewallet_handle'),
             'ewallet_qr_payload' => $channel->getAttribute('ewallet_qr_payload'),
-            'reference_note' => $channel->getAttribute('reference_note'),
             'is_default' => (bool) $channel->getAttribute('is_default'),
         ];
     }

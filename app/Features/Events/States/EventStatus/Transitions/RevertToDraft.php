@@ -14,6 +14,7 @@ use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Spatie\ModelStates\Transition;
+use Throwable;
 
 class RevertToDraft extends Transition implements HasColor, HasIcon, HasLabel
 {
@@ -41,13 +42,26 @@ class RevertToDraft extends Transition implements HasColor, HasIcon, HasLabel
                 'last_state_change_at' => now(),
             ]);
 
-            // Remove from search
-            $this->event->unsearchable();
+            $event = $this->event;
+            $moderatorId = $this->moderator?->id;
 
-            Log::info('Event reverted to draft', [
-                'event_id' => $this->event->id,
-                'moderator_id' => $this->moderator?->id,
-            ]);
+            // External effects only run once the surrounding transaction commits,
+            // so a rolled-back revert never indexes or logs.
+            DB::afterCommit(function () use ($event, $moderatorId): void {
+                try {
+                    $event->unsearchable();
+                } catch (Throwable $exception) {
+                    Log::warning('Search index removal failed after reverting to draft.', [
+                        'event_id' => (string) $event->getKey(),
+                        'exception' => $exception,
+                    ]);
+                }
+
+                Log::info('Event reverted to draft', [
+                    'event_id' => $event->id,
+                    'moderator_id' => $moderatorId,
+                ]);
+            });
 
             return $this->event;
         });

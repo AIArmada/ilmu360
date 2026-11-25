@@ -12,7 +12,6 @@ use App\Features\Membership\Actions\DiscardMembershipApplicationAction;
 use App\Features\Membership\Actions\RejectMembershipApplicationAction;
 use App\Features\Membership\Actions\SubmitMembershipApplicationAction;
 use App\Features\Membership\Api\MembershipApplicationDetail;
-use App\Features\Membership\Api\MembershipApplicationFormRules;
 use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\SubmitMembershipApplicationInput;
@@ -55,11 +54,6 @@ final readonly class MembershipApplicationsService implements MembershipApplicat
             ->get()
             ->map(fn (Model $application): MembershipApplicationDetail => MembershipValueMapper::applicationDetail($application, $this->subjectCatalog))
             ->all());
-    }
-
-    public function reviewRoleOptions(): array
-    {
-        return MembershipApplicationFormRules::applicationRoleOptions();
     }
 
     public function find(string $applicationId): ?MembershipApplicationDetail

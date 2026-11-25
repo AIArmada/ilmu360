@@ -55,6 +55,14 @@ class SubmitInstitution extends Component implements HasActions, HasForms
     public function mount(): void
     {
         OwnerContext::withOwner(null, function (): void {
+            $user = auth()->user();
+
+            abort_unless($user instanceof User, 403);
+
+            if (! $user->canSubmitDirectoryFeedback()) {
+                abort(403, $user->directoryFeedbackBanMessage());
+            }
+
             $this->contributionForm()->fill([
                 'type' => null,
                 'address' => [
@@ -87,17 +95,10 @@ class SubmitInstitution extends Component implements HasActions, HasForms
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return OwnerContext::withOwner(null, fn (): Schema => $schema
             ->model(Institution::class)
             ->statePath('data')
-            ->components(InstitutionContributionFormSchema::components(
-                includeMedia: true,
-                requireGoogleMaps: true,
-                addressStatePath: 'address',
-                includeLocationPicker: true,
-                mapsSelectionRequired: true,
-                includeWazeUrlField: false,
-            ));
+            ->components(InstitutionContributionFormSchema::components(creating: true)));
     }
 
     /**
@@ -233,6 +234,10 @@ class SubmitInstitution extends Component implements HasActions, HasForms
             $user = auth()->user();
 
             abort_unless($user instanceof User, 403);
+
+            if (! $user->canSubmitDirectoryFeedback()) {
+                abort(403, $user->directoryFeedbackBanMessage());
+            }
 
             $verifiedSelection = $this->verifiedMapsSelection();
             $submittedPlaceId = data_get($this->data, 'address.google_place_id');

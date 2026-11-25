@@ -4,6 +4,7 @@ namespace App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationC
 
 use AIArmada\Organizations\Models\Organization;
 use App\Features\DonationChannels\Api\DonationChannelCountryProfiles;
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Models\Event;
@@ -104,7 +105,7 @@ class DonationChannelForm
                 Select::make('method')
                     ->options([
                         'bank_account' => 'Bank Account',
-                        'duitnow' => 'DuitNow',
+                        'duitnow' => __('DuitNow Transfer'),
                         'ewallet' => 'E-Wallet',
                     ])
                     ->required()
@@ -148,15 +149,22 @@ class DonationChannelForm
                     ->helperText('Local clearing or branch code used by some international banks, for example an Indonesian bank code or a Singapore branch code.'),
 
                 // DuitNow Fields
-                TextInput::make('duitnow_type')
+                Select::make('duitnow_type')
+                    ->label(__('DuitNow ID Type'))
+                    ->options(DonationChannelOptions::duitNowIdTypes())
+                    ->native(false)
                     ->visible(fn (Get $get) => $get('method') === 'duitnow')
                     ->required(fn (Get $get) => $get('method') === 'duitnow'),
                 TextInput::make('duitnow_value')
+                    ->label(__('DuitNow ID'))
                     ->visible(fn (Get $get) => $get('method') === 'duitnow')
                     ->required(fn (Get $get) => $get('method') === 'duitnow'),
 
                 // E-Wallet Fields
-                TextInput::make('ewallet_provider')
+                Select::make('ewallet_provider')
+                    ->label(__('E-Wallet Provider'))
+                    ->options(DonationChannelOptions::EWALLET_PROVIDERS)
+                    ->native(false)
                     ->visible(fn (Get $get) => $get('method') === 'ewallet')
                     ->required(fn (Get $get) => $get('method') === 'ewallet'),
                 TextInput::make('ewallet_handle')
@@ -211,9 +219,6 @@ class DonationChannelForm
 
                         return 'Only one default channel is allowed for this owner.';
                     }),
-                Textarea::make('reference_note')
-                    ->label('Reference Note')
-                    ->columnSpanFull(),
             ])->columns(2);
 
         return $schema

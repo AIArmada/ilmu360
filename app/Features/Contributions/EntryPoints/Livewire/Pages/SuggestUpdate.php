@@ -8,6 +8,7 @@ use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
 use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
 use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 use App\Features\Contributions\Api\ContributionDirectUpdates;
 use App\Features\Contributions\Api\ContributionRequestLifecycle;
@@ -19,7 +20,6 @@ use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelection;
 use App\Features\Contributions\Api\VerifiedInstitutionMapsSelections;
 use App\Features\Contributions\Contracts\ContributionRequestGuard;
-use App\Features\Contributions\EntryPoints\Filament\Forms\EventContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Filament\Forms\InstitutionContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Filament\Forms\PersonContributionFormSchema;
 use App\Features\Contributions\EntryPoints\Filament\Forms\ReferenceContributionFormSchema;
@@ -28,6 +28,9 @@ use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\DonationQrFormUploads;
 use App\Features\DonationChannels\Api\DonationQrWorkflow;
 use App\Features\Events\Api\EventContributionStateMapper;
+use App\Features\Events\Api\Filament\EventContributionFormContext;
+use App\Features\Events\Api\Filament\EventContributionFormMode;
+use App\Features\Events\Api\Filament\EventContributionFormSchema;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\InstitutionMapsSelection;
 use App\Features\Institutions\Models\Institution;
@@ -45,6 +48,7 @@ use App\Shared\Media\EventMediaForm;
 use App\Shared\Signals\SignalRecorder;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -159,11 +163,19 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 return;
             }
 
-            $formState = $this->originalData;
+            $form = $this->contributionForm()->fill($this->originalData);
 
-            $this->originalData = $formState;
+            foreach (['description', 'bio'] as $key) {
+                if (! array_key_exists($key, $this->originalData)) {
+                    continue;
+                }
 
-            $this->contributionForm()->fill($formState);
+                $field = $form->getComponentByStatePath($key);
+
+                if ($field instanceof RichEditor) {
+                    $this->originalData[$key] = $field->getState();
+                }
+            }
         });
     }
 
@@ -487,11 +499,16 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function eventSubjectSchema(): array
     {
-        [$about, $schedule, $audience, $topics, $location, $speakers] = EventContributionFormSchema::components(
-            event: $this->entity instanceof Event ? $this->entity : null,
+        $event = $this->entity instanceof Event ? $this->entity : null;
+        $context = new EventContributionFormContext(
+            mode: EventContributionFormMode::Update,
+            eventId: $event instanceof Event ? (string) $event->getKey() : null,
         );
+        $schema = app(EventContributionFormSchema::class);
 
-        $speakersAndMedia = [$speakers];
+        $speakersAndMedia = [
+            ...$schema->speakerComponents($context),
+        ];
 
         if ($this->directEditMediaFields !== []) {
             $speakersAndMedia[] = EventMediaForm::section($this->directEditMediaFields, $this->configureVisitorMedia(...));
@@ -502,9 +519,15 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->id('event-update-tabs')
                 ->columnSpanFull()
                 ->tabs([
-                    Tab::make(__('Majlis & Topik'))->icon('heroicon-o-document-text')->schema([$about, $topics]),
-                    Tab::make(__('Tarikh, Masa & Kehadiran'))->icon('heroicon-o-clock')->schema([$schedule, $audience]),
-                    Tab::make(__('Format, Penganjur & Lokasi'))->icon('heroicon-o-building-office')->schema([$location]),
+                    Tab::make(__('Majlis & Topik'))->icon('heroicon-o-document-text')->schema($schema->topicComponents($context)),
+                    Tab::make(__('Tarikh, Masa & Kehadiran'))->icon('heroicon-o-clock')->schema([
+                        ...$schema->scheduleComponents($context),
+                        ...$schema->attendanceComponents($context),
+                    ]),
+                    Tab::make(__('Format, Penganjur & Lokasi'))->icon('heroicon-o-building-office')->schema([
+                        ...$schema->organizerComponents($context),
+                        ...$schema->locationComponents($context),
+                    ]),
                     Tab::make(__('Penceramah & Media'))->icon('heroicon-o-user-group')->schema($speakersAndMedia),
                 ]),
         ];
@@ -534,6 +557,15 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             return $this->eventComparableState($initialState);
         }
 
+        if (is_array($initialState['social_media'] ?? null)) {
+            $initialState['social_media'] = array_map(static function (array $row): array {
+                $urlOnly = in_array($row['platform'], [SocialPlatform::Website->value, SocialPlatform::Other->value], true);
+                unset($row[$urlOnly ? 'handle' : 'url']);
+
+                return $row;
+            }, $initialState['social_media']);
+        }
+
         if (! $this->entity instanceof Person) {
             return $initialState;
         }
@@ -544,18 +576,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
         $initialState['address'] = AddressFields::expandStoredAreasForForm([
             'country_id' => AddressFormState::normalizeLocationId($personAddress['country_id'] ?? null),
+            'state_id' => $personAddress['state_id'] ?? null,
+            'city_id' => $personAddress['city_id'] ?? null,
+            'state' => $personAddress['state'] ?? null,
+            'city' => $personAddress['city'] ?? null,
             'area_assignments' => (array) ($personAddress['area_assignments'] ?? []),
         ]);
-
-        if (($initialState['bio'] ?? null) === null) {
-            $initialState['bio'] = [
-                'type' => 'doc',
-                'content' => [[
-                    'type' => 'paragraph',
-                    'content' => [],
-                ]],
-            ];
-        }
 
         $initialState['contactMethods'] = array_map(
             static function (mixed $contact): mixed {
@@ -612,14 +638,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     {
         $storedPlaceId = data_get($this->originalData, 'address.google_place_id');
 
-        return InstitutionContributionFormSchema::directEditComponents(
-            addressStatePath: 'address',
-            includeLocationPicker: true,
+        return InstitutionContributionFormSchema::components(
+            creating: false,
             mediaFields: $this->directEditMediaFields,
-            includeWazeUrlField: false,
-            includeMapsReselection: true,
-            mapsReselectionRequired: ! is_string($storedPlaceId) || trim($storedPlaceId) === '',
             configureMedia: $this->configureVisitorMedia(...),
+            mapsReselectionRequired: ! is_string($storedPlaceId) || trim($storedPlaceId) === '',
         );
     }
 

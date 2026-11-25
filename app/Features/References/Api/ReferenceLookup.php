@@ -42,6 +42,13 @@ interface ReferenceLookup
     /** @return array<string, string> */
     public function activeTitles(): array;
 
+    /**
+     * Active references a contributor may target for updates or reports.
+     *
+     * @return list<array{id: string, slug: string, title: string, subtitle: ?string}>
+     */
+    public function searchPublicContributionTargets(string $search = '', int $limit = 12): array;
+
     /** @return array<string, string> */
     public function searchOptions(string $search, int $limit = 50): array;
 

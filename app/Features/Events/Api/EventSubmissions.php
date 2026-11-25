@@ -119,8 +119,43 @@ interface EventSubmissions
         bool $autoApproved,
     ): ?string;
 
-    /** Paginated immutable submission cards for the contributor dashboard. */
-    public function paginateForSubmitter(string $submitterId, int $perPage, string $pageName): EventSubmissionPage;
+    /**
+     * Paginated immutable submission cards for the contributor dashboard.
+     *
+     * The submitter's own institution-member events are excluded. The status
+     * group filters on the parent event or occurrence status; the search term
+     * matches the event or occurrence title.
+     */
+    public function paginateForSubmitter(
+        string $submitterId,
+        int $perPage,
+        string $pageName,
+        ?string $statusGroup = null,
+        ?string $search = null,
+    ): EventSubmissionPage;
+
+    /**
+     * Latest immutable submission cards for the contributor dashboard.
+     *
+     * @return list<EventSubmissionCard>
+     */
+    public function recentForSubmitter(string $submitterId, int $limit = 5): array;
+
+    /**
+     * One immutable submission card owned by the submitter, or null when the
+     * submission does not exist, is not owned, or the id is not a UUID.
+     */
+    public function findCardForSubmitter(string $submitterId, string $submissionId): ?EventSubmissionCard;
+
+    /** @return array{total: int, pending: int, approved: int, attention: int} */
+    public function summaryCountsForSubmitter(string $submitterId): array;
+
+    /**
+     * Publicly reachable events a contributor may target for updates or reports.
+     *
+     * @return list<array{slug: string, title: string, subtitle: ?string}>
+     */
+    public function searchPublicContributionTargets(string $search = '', int $limit = 12): array;
 
     /** @return list<EventSubmissionCard> */
     public function submissionsForAccount(string $accountId): array;

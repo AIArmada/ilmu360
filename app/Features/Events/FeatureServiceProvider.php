@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Features\Events;
 
 use AIArmada\Checkout\Contracts\StepContributor;
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventTaxonomy;
-use AIArmada\Events\Models\EventTerm;
-use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
+use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
+use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
+use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\FilamentEvents\Resources\EventAttendanceResource;
 use AIArmada\FilamentEvents\Resources\EventChangeLogResource;
 use AIArmada\FilamentEvents\Resources\EventOccurrenceResource;
@@ -84,6 +84,7 @@ use App\Features\Events\Api\EventSubmissionOptionsCache;
 use App\Features\Events\Api\EventSubmissions;
 use App\Features\Events\Api\EventTicketing;
 use App\Features\Events\Api\Filament\AdminEventsRelationManager;
+use App\Features\Events\Api\Filament\EventContributionFormSchema;
 use App\Features\Events\Api\Frontend\AdvancedEventFormContractContributor;
 use App\Features\Events\Api\Frontend\SubmitEventFormContractContributor;
 use App\Features\Events\Api\GuestEventSubmissionClaims;
@@ -192,6 +193,7 @@ use App\Features\Events\Services\EventAccountOwnershipService;
 use App\Features\Events\Services\EventAuthoringService;
 use App\Features\Events\Services\EventCategoryCatalog;
 use App\Features\Events\Services\EventCategoryPolicy;
+use App\Features\Events\Services\EventContributionFormSchemaService;
 use App\Features\Events\Services\EventContributionStateMapperService;
 use App\Features\Events\Services\EventEngagementEligibilityService;
 use App\Features\Events\Services\EventImageUploadsService;
@@ -265,9 +267,10 @@ use Illuminate\Support\Facades\Schedule;
  *   audiences, languages, locations, organizer writes and deletion cleanup
  *   to feature actions. CleanupEventAction delegates registration and
  *   check-in cleanup through Registration before the event row is gone. The
- *   vendor EventDeleteCascade runs from the `deleting` hook while the event is
- *   still available to owner-scoped child queries; it removes the remaining
- *   event-scoped package tables before the event row is deleted.
+ *   vendor DeleteCatalogScopeDependents cascade runs from the app deletion
+ *   lifecycle while the event is still available to owner-scoped child
+ *   queries; it removes the remaining event-scoped package tables before the
+ *   event row is deleted.
  *   Deletion cleanup deliberately
  *   excludes share-outcome reversal, contribution mapping, registration
  *   cascade changes and engagement-counter updates; those stay with their own
@@ -307,6 +310,7 @@ class FeatureServiceProvider extends FeatureModule
 
         $this->app->bind(EventMemberInvitationEligibility::class, EventMemberInvitationEligibilityQuery::class);
         $this->app->bind(EventContributionStateMapper::class, EventContributionStateMapperService::class);
+        $this->app->bind(EventContributionFormSchema::class, EventContributionFormSchemaService::class);
         $this->app->bind(OrganizerLookup::class, OrganizerLookupService::class);
         $this->app->bind(PublicScheduleVisibility::class, PublicScheduleVisibilityQuery::class);
         $this->app->bind(EventEngagementEligibility::class, EventEngagementEligibilityService::class);

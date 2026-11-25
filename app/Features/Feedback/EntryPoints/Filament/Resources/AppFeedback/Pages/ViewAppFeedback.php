@@ -21,6 +21,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\ValidationException;
 
 class ViewAppFeedback extends ViewRecord
@@ -48,6 +49,7 @@ class ViewAppFeedback extends ViewRecord
             ->label(__('app-feedback.admin.reply'))
             ->icon(Heroicon::OutlinedChatBubbleLeftRight)
             ->color('primary')
+            ->authorize(fn (): bool => auth()->user()?->can('reply', $this->feedback()) ?? false)
             ->visible(fn (): bool => in_array($this->feedback()->status, [AppFeedbackStatus::New, AppFeedbackStatus::Triaged], true)
                 && auth()->user()?->can('reply', $this->feedback()) === true)
             ->schema([
@@ -63,7 +65,29 @@ class ViewAppFeedback extends ViewRecord
                 $user = auth()->user();
                 abort_unless($user instanceof AccountActor, 403);
 
-                $postAppFeedbackMessageAction->handle($user, $this->feedback(), (string) $data['body']);
+                try {
+                    $postAppFeedbackMessageAction->handle($user, $this->feedback(), (string) $data['body']);
+                } catch (ValidationException $exception) {
+                    $this->refreshFeedback();
+
+                    Notification::make()
+                        ->title(collect($exception->errors())->flatten()->first() ?? __('Could not reply to this feedback.'))
+                        ->danger()
+                        ->send();
+
+                    return;
+                } catch (AuthorizationException $exception) {
+                    $this->refreshFeedback();
+
+                    Notification::make()
+                        ->title($exception->getMessage() !== ''
+                            ? $exception->getMessage()
+                            : __('You are not authorized to reply to this feedback.'))
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
 
                 $this->refreshFeedback();
 
@@ -81,13 +105,26 @@ class ViewAppFeedback extends ViewRecord
             ->icon(Heroicon::OutlinedEye)
             ->color('info')
             ->requiresConfirmation()
+            ->authorize(fn (): bool => auth()->user()?->can('transition', $this->feedback()) ?? false)
             ->visible(fn (): bool => $this->feedback()->status === AppFeedbackStatus::New
                 && auth()->user()?->can('transition', $this->feedback()) === true)
             ->action(function (TransitionAppFeedbackAction $transitionAppFeedbackAction): void {
                 $user = auth()->user();
                 abort_unless($user instanceof AccountActor, 403);
 
-                $transitionAppFeedbackAction->handle($user, $this->feedback(), AppFeedbackStatus::Triaged);
+                try {
+                    $transitionAppFeedbackAction->handle($user, $this->feedback(), AppFeedbackStatus::Triaged);
+                } catch (ValidationException $exception) {
+                    $this->handleTransitionFailure($exception);
+
+                    return;
+                } catch (AuthorizationException $exception) {
+                    $this->handleAuthorizationFailure($exception);
+
+                    return;
+                }
+
+                AppFeedbackResource::flushNavigationBadgeCache();
 
                 $this->refreshFeedback();
 
@@ -104,6 +141,7 @@ class ViewAppFeedback extends ViewRecord
             ->label(__('app-feedback.admin.resolve'))
             ->icon(Heroicon::OutlinedCheckCircle)
             ->color('success')
+            ->authorize(fn (): bool => auth()->user()?->can('transition', $this->feedback()) ?? false)
             ->visible(fn (): bool => $this->feedback()->status === AppFeedbackStatus::Triaged
                 && auth()->user()?->can('transition', $this->feedback()) === true)
             ->schema([
@@ -117,12 +155,24 @@ class ViewAppFeedback extends ViewRecord
                 $user = auth()->user();
                 abort_unless($user instanceof AccountActor, 403);
 
-                $transitionAppFeedbackAction->handle(
-                    $user,
-                    $this->feedback(),
-                    AppFeedbackStatus::Resolved,
-                    filled($data['resolution_note'] ?? null) ? (string) $data['resolution_note'] : null,
-                );
+                try {
+                    $transitionAppFeedbackAction->handle(
+                        $user,
+                        $this->feedback(),
+                        AppFeedbackStatus::Resolved,
+                        filled($data['resolution_note'] ?? null) ? (string) $data['resolution_note'] : null,
+                    );
+                } catch (ValidationException $exception) {
+                    $this->handleTransitionFailure($exception);
+
+                    return;
+                } catch (AuthorizationException $exception) {
+                    $this->handleAuthorizationFailure($exception);
+
+                    return;
+                }
+
+                AppFeedbackResource::flushNavigationBadgeCache();
 
                 $this->refreshFeedback();
 
@@ -139,6 +189,7 @@ class ViewAppFeedback extends ViewRecord
             ->label(__('app-feedback.admin.decline'))
             ->icon(Heroicon::OutlinedXCircle)
             ->color('danger')
+            ->authorize(fn (): bool => auth()->user()?->can('transition', $this->feedback()) ?? false)
             ->visible(fn (): bool => $this->feedback()->status === AppFeedbackStatus::Triaged
                 && auth()->user()?->can('transition', $this->feedback()) === true)
             ->schema([
@@ -152,12 +203,24 @@ class ViewAppFeedback extends ViewRecord
                 $user = auth()->user();
                 abort_unless($user instanceof AccountActor, 403);
 
-                $transitionAppFeedbackAction->handle(
-                    $user,
-                    $this->feedback(),
-                    AppFeedbackStatus::Declined,
-                    filled($data['resolution_note'] ?? null) ? (string) $data['resolution_note'] : null,
-                );
+                try {
+                    $transitionAppFeedbackAction->handle(
+                        $user,
+                        $this->feedback(),
+                        AppFeedbackStatus::Declined,
+                        filled($data['resolution_note'] ?? null) ? (string) $data['resolution_note'] : null,
+                    );
+                } catch (ValidationException $exception) {
+                    $this->handleTransitionFailure($exception);
+
+                    return;
+                } catch (AuthorizationException $exception) {
+                    $this->handleAuthorizationFailure($exception);
+
+                    return;
+                }
+
+                AppFeedbackResource::flushNavigationBadgeCache();
 
                 $this->refreshFeedback();
 
@@ -174,6 +237,7 @@ class ViewAppFeedback extends ViewRecord
             ->label(__('app-feedback.admin.edit_internal_notes'))
             ->icon(Heroicon::OutlinedPencilSquare)
             ->color('gray')
+            ->authorize(fn (): bool => auth()->user()?->can('updateInternalNotes', $this->feedback()) ?? false)
             ->visible(fn (): bool => auth()->user()?->can('updateInternalNotes', $this->feedback()) === true)
             ->schema([
                 Textarea::make('internal_notes')
@@ -188,11 +252,33 @@ class ViewAppFeedback extends ViewRecord
                 $user = auth()->user();
                 abort_unless($user instanceof AccountActor, 403);
 
-                $updateInternalNotes->handle(
-                    $user,
-                    $this->feedback(),
-                    filled($data['internal_notes'] ?? null) ? (string) $data['internal_notes'] : null,
-                );
+                try {
+                    $updateInternalNotes->handle(
+                        $user,
+                        $this->feedback(),
+                        filled($data['internal_notes'] ?? null) ? (string) $data['internal_notes'] : null,
+                    );
+                } catch (ValidationException $exception) {
+                    $this->refreshFeedback();
+
+                    Notification::make()
+                        ->title(collect($exception->errors())->flatten()->first() ?? __('Could not update the internal notes.'))
+                        ->danger()
+                        ->send();
+
+                    return;
+                } catch (AuthorizationException $exception) {
+                    $this->refreshFeedback();
+
+                    Notification::make()
+                        ->title($exception->getMessage() !== ''
+                            ? $exception->getMessage()
+                            : __('You are not authorized to update internal notes.'))
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
 
                 $this->refreshFeedback();
 
@@ -209,6 +295,7 @@ class ViewAppFeedback extends ViewRecord
             ->label(__('app-feedback.admin.escalate_github'))
             ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
             ->color('gray')
+            ->authorize(fn (): bool => auth()->user()?->can('escalateToGitHub', $this->feedback()) ?? false)
             ->visible(fn (): bool => $this->feedback()->github_escalation_status === AppFeedbackGitHubStatus::NotRequested
                 && auth()->user()?->can('escalateToGitHub', $this->feedback()) === true
                 && app(GitHubIssueReporterContract::class)->isConfigured())
@@ -246,6 +333,17 @@ class ViewAppFeedback extends ViewRecord
                         ->send();
 
                     return;
+                } catch (AuthorizationException $exception) {
+                    $this->refreshFeedback();
+
+                    Notification::make()
+                        ->title($exception->getMessage() !== ''
+                            ? $exception->getMessage()
+                            : __('You are not authorized to escalate this feedback.'))
+                        ->danger()
+                        ->send();
+
+                    return;
                 }
 
                 $this->refreshFeedback();
@@ -263,6 +361,7 @@ class ViewAppFeedback extends ViewRecord
             ->label(__('app-feedback.admin.link_github_issue'))
             ->icon(Heroicon::OutlinedLink)
             ->color('gray')
+            ->authorize(fn (): bool => auth()->user()?->can('linkGitHubIssue', $this->feedback()) ?? false)
             ->visible(fn (): bool => in_array($this->feedback()->github_escalation_status, [
                 AppFeedbackGitHubStatus::Pending,
                 AppFeedbackGitHubStatus::Unknown,
@@ -291,6 +390,15 @@ class ViewAppFeedback extends ViewRecord
                         ->send();
 
                     return;
+                } catch (AuthorizationException $exception) {
+                    Notification::make()
+                        ->title($exception->getMessage() !== ''
+                            ? $exception->getMessage()
+                            : __('You are not authorized to link a GitHub issue.'))
+                        ->danger()
+                        ->send();
+
+                    return;
                 }
 
                 $this->refreshFeedback();
@@ -312,6 +420,28 @@ class ViewAppFeedback extends ViewRecord
 
     private function refreshFeedback(): void
     {
-        $this->record = $this->feedback()->fresh(['reporter', 'handler']);
+        $this->record = $this->feedback()->fresh(['reporter', 'handler', 'media']);
+    }
+
+    private function handleTransitionFailure(ValidationException $exception): void
+    {
+        $this->refreshFeedback();
+
+        Notification::make()
+            ->title(collect($exception->errors())->flatten()->first() ?? __('Could not update this feedback status.'))
+            ->danger()
+            ->send();
+    }
+
+    private function handleAuthorizationFailure(AuthorizationException $exception): void
+    {
+        $this->refreshFeedback();
+
+        Notification::make()
+            ->title($exception->getMessage() !== ''
+                ? $exception->getMessage()
+                : __('You are not authorized to update this feedback status.'))
+            ->danger()
+            ->send();
     }
 }

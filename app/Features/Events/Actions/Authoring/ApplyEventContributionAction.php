@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Authoring;
 
-use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Data\ScheduleKind;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleFromInputAction;
 use App\Features\Events\Api\Enums\TimingMode;
 use App\Features\Events\Api\EventScheduleInput;
+use App\Features\Events\Models\Event;
 use App\Features\Events\Support\EventModel;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Prayer\Api\PrayerOffset;
@@ -15,6 +16,7 @@ use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * Apply a normalized contribution payload to an existing event.
@@ -42,7 +44,11 @@ final readonly class ApplyEventContributionAction
     {
         $event = EventModel::query('event')->withoutOwnerScope()->findOrFail($eventId);
 
-        $event->loadMissing(['primaryOccurrence', 'timeExpressions', 'locations']);
+        if (! $event instanceof Event) {
+            throw new RuntimeException('Expected the resolved record to be an event.');
+        }
+
+        $event->loadMissing(['primaryOccurrence', 'timeExpressions']);
         $currentOccurrence = $event->primaryOccurrence;
         $currentExpression = $event->timeExpressions->firstWhere('anchor_type', 'prayer');
 
@@ -62,29 +68,9 @@ final readonly class ApplyEventContributionAction
             'institution_id' => array_key_exists('institution_id', $payload) ? $this->normalizeOptionalString($payload['institution_id']) : $event->institution_id,
             'default_venue_id' => array_key_exists('venue_id', $payload) ? $this->normalizeOptionalString($payload['venue_id']) : $event->default_venue_id,
         ]);
-        if (array_key_exists('space_ids', $payload)) {
-            $spaceIds = is_array($payload['space_ids']) ? array_values(array_filter($payload['space_ids'], is_string(...))) : [];
-        } else {
-            $existing = $event->locations
-                ->whereNull('event_occurrence_id')
-                ->whereNull('event_session_id')
-                ->sortBy('sort_order');
-            $spaceIds = $existing->pluck('venue_space_id')->filter()->map(strval(...))->values()->all();
+        if (array_key_exists('space_ids', $payload) || $event->isDirty(['institution_id', 'default_venue_id'])) {
+            $this->syncLocation($event, $payload);
         }
-
-        if ($spaceIds !== []) {
-            if ($event->default_venue_id !== null) {
-                $this->spaceEligibilityResolver->validateVenueSelection((string) $event->default_venue_id, $spaceIds);
-            } elseif ($event->institution_id !== null) {
-                $this->spaceEligibilityResolver->validateInstitutionSelection((string) $event->institution_id, $spaceIds);
-            } else {
-                throw ValidationException::withMessages([
-                    'space_ids' => __('Ruang memerlukan institusi atau venue.'),
-                ]);
-            }
-        }
-
-        $event->syncLocation($event->default_venue_id, $spaceIds);
 
         $dirty = $event->getDirty();
         $event->save();
@@ -200,28 +186,48 @@ final readonly class ApplyEventContributionAction
         ) {
             $this->syncKeyPeople->syncEvent(
                 $event,
-                $this->normalizeStringArray($payload['person_ids'] ?? []),
-                $this->normalizeKeyPeople($payload['other_key_people'] ?? []),
+                array_key_exists('person_ids', $payload) ? $this->normalizeStringArray($payload['person_ids'] ?? []) : null,
+                array_key_exists('other_key_people', $payload) ? $this->normalizeKeyPeople($payload['other_key_people'] ?? []) : null,
             );
         }
 
-        if (
-            array_key_exists('event_category_ids', $payload)
-            || array_key_exists('domain_tags', $payload)
-            || array_key_exists('discipline_tags', $payload)
-            || array_key_exists('source_tags', $payload)
-            || array_key_exists('issue_tags', $payload)
-        ) {
-            $this->syncClassifications->handle($event, [
-                'event_category_ids' => $payload['event_category_ids'] ?? $event->event_category_ids,
-                'domain_tags' => $payload['domain_tags'] ?? [],
-                'discipline_tags' => $payload['discipline_tags'] ?? [],
-                'source_tags' => $payload['source_tags'] ?? [],
-                'issue_tags' => $payload['issue_tags'] ?? [],
-            ]);
+        $classifications = array_intersect_key($payload, array_flip([
+            'event_category_ids',
+            'domain_tags',
+            'discipline_tags',
+            'source_tags',
+            'issue_tags',
+        ]));
+
+        if ($classifications !== []) {
+            $this->syncClassifications->handle($event, $classifications);
         }
 
         return $dirty;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function syncLocation(Event $event, array $payload): void
+    {
+        $spaceIds = array_key_exists('space_ids', $payload)
+            ? $this->normalizeStringArray(is_array($payload['space_ids']) ? $payload['space_ids'] : [])
+            : $event->locations->sortBy('sort_order')->pluck('venue_space_id')->filter()->map(strval(...))->values()->all();
+
+        if ($spaceIds !== []) {
+            if ($event->default_venue_id !== null) {
+                $this->spaceEligibilityResolver->validateVenueSelection((string) $event->default_venue_id, $spaceIds);
+            } elseif ($event->institution_id !== null) {
+                $this->spaceEligibilityResolver->validateInstitutionSelection((string) $event->institution_id, $spaceIds);
+            } else {
+                throw ValidationException::withMessages([
+                    'space_ids' => __('Ruang memerlukan institusi atau venue.'),
+                ]);
+            }
+        }
+
+        $event->syncLocation($event->default_venue_id, $spaceIds);
     }
 
     private function normalizeOptionalString(mixed $value): ?string
@@ -295,7 +301,7 @@ final readonly class ApplyEventContributionAction
                     'involveable_type' => $involveableType,
                     'involveable_id' => $involveableId,
                     'display_name' => $name !== '' ? $name : null,
-                    'visibility' => in_array($entry['visibility'] ?? 'public', ['public', 'private'], true) ? $entry['visibility'] : 'public',
+                    'visibility' => ($entry['visibility'] ?? null) === 'private' ? 'private' : 'public',
                     'notes' => $notes !== '' ? $notes : null,
                 ];
             })

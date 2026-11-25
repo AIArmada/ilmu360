@@ -30,6 +30,7 @@ function organizationDonationFixture(User $owner, ?string $countryIso2 = 'MY'): 
         'MY' => 'Malaysia',
         'ID' => 'Indonesia',
         'SG' => 'Singapore',
+        'AQ' => 'Antarctica',
         default => $countryIso2,
     });
 
@@ -92,13 +93,13 @@ it('resolves the organization donation country from the canonical primary addres
     ]);
 
     expect($channel->donatable_type)->toBe('organization')
-        ->and($channel->bank_name)->toBe('Maybank2u')
+        ->and($channel->bank_name)->toBe('Malayan Banking Berhad')
         ->and($channel->status)->toBe(DonationChannelStatus::Pending);
 });
 
 it('rejects organization channels outside catalogue coverage', function () {
     $owner = User::factory()->create();
-    $organization = organizationDonationFixture($owner, 'US');
+    $organization = organizationDonationFixture($owner, 'AQ');
 
     expect(fn () => app(SaveDonationChannelAction::class)->handle([
         'donatable_type' => 'organization',
@@ -192,7 +193,7 @@ it('lets organization administrators manage the address and channels from the wo
         ->where('donatable_id', (string) $organization->getKey())
         ->firstOrFail();
 
-    expect($channel->bank_name)->toBe('Maybank2u')
+    expect($channel->bank_name)->toBe('Malayan Banking Berhad')
         ->and($channel->status)->toBe(DonationChannelStatus::Pending);
 
     Livewire::actingAs($owner)
@@ -281,7 +282,7 @@ it('exposes only verified donation channels on the public organization profile',
         ->assertOk()
         ->assertJsonCount(1, 'data.donation_channels')
         ->assertJsonPath('data.donation_channels.0.label', 'Tabung Amal')
-        ->assertJsonPath('data.donation_channels.0.bank_name', 'Maybank2u')
+        ->assertJsonPath('data.donation_channels.0.bank_name', 'Malayan Banking Berhad')
         ->assertJsonPath('data.donation_channels.0.recipient', 'Rumah Amal Awam')
         ->assertJsonPath('data.donation_channels.0.method_display', 'Bank Account');
 });
@@ -410,7 +411,7 @@ it('renders verified donation channels on the public organization page', functio
         ->assertSuccessful()
         ->assertSee('Tabung Amal')
         ->assertSee('Rumah Amal Awam')
-        ->assertSee('Maybank2u')
+        ->assertSee('Malayan Banking Berhad')
         ->assertDontSee('Rumah Amal Belum Sah');
 
     Livewire::actingAs($owner)

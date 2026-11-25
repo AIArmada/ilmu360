@@ -1,6 +1,10 @@
 - A Filament sidebar navigation group can span independently owned feature modules. Navigation grouping is presentation metadata: it must not be used to justify a catch-all `app/Features/Directory` runtime domain or its storage ownership. Move each writer and its consumers to the owning feature, preserving routes and persisted aliases.
 # Lessons
 
+- User-reported layout regression (2026-11-24, majlis update): when moving fields into a shared responsive Filament grid, check each field's span against its longest normal value. Keep long timezone identifiers out of a single narrow track.
+
+- User clarification (2026-11-24, contribution form parity): include institusi, penceramah, and rujukan when aligning public create and update forms. Verify each pair through its own entry points, including pairs that already share a schema.
+
 - User correction (2026-11-24, international donation channels): put the final schema in the original creation migration. Audit country rules across every write path and remove grandfathered methods, old QR fingerprint rules, and the tests that preserve them.
 
 - User correction (2026-11-14, architecture migration hard cuts): do not add backward-compatibility behavior, legacy paths, data backfills, or superseded leftovers. Define one current contract, cut all current callers over, and delete the old implementation in the same slice. Do not retain old values through aliases or fallback maps; keep only identifiers that remain part of the active contract.
@@ -1345,3 +1349,5 @@ Do not turn organizer identity selection into speaker/institution membership onb
 - Framework-boundary lesson (2026-11-23, media rollback): before adding a custom deferred file remover, check the registered observer; `AuditedMediaObserver implements ShouldHandleEventsAfterCommit`, so Laravel already runs Spatie's `deleted` file removal after commit. A redundant remover also deferred explicit failed-write cleanup called directly through `Filesystem::removeAllFiles()`, leaving orphans on rollback.
 
 - User correction (2026-11-24, person media hard cut): apply “no backward compatibility, legacy, or leftovers” to deploy-time code too. Use the new contract for current writes and reads without adding a one-time rename, data backfill, or cleanup migration.
+
+- User correction (2026-11-24, membership claims): institutions cannot request or receive Owner through claims. Speaker claims retain Owner. Scope shared role rules to the subject and verify both applicant and reviewer paths.

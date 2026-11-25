@@ -3,6 +3,7 @@
 namespace App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications;
 
 use AIArmada\CommerceSupport\Support\VersionedCache;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Pages\ListMembershipApplications;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Pages\ViewMembershipApplication;
 use App\Features\Membership\EntryPoints\Filament\Resources\MembershipApplications\Schemas\MembershipApplicationInfolist;
@@ -70,7 +71,7 @@ class MembershipApplicationResource extends Resource
         // enabled, because parent::getEloquentQuery() applies tenant scoping.
         $query = MembershipApplication::query()->withoutOwnerScope();
 
-        return $query->with(['applicant', 'reviewer']);
+        return $query->with(['applicant', 'reviewer', 'media']);
     }
 
     #[\Override]
@@ -101,7 +102,8 @@ class MembershipApplicationResource extends Resource
                 'nav_badge:membership_applications:pending:count',
                 30,
                 static fn (): int => MembershipApplication::query()
-                    ->where('status', 'pending')
+                    ->withoutOwnerScope()
+                    ->where('status', ApplicationStatus::Pending->value)
                     ->count(),
             );
         }
@@ -114,6 +116,12 @@ class MembershipApplicationResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return self::getNavigationBadge() !== null ? 'warning' : null;
+    }
+
+    public static function flushNavigationBadgeCache(): void
+    {
+        self::$navigationBadgeScope = null;
+        self::$pendingNavigationCount = null;
     }
 
     #[\Override]

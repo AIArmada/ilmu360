@@ -6,6 +6,7 @@ namespace App\Features\Institutions\Queries;
 
 use AIArmada\Addressing\Rules\ValidAreaAssignmentRoles;
 use AIArmada\Addressing\Support\ModelResolver;
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Institutions\Api\ContributionProjection;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
@@ -55,12 +56,11 @@ final readonly class InstitutionContributionProjection implements ContributionPr
                             ['name' => 'iban', 'type' => 'string', 'required' => false, 'max_length' => 34],
                             ['name' => 'swift_bic', 'type' => 'string', 'required' => false, 'max_length' => 11],
                             ['name' => 'routing_code', 'type' => 'string', 'required' => false, 'max_length' => 20],
-                            ['name' => 'duitnow_type', 'type' => 'string', 'required' => false, 'max_length' => 255],
+                            ['name' => 'duitnow_type', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(DonationChannelOptions::DUITNOW_ID_TYPES)],
                             ['name' => 'duitnow_value', 'type' => 'string', 'required' => false, 'max_length' => 2000],
-                            ['name' => 'ewallet_provider', 'type' => 'string', 'required' => false, 'max_length' => 255],
+                            ['name' => 'ewallet_provider', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(DonationChannelOptions::EWALLET_PROVIDERS)],
                             ['name' => 'ewallet_handle', 'type' => 'string', 'required' => false, 'max_length' => 255],
                             ['name' => 'ewallet_qr_payload', 'type' => 'string', 'required' => false, 'max_length' => 2000],
-                            ['name' => 'reference_note', 'type' => 'string', 'required' => false, 'max_length' => 255],
                             ['name' => 'is_default', 'type' => 'boolean', 'required' => false],
                         ],
                     ],
@@ -116,12 +116,11 @@ final readonly class InstitutionContributionProjection implements ContributionPr
             'donation_channels.*.iban' => ['nullable', 'string', 'max:34'],
             'donation_channels.*.swift_bic' => ['nullable', 'string', 'max:11'],
             'donation_channels.*.routing_code' => ['nullable', 'string', 'max:20'],
-            'donation_channels.*.duitnow_type' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.duitnow_type' => ['nullable', 'string', 'required_if:donation_channels.*.method,duitnow', Rule::in(array_keys(DonationChannelOptions::DUITNOW_ID_TYPES))],
             'donation_channels.*.duitnow_value' => ['nullable', 'string', 'max:2000'],
-            'donation_channels.*.ewallet_provider' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.ewallet_provider' => ['nullable', 'string', 'required_if:donation_channels.*.method,ewallet', Rule::in(array_keys(DonationChannelOptions::EWALLET_PROVIDERS))],
             'donation_channels.*.ewallet_handle' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.ewallet_qr_payload' => ['nullable', 'string', 'max:2000'],
-            'donation_channels.*.reference_note' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.is_default' => ['nullable', 'boolean'],
         ];
     }
@@ -192,7 +191,6 @@ final readonly class InstitutionContributionProjection implements ContributionPr
             'ewallet_provider' => $channel->ewallet_provider,
             'ewallet_handle' => $channel->ewallet_handle,
             'ewallet_qr_payload' => $channel->ewallet_qr_payload,
-            'reference_note' => $channel->reference_note,
             'is_default' => (bool) $channel->is_default,
         ];
     }

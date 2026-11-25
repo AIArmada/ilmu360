@@ -10,9 +10,11 @@ use App\Features\Communications\Api\NotificationMessageRendering;
 use App\Features\Communications\Api\NotificationPriority;
 use App\Features\Communications\Api\NotificationTrigger;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
+use App\Features\Contributions\EntryPoints\Ui\ContributionsHubPresenter;
 use App\Features\Contributions\Enums\ContributionRequestType;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Support\ContributionRequestNotifier;
+use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 use App\Features\References\Models\Reference;
@@ -24,11 +26,12 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
     public function __construct(
         protected NotificationDispatch $notificationDispatch,
         protected NotificationMessageRendering $messageRenderer,
+        protected ContributionsHubPresenter $hubPresenter,
     ) {}
 
-    public function notifyCreateRequestApproved(ContributionRequest $request): void
+    public function notifyRequestApproved(ContributionRequest $request): void
     {
-        if (! $this->supportsCreateSubmissionNotifications($request)) {
+        if (! $this->supportsSubmissionNotifications($request)) {
             return;
         }
 
@@ -37,26 +40,32 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
         if (! $proposer instanceof User) {
             return;
         }
+
+        $isUpdate = $request->type === ContributionRequestType::Update;
 
         $this->dispatchToProposer(
             user: $proposer,
             request: $request,
             trigger: NotificationTrigger::SubmissionApproved,
-            titleKey: 'notifications.messages.directory_submission_approved.title',
+            titleKey: $isUpdate
+                ? 'notifications.messages.directory_update_approved.title'
+                : 'notifications.messages.directory_submission_approved.title',
             titleParams: [
                 'subject' => $this->subjectLabel($request),
                 'title' => $this->subjectTitle($request),
             ],
-            bodyKey: 'notifications.messages.directory_submission_approved.body',
-            actionUrl: $this->approvedActionUrl($request),
+            bodyKey: $isUpdate
+                ? 'notifications.messages.directory_update_approved.body'
+                : 'notifications.messages.directory_submission_approved.body',
+            actionUrl: $isUpdate ? $this->updateApprovedActionUrl($request) : $this->approvedActionUrl($request),
             priority: NotificationPriority::High,
             fingerprint: 'contribution-request-approved:'.$request->getKey(),
         );
     }
 
-    public function notifyCreateRequestRejected(ContributionRequest $request): void
+    public function notifyRequestRejected(ContributionRequest $request): void
     {
-        if (! $this->supportsCreateSubmissionNotifications($request)) {
+        if (! $this->supportsSubmissionNotifications($request)) {
             return;
         }
 
@@ -66,10 +75,15 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
             return;
         }
 
+        $isUpdate = $request->type === ContributionRequestType::Update;
+        $bodyKeyPrefix = $isUpdate
+            ? 'notifications.messages.directory_update_rejected'
+            : 'notifications.messages.directory_submission_rejected';
+
         $note = is_string($request->reviewer_note) ? trim($request->reviewer_note) : '';
         $bodyKey = $note !== ''
-            ? 'notifications.messages.directory_submission_rejected.body_with_note'
-            : 'notifications.messages.directory_submission_rejected.body';
+            ? $bodyKeyPrefix.'.body_with_note'
+            : $bodyKeyPrefix.'.body';
 
         $bodyParams = $note !== '' ? ['note' => $note] : [];
 
@@ -77,14 +91,14 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
             user: $proposer,
             request: $request,
             trigger: NotificationTrigger::SubmissionRejected,
-            titleKey: 'notifications.messages.directory_submission_rejected.title',
+            titleKey: $bodyKeyPrefix.'.title',
             titleParams: [
                 'subject' => $this->subjectLabel($request),
                 'title' => $this->subjectTitle($request),
             ],
             bodyKey: $bodyKey,
             bodyParams: $bodyParams,
-            actionUrl: route('contributions.index'),
+            actionUrl: route('contributions.index', ['lihat' => 'request:'.$request->getKey()]),
             priority: NotificationPriority::High,
             fingerprint: 'contribution-request-rejected:'.$request->getKey().':'.sha1($note),
         );
@@ -171,16 +185,32 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
         $this->notificationDispatch->sendInAppToAccount($user, $payload);
     }
 
-    private function supportsCreateSubmissionNotifications(ContributionRequest $request): bool
+    private function supportsSubmissionNotifications(ContributionRequest $request): bool
     {
         $subjectType = $this->normalizedSubjectType($request);
 
-        return $request->type === ContributionRequestType::Create
-            && in_array($subjectType, [
+        if ($subjectType === null) {
+            return false;
+        }
+
+        $type = $request->type instanceof ContributionRequestType
+            ? $request->type
+            : (is_string($request->type) ? ContributionRequestType::tryFrom($request->type) : null);
+
+        return match ($type) {
+            ContributionRequestType::Create => in_array($subjectType, [
                 ContributionSubjectType::Institution,
                 ContributionSubjectType::Person,
                 ContributionSubjectType::Reference,
-            ], true);
+            ], true),
+            ContributionRequestType::Update => in_array($subjectType, [
+                ContributionSubjectType::Event,
+                ContributionSubjectType::Institution,
+                ContributionSubjectType::Person,
+                ContributionSubjectType::Reference,
+            ], true),
+            default => false,
+        };
     }
 
     private function normalizedSubjectType(ContributionRequest $request): ?ContributionSubjectType
@@ -201,6 +231,7 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
     private function subjectLabel(ContributionRequest $request): string
     {
         return match ($this->normalizedSubjectType($request)) {
+            ContributionSubjectType::Event => __('Event'),
             ContributionSubjectType::Institution => __('Institution'),
             ContributionSubjectType::Person => __('Speaker'),
             ContributionSubjectType::Reference => __('Reference'),
@@ -212,11 +243,16 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
     {
         $entity = $request->entity;
 
+        $proposedName = data_get($request->proposed_data, 'name');
+        $proposedTitle = data_get($request->proposed_data, 'title');
+
         return match (true) {
+            $entity instanceof Event => $entity->title,
             $entity instanceof Institution => $entity->name,
-            $entity instanceof Person => $entity->name,
+            $entity instanceof Person => $entity->formatted_name,
             $entity instanceof Reference => $entity->displayTitle(),
-            is_string(data_get($request->proposed_data, 'name')) && trim(data_get($request->proposed_data, 'name')) !== '' => trim(data_get($request->proposed_data, 'name')),
+            is_string($proposedName) && trim($proposedName) !== '' => trim($proposedName),
+            is_string($proposedTitle) && trim($proposedTitle) !== '' => trim($proposedTitle),
             default => $this->subjectLabel($request),
         };
     }
@@ -231,6 +267,12 @@ class ContributionRequestNotificationService implements ContributionRequestNotif
             $entity instanceof Reference => route('references.show', $entity),
             default => route('contributions.index'),
         };
+    }
+
+    private function updateApprovedActionUrl(ContributionRequest $request): string
+    {
+        return $this->hubPresenter->requestPublicUrl($request)
+            ?? route('contributions.index', ['lihat' => 'request:'.$request->getKey()]);
     }
 
     /**

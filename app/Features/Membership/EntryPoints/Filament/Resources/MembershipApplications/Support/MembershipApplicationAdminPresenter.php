@@ -7,23 +7,18 @@ namespace App\Features\Membership\EntryPoints\Filament\Resources\MembershipAppli
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Membership\Api\MembershipApplicationFormRules;
-use App\Features\Membership\Api\MembershipApplications;
 use App\Features\Membership\Api\MembershipSubjectCatalog;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Membership\Models\MembershipApplication;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
+use WeakMap;
 
 final class MembershipApplicationAdminPresenter
 {
-    /**
-     * @return array<string, string>
-     */
-    public static function approvalRoleOptions(): array
-    {
-        return app(MembershipApplications::class)->reviewRoleOptions();
-    }
+    /** @var WeakMap<MembershipApplication, array{subject_label: string, subject_title: string, redirect_url: string|null, admin_url: string|null}|null>|null */
+    private static ?WeakMap $resolvedSubjects = null;
 
     public static function labelForSubject(MemberSubjectType|string|null $subjectType): string
     {
@@ -115,7 +110,7 @@ final class MembershipApplicationAdminPresenter
     {
         $links = $application->getMedia('evidence')
             ->map(static function (Media $media): string {
-                $url = e($media->getAvailableUrl(['thumb']) ?: $media->getUrl());
+                $url = e($media->getUrl());
                 $name = e($media->name !== '' ? $media->name : $media->file_name);
 
                 return sprintf(
@@ -175,6 +170,20 @@ final class MembershipApplicationAdminPresenter
      * @return array{subject_label: string, subject_title: string, redirect_url: string|null, admin_url: string|null}|null
      */
     private static function subjectPresentation(MembershipApplication $application): ?array
+    {
+        self::$resolvedSubjects ??= new WeakMap;
+
+        if (self::$resolvedSubjects->offsetExists($application)) {
+            return self::$resolvedSubjects[$application];
+        }
+
+        return self::$resolvedSubjects[$application] = self::resolveSubjectPresentation($application);
+    }
+
+    /**
+     * @return array{subject_label: string, subject_title: string, redirect_url: string|null, admin_url: string|null}|null
+     */
+    private static function resolveSubjectPresentation(MembershipApplication $application): ?array
     {
         $subjectTypeValue = $application->subject_type instanceof \BackedEnum
             ? $application->subject_type->value

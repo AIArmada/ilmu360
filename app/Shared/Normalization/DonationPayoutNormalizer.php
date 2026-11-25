@@ -35,7 +35,6 @@ final class DonationPayoutNormalizer
             'ewallet_provider' => self::string($row['ewallet_provider'] ?? null),
             'ewallet_handle' => self::string($row['ewallet_handle'] ?? null),
             'ewallet_qr_payload' => self::string($row['ewallet_qr_payload'] ?? null),
-            'reference_note' => self::string($row['reference_note'] ?? null),
             'is_default' => (bool) ($row['is_default'] ?? false),
         ];
     }

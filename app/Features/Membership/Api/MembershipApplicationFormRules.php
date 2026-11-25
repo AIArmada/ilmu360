@@ -21,12 +21,14 @@ final readonly class MembershipApplicationFormRules
     }
 
     /**
+     * Roles that may be requested on a claim and granted on approval.
+     *
      * @return array<string, string>
      */
-    public static function applicationRoleOptions(): array
+    public static function roleOptions(?MemberSubjectType $subjectType): array
     {
         return [
-            MemberRole::Owner->value => __('Owner'),
+            ...($subjectType === MemberSubjectType::Person ? [MemberRole::Owner->value => __('Owner')] : []),
             MemberRole::Admin->value => __('Administrator'),
             MemberRole::Editor->value => __('Editor'),
         ];

@@ -25,6 +25,7 @@ use App\Features\Contributions\EntryPoints\Filament\Resources\ContributionReques
 use App\Features\Contributions\EntryPoints\Ui\ContributionSubjectPresenter;
 use App\Features\Contributions\Models\ContributionRequest;
 use App\Features\Contributions\Services\ContributionEntityStateService;
+use App\Features\DonationChannels\Api\DonationChannelOptions;
 use App\Features\Events\Api\EventContributionStateMapper;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Api\Enums\InstitutionType;
@@ -545,7 +546,7 @@ class ContributionController extends FrontendController
         $normalizedState = $submissionState['state'];
 
         if ($entity instanceof Event && $normalizedState !== []) {
-            $mergedState = array_replace_recursive($publicInitialState, $normalizedState);
+            $mergedState = array_replace($publicInitialState, $normalizedState);
 
             if (
                 array_key_exists('event_date', $normalizedState)
@@ -882,12 +883,11 @@ class ContributionController extends FrontendController
             'donation_channels.*.iban' => ['nullable', 'string', 'max:34'],
             'donation_channels.*.swift_bic' => ['nullable', 'string', 'max:11'],
             'donation_channels.*.routing_code' => ['nullable', 'string', 'max:20'],
-            'donation_channels.*.duitnow_type' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.duitnow_type' => ['nullable', 'string', 'required_if:donation_channels.*.method,duitnow', Rule::in(array_keys(DonationChannelOptions::DUITNOW_ID_TYPES))],
             'donation_channels.*.duitnow_value' => ['nullable', 'string', 'max:2000'],
-            'donation_channels.*.ewallet_provider' => ['nullable', 'string', 'max:255'],
+            'donation_channels.*.ewallet_provider' => ['nullable', 'string', 'required_if:donation_channels.*.method,ewallet', Rule::in(array_keys(DonationChannelOptions::EWALLET_PROVIDERS))],
             'donation_channels.*.ewallet_handle' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.ewallet_qr_payload' => ['nullable', 'string', 'max:2000'],
-            'donation_channels.*.reference_note' => ['nullable', 'string', 'max:255'],
             'donation_channels.*.is_default' => ['nullable', 'boolean'],
         ];
     }
@@ -942,11 +942,6 @@ class ContributionController extends FrontendController
             }
 
             if ($method === 'ewallet') {
-                $validator->sometimes(
-                    "donation_channels.{$index}.ewallet_provider",
-                    ['required', 'string', 'max:255'],
-                    fn (): bool => true,
-                );
                 $validator->sometimes(
                     "donation_channels.{$index}.ewallet_handle",
                     ['required', 'string', 'max:255'],

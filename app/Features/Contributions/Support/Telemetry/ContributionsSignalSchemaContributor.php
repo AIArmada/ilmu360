@@ -20,6 +20,13 @@ final class ContributionsSignalSchemaContributor implements SignalSchemaContribu
     {
         return [
             'contribution.institution_maps_place_selected' => ['has_website', 'social_profile_count'],
+            'contribution.hub_tab_changed' => ['tab'],
+            'contribution.hub_launcher_clicked' => ['action', 'subject_type'],
+            'contribution.hub_record_finder_opened' => ['mode', 'subject_type'],
+            'contribution.hub_record_selected' => ['mode', 'subject_type'],
+            'contribution.hub_detail_opened' => ['kind'],
+            'contribution.request_cancelled' => ['request_type', 'subject_type'],
+            'contribution.membership_claim_cancelled' => ['subject_type'],
         ];
     }
 }

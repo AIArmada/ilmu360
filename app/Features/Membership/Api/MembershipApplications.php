@@ -14,13 +14,6 @@ interface MembershipApplications
      */
     public function forApplicant(string $accountId): array;
 
-    /**
-     * Roles that may be granted when an application is approved.
-     *
-     * @return array<string, string>
-     */
-    public function reviewRoleOptions(): array;
-
     public function find(string $applicationId): ?MembershipApplicationDetail;
 
     /**
@@ -48,8 +41,9 @@ interface MembershipApplications
      *
      * Delegates the transition, role grant and applicant notification to the
      * canonical package action and returns the committed review snapshot.
-     * The granted role must be one of the roles returned by reviewRoleOptions();
-     * unsupported roles raise InvalidArgumentException.
+     * The granted role must be one of the roles returned by
+     * MembershipApplicationFormRules::roleOptions() for the subject. Unsupported roles raise
+     * InvalidArgumentException.
      */
     public function approve(
         string $applicationId,

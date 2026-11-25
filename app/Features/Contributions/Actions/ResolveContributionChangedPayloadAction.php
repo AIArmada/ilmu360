@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Actions;
 
+use AIArmada\Addressing\Support\AddressAssignments;
+use App\Shared\Normalization\SubmittedFieldNormalizer;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -26,7 +29,7 @@ class ResolveContributionChangedPayloadAction
                 continue;
             }
 
-            if ($this->valuesEqual($value, $originalData[$key])) {
+            if ($this->valuesEqual($key, $value, $originalData[$key])) {
                 continue;
             }
 
@@ -36,9 +39,37 @@ class ResolveContributionChangedPayloadAction
         return $changes;
     }
 
-    private function valuesEqual(mixed $left, mixed $right): bool
+    private function valuesEqual(string $key, mixed $submitted, mixed $original): bool
     {
-        return json_encode($this->normalizeComparable($left)) === json_encode($this->normalizeComparable($right));
+        if (is_array($submitted) && is_array($original)) {
+            if ($key === 'address' && $submitted !== []) {
+                $submitted = Arr::except($submitted, [
+                    'google_maps_normalization_enabled',
+                    'google_maps_remote_lookup_enabled',
+                ]);
+                $original = array_intersect_key($original, $submitted);
+            }
+
+            if ($key === 'contactMethods') {
+                $submitted = SubmittedFieldNormalizer::normalizeContactRowsForComparison($submitted);
+                $original = SubmittedFieldNormalizer::normalizeContactRowsForComparison($original);
+            }
+
+            if ($key === 'donation_channels') {
+                $submitted = SubmittedFieldNormalizer::normalizeDonationChannelRowsForComparison($submitted);
+                $original = SubmittedFieldNormalizer::normalizeDonationChannelRowsForComparison($original);
+
+                foreach ($original as $index => $row) {
+                    if (($submitted[$index]['bank_name'] ?? null) === null
+                        && $row['bank_code'] !== null
+                        && ($submitted[$index]['bank_code'] ?? null) === $row['bank_code']) {
+                        $original[$index]['bank_name'] = null;
+                    }
+                }
+            }
+        }
+
+        return json_encode($this->normalizeComparable($submitted)) === json_encode($this->normalizeComparable($original));
     }
 
     private function normalizeComparable(mixed $value, ?string $key = null): mixed
@@ -60,6 +91,10 @@ class ResolveContributionChangedPayloadAction
         }
 
         if (is_array($value)) {
+            if ($key === 'area_assignments') {
+                $value = AddressAssignments::normalize($value);
+            }
+
             $normalized = [];
 
             foreach ($value as $arrayKey => $item) {

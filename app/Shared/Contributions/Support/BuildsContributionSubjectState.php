@@ -85,6 +85,7 @@ trait BuildsContributionSubjectState
             ->sortBy('created_at')
             ->map(fn (SocialProfile $entry): array => [
                 'platform' => $entry->platform instanceof BackedEnum ? $entry->platform->value : (string) $entry->platform,
+                'label' => $entry->label,
                 'handle' => $entry->handle,
                 'url' => $entry->url,
                 'is_primary' => (bool) $entry->is_primary,
