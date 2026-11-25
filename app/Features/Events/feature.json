@@ -147,6 +147,9 @@
     "store:product-signals-dashboard": [
       "App\\Features\\Events\\Persistence\\ProductSignalsDashboardCacheStore"
     ],
+    "store:moderation-queue-badge": [
+      "App\\Features\\Events\\Persistence\\ModerationQueueBadgeCacheStore"
+    ],
     "table:event_escalations": [
       "App\\Features\\Events\\Actions\\Escalations\\RecordPendingEventEscalationAction"
     ],

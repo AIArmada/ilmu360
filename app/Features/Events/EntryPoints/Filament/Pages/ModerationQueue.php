@@ -9,6 +9,7 @@ use App\Features\Events\EntryPoints\Filament\Resources\Events\EventResource;
 use App\Features\Events\EntryPoints\Filament\Support\EventModerationActions;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;
+use App\Features\Events\Persistence\ModerationQueueBadgeCacheStore;
 use App\Features\Events\States\EventStatus\Approved;
 use App\Features\Events\States\EventStatus\NeedsChanges;
 use App\Features\Events\States\EventStatus\Pending;
@@ -32,7 +33,6 @@ use Filament\Tables\Table;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Url;
@@ -166,7 +166,7 @@ class ModerationQueue extends Page implements HasTable
 
     public static function getNavigationBadge(): ?string
     {
-        $count = Cache::remember('moderation_queue:pending_badge', now()->addSeconds(30), static fn (): int => Event::query()
+        $count = app(ModerationQueueBadgeCacheStore::class)->rememberPendingCount(static fn (): int => Event::query()
             ->withoutOwnerScope()
             ->where('status', Pending::$name)
             ->count()
@@ -182,7 +182,7 @@ class ModerationQueue extends Page implements HasTable
 
     public static function flushNavigationBadgeCache(): void
     {
-        Cache::forget('moderation_queue:pending_badge');
+        app(ModerationQueueBadgeCacheStore::class)->forgetPendingCount();
     }
 
     public function table(Table $table): Table
