@@ -22,7 +22,7 @@ final class Wp2SignalFraudRule implements FraudRule
         return null;
     }
 
-    public function analyzeConversion(ConversionFraudEvidence $evidence): ?FraudFinding
+    public function analyzeConversion(ConversionFraudEvidence $evidence): FraudFinding
     {
         return new FraudFinding(
             ruleCode: $this->ruleCode(),

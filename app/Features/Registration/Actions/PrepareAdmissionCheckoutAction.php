@@ -246,13 +246,13 @@ final readonly class PrepareAdmissionCheckoutAction implements AdmissionCheckout
             $connectionIdentity,
         );
         $commercialPurpose = false;
-        if ($affiliateAttribution !== null) {
+        if ($affiliateAttribution instanceof \AIArmada\Affiliates\Features\Attribution\Api\AttributionConversionRecord) {
             $profile = $this->affiliateProfiles->find(
                 $affiliateAttribution->affiliateId,
                 $connectionIdentity,
                 includeGlobal: true,
             );
-            $commercialPurpose = $profile !== null && $profile->commercial;
+            $commercialPurpose = $profile instanceof \AIArmada\Affiliates\Features\Identity\Api\AffiliateProfile && $profile->commercial;
         }
         $session = $this->checkoutService->startCheckout($cartId);
 
