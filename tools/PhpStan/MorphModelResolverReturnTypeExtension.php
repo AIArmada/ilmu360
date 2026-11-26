@@ -27,7 +27,7 @@ final class MorphModelResolverReturnTypeExtension implements DynamicStaticMethod
      * @var array<string, class-string<\Illuminate\Database\Eloquent\Model>>
      */
     public const MORPH_MODELS = [
-        'address' => \AIArmada\Addressing\Models\Address::class,
+        'address' => \AIArmada\Addressing\Features\AddressLifecycle\Models\Address::class,
         'ai_model_pricing' => \App\Features\Ai\Models\AiModelPricing::class,
         'contact' => \AIArmada\Contacting\Models\ContactMethod::class,
         'customer' => \AIArmada\Customers\Models\Customer::class,

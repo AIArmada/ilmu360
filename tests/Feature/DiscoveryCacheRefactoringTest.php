@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Actions\Lifecycle\ApplyEventLifecycleEffectsAction;
 use App\Features\Events\Api\Enums\EventVisibility;

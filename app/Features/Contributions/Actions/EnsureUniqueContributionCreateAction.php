@@ -2,9 +2,9 @@
 
 namespace App\Features\Contributions\Actions;
 
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
 use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
-use AIArmada\Addressing\Support\AddressAssignments;
-use AIArmada\Addressing\Support\AddressFormState;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Contracts\InstitutionClaimGuard;
 use App\Features\Contributions\Enums\ContributionRequestStatus;

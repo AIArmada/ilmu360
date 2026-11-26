@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Events\Database\Factories\VenueFactory as PackageVenueFactory;
 use App\Features\Places\Models\Space;
 use App\Features\Places\Models\Venue;

@@ -1,8 +1,8 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Events\Features\Venues\Models\FacilityType;
 use AIArmada\Events\Features\Venues\Models\VenueFacility;
 use App\Features\Places\Models\Venue;

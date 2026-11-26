@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Actions\Venues;
 
-use AIArmada\Addressing\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Persistence\CanonicalSlug;

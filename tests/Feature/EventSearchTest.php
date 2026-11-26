@@ -1,8 +1,8 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;

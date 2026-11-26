@@ -2,7 +2,7 @@
     $institutions = $this->institutions;
     $institutionLoadingTarget = 'search,country,state,city,locality,district,subdivision,areas,followed_only,toggleFollowedOnly,clearSearch,clearFilters,gotoPage,setPage,nextPage,previousPage,selectGroupedSubdivisionLocality,__dispatch';
     $formatInstitutionLocation = static function ($addressModel): string {
-        $parts = \AIArmada\Addressing\Support\AddressHierarchyFormatter::parts($addressModel);
+        $parts = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::parts($addressModel);
 
         return $parts === [] ? '-' : implode(', ', $parts);
     };

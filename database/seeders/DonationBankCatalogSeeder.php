@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Chip\Enums\FpxBank;
 use App\Features\DonationChannels\Api\Enums\DonationBankStatus;
 use App\Features\DonationChannels\Models\DonationBank;

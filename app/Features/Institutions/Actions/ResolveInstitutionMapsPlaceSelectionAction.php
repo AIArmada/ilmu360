@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
-use AIArmada\Addressing\Actions\ResolveGooglePlaceSelectionAction;
+use AIArmada\Addressing\Contracts\GooglePlaceDetailsLookup;
+use AIArmada\Addressing\Features\PlaceLookup\Actions\ResolveGooglePlaceSelectionAction;
 use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
 use AIArmada\Contacting\Actions\DiscoverWebsiteSocialProfilesAction;
 use AIArmada\Contacting\Enums\ContactMethodType;
@@ -21,7 +21,7 @@ final readonly class ResolveInstitutionMapsPlaceSelectionAction implements Insti
     use AsAction;
 
     public function __construct(
-        private FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
+        private GooglePlaceDetailsLookup $fetchGooglePlaceDetailsAction,
         private InferInstitutionTypeAction $inferInstitutionTypeAction,
         private MergeInstitutionMapsSelectionIntoFormAction $mergeInstitutionMapsSelectionIntoFormAction,
         private ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,

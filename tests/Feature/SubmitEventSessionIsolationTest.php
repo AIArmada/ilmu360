@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\Events\Features\Catalog\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Features\Catalog\Models\EventAudience;
 use AIArmada\Events\Features\Catalog\Models\EventAudienceProfile;

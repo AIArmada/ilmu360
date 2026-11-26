@@ -2,8 +2,8 @@
 
 namespace App\Platform\Location\Ui\Concerns;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 

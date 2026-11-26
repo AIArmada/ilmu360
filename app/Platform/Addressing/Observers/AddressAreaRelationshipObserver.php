@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Addressing\Observers;
 
-use AIArmada\Addressing\Models\AddressAreaRelationship;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaRelationship;
 use App\Shared\Cache\SelectionCatalog;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

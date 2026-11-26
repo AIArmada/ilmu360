@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Contributions\Api\SubmissionEntityAccess;
 use App\Features\Events\Api\Enums\EventAgeGroup;

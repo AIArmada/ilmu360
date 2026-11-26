@@ -2,9 +2,9 @@
 
 namespace App\Features\Persons\EntryPoints\Livewire\Pages;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressAreaAssignment;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use AIArmada\Events\Features\Catalog\Models\EventOccurrence;

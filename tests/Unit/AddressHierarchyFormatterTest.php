@@ -1,10 +1,10 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaAssignment;
-use AIArmada\Addressing\Support\AddressAssignments;
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
 use Illuminate\Database\Eloquent\Collection;
 use Tests\TestCase;
 

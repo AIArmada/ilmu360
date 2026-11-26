@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Platform\Location;
 
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use App\Platform\Location\Api\AddressCatalog;
 use App\Platform\Ui\Forms\AddressFields;
 use App\Shared\Cache\SelectionCatalog;

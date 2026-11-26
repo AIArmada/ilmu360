@@ -40,7 +40,7 @@ it('registers owned morph aliases from their feature and platform providers', fu
         'share_signal_reader_skip' => App\Features\ShareTracking\Models\ShareSignalReaderSkip::class,
         'share_source_attribution_receipt' => App\Features\ShareTracking\Models\ShareSourceAttributionReceipt::class,
         'language' => App\Platform\Language\Models\Language::class,
-        'address' => AIArmada\Addressing\Models\Address::class,
+        'address' => AIArmada\Addressing\Features\AddressLifecycle\Models\Address::class,
         'contact' => AIArmada\Contacting\Models\ContactMethod::class,
         'customer' => AIArmada\Customers\Models\Customer::class,
         'user' => App\Models\User::class,

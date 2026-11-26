@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Queries;
 
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Discovery\Api\Data\EventListData;
 use App\Features\Events\Api\Enums\EventFormat;

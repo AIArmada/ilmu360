@@ -150,7 +150,7 @@ final readonly class PersonAdminHooks implements AdminResourceHooks
 
         $address = $attributes['address'];
         $attributes['address'] = Arr::only($address, ['country_id', 'state_id', 'city_id']);
-        $attributes['address']['area_assignments'] = \AIArmada\Addressing\Support\AddressAssignments::forAddress(
+        $attributes['address']['area_assignments'] = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments::forAddress(
             $record->primaryAddress()
         );
 

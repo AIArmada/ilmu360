@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use App\Features\DonationChannels\Api\Enums\DonationBankStatus;
 use App\Features\DonationChannels\Models\DonationBank;
 use Illuminate\Database\Eloquent\Factories\Factory;

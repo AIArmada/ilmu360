@@ -108,7 +108,7 @@
         $eventLocationSubtitle = $locationSecondary ?? '';
     } else {
         $eventLocation = $event->resolvedLocationName() ?? __('Seluruh Malaysia');
-        $eventLocationSubtitle = \AIArmada\Addressing\Support\AddressHierarchyFormatter::formatShort($event->resolvedLocationAddress());
+        $eventLocationSubtitle = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::formatShort($event->resolvedLocationAddress());
     }
 @endphp
 

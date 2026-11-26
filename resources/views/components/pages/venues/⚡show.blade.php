@@ -117,7 +117,7 @@ new class extends Component
     $coverUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
     $thumbUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
     $address = $venue->primaryAddress();
-    $addressBlock = \AIArmada\Addressing\Support\AddressHierarchyFormatter::formatBlock($address);
+    $addressBlock = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::formatBlock($address);
     $addressText = $addressBlock !== '' ? $addressBlock : __('Alamat akan dikemas kini kemudian.');
     $contactCards = $venue->contactMethods->where('is_public', true)->values();
     $resolveSocialUrl = static function (mixed $social): ?string {

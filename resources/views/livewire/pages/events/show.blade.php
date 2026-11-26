@@ -41,7 +41,7 @@
     $primaryAddress = $eventLocation?->primaryAddress()
         ?? app(\App\Features\Events\Support\VenueAddressResolver::class)->forVenueId($eventLocation?->venue_id)
         ?? $event->resolvedLocationAddress();
-    $addressDisplayLines = \AIArmada\Addressing\Support\AddressHierarchyFormatter::displayLines($primaryAddress);
+    $addressDisplayLines = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $scopedVenueName ?? $locationVenue?->name ?? $detail->locationLabel($eventLocation) ?? $event->resolvedLocationName();
     $hasLocationContent = filled($venueDisplayName) || $primaryAddress !== null;
     $lat = $primaryAddress?->latitude;

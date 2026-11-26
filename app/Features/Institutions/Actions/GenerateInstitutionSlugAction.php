@@ -2,7 +2,7 @@
 
 namespace App\Features\Institutions\Actions;
 
-use AIArmada\Addressing\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Persistence\CanonicalSlug;

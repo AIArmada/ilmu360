@@ -14,8 +14,8 @@
     $address = $institution->primaryAddress();
     $institutionCoverUrl = $institutionShareImageUrl;
     $typeLabel = $institution->type?->getLabel();
-    $addressLines = \AIArmada\Addressing\Support\AddressHierarchyFormatter::displayLines($address);
-    $locationString = \AIArmada\Addressing\Support\AddressHierarchyFormatter::format($address);
+    $addressLines = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::displayLines($address);
+    $locationString = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::format($address);
     $upcomingEvents = $this->upcomingEvents;
     $savedEventIds = $this->savedEventIds;
     $goingEventIds = $this->goingEventIds;

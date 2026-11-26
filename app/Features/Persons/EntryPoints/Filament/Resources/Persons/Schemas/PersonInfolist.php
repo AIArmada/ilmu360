@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\Schemas;
 
-use AIArmada\Addressing\Support\AddressAssignments;
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Persons\Api\SpeakerStatus;

@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;

@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Contacting\Models\SocialProfile;
 use App\Features\Persons\Api\SpeakerStatus;
 use App\Features\Persons\Models\Person;

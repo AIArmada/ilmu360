@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\Events\Features\Venues\Models\EventLocation;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;

@@ -136,7 +136,7 @@ final readonly class EventAuthoringService implements EventAuthoring
                 'timezone' => is_string($event->timezone) ? $event->timezone : '',
                 'venue_id' => is_string($venueId) && $venueId !== '' ? $venueId : null,
                 'institution_id' => is_string($institutionId) && $institutionId !== '' ? $institutionId : null,
-                'persisted_address_id' => $address instanceof \AIArmada\Addressing\Models\Address ? (string) $address->getKey() : null,
+                'persisted_address_id' => $address instanceof \AIArmada\Addressing\Features\AddressLifecycle\Models\Address ? (string) $address->getKey() : null,
             ];
         });
     }

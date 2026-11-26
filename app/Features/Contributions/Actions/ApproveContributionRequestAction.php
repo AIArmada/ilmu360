@@ -2,7 +2,7 @@
 
 namespace App\Features\Contributions\Actions;
 
-use AIArmada\Addressing\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Contracts\InstitutionClaimGuard;

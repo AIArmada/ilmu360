@@ -1,8 +1,8 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressAreaAssignment;
-use AIArmada\Addressing\Support\AddressFormState;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
 use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Contributions\Api\ContributionDirectUpdates;

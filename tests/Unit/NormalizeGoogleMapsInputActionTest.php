@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Actions\NormalizeGoogleMapsInputAction;
+use AIArmada\Addressing\Features\PlaceLookup\Actions\NormalizeGoogleMapsInputAction;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -215,6 +215,7 @@ it('enriches a bare place id without changing the other google identifiers', fun
     Http::preventStrayRequests();
     Http::fake([
         'https://places.googleapis.com/v1/places/place_123' => Http::response([
+            'id' => 'place_123',
             'displayName' => ['text' => 'Example Hall'],
             'location' => ['latitude' => '3.07853', 'longitude' => '101.520698'],
         ]),

@@ -1,11 +1,11 @@
 <?php
 
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaRelationship;
-use AIArmada\Addressing\Models\AddressAreaStateLink;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaRelationship;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaStateLink;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\CommerceSupport\Features\ReferenceData\Models\Currency;
 use AIArmada\Membership\Enums\MemberRole;
@@ -140,7 +140,7 @@ function giveInstitutionStoredMapsPlace(Institution $institution, string $placeI
 {
     $address = $institution->primaryAddress();
 
-    if (! $address instanceof AIArmada\Addressing\Models\Address) {
+    if (! $address instanceof AIArmada\Addressing\Features\AddressLifecycle\Models\Address) {
         return;
     }
 

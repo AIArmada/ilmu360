@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\CommerceSupport\Persistence\VersionedCache;
 use App\Features\DonationChannels\EntryPoints\Filament\Resources\DonationChannels\Pages\CreateDonationChannel;
 use App\Features\Events\Models\Event;

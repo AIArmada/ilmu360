@@ -1,10 +1,10 @@
 <?php
 
-use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\AddressLifecycle\Actions\SyncAddressAreaAssignmentsAction;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use App\Features\Institutions\Actions\GenerateInstitutionSlugAction;
 use App\Features\Institutions\Actions\SaveInstitutionAction;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
@@ -524,7 +524,7 @@ function attachInstitutionSlugAddress(Institution $institution, array $geography
         'google_maps_url' => 'https://maps.google.com/?q=3.0738,101.5183',
     ]);
 
-    app(SyncAddressAreaAssignmentsAction::class)->execute($address, [
+    app(SyncAddressAreaAssignmentsAction::class)->execute((string) $address->getKey(), [
         'administrative_district' => (string) $geography['district']->getKey(),
         'administrative_subdivision' => (string) $geography['subdistrict']->getKey(),
     ], (string) $geography['state']->getKey());

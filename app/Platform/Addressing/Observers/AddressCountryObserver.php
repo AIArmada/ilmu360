@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Addressing\Observers;
 
-use AIArmada\Addressing\Actions\GuardAddressCountryDeletionAction;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Actions\GuardAddressCountryDeletionAction;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use App\Shared\Contracts\AddressCatalogEffects;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -30,6 +30,6 @@ final readonly class AddressCountryObserver implements ShouldHandleEventsAfterCo
 
     public function deleting(AddressCountry $country): void
     {
-        $this->deletionGuard->handle($country);
+        $this->deletionGuard->handle((string) $country->getKey());
     }
 }

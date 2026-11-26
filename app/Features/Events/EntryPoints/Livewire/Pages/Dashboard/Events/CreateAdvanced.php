@@ -2,7 +2,7 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages\Dashboard\Events;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Events\Data\RegistrationMode;
 use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;

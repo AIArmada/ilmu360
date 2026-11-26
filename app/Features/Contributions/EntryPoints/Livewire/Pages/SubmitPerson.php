@@ -2,7 +2,7 @@
 
 namespace App\Features\Contributions\EntryPoints\Livewire\Pages;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Api\StagedContributionCreates;

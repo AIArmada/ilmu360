@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Actions\FetchGooglePlacePhotoPreviewsAction;
+use AIArmada\Addressing\Contracts\GooglePlacePhotoLookup;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Http;
 
@@ -22,7 +22,7 @@ it('returns only transient preview data and preserves required photo attribution
         ], 200),
     ]);
 
-    $previews = FetchGooglePlacePhotoPreviewsAction::run('photo-place', [[
+    $previews = app(GooglePlacePhotoLookup::class)->handle('photo-place', [[
         'name' => 'places/photo-place/photos/photo-one',
         'widthPx' => 1600,
         'heightPx' => 1200,
@@ -79,7 +79,7 @@ it('limits photo lookups to three per current place', function () {
         range(1, 9),
     );
 
-    $previews = FetchGooglePlacePhotoPreviewsAction::run('bounded-place', $photos);
+    $previews = app(GooglePlacePhotoLookup::class)->handle('bounded-place', $photos);
 
     expect($previews)->toHaveCount(3);
     Http::assertSentCount(3);
@@ -93,7 +93,7 @@ it('omits previews when the optional photo endpoint fails or cannot connect', fu
         'https://places.googleapis.com/v1/places/failed-place/photos/photo-connection/media*' => Http::failedConnection(),
     ]);
 
-    $previews = FetchGooglePlacePhotoPreviewsAction::run('failed-place', [
+    $previews = app(GooglePlacePhotoLookup::class)->handle('failed-place', [
         ['name' => 'places/failed-place/photos/photo-500'],
         ['name' => 'places/failed-place/photos/photo-connection'],
     ]);
@@ -111,7 +111,7 @@ it('ignores foreign photo names and rejects preview urls outside googleuserconte
         ], 200),
     ]);
 
-    $previews = FetchGooglePlacePhotoPreviewsAction::run('current-place', [
+    $previews = app(GooglePlacePhotoLookup::class)->handle('current-place', [
         ['name' => 'places/another-place/photos/foreign-photo'],
         ['name' => 'places/current-place/photos/photo-one'],
     ]);

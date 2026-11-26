@@ -2,8 +2,8 @@
 
 namespace App\Features\Persons\Models;
 
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\Addressing\Features\AddressLifecycle\Traits\HasAddresses;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Contracts\Followable;

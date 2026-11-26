@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Persons\Enums\TitleUsagePosition;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleCategory;

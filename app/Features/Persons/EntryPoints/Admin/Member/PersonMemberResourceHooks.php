@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\EntryPoints\Admin\Member;
 
-use AIArmada\Addressing\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
 use App\Features\Membership\Api\MembershipDirectory;
 use App\Features\Membership\Api\MemberSubjectType;
 use App\Features\Persons\Models\Person;

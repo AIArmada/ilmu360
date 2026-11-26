@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Institutions\Queries;
 
 use AIArmada\Addressing\Data\AddressLocationData;
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionDirectoryRecord;

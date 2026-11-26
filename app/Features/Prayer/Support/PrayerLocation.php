@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Prayer\Support;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Institutions\Api\InstitutionLookup;
 use App\Features\Places\Api\PlaceCatalog;

@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;

@@ -1,13 +1,13 @@
 <?php
 
-use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaRelationship;
-use AIArmada\Addressing\Models\AddressAreaStateLink;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\AddressLifecycle\Actions\SyncAddressAreaAssignmentsAction;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaRelationship;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaStateLink;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Features\ReferenceData\Models\Timezone;
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -116,7 +116,7 @@ function attachTestInstitutionAddress(Institution $institution, array $data): vo
     $stateId = $data['state_id'] ?? null;
 
     app(SyncAddressAreaAssignmentsAction::class)->execute(
-        $address,
+        (string) $address->getKey(),
         is_array($data['area_assignments'] ?? null) ? $data['area_assignments'] : [],
         is_string($stateId) ? $stateId : null,
         ['source' => 'ilmu360'],
@@ -370,7 +370,7 @@ function syncPrimaryAddressForTest(mixed $model, array $attributes): Address
 
     if ($existingAddress instanceof Address) {
         $existingAddress->fill($normalizedAttributes)->save();
-        app(SyncAddressAreaAssignmentsAction::class)->execute($existingAddress, $assignments, $existingAddress->state_id);
+        app(SyncAddressAreaAssignmentsAction::class)->execute((string) $existingAddress->getKey(), $assignments, $existingAddress->state_id);
         $model->refresh();
 
         return $existingAddress->fresh() ?? $existingAddress;
@@ -379,7 +379,7 @@ function syncPrimaryAddressForTest(mixed $model, array $attributes): Address
     $address = Address::query()->create($normalizedAttributes);
 
     $model->attachAddress($address, type: 'primary', isPrimary: true);
-    app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $address->state_id);
+    app(SyncAddressAreaAssignmentsAction::class)->execute((string) $address->getKey(), $assignments, $address->state_id);
     $model->refresh();
 
     return $address;

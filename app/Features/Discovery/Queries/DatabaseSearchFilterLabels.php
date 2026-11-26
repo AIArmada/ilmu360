@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Discovery\Queries;
 
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use App\Features\Discovery\Api\SearchFilterLabels;
 use App\Features\Institutions\Api\InstitutionLookup;

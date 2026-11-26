@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Addressing\Observers;
 
-use AIArmada\Addressing\Actions\GuardAddressAreaDeletionAction;
-use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Actions\GuardAddressAreaDeletionAction;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
 use App\Shared\Contracts\AddressCatalogEffects;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -30,6 +30,6 @@ final readonly class AddressAreaObserver implements ShouldHandleEventsAfterCommi
 
     public function deleting(AddressArea $addressArea): void
     {
-        $this->deletionGuard->handle($addressArea);
+        $this->deletionGuard->handle((string) $addressArea->getKey());
     }
 }

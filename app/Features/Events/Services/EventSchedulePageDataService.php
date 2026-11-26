@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use App\Features\Events\Api\Data\PublicScheduleRenderedCard;
 use App\Features\Events\Api\Enums\EventKeyPersonRole;
 use App\Features\Events\Api\Enums\EventVisibility;

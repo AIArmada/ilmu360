@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Places\Services;
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceEligibility;
 use App\Features\Places\Models\Space;

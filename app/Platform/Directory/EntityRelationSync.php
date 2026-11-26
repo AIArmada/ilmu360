@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Platform\Directory;
 
-use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
-use AIArmada\Addressing\Support\AddressAreaStateBridge;
-use AIArmada\Addressing\Support\AddressAssignments;
-use AIArmada\Addressing\Support\AddressFormState;
+use AIArmada\Addressing\Features\AddressLifecycle\Actions\SyncAddressAreaAssignmentsAction;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
+use AIArmada\Addressing\Features\Geography\Support\AddressAreaStateBridge;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Models\ContactMethod;
@@ -161,7 +161,7 @@ final readonly class EntityRelationSync
 
             if ($assignmentsProvided || $stateChanged || $countryChanged) {
                 app(SyncAddressAreaAssignmentsAction::class)->execute(
-                    $existingAddress,
+                    (string) $existingAddress->getKey(),
                     $assignmentsProvided ? $assignments : AddressAssignments::forAddress($existingAddress),
                     $attributes['state_id'],
                     ['source' => 'ilmu360'],
@@ -174,7 +174,7 @@ final readonly class EntityRelationSync
         $address = Address::query()->create($attributes);
 
         $model->attachAddress($address, type: 'primary', isPrimary: true);
-        app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $attributes['state_id'], ['source' => 'ilmu360']);
+        app(SyncAddressAreaAssignmentsAction::class)->execute((string) $address->getKey(), $assignments, $attributes['state_id'], ['source' => 'ilmu360']);
     }
 
     public function syncContactMethods(Model $model, mixed $contactPayload): void

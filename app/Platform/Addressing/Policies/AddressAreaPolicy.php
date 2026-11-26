@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Addressing\Policies;
 
-use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
 use App\Models\User;
 
 class AddressAreaPolicy

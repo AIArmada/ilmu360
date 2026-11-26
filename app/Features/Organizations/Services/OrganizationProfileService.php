@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Organizations\Services;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\Addressable;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Addressable;
 use App\Platform\Models\MorphModelResolver;
 
 /**

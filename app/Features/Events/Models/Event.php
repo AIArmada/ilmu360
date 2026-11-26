@@ -2,9 +2,9 @@
 
 namespace App\Features\Events\Models;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressAssignments;
-use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Traits\HasAddresses;
 use AIArmada\CommerceSupport\Contracts\OwnerScopeConfigurable;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;

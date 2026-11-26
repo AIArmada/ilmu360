@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Member;
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use App\Features\Membership\Api\MemberPermissions;
 use App\Features\Membership\Api\MembershipDirectory;

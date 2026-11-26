@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Organizations\Actions;
 
-use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\Addressable;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\AddressLifecycle\Actions\SyncAddressAreaAssignmentsAction;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Addressable;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Organizations\Contracts\OrganizationAuthorization;
 use AIArmada\Organizations\Models\Organization;
@@ -119,7 +119,7 @@ final readonly class SaveOrganizationAddressAction
             $existing->fill($attributes)->save();
 
             if ($regionChanged) {
-                app(SyncAddressAreaAssignmentsAction::class)->execute($existing, [], $stateId, ['source' => 'ilmu360']);
+                app(SyncAddressAreaAssignmentsAction::class)->execute((string) $existing->getKey(), [], $stateId, ['source' => 'ilmu360']);
             }
 
             return;
@@ -138,7 +138,7 @@ final readonly class SaveOrganizationAddressAction
             'is_primary' => true,
         ]);
 
-        app(SyncAddressAreaAssignmentsAction::class)->execute($address, [], $stateId, ['source' => 'ilmu360']);
+        app(SyncAddressAreaAssignmentsAction::class)->execute((string) $address->getKey(), [], $stateId, ['source' => 'ilmu360']);
     }
 
     private function demotePrimaryAttachments(string $organizationId): void

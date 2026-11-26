@@ -2,7 +2,7 @@
 
 namespace App\Features\Events\EntryPoints\Ui;
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
 use AIArmada\Events\Features\Venues\Models\Venue;
 use App\Features\Events\Api\Enums\EventChangeType;

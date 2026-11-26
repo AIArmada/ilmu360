@@ -1,17 +1,17 @@
 <?php
 
-use AIArmada\Addressing\Actions\ResolveGooglePlaceSelectionAction;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaName;
-use AIArmada\Addressing\Models\AddressAreaPostalCode;
-use AIArmada\Addressing\Models\AddressAreaRelationship;
-use AIArmada\Addressing\Models\AddressAreaRole;
-use AIArmada\Addressing\Models\AddressAreaStateLink;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\PostalCode;
-use AIArmada\Addressing\Models\ResolutionGap;
-use AIArmada\Addressing\Models\State;
-use AIArmada\Addressing\Support\AddressAreaHierarchyResolver;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaName;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaRelationship;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaRole;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaStateLink;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\State;
+use AIArmada\Addressing\Features\Geography\Support\AddressAreaHierarchyResolver;
+use AIArmada\Addressing\Features\PlaceLookup\Actions\ResolveGooglePlaceSelectionAction;
+use AIArmada\Addressing\Features\PostalCodes\Models\AddressAreaPostalCode;
+use AIArmada\Addressing\Features\PostalCodes\Models\PostalCode;
+use AIArmada\Addressing\Features\ResolutionGaps\Models\ResolutionGap;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;

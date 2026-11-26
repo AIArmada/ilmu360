@@ -1,8 +1,8 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\EditPerson;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\PersonResource;

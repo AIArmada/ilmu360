@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Location\Ui\Concerns;
 
-use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
-use AIArmada\Addressing\Actions\ResolveGooglePlaceSelectionAction;
+use AIArmada\Addressing\Contracts\GooglePlaceDetailsLookup;
+use AIArmada\Addressing\Features\PlaceLookup\Actions\ResolveGooglePlaceSelectionAction;
 use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
 use App\Platform\Ui\Forms\AddressFields;
 use Illuminate\Support\Arr;
@@ -20,7 +20,7 @@ trait InteractsWithLocationPickerSelection
     public function applyLocationPickerSelection(
         string $statePath,
         array $selection,
-        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
+        GooglePlaceDetailsLookup $fetchGooglePlaceDetailsAction,
         ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
     ): array {
         $currentAddress = data_get($this, $statePath);

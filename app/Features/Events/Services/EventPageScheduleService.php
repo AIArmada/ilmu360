@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Services;
 
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use App\Features\Events\Api\Data\EventScheduleCard;
 use App\Features\Events\Api\EventPageSchedule;
 use App\Features\Events\Models\Event;

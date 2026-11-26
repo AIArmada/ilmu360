@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Cache;
 
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;

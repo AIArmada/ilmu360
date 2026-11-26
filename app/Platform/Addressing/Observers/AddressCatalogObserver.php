@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Addressing\Observers;
 
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use App\Shared\Cache\SelectionCatalog;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 

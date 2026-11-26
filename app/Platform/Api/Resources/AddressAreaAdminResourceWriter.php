@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Resources;
 
-use AIArmada\Addressing\Actions\SaveAddressAreaAction;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Actions\SaveAddressAreaAction;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use App\Models\User;
 use App\Platform\Admin\Concerns\BuildsAdminFieldMetadata;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
@@ -135,7 +135,9 @@ final class AddressAreaAdminResourceWriter extends AbstractAdminResourceWriter
     /** @param array<string, mixed> $validated */
     public function storeModel(User $actor, array $validated): Model
     {
-        return $this->saveAddressAreaAction->handle($validated);
+        $id = $this->saveAddressAreaAction->handle($validated);
+
+        return AddressArea::query()->findOrFail($id);
     }
 
     /** @param array<string, mixed> $validated */
@@ -145,7 +147,9 @@ final class AddressAreaAdminResourceWriter extends AbstractAdminResourceWriter
             throw new RuntimeException('Expected address area record.');
         }
 
-        return $this->saveAddressAreaAction->handle($validated, $record);
+        $id = $this->saveAddressAreaAction->handle($validated, (string) $record->getKey());
+
+        return AddressArea::query()->findOrFail($id);
     }
 
     /** @return array<int, array<string, mixed>> */

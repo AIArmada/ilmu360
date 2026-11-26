@@ -2,8 +2,8 @@
 
 namespace App\Features\Institutions\EntryPoints\Filament\Forms;
 
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
-use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use App\Features\Contributions\Api\ContributionSubmissionPreparation;

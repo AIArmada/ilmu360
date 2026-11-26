@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Addressing\Actions\NormalizeGoogleMapsInputAction;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\PlaceLookup\Actions\NormalizeGoogleMapsInputAction;
 use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;

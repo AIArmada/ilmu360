@@ -2,8 +2,8 @@
 
 namespace App\Features\Contributions\EntryPoints\Livewire\Pages;
 
-use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
-use AIArmada\Addressing\Actions\FetchGooglePlacePhotoPreviewsAction;
+use AIArmada\Addressing\Contracts\GooglePlaceDetailsLookup;
+use AIArmada\Addressing\Contracts\GooglePlacePhotoLookup;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Api\InstitutionMapsSelectionContext;
@@ -186,8 +186,8 @@ class SubmitInstitution extends Component implements HasActions, HasForms
      */
     public function loadPlacePhotoPreviews(
         string $placeId,
-        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
-        FetchGooglePlacePhotoPreviewsAction $fetchGooglePlacePhotoPreviewsAction,
+        GooglePlaceDetailsLookup $fetchGooglePlaceDetailsAction,
+        GooglePlacePhotoLookup $fetchGooglePlacePhotoPreviewsAction,
     ): array {
         $this->hitMapsThrottle('photos');
 

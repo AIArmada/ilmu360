@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Resources;
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\User;

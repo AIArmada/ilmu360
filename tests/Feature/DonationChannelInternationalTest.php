@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressingTableResolver;
 use AIArmada\CommerceSupport\Features\ReferenceData\Models\Currency;
 use App\Features\Contributions\Models\ContributionRequest;

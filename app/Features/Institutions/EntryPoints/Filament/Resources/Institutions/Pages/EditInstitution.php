@@ -2,8 +2,8 @@
 
 namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Pages;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressFormState;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Institutions\Api\InstitutionWorkflow;

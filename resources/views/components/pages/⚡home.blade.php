@@ -12,7 +12,7 @@ use App\Models\User;
 use App\Features\Events\Services\PublicScheduleDiscoveryService;
 use App\Shared\Auth\IntendedRedirect;
 use App\Features\Events\Services\EventDetailPresenter;
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;

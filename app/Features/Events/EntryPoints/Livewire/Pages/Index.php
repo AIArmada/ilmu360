@@ -2,11 +2,11 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages;
 
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\State;
-use AIArmada\Addressing\Support\AddressAreaStateBridge;
-use AIArmada\Addressing\Support\AddressFormState;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\State;
+use AIArmada\Addressing\Features\Geography\Support\AddressAreaStateBridge;
 use AIArmada\Addressing\Support\LocationLevelLabels;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;

@@ -2,8 +2,8 @@
 
 namespace App\Platform\Addressing\Observers;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\Addressable;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Addressable;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Shared\Contracts\AddressChangeEffects;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;

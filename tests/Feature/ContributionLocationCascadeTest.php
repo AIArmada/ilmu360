@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Addressing\Models\AddressAreaStateLink;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaStateLink;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use App\Features\Contributions\EntryPoints\Livewire\Pages\SubmitInstitution;
 use App\Models\User;
 use Livewire\Livewire;

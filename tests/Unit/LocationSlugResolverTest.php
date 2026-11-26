@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use App\Platform\Location\LocationSlugResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

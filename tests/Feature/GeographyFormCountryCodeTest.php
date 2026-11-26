@@ -1,6 +1,7 @@
 <?php
 
-use AIArmada\Addressing\Actions\SaveAddressAreaAction;
+use AIArmada\Addressing\Features\Geography\Actions\SaveAddressAreaAction;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use App\Platform\Api\Admin\AdminResourceMutationService;
 
@@ -25,30 +26,30 @@ it('derives geography country codes from the selected country on save', function
     $country = ensureTestAddressCountry('TL', 'Testland', 'TST', ['UTC'], '999');
     $saveAddressArea = app(SaveAddressAreaAction::class);
 
-    $state = $saveAddressArea->handle([
+    $state = AddressArea::query()->findOrFail($saveAddressArea->handle([
         'country_id' => (string) $country->getKey(),
         'type' => 'state',
         'name' => 'Alpha State',
-    ]);
+    ]));
 
     expect($state->country_code)->toBe('TL');
 
-    $district = $saveAddressArea->handle([
+    $district = AddressArea::query()->findOrFail($saveAddressArea->handle([
         'country_id' => (string) $country->getKey(),
         'parent_id' => (string) $state->getKey(),
         'type' => 'district',
         'name' => 'Alpha District',
-    ]);
+    ]));
 
     expect($district->country_code)->toBe('TL');
 
-    $subdistrict = $saveAddressArea->handle([
+    $subdistrict = AddressArea::query()->findOrFail($saveAddressArea->handle([
         'country_id' => (string) $country->getKey(),
         'parent_id' => (string) $district->getKey(),
         'type' => 'subdistrict',
         'level' => 3,
         'name' => 'Alpha Subdistrict',
-    ]);
+    ]));
 
     expect($subdistrict->country_code)->toBe('TL');
 });
@@ -57,13 +58,13 @@ it('allows creating federal territory subdistricts without a district', function
     $country = ensureTestMalaysiaCountry();
     $state = createTestAddressArea('Kuala Lumpur', 1, country: $country);
 
-    $subdistrict = app(SaveAddressAreaAction::class)->handle([
+    $subdistrict = AddressArea::query()->findOrFail(app(SaveAddressAreaAction::class)->handle([
         'country_id' => (string) $country->getKey(),
         'parent_id' => (string) $state->getKey(),
         'type' => 'subdistrict',
         'level' => 3,
         'name' => 'Setiawangsa',
-    ]);
+    ]));
 
     expect($subdistrict->parent_id)->toBe((string) $state->getKey())
         ->and($subdistrict->country_code)->toBe('MY');

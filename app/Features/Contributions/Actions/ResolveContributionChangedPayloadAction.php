@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Contributions\Actions;
 
-use AIArmada\Addressing\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
 use App\Shared\Normalization\SubmittedFieldNormalizer;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;

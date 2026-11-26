@@ -2,7 +2,7 @@
 
 namespace App\Features\Prayer\Services;
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Contracts\ResolvesEventTimeExpression;
 use AIArmada\Events\Data\EventTimeExpressionData;

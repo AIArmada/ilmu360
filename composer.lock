@@ -12,12 +12,15 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/addressing",
-                "reference": "4cb913921539cdefe2e7ea28ae4b107fa2a615cd"
+                "reference": "b04b762050aeba23cbc691bcb99f0caf85e5fb84"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "php": "^8.5",
                 "spatie/laravel-package-tools": "^1.93.3"
+            },
+            "require-dev": {
+                "nikic/php-parser": "^5"
             },
             "type": "library",
             "extra": {
@@ -33,6 +36,21 @@
                     "AIArmada\\Addressing\\Database\\Factories\\": "database/factories",
                     "AIArmada\\Addressing\\Database\\Seeders\\": "database/seeders"
                 }
+            },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:boundaries:diff": [
+                    "@php tools/package-check.php --diff-base=main"
+                ],
+                "arch:writes": [
+                    "@php ../../vendor/bin/phpstan analyse -c tools/package-phpstan.neon --autoload-file=tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
+                ]
             },
             "license": [
                 "MIT"
@@ -63,13 +81,15 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/affiliates",
-                "reference": "0320095cb147aa182b479defc8aa2bd6c0437e43"
+                "reference": "68cf2a8b70050c61d1984586fabc5d95f49b454e"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "aiarmada/contacting": "self.version",
                 "php": "^8.5",
+                "spatie/browsershot": "^5.4.2",
                 "spatie/laravel-medialibrary": "^11.23.11",
+                "spatie/laravel-pdf": "^2.14.0",
                 "spatie/laravel-settings": "^3.10.1"
             },
             "suggest": {
@@ -95,6 +115,18 @@
                     "AIArmada\\Affiliates\\": "src/"
                 }
             },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:writes": [
+                    "@php ../../vendor/bin/phpstan analyse -c tools/package-phpstan.neon --autoload-file=tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -115,13 +147,16 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/authz",
-                "reference": "c432541f537f311273bf70dab541c9cbe4c72a34"
+                "reference": "0da65cbe1c25a1e6869e1647b60618983b1f4a2b"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "php": "^8.5",
                 "spatie/laravel-package-tools": "^1.93.3",
                 "spatie/laravel-permission": "^8.3.2"
+            },
+            "require-dev": {
+                "nikic/php-parser": "^5"
             },
             "suggest": {
                 "aiarmada/filament-authz": "Optional integration"
@@ -140,6 +175,21 @@
                 },
                 "files": [
                     "src/helpers.php"
+                ]
+            },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:boundaries:diff": [
+                    "@php tools/package-check.php --diff-base=main"
+                ],
+                "arch:writes": [
+                    "@php ../../vendor/bin/phpstan analyse -c tools/package-phpstan.neon --autoload-file=tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
                 ]
             },
             "license": [
@@ -438,7 +488,7 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/commerce-support",
-                "reference": "1836abc94de7adcbbfd208a06c6696640a6a9c84"
+                "reference": "940322ed183a1f03aee5dfc1e35f896c440f6e8d"
             },
             "require": {
                 "akaunting/laravel-money": "^6.0.3",
@@ -463,6 +513,9 @@
                 "spatie/laravel-translatable": "^6.15.0",
                 "spatie/laravel-webhook-client": "^3.7.0"
             },
+            "require-dev": {
+                "nikic/php-parser": "^5"
+            },
             "suggest": {
                 "filament/filament": "Required to use the optional Commerce Navigation Filament plugin.",
                 "laravel/octane": "Required for high-performance Octane support"
@@ -483,6 +536,21 @@
                     "AIArmada\\CommerceSupport\\": "src/",
                     "AIArmada\\CommerceSupport\\Database\\Seeders\\": "database/seeders/"
                 }
+            },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:boundaries:diff": [
+                    "@php tools/package-check.php --diff-base=main"
+                ],
+                "arch:writes": [
+                    "@php ../../vendor/bin/phpstan analyse -c tools/package-phpstan.neon --autoload-file=tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
+                ]
             },
             "license": [
                 "MIT"
@@ -775,7 +843,7 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/events",
-                "reference": "bd3d0c36535b95dacfcb1f2baa5bc64248b80502"
+                "reference": "fb6743d6db2a2ab785d455d2d2994b48ddcddca9"
             },
             "require": {
                 "aiarmada/addressing": "self.version",
@@ -786,7 +854,6 @@
                 "aiarmada/seating": "self.version",
                 "aiarmada/ticketing": "self.version",
                 "php": "^8.5",
-                "spatie/laravel-data": "^4.23.1",
                 "spatie/laravel-medialibrary": "^11.23.11",
                 "spatie/laravel-model-states": "^2.14.3",
                 "spatie/laravel-package-tools": "^1.93.3"
@@ -806,10 +873,7 @@
                 "laravel": {
                     "providers": [
                         "AIArmada\\Events\\EventsServiceProvider"
-                    ],
-                    "aliases": {
-                        "Events": "AIArmada\\Events\\Facades\\Events"
-                    }
+                    ]
                 }
             },
             "autoload": {
@@ -817,6 +881,18 @@
                     "AIArmada\\Events\\": "src/",
                     "AIArmada\\Events\\Database\\Factories\\": "database/factories"
                 }
+            },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:writes": [
+                    "cd ../.. && php vendor/bin/phpstan analyse -c packages/events/tools/package-phpstan.neon --autoload-file=packages/events/tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
+                ]
             },
             "license": [
                 "MIT"
@@ -848,7 +924,7 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/filament-addressing",
-                "reference": "982322f3068e5b74dbd05dc2d4c52e7a055b9054"
+                "reference": "ed79cfbe3aafd9ba0441952aa2778721bc8ad722"
             },
             "require": {
                 "aiarmada/addressing": "self.version",
@@ -856,6 +932,9 @@
                 "filament/filament": "^5.11.1",
                 "php": "^8.5",
                 "spatie/laravel-package-tools": "^1.93.3"
+            },
+            "require-dev": {
+                "nikic/php-parser": "^5"
             },
             "type": "library",
             "extra": {
@@ -875,6 +954,21 @@
                     "AIArmada\\FilamentAddressing\\Tests\\": "tests/"
                 }
             },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:boundaries:diff": [
+                    "@php tools/package-check.php --diff-base=main"
+                ],
+                "arch:writes": [
+                    "@php ../../vendor/bin/phpstan analyse -c tools/package-phpstan.neon --autoload-file=tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -890,7 +984,7 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/filament-affiliates",
-                "reference": "cef0b85f3572b20feb794b20236fd6e9c41cd701"
+                "reference": "af0e33f125aba8eefbdada28bc2a748ddb2bfc9a"
             },
             "require": {
                 "aiarmada/affiliates": "self.version",
@@ -898,7 +992,10 @@
                 "aiarmada/commerce-support": "self.version",
                 "filament/filament": "^5.11.1",
                 "filament/spatie-laravel-media-library-plugin": "^5.11.1",
-                "php": "^8.5"
+                "league/csv": "^9.29.0",
+                "openspout/openspout": "^4.32",
+                "php": "^8.5",
+                "spatie/laravel-pdf": "^2.14"
             },
             "suggest": {
                 "aiarmada/events": "Optional integration",
@@ -922,6 +1019,18 @@
                     "AIArmada\\FilamentAffiliates\\Database\\Seeders\\": "database/seeders/"
                 }
             },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:writes": [
+                    "@php ../../vendor/bin/phpstan analyse -c tools/package-phpstan.neon --autoload-file=tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -942,7 +1051,7 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/filament-authz",
-                "reference": "4ed6a35c8befb26afc50ea495b2fa8df00d1e308"
+                "reference": "82b2741128385702ac821978380a0ed6b701c27a"
             },
             "require": {
                 "aiarmada/authz": "self.version",
@@ -951,6 +1060,9 @@
                 "php": "^8.5",
                 "spatie/laravel-package-tools": "^1.93.3",
                 "spatie/laravel-permission": "^8.3.2"
+            },
+            "require-dev": {
+                "nikic/php-parser": "^5"
             },
             "suggest": {
                 "aiarmada/affiliates": "Optional integration",
@@ -969,6 +1081,21 @@
                     "AIArmada\\FilamentAuthz\\": "src/"
                 }
             },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:boundaries:diff": [
+                    "@php tools/package-check.php --diff-base=main"
+                ],
+                "arch:writes": [
+                    "@php ../../vendor/bin/phpstan analyse -c tools/package-phpstan.neon --autoload-file=tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -984,14 +1111,18 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/filament-commerce-support",
-                "reference": "c887dc16bf9a5d62ac32369d39d2149f46019ada"
+                "reference": "113f500b32bb244f9ea2e80bed5ca7f13a055e2d"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "filament/filament": "^5.11.1",
                 "owen-it/laravel-auditing": "^14.0.7",
                 "php": "^8.5",
+                "spatie/laravel-package-tools": "^1.93.3",
                 "spatie/laravel-settings": "^3.10.1"
+            },
+            "require-dev": {
+                "nikic/php-parser": "^5"
             },
             "type": "library",
             "extra": {
@@ -1005,6 +1136,21 @@
                 "psr-4": {
                     "AIArmada\\FilamentCommerceSupport\\": "src/"
                 }
+            },
+            "scripts": {
+                "arch:boundaries": [
+                    "@php tools/package-check.php"
+                ],
+                "arch:boundaries:diff": [
+                    "@php tools/package-check.php --diff-base=main"
+                ],
+                "arch:writes": [
+                    "@php ../../vendor/bin/phpstan analyse -c tools/package-phpstan.neon --autoload-file=tools/Architecture/PackageOwnedWriteRule.php --no-progress"
+                ],
+                "arch:check": [
+                    "@arch:boundaries",
+                    "@arch:writes"
+                ]
             },
             "license": [
                 "MIT"

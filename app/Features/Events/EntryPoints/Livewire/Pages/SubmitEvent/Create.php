@@ -2,8 +2,8 @@
 
 namespace App\Features\Events\EntryPoints\Livewire\Pages\SubmitEvent;
 
-use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
-use AIArmada\Addressing\Actions\FetchGooglePlacePhotoPreviewsAction;
+use AIArmada\Addressing\Contracts\GooglePlaceDetailsLookup;
+use AIArmada\Addressing\Contracts\GooglePlacePhotoLookup;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\Events\Features\Catalog\Models\EventSession;
@@ -714,8 +714,8 @@ class Create extends Component implements HasActions, HasForms
         string $placeId,
         string $addressStatePath,
         string $ownerStatePath,
-        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
-        FetchGooglePlacePhotoPreviewsAction $fetchGooglePlacePhotoPreviewsAction,
+        GooglePlaceDetailsLookup $fetchGooglePlaceDetailsAction,
+        GooglePlacePhotoLookup $fetchGooglePlacePhotoPreviewsAction,
     ): array {
         $context = $this->institutionQuickAddContext(ownerStatePath: $ownerStatePath);
 

@@ -2,7 +2,7 @@
 
 namespace App\Features\Places\Models;
 
-use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\Addressing\Features\AddressLifecycle\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Features\Venues\Models\Venue as PackageVenue;

@@ -2,8 +2,8 @@
 
 namespace App\Features\Institutions\EntryPoints\Filament\Resources\Institutions\Schemas;
 
-use AIArmada\Addressing\Support\AddressAssignments;
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Models\Institution;

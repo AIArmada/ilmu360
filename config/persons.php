@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use App\Features\Institutions\Models\Institution;
 use App\Features\Persons\Models\Person;
 

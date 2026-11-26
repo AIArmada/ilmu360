@@ -38,7 +38,7 @@
         ?? (($ownLocation ?? $occurrenceLocation)?->venue_id !== null
             ? null
             : $event->resolvedLocationAddress());
-    $addressDisplayLines = \AIArmada\Addressing\Support\AddressHierarchyFormatter::displayLines($primaryAddress);
+    $addressDisplayLines = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::displayLines($primaryAddress);
     $venueDisplayName = $scopedVenueName ?? $locationVenue?->name ?? $locationInstitution?->display_name ?? $detail->locationLabel($location) ?? $event->resolvedLocationName();
     $isOnlineOnly = (string) $event->delivery_mode === \App\Features\Events\Api\Enums\EventFormat::Online->value
         && $location === null

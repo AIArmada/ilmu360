@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\DonationChannels\Models;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use App\Features\DonationChannels\Api\Enums\DonationBankStatus;
 use App\Platform\Auditing\AuditsModelChanges;
 use App\Shared\Cache\SelectionCatalog;

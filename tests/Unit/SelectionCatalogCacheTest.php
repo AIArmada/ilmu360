@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
 use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\Persons\Enums\TitleUsagePosition;

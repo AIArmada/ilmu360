@@ -51,7 +51,7 @@
             @php
                 $locationName = $event->resolvedLocationName();
                 $locationAddress = $event->resolvedLocationAddress();
-                $locationSubtitle = \AIArmada\Addressing\Support\AddressHierarchyFormatter::format($locationAddress);
+                $locationSubtitle = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::format($locationAddress);
             @endphp
 
             @if($locationName)

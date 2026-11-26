@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Features\Events\Api\EventTaxonomyCode;
 use App\Features\Institutions\Models\Institution;

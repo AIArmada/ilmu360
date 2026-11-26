@@ -2,8 +2,8 @@
 
 namespace App\Features\Contributions\EntryPoints\Http;
 
-use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
-use AIArmada\Addressing\Actions\ResolveGooglePlaceSelectionAction;
+use AIArmada\Addressing\Contracts\GooglePlaceDetailsLookup;
+use AIArmada\Addressing\Features\PlaceLookup\Actions\ResolveGooglePlaceSelectionAction;
 use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
 use AIArmada\Addressing\Rules\ValidAreaAssignmentRoles;
 use AIArmada\Addressing\Support\ModelResolver;
@@ -113,7 +113,7 @@ class ContributionController extends FrontendController
     public function storeInstitution(
         Request $request,
         StagedContributionCreates $stagedCreates,
-        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
+        GooglePlaceDetailsLookup $fetchGooglePlaceDetailsAction,
         ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
         DiscoverWebsiteSocialProfilesAction $discoverWebsiteSocialProfilesAction,
         InstitutionMapsSelection $institutionMapsSelection,

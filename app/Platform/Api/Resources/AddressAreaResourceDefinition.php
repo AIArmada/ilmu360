@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Platform\Api\Resources;
 
-use AIArmada\Addressing\Actions\SaveAddressAreaAction;
+use AIArmada\Addressing\Features\Geography\Actions\SaveAddressAreaAction;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use App\Platform\Api\Admin\AdminMutationHookRegistry;
 

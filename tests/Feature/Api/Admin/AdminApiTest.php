@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\Addressing\Models\AddressAreaStateLink;
-use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaStateLink;
+use AIArmada\Addressing\Features\Geography\Models\City;
 use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\CommerceSupport\Features\ReferenceData\Models\Currency;
 use AIArmada\CommerceSupport\Support\OwnerContext;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
-use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\Addressing\Support\LocationSlugSegments;
 use AIArmada\CommerceSupport\Contracts\SlugRedirectRecorder;
 use AIArmada\CommerceSupport\Persistence\CanonicalSlug;

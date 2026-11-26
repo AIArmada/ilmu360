@@ -2,9 +2,9 @@
 
 namespace App\Platform\Api\Frontend;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressAssignments;
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressAssignments;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;

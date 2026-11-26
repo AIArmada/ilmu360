@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressFormState;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Persons\Api\PersonWorkflow;

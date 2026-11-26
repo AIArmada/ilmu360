@@ -1,8 +1,8 @@
 <?php
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Persons\Enums\PersonNameType;
 use App\Features\Persons\EntryPoints\Filament\Resources\Persons\Pages\ViewPerson;

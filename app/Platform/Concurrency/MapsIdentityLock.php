@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Platform\Concurrency;
 
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
 use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
-use AIArmada\Addressing\Support\AddressFormState;
 use Closure;
 use Illuminate\Support\Facades\Cache;
 

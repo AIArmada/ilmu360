@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Institutions\Actions;
 
-use AIArmada\Addressing\Support\AddressFormState;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;
 use App\Features\Institutions\Api\InstitutionSubmissionAccess;
 use App\Features\Institutions\Models\Institution;

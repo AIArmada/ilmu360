@@ -2,7 +2,7 @@
 
 namespace App\Features\Contributions\EntryPoints\Filament\Forms;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
 use AIArmada\FilamentContacting\Schemas\SocialProfileRepeaterSchema;
 use AIArmada\Persons\Enums\AssignmentStatus;

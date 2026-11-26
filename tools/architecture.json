@@ -287,7 +287,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Platform/Directory/EntityRelationSync.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Addressing\\Models\\Address",
+      "model": "AIArmada\\Addressing\\Features\\AddressLifecycle\\Models\\Address",
       "reason": "This generic Platform entity relation adapter creates, updates and deletes canonical Address models because Addressing exposes area-assignment synchronization but not address-record persistence.",
       "owner": "Platform",
       "expires": "2027-06-30"
@@ -296,7 +296,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/Organizations/Actions/SaveOrganizationAddressAction.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Addressing\\Models\\Address",
+      "model": "AIArmada\\Addressing\\Features\\AddressLifecycle\\Models\\Address",
       "reason": "Organizations keeps the canonical primary address for the vendor-owned Organization aggregate through the Addressing Address model; the package aggregate cannot carry the HasAddresses trait and Addressing exposes no address-record persistence action.",
       "owner": "Organizations",
       "expires": "2027-06-30"
@@ -305,7 +305,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/Organizations/Actions/SaveOrganizationAddressAction.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Addressing\\Models\\Addressable",
+      "model": "AIArmada\\Addressing\\Features\\AddressLifecycle\\Models\\Addressable",
       "reason": "The organization primary-address attachment is the canonical Addressing addressables pivot; the vendor Organization model cannot use HasAddresses, so the owning action writes the pivot through the package models and guards.",
       "owner": "Organizations",
       "expires": "2027-06-30"

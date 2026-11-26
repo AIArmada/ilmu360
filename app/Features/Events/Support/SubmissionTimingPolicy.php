@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Support;
 
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Features\Contributions\Api\ContributionOrganizer;
 use App\Features\Events\Api\SubmissionTimingContract;

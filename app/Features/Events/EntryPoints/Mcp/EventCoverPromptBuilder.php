@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\Events\EntryPoints\Mcp;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Support\AddressHierarchyFormatter;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter;
 use AIArmada\Events\Features\Catalog\Models\EventAccessPolicy;
 use AIArmada\Events\Features\Venues\Models\VenueSpace;
 use App\Features\DonationChannels\Models\DonationChannel;

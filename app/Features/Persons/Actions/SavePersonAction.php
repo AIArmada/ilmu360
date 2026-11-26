@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\Persons\Actions;
 
-use AIArmada\Addressing\Support\AddressFormState;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
 use AIArmada\Persons\Enums\Gender;
 use App\Features\Membership\Api\MembershipCommands;
 use App\Features\Membership\Api\MemberSubjectType;

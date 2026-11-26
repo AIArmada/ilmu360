@@ -2,11 +2,11 @@
 
 namespace App\Features\Contributions\EntryPoints\Livewire\Pages;
 
-use AIArmada\Addressing\Actions\FetchGooglePlaceDetailsAction;
-use AIArmada\Addressing\Actions\FetchGooglePlacePhotoPreviewsAction;
+use AIArmada\Addressing\Contracts\GooglePlaceDetailsLookup;
+use AIArmada\Addressing\Contracts\GooglePlacePhotoLookup;
+use AIArmada\Addressing\Features\AddressLifecycle\Support\AddressFormState;
 use AIArmada\Addressing\GooglePlaces\GooglePlaceIdentity;
 use AIArmada\Addressing\GooglePlaces\GooglePlacesConfiguration;
-use AIArmada\Addressing\Support\AddressFormState;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\FilamentContacting\Schemas\ContactMethodRepeaterSchema;
@@ -293,8 +293,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     public function loadPlacePhotoPreviews(
         string $placeId,
-        FetchGooglePlaceDetailsAction $fetchGooglePlaceDetailsAction,
-        FetchGooglePlacePhotoPreviewsAction $fetchGooglePlacePhotoPreviewsAction,
+        GooglePlaceDetailsLookup $fetchGooglePlaceDetailsAction,
+        GooglePlacePhotoLookup $fetchGooglePlacePhotoPreviewsAction,
     ): array {
         $this->hitMapsThrottle('photos');
 

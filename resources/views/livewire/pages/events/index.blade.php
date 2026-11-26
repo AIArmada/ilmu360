@@ -729,7 +729,7 @@
                                                 ->implode(' · ');
                                         }
                                         $locationPrimaryText = is_string($primaryLocationName) && $primaryLocationName !== '' ? $primaryLocationName : null;
-                                        $locationSecondaryText = \AIArmada\Addressing\Support\AddressHierarchyFormatter::formatShort($addressModel) ?: null;
+                                        $locationSecondaryText = \AIArmada\Addressing\Features\AddressLifecycle\Support\AddressHierarchyFormatter::formatShort($addressModel) ?: null;
 
                                         if ($locationPrimaryText === null && $locationSecondaryText === null) {
                                             $locationPrimaryText = $formatValue === \App\Features\Events\Api\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');
