@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Platform;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\Addressable;
-use AIArmada\Addressing\Models\AddressArea;
-use AIArmada\Addressing\Models\AddressAreaRelationship;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Models\City;
-use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
+use AIArmada\Addressing\Features\AddressLifecycle\Models\Addressable;
+use AIArmada\Addressing\Features\Geography\Models\AddressArea;
+use AIArmada\Addressing\Features\Geography\Models\AddressAreaRelationship;
+use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
+use AIArmada\Addressing\Features\Geography\Models\City;
+use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Features\ReferenceData\Models\Language as CommerceLanguage;
 use AIArmada\Contacting\Models\ContactMethod;
@@ -124,6 +124,9 @@ final class PlatformServiceProvider extends ServiceProvider
         AddressArea::observe(AddressAreaObserver::class);
         AddressAreaRelationship::observe(AddressAreaRelationshipObserver::class);
         Addressable::observe(AddressableObserver::class);
+        Addressable::deleting(static function (Addressable $addressable): void {
+            $addressable->loadMissing('address');
+        });
         AddressCountry::observe(AddressCountryObserver::class);
         City::observe(AddressCatalogObserver::class);
         State::observe(AddressCatalogObserver::class);
