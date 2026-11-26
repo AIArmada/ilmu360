@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Actions\EffectReceipts;
 
+use AIArmada\Affiliates\Features\Attribution\Api\TrackingLinkAdministration;
 use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
 use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
 use AIArmada\Affiliates\Features\Conversions\States\ConversionStatus;
@@ -34,6 +35,7 @@ final readonly class DispatchShareEffectReceiptsAction implements PendingShareEf
         private TicketAffiliateReversals $reverseTicketAffiliateCommission,
         private EffectReceipts $effectReceipts,
         private OutcomeCorrections $outcomeCorrections,
+        private TrackingLinkAdministration $trackingLinks,
     ) {}
 
     public function dispatch(int $limit = 50, ?string $workerId = null): int
@@ -126,7 +128,7 @@ final readonly class DispatchShareEffectReceiptsAction implements PendingShareEf
                 return true;
             }
 
-            $link->increment('conversions');
+            $this->trackingLinks->recordConversion($linkId);
 
             $this->effectReceipts->markSucceeded($receiptId, $workerId, $leaseToken);
 

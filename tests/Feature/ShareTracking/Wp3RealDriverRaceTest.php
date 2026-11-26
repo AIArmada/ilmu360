@@ -230,7 +230,10 @@ function wp3SlugForcedRaceCase(TestCase $testCase): void
         DB::beginTransaction();
 
         try {
-            OwnerContext::withOwner($sharer, static function () use ($affiliate): void {
+            OwnerContext::withOwner($sharer, static function () use ($affiliate, $sharer): void {
+                // Match production lock order: the member account is locked
+                // before the affiliate, so the forced race cannot invert them.
+                User::query()->whereKey($sharer->getKey())->lockForUpdate()->firstOrFail();
                 Affiliate::query()->whereKey($affiliate->getKey())->lockForUpdate()->firstOrFail();
             });
 

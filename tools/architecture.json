@@ -369,15 +369,6 @@
       "owner": "Membership",
       "expires": "2027-06-30",
       "validated_by": "phpstan"
-    },
-    {
-      "rule": "architecture.writeLocation",
-      "file": "app/Features/ShareTracking/Actions/EffectReceipts/DispatchShareEffectReceiptsAction.php",
-      "target": "table:affiliate_links",
-      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateLink",
-      "reason": "ShareTracking increments the tracked link conversion counter after a committed projection effect; the link row is already locked in the same transaction and Affiliates exposes no counter mutation API for this deferred path.",
-      "owner": "ShareTracking",
-      "expires": "2027-06-30"
     }
   ],
   "read_adapters": {},
