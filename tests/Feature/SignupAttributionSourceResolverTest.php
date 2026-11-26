@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Actions\Identity\RevokeAffiliateClaim;
 use AIArmada\Affiliates\Enums\CommissionType;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateClaim;
-use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Identity\Actions\RevokeAffiliateClaim;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateClaim;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\Disabled;
 use AIArmada\CommerceSupport\Support\OwnerContext;
@@ -364,7 +364,7 @@ it('rejects a commercial attribution whose campaign link belongs to another affi
 
 it('rejects a stale tracked share after its link is deactivated', function (): void {
     $fixture = signupResolverShareFixture(User::factory()->create());
-    $fixture['link']->deactivate();
+    $fixture['link']->update(['deactivated_at' => now()]);
 
     expect(resolveSignupSource($fixture['request']))->toBeNull();
 });

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // R2 proof: ONE named committed outbound-share Signals producer through
 // the INSTALLED Signals package ingestor, and the ACTUAL reader of the
 // package's durable signal log — with semantic keys, explicit effect

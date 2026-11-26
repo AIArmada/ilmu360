@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\Registration\Actions;
 
-use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateConversion;
+use AIArmada\Affiliates\Features\Attribution\Api\AttributionConversionReader;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Identity\Api\AffiliateProfileReader;
 use AIArmada\Cart\Contracts\CartManagerInterface;
 use AIArmada\Checkout\Contracts\CheckoutServiceInterface;
 use AIArmada\Checkout\Models\CheckoutSession;
@@ -39,7 +41,8 @@ final readonly class PrepareAdmissionCheckoutAction implements AdmissionCheckout
         private AddTicketTypeToCartAction $addTicketTypeToCart,
         private CheckoutServiceInterface $checkoutService,
         private ActiveAttribution $activeAttribution,
-        private RecordAffiliateConversion $recordAffiliateConversion,
+        private AttributionConversionReader $attributionConversions,
+        private AffiliateProfileReader $affiliateProfiles,
         private RecordFreeCheckoutMetadataAction $freeCheckoutMetadata,
     ) {}
 
@@ -235,7 +238,22 @@ final readonly class PrepareAdmissionCheckoutAction implements AdmissionCheckout
         // checkout intent as share provenance. The order listener sees the
         // registration_lines marker and leaves ticket commissions to the
         // registration-aware checkout step below.
-        $affiliateAttribution = $this->recordAffiliateConversion->resolveAttributionFor($cart);
+        $connectionIdentity = spl_object_id((new AffiliateAttribution)->getConnection());
+        $affiliateAttribution = $this->attributionConversions->active(
+            null,
+            $cart->getIdentifier(),
+            $cart->instance(),
+            $connectionIdentity,
+        );
+        $commercialPurpose = false;
+        if ($affiliateAttribution !== null) {
+            $profile = $this->affiliateProfiles->find(
+                $affiliateAttribution->affiliateId,
+                $connectionIdentity,
+                includeGlobal: true,
+            );
+            $commercialPurpose = $profile !== null && $profile->commercial;
+        }
         $session = $this->checkoutService->startCheckout($cartId);
 
         // The checkout session is the authoritative server-created paid
@@ -264,12 +282,12 @@ final readonly class PrepareAdmissionCheckoutAction implements AdmissionCheckout
         ];
         $paymentData['affiliate_commission'] = [
             'strategy' => 'registration_lines',
-            'attribution_id' => $affiliateAttribution?->getKey(),
-            'affiliate_id' => $affiliateAttribution?->affiliate_id,
-            'affiliate_program_id' => $affiliateAttribution?->affiliate_program_id,
-            'owner_type' => $affiliateAttribution?->owner_type,
-            'owner_id' => $affiliateAttribution?->owner_id,
-            'commercial_purpose' => $affiliateAttribution?->affiliate?->isCommercialPurpose() ?? false,
+            'attribution_id' => $affiliateAttribution?->id,
+            'affiliate_id' => $affiliateAttribution?->affiliateId,
+            'affiliate_program_id' => $affiliateAttribution?->affiliateProgramId,
+            'owner_type' => $affiliateAttribution?->ownerType,
+            'owner_id' => $affiliateAttribution?->ownerId,
+            'commercial_purpose' => $commercialPurpose,
             'captured_at' => $occurredAt->toIso8601String(),
         ];
 

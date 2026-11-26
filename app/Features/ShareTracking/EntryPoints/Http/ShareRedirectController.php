@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\EntryPoints\Http;
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Models\Link;
 use App\Features\ShareTracking\Policies\ShareDestinationPolicy;

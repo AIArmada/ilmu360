@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Actions\CommittedSignals;
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Support\CommittedShareSignal;

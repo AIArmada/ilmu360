@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Actions\OutboundAttribution;
 
-use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
 use App\Features\ShareTracking\Api\CreateOutboundShareAttributionData;
 use App\Features\ShareTracking\Api\OutboundShareAttributionReceipt;
 use App\Features\ShareTracking\Api\OutboundShareAttributionWriter;

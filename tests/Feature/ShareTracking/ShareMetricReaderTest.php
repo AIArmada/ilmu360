@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // R1 proof: ShareMetricReader reads ONLY frozen authorities — committed
 // outbound_share touchpoints, the visitor_key historical union over
 // landing attributions + visit touchpoints, and scoped conversions —
@@ -12,7 +12,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 // real production ingestion (payload/track HTTP, landing capture,
 // recordOutcome, real reversal, real guest claim).
 
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;

@@ -1,10 +1,11 @@
 <?php
 
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use AIArmada\Affiliates\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use App\Features\ShareTracking\Queries\ShareMetricReader;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
@@ -64,7 +65,7 @@ test('landing browser history remains visible in channel breakdowns without visi
 
     AffiliateAttribution::query()->create([
         'affiliate_id' => $link->affiliate_id,
-        'affiliate_code' => $link->affiliate->code,
+        'affiliate_code' => Affiliate::query()->whereKey($link->affiliate_id)->value('code'),
         'affiliate_link_id' => $link->id,
         'subject_key' => $link->subject_key,
         'subject_instance' => 'default',
@@ -101,7 +102,7 @@ function dakwahBoundaryFacts(AffiliateLink $linkedPage, AffiliateLink $factOwner
     $reference = (string) Str::uuid();
     $attribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $factOwner->affiliate_id,
-        'affiliate_code' => $factOwner->affiliate->code,
+        'affiliate_code' => Affiliate::query()->whereKey($factOwner->affiliate_id)->value('code'),
         'affiliate_link_id' => $linkedPage->id,
         'subject_key' => $linkedPage->subject_key,
         'subject_instance' => 'default',

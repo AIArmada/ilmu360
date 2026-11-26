@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\Actions\MemberProfiles;
 
 use AIArmada\Affiliates\Enums\CommissionType;
-use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\ShareTracking\Api\MemberAffiliateProfileResult;

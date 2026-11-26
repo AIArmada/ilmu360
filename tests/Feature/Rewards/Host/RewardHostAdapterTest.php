@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Actions\Identity\RevokeAffiliateClaim;
-use AIArmada\Affiliates\Models\AffiliateClaim;
-use AIArmada\Affiliates\Models\AffiliateFraudSignal;
+use AIArmada\Affiliates\Features\Fraud\Models\AffiliateFraudSignal;
+use AIArmada\Affiliates\Features\Identity\Actions\RevokeAffiliateClaim;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateClaim;
 use AIArmada\Rewards\Actions\MarkRewardReservationSubmittedAction;
 use AIArmada\Rewards\Enums\RewardBeneficiaryRole;
 use AIArmada\Rewards\Enums\RewardSourceCorrectionStatus;

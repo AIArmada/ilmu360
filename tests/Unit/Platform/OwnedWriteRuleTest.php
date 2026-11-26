@@ -1015,7 +1015,7 @@ it('isolates concrete third-party model writes in Host adapters', function (): v
         $project->write('app/Host/Affiliates/ExternalAffiliateWriter.php', <<<'PHP'
 <?php
 namespace App\Host\Affiliates;
-use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 final class ExternalAffiliateWriter
 {
     public function persist(Affiliate $affiliate): void { $affiliate->saveQuietly(); }

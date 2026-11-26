@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Enums\FraudSeverity;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
 // WP2 real-driver proof for the atomic outcome slice.
 //
 // Every case runs the actual current application + affiliates flows
@@ -16,16 +16,16 @@ use AIArmada\Affiliates\Enums\FraudSeverity;
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Enums\FraudSignalStatus;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateBalance;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateFraudSignal;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use AIArmada\Affiliates\Services\FraudDetectionService;
-use AIArmada\Affiliates\States\ConversionStatus;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateBalance;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ConversionStatus;
+use AIArmada\Affiliates\Features\Fraud\Api\FraudApi;
+use AIArmada\Affiliates\Features\Fraud\Api\FraudSeverity;
+use AIArmada\Affiliates\Features\Fraud\Api\FraudSignalStatus;
+use AIArmada\Affiliates\Features\Fraud\Models\AffiliateFraudSignal;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use App\Features\Events\Models\Event;
@@ -51,6 +51,7 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Feature\ShareTracking\Wp1RealDriverHarness;
 use Tests\Feature\ShareTracking\Wp2RealDriverHarness;
+use Tests\Feature\ShareTracking\Wp2SignalFraudRule;
 use Tests\Feature\ShareTracking\Wp2ThrowingFraudRule;
 use Tests\Support\RealDriverFixture;
 
@@ -302,8 +303,8 @@ function wp2RollbackCase(TestCase $testCase): void
         $link = wp2OutcomeLink($sharer, $pageUrl);
         $cookie = wp2OutcomeLanding($pageUrl.'?share='.$link->custom_slug);
 
-        app()->tag([Wp2ThrowingFraudRule::class], 'affiliates.fraud_rule');
-        app()->forgetInstance(FraudDetectionService::class);
+        app()->tag([Wp2SignalFraudRule::class, Wp2ThrowingFraudRule::class], 'affiliates.fraud_rule');
+        app()->forgetInstance(FraudApi::class);
 
         $service = app(AffiliatesShareTrackingService::class);
         $businessKey = ShareOutcomeBusinessKey::eventSave((string) Str::uuid());
@@ -577,7 +578,7 @@ function wp2InheritanceCase(TestCase $testCase): void
         // Current link disablement cannot erase accrued provenance.
         // Inheritance reads only the frozen source receipt, never any
         // live staff browser cookie.
-        $link->deactivate();
+        $link->update(['deactivated_at' => now()]);
 
         $testCase->travel(31)->days();
 
@@ -783,8 +784,8 @@ function wp2GoingCrashCase(TestCase $testCase): void
         // Crash: a failure while recording the going outcome rolls the
         // whole source transaction back, including the already-posted
         // admission accounting and fraud signals.
-        app()->tag([Wp2ThrowingFraudRule::class], 'affiliates.fraud_rule');
-        app()->forgetInstance(FraudDetectionService::class);
+        app()->tag([Wp2SignalFraudRule::class, Wp2ThrowingFraudRule::class], 'affiliates.fraud_rule');
+        app()->forgetInstance(FraudApi::class);
 
         $event2 = $makeEvent();
 

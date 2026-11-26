@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Integrations\Auth;
 
-use AIArmada\Affiliates\Contracts\AffiliateLookup;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateClaim;
-use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Api\AttributionLookup;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateClaim;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\Identity\Api\SignupAttributionSource;
@@ -29,7 +29,7 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
 {
     public function __construct(
         private AffiliatesShareTrackingService $shareTrackingService,
-        private AffiliateLookup $affiliateLookup,
+        private AttributionLookup $attributions,
     ) {}
 
     public function resolve(): ?SignupAttributionSource
@@ -151,26 +151,26 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
             return null;
         }
 
-        $attribution = OwnerContext::withOwner(
+        $resolvedAffiliateId = OwnerContext::withOwner(
             $owner,
-            fn (): ?AffiliateAttribution => $this->affiliateLookup->findActiveAttributionByCookie($cookie),
+            fn (): ?string => $this->attributions->affiliateIdForCookie($cookie),
         );
 
-        if (! $attribution instanceof AffiliateAttribution
-            || (string) $attribution->getKey() !== (string) $candidate->getKey()
-            || (string) $attribution->affiliate_id !== (string) $affiliate->getKey()) {
+        if ($resolvedAffiliateId === null
+            || (string) $candidate->affiliate_id !== $resolvedAffiliateId
+            || (string) $affiliate->getKey() !== $resolvedAffiliateId) {
             return null;
         }
 
-        $referredAt = $attribution->last_referred_at;
+        $referredAt = $candidate->last_referred_at;
 
         if (! $referredAt instanceof CarbonInterface) {
             return null;
         }
 
-        $link = $this->linkFor($attribution);
+        $link = $this->linkFor($candidate);
 
-        if ($attribution->affiliate_link_id !== null && ! $link instanceof AffiliateLink) {
+        if ($candidate->affiliate_link_id !== null && ! $link instanceof AffiliateLink) {
             return null;
         }
 
@@ -180,7 +180,7 @@ final readonly class AffiliateSignupAttributionSourceResolver implements SignupA
                 referrerUserId: $owner instanceof User ? (string) $owner->getKey() : null,
                 affiliateId: (string) $affiliate->getKey(),
                 affiliateLinkId: $link instanceof AffiliateLink ? (string) $link->getKey() : null,
-                affiliateAttributionId: (string) $attribution->getKey(),
+                affiliateAttributionId: (string) $candidate->getKey(),
             ),
             'referred_at' => $referredAt,
         ];

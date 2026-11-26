@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use AIArmada\Affiliates\Models\AffiliateClaim;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateClaim;
 use App\Features\ShareTracking\Api\ActiveGuestClaimants;
 use App\Models\User;
 

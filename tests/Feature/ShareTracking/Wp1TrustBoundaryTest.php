@@ -3,18 +3,18 @@
 declare(strict_types=1);
 
 use AIArmada\Affiliates\Enums\CommissionType;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateBalance;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateCredential;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliatePayout;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateBalance;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Conversions\States\PaidConversion;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateCredential;
+use AIArmada\Affiliates\Features\Payouts\Models\AffiliatePayout;
 use AIArmada\Affiliates\States\Active;
-use AIArmada\Affiliates\States\ApprovedConversion;
 use AIArmada\Affiliates\States\Disabled;
-use AIArmada\Affiliates\States\PaidConversion;
 use AIArmada\Affiliates\Support\IpHasher;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\Events\Models\Event;
@@ -186,7 +186,7 @@ it('refuses to reuse a deactivated link and never repairs its token', function (
     $token = (string) $payload['tracking_token'];
 
     $link = AffiliateLink::query()->where('custom_slug', $token)->firstOrFail();
-    $link->deactivate();
+    $link->update(['deactivated_at' => now()]);
     $disabledAt = $link->fresh()->deactivated_at;
 
     expect($disabledAt)->not->toBeNull();
@@ -210,7 +210,7 @@ it('keeps the public destination readable while a disabled token earns nothing',
     $payload = wp1SharePayload($this, $this->sharer, route('events.show', $this->event));
     $token = (string) $payload['tracking_token'];
 
-    AffiliateLink::query()->where('custom_slug', $token)->firstOrFail()->deactivate();
+    AffiliateLink::query()->where('custom_slug', $token)->firstOrFail()->update(['deactivated_at' => now()]);
 
     $this->followingRedirects()->get((string) $payload['url'])->assertOk();
 
@@ -226,7 +226,7 @@ it('invalidates a stale cookie once its link is deactivated', function (): void 
     AffiliateLink::query()
         ->where('custom_slug', (string) $payload['tracking_token'])
         ->firstOrFail()
-        ->deactivate();
+        ->update(['deactivated_at' => now()]);
 
     $request = Request::create(route('events.show', $this->event), 'GET');
     $request->cookies->set((string) config('share-tracking.cookie.name'), $cookie);

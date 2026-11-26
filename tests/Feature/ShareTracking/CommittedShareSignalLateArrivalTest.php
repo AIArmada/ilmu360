@@ -7,7 +7,7 @@ declare(strict_types=1);
 // cursor. Normal draining must still project the old event exactly
 // once without a manual reset; replays must not duplicate.
 
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;

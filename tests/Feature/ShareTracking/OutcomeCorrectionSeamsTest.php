@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\States\ApprovedConversion;
-use AIArmada\Affiliates\States\ConversionStatus;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ConversionStatus;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\States\Active;
 use AIArmada\Rewards\Jobs\RecheckRewardAwardsJob;
 use App\Features\Referrals\EntryPoints\Jobs\ReverseReferralRewardsForShareOutcomeJob;
 use App\Features\ShareTracking\Api\EffectReceipts;
@@ -42,8 +44,17 @@ function s2a2ReversibleOutcome(?string $businessKey = null): array
         'business_key' => $businessKey,
     ]);
 
+    $affiliate = Affiliate::create([
+        'code' => 'S2A2-'.Str::upper(Str::random(6)),
+        'name' => 'S2A2 Outcome Affiliate',
+        'status' => Active::class,
+        'commission_type' => 'percentage',
+        'commission_rate' => 0,
+        'currency' => 'MYR',
+    ]);
+
     $conversion = AffiliateConversion::query()->create([
-        'affiliate_id' => (string) Str::uuid(),
+        'affiliate_id' => (string) $affiliate->getKey(),
         'affiliate_code' => 'S2A2CODE',
         'subject_type' => 'event',
         'subject_key' => 'event:s2a2-probe',

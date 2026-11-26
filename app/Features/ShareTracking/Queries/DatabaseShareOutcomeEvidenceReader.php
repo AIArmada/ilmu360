@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Queries;
 
-use AIArmada\Affiliates\Enums\FraudSignalStatus;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateFraudSignal;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Fraud\Api\FraudSignalStatus;
+use AIArmada\Affiliates\Features\Fraud\Models\AffiliateFraudSignal;
 use App\Features\Registration\Api\PaidRegistrationFacts;
 use App\Features\ShareTracking\Api\MarkedShareAffiliateIds;
 use App\Features\ShareTracking\Api\ShareOutcomeEvidence;

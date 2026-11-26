@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
 // WP3 real-driver OS-process race proof.
 //
 // Two independent OS processes with independent connections run the actual
@@ -17,12 +17,12 @@ use AIArmada\Affiliates\Models\Affiliate;
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateBalance;
-use AIArmada\Affiliates\Models\AffiliateClaim;
-use AIArmada\Affiliates\Models\AffiliateCredential;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateBalance;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateClaim;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateCredential;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateOwnershipCapability;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Links\Models\Link;
 use App\Features\ShareTracking\Api\GuestShareClaims;
@@ -288,7 +288,7 @@ function wp3SlugForcedRaceCase(TestCase $testCase): void
         // A refused reuse rolls back cleanly: disabling the converged
         // link and reusing throws without minting any orphan mapping.
         $managedBefore = Link::query()->withoutOwnerScope()->count();
-        $converged->deactivate();
+        $converged->update(['deactivated_at' => now()]);
 
         expect(fn () => app(AffiliatesShareTrackingService::class)->createOrReuseLink($sharer, $raceUrl, 'Majlis', 'web'))
             ->toThrow(InvalidArgumentException::class)
@@ -393,7 +393,7 @@ function wp3GuestSlugForcedRaceCase(TestCase $testCase): void
 
         // The refused path mints no orphan mapping for guests either.
         $managedBefore = Link::query()->withoutOwnerScope()->count();
-        $converged->deactivate();
+        $converged->update(['deactivated_at' => now()]);
 
         expect(fn () => app(AffiliatesShareTrackingService::class)->sharePayload(
             null,

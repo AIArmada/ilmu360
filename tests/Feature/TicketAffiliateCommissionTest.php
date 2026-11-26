@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Actions\Payouts\CreatePayout;
-use AIArmada\Affiliates\Actions\Payouts\UpdatePayoutStatus;
 use AIArmada\Affiliates\Enums\CommissionType;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateBalance;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateProgram;
-use AIArmada\Affiliates\Models\AffiliateProgramMembership;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateBalance;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ReversedConversion;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Payouts\Actions\CreatePayout;
+use AIArmada\Affiliates\Features\Payouts\Actions\UpdatePayoutStatus;
+use AIArmada\Affiliates\Features\Programs\Models\AffiliateProgram;
+use AIArmada\Affiliates\Features\Programs\Models\AffiliateProgramMembership;
 use AIArmada\Affiliates\States\Active as AffiliateActive;
-use AIArmada\Affiliates\States\ApprovedConversion;
-use AIArmada\Affiliates\States\ReversedConversion;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\Events\Contracts\RegistrationServiceInterface;
 use AIArmada\Events\Events\EventRegistrationCancelled;
@@ -246,7 +246,7 @@ it('records one pending conversion per paid registration from the frozen commerc
         ->and($conversions)->toHaveCount(2);
 
     foreach ($conversions as $conversion) {
-        expect($conversion->status)->toBeInstanceOf(AIArmada\Affiliates\States\PendingConversion::class)
+        expect($conversion->status)->toBeInstanceOf(AIArmada\Affiliates\Features\Conversions\States\PendingConversion::class)
             ->and($conversion->subtotal_minor)->toBeIn([4500, 4501])
             ->and($conversion->value_minor)->toBe($conversion->subtotal_minor)
             ->and($conversion->commission_minor)->toBe((int) round($conversion->subtotal_minor * 0.1))
@@ -434,7 +434,7 @@ it('finishes a registration refund and retries a payout-reserved commission reve
         'available_minor' => (int) $conversion->commission_minor,
         'lifetime_earnings_minor' => (int) $conversion->commission_minor,
     ])->save();
-    $payout = CreatePayout::run([(string) $conversion->getKey()]);
+    $payout = app(CreatePayout::class)->handle([(string) $conversion->getKey()]);
 
     app(RegistrationServiceInterface::class)->refund((string) $registration->getKey(), 'Customer refund');
 
@@ -447,7 +447,7 @@ it('finishes a registration refund and retries a payout-reserved commission reve
         ->and($conversion->fresh()->status)->toBeInstanceOf(ApprovedConversion::class)
         ->and($receipt->status)->toBe(ShareEffectStatus::Pending);
 
-    UpdatePayoutStatus::run($payout, 'cancelled');
+    app(UpdatePayoutStatus::class)->handle($payout, 'cancelled');
     app(PendingShareEffects::class)->dispatch(50, 'ticket-refund-test');
 
     expect($conversion->fresh()->status)->toBeInstanceOf(ReversedConversion::class)

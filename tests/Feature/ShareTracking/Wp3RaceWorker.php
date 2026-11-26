@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
 // Permanent race worker for Wp3RealDriverRaceTest. Executed only as a
 // standalone OS process (`php Wp3RaceWorker.php --database=... ...`); returns
 // immediately when merely included, so test runners and autoloaders never

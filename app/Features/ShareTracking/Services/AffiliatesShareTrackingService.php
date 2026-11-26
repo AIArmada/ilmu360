@@ -4,31 +4,32 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Services;
 
-use AIArmada\Affiliates\Actions\Affiliates\CreateTrackingLink;
-use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateOutcome;
-use AIArmada\Affiliates\Actions\Identity\IssueActivityCredential;
-use AIArmada\Affiliates\Actions\Identity\IssueOwnershipCapability;
-use AIArmada\Affiliates\Actions\Identity\RevalidateIdentitySeal;
-use AIArmada\Affiliates\Actions\Identity\RevokeAffiliateClaim;
 use AIArmada\Affiliates\Data\AffiliateConversionData;
-use AIArmada\Affiliates\Enums\AffiliateOutcomeDisposition;
+use AIArmada\Affiliates\Data\AffiliateOutcomeDisposition;
 use AIArmada\Affiliates\Enums\CommissionType;
-use AIArmada\Affiliates\Enums\FraudSignalStatus;
 use AIArmada\Affiliates\Exceptions\SealedIdentityException as PackageSealedIdentityException;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateClaim;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateCredential;
-use AIArmada\Affiliates\Models\AffiliateFraudSignal;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Actions\CreateTrackingLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Support\AffiliateLinkDestination;
+use AIArmada\Affiliates\Features\Conversions\Api\OutcomePosting;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateBalance;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ConversionStatus;
+use AIArmada\Affiliates\Features\Fraud\Api\FraudSignalStatus;
+use AIArmada\Affiliates\Features\Fraud\Models\AffiliateFraudSignal;
+use AIArmada\Affiliates\Features\Identity\Actions\IssueActivityCredential;
+use AIArmada\Affiliates\Features\Identity\Actions\IssueOwnershipCapability;
+use AIArmada\Affiliates\Features\Identity\Actions\RevalidateIdentitySeal;
+use AIArmada\Affiliates\Features\Identity\Actions\RevokeAffiliateClaim;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateClaim;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateCredential;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateOwnershipCapability;
 use AIArmada\Affiliates\States\Active;
-use AIArmada\Affiliates\States\ApprovedConversion;
-use AIArmada\Affiliates\States\ConversionStatus;
 use AIArmada\Affiliates\Support\IpHasher;
-use AIArmada\Affiliates\Support\Links\AffiliateLinkDestination;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Links\Actions\UpdateLink;
@@ -98,7 +99,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
     public function __construct(
         private ShareTrackingUrlService $shareTrackingUrlService,
         private CreateTrackingLink $createTrackingLink,
-        private RecordAffiliateOutcome $recordAffiliateOutcome,
+        private OutcomePosting $recordAffiliateOutcome,
         private FinancialObligationReader $financialObligations,
         private TrackedShareLinkDetacher $trackedShareLinkDetacher,
         private BrowserSelectionWriter $browserSelections,
@@ -566,7 +567,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 }
 
                 /** @var Affiliate $lockedAffiliate */
-                $lockedAffiliate = $lockedLink->affiliate;
+                $lockedAffiliate = $this->affiliateForLink($lockedLink);
 
                 if ($this->isProvenSelfCredit($lockedAffiliate, $winner, $actor)) {
                     $this->sourceReceipts->freezeUnattributed(
@@ -600,8 +601,8 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 $link = $linkId !== '' ? AffiliateLink::query()->find($linkId) : null;
                 $subjectData = $this->resolveOutcomeSubjectData($subject, $winner, $link);
 
-                $result = $this->recordAffiliateOutcome->handle(
-                    attribution: $winner,
+                $result = $this->recordAffiliateOutcome->post(
+                    attributionId: (string) $winner->getKey(),
                     conversionType: $type->value,
                     businessKey: $businessKey,
                     payload: [
@@ -843,9 +844,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
 
                 $attribution = $sourceAttribution;
 
-                $affiliate = $attribution->relationLoaded('affiliate')
-                    ? $attribution->affiliate
-                    : $attribution->affiliate()->first();
+                $affiliate = $this->affiliateForAttribution($attribution);
 
                 if ($affiliate instanceof Affiliate && $this->isProvenSelfCredit($affiliate, $attribution, $actor)) {
                     $this->sourceReceipts->freezeUnattributed(
@@ -879,8 +878,8 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 $link = $linkId !== '' ? AffiliateLink::query()->find($linkId) : null;
                 $subjectData = $this->resolveOutcomeSubjectData($subject, $attribution, $link);
 
-                $result = $this->recordAffiliateOutcome->handle(
-                    attribution: $attribution,
+                $result = $this->recordAffiliateOutcome->post(
+                    attributionId: (string) $attribution->getKey(),
                     conversionType: $type->value,
                     businessKey: $businessKey,
                     payload: [
@@ -1049,9 +1048,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                     return null;
                 }
 
-                $affiliate = $attribution->relationLoaded('affiliate')
-                    ? $attribution->affiliate
-                    : $attribution->affiliate()->first();
+                $affiliate = $this->affiliateForAttribution($attribution);
 
                 if ($affiliate instanceof Affiliate && $this->isProvenSelfCredit($affiliate, $attribution, $actor)) {
                     $this->sourceReceipts->freezeUnattributed(
@@ -1085,8 +1082,8 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 $link = $linkId !== '' ? AffiliateLink::query()->find($linkId) : null;
                 $subjectData = $this->resolveOutcomeSubjectData($subject, $attribution, $link);
 
-                $result = $this->recordAffiliateOutcome->handle(
-                    attribution: $attribution,
+                $result = $this->recordAffiliateOutcome->post(
+                    attributionId: (string) $attribution->getKey(),
                     conversionType: $type->value,
                     businessKey: $businessKey,
                     payload: [
@@ -1186,14 +1183,16 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
 
             // Non-monetary conversions only; preserved rows keep their ids,
             // values and payout links untouched.
-            $affiliate->conversions()
+            AffiliateConversion::query()
+                ->where('affiliate_id', $affiliate->getKey())
                 ->when($preservedConversionIds !== [], fn ($query) => $query->whereNotIn('id', $preservedConversionIds))
                 ->delete();
 
             // Attributions referenced by preserved conversions stay: model
             // deletion would null the preserved row's attribution reference.
             // The rest are model deletes so their touchpoints cascade.
-            $affiliate->attributions()
+            AffiliateAttribution::query()
+                ->where('affiliate_id', $affiliate->getKey())
                 ->when($referencedAttributionIds !== [], fn ($query) => $query->whereNotIn('id', $referencedAttributionIds))
                 ->each(fn (AffiliateAttribution $attribution): bool => (bool) $attribution->delete());
 
@@ -1205,7 +1204,8 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             // canonical minimal public redirect: published short URLs keep
             // opening their public destination with credit and private
             // identity revoked, instead of 404ing with the owner.
-            $affiliate->links()
+            AffiliateLink::query()
+                ->where('affiliate_id', $affiliate->getKey())
                 ->when($referencedLinkIds !== [], fn ($query) => $query->whereNotIn('id', $referencedLinkIds))
                 ->each(function (AffiliateLink $link): ?bool {
                     $this->trackedShareLinkDetacher->detachTrackedShareLink((string) $link->getKey());
@@ -1225,7 +1225,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
                 return;
             }
 
-            $affiliate->balances()->delete();
+            AffiliateBalance::query()->where('affiliate_id', $affiliate->getKey())->delete();
             AffiliateCredential::query()->where('affiliate_id', $affiliate->id)->delete();
             AffiliateOwnershipCapability::query()->where('affiliate_id', $affiliate->id)->delete();
             $affiliate->delete();
@@ -1668,7 +1668,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         // atomic package seam, so the link and its managed short URL are
         // created in one transaction with no post-create update window.
         return $this->createTrackingLink->handle(
-            affiliate: $lockedAffiliate,
+            affiliateId: (string) $lockedAffiliate->getKey(),
             destinationUrl: (string) $target['destination_url'],
             attributes: [
                 'subject_type' => $target['subject_type'] ?? null,
@@ -2069,7 +2069,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             return null;
         }
 
-        $affiliate = $link->relationLoaded('affiliate') ? $link->affiliate : $link->affiliate()->first();
+        $affiliate = $this->affiliateForLink($link);
 
         if ($user instanceof User) {
             if ($affiliate instanceof Affiliate && ShareTrackingProfile::isMarkedMemberForOwner(
@@ -2127,7 +2127,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             return false;
         }
 
-        $affiliate ??= $link->relationLoaded('affiliate') ? $link->affiliate : $link->affiliate()->first();
+        $affiliate ??= $this->affiliateForLink($link);
 
         return ShareTrackingProfile::isEligibleForNewCredit($affiliate);
     }
@@ -2427,7 +2427,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
     private function createLandingAttribution(AffiliateLink $link, Request $request, string $browserKey, ?string $shareProvider): LandingAttributionReceipt
     {
         $linkMetadata = $this->linkMetadata($link);
-        $affiliate = $link->affiliate()->first();
+        $affiliate = $this->affiliateForLink($link);
 
         if (! $affiliate instanceof Affiliate) {
             throw new LogicException('A tracked share link must belong to an affiliate.');
@@ -2592,7 +2592,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
 
     private function recordOutboundShare(AffiliateLink $link, ?User $user, string $provider, ?Request $request = null): void
     {
-        $affiliate = $link->affiliate()->first();
+        $affiliate = $this->affiliateForLink($link);
         $attribution = $this->outboundShareAttributions->createOutboundShareAttribution(new CreateOutboundShareAttributionData(
             affiliateId: (string) $link->affiliate_id,
             affiliateCode: (string) $affiliate?->code,
@@ -2608,7 +2608,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
             channel: $provider,
         ));
 
-        $link->incrementClicks();
+        $link->increment('clicks');
 
         $this->outboundShareTouchpoints->recordOutboundShare(new OutboundShareTouchpointData(
             attributionId: $attribution->attributionId,
@@ -2627,16 +2627,26 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
         ));
     }
 
+    private function affiliateForLink(AffiliateLink $link): ?Affiliate
+    {
+        return Affiliate::query()->whereKey($link->affiliate_id)->first();
+    }
+
+    private function affiliateForAttribution(AffiliateAttribution $attribution): ?Affiliate
+    {
+        return Affiliate::query()->whereKey($attribution->affiliate_id)->first();
+    }
+
     private function ownerForAffiliateLink(AffiliateLink $link): ?User
     {
-        $affiliate = $link->relationLoaded('affiliate') ? $link->affiliate : $link->affiliate()->first();
+        $affiliate = $this->affiliateForLink($link);
 
         return $this->ownerForAffiliate($affiliate);
     }
 
     private function ownerForAffiliateAttribution(AffiliateAttribution $attribution): ?User
     {
-        $affiliate = $attribution->relationLoaded('affiliate') ? $attribution->affiliate : $attribution->affiliate()->first();
+        $affiliate = $this->affiliateForAttribution($attribution);
 
         return $this->ownerForAffiliate($affiliate);
     }
@@ -2653,7 +2663,7 @@ final readonly class AffiliatesShareTrackingService implements ShareTrackingCont
      */
     private function linkMetadata(AffiliateLink $link): array
     {
-        $affiliate = $link->relationLoaded('affiliate') ? $link->affiliate : $link->affiliate()->first();
+        $affiliate = $this->affiliateForLink($link);
         $owner = $affiliate instanceof Affiliate ? $affiliate->owner : null;
 
         return array_filter([

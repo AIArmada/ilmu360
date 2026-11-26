@@ -1,16 +1,16 @@
 <?php
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
-use AIArmada\Affiliates\States\ApprovedConversion;
-use AIArmada\Affiliates\States\ReversedConversion;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ReversedConversion;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use AIArmada\Events\Contracts\RegistrationServiceInterface;
 use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
-use AIArmada\FilamentAffiliates\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
+use AIArmada\FilamentAffiliates\Features\Attribution\EntryPoints\Filament\Resources\AffiliateLinkResource\Pages\EditAffiliateLink;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;
 use App\Features\Events\Api\Enums\EventGenderRestriction;
@@ -207,7 +207,7 @@ test('a deactivated share link records no later visits or attributed signup cred
     $destination = route('events.index');
     $cookie = shareLandingCookie($this, $this->sharer, $destination, 'Events');
     $link = AffiliateLink::query()
-        ->whereHas('affiliate', fn ($query) => $query
+        ->whereIn('affiliate_id', Affiliate::query()->select('id')
             ->where('owner_type', $this->sharer->getMorphClass())
             ->where('owner_id', $this->sharer->getKey()))
         ->firstOrFail();
@@ -219,7 +219,7 @@ test('a deactivated share link records no later visits or attributed signup cred
         ->count();
     $shortLink = $link->trackedLink()->firstOrFail();
 
-    $link->deactivate();
+    $link->update(['deactivated_at' => now()]);
 
     $shortRedirect = $this->get(url('/k/'.$shortLink->slug))->assertRedirect();
     $redirectTarget = (string) $shortRedirect->headers->get('Location');
@@ -1236,14 +1236,14 @@ test('impact dashboard highlights event check-ins and submissions', function () 
         ->assertRedirect(route('submit-event.success'));
 
     $eventLink = AffiliateLink::query()
-        ->whereHas('affiliate', fn ($query) => $query
+        ->whereIn('affiliate_id', Affiliate::query()->select('id')
             ->where('owner_type', $this->sharer->getMorphClass())
             ->where('owner_id', $this->sharer->getKey()))
         ->where('destination_url', route('events.show', $event))
         ->firstOrFail();
 
     $submissionLink = AffiliateLink::query()
-        ->whereHas('affiliate', fn ($query) => $query
+        ->whereIn('affiliate_id', Affiliate::query()->select('id')
             ->where('owner_type', $this->sharer->getMorphClass())
             ->where('owner_id', $this->sharer->getKey()))
         ->where('destination_url', route('submit-event.create'))
@@ -1515,7 +1515,7 @@ test('impact dashboard exposes provider channel performance', function () {
 
     $attribution = AffiliateAttribution::query()->latest('created_at')->firstOrFail();
     $link = AffiliateLink::query()
-        ->whereHas('affiliate', fn ($query) => $query
+        ->whereIn('affiliate_id', Affiliate::query()->select('id')
             ->where('owner_type', $this->sharer->getMorphClass())
             ->where('owner_id', $this->sharer->getKey()))
         ->firstOrFail();
@@ -1903,7 +1903,7 @@ test('admin can view and deactivate a share affiliate link while a member has no
     $this->actingAs($admin)
         ->get(route('filament.admin.resources.affiliate-links.index'))
         ->assertOk()
-        ->assertSee($link->affiliate->code);
+        ->assertSee((string) Affiliate::query()->whereKey($link->affiliate_id)->value('code'));
 
     Livewire::actingAs($admin)
         ->test(EditAffiliateLink::class, ['record' => $link->getRouteKey()])

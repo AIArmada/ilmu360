@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\ShareTracking;
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;

@@ -1,12 +1,12 @@
 <?php
 
-use AIArmada\Affiliates\Actions\Identity\RevokeAffiliateClaim;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateClaim;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Identity\Actions\RevokeAffiliateClaim;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateClaim;
 use App\Features\Events\Models\Event;
 use App\Features\Institutions\Models\Institution;
 use App\Features\ShareTracking\Api\GuestShareClaims;
@@ -35,7 +35,7 @@ function dakwahReconciliationTouchpoint(AffiliateLink $link, string $kind, strin
 {
     $attribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $link->affiliate_id,
-        'affiliate_code' => $link->affiliate->code,
+        'affiliate_code' => Affiliate::query()->whereKey($link->affiliate_id)->value('code'),
         'affiliate_link_id' => $link->id,
         'subject_type' => $link->subject_type,
         'subject_key' => $link->subject_key,
@@ -69,7 +69,7 @@ function dakwahReconciliationConversion(AffiliateLink $link, string $type, strin
 {
     return AffiliateConversion::query()->create([
         'affiliate_id' => $link->affiliate_id,
-        'affiliate_code' => $link->affiliate->code,
+        'affiliate_code' => Affiliate::query()->whereKey($link->affiliate_id)->value('code'),
         'affiliate_link_id' => $link->id,
         'subject_type' => $link->subject_type,
         'subject_key' => $link->subject_key,

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // R2 real-driver proof: two independent drain workers race the same
 // committed-share signal log on the isolated PostgreSQL 18 and
 // apply every signal exactly once with no stale overwrite: a stale

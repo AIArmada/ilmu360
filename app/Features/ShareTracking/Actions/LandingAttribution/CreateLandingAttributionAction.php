@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Actions\LandingAttribution;
 
-use AIArmada\Affiliates\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
 use App\Features\ShareTracking\Api\CreateLandingAttributionData;
 use App\Features\ShareTracking\Api\LandingAttributionReceipt;
 use App\Features\ShareTracking\Api\LandingAttributionWriter;

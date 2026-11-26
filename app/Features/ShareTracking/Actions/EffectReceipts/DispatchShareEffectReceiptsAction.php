@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Actions\EffectReceipts;
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\States\ConversionStatus;
-use AIArmada\Affiliates\States\ReversedConversion;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ConversionStatus;
+use AIArmada\Affiliates\Features\Conversions\States\ReversedConversion;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Events\Features\Registrations\Models\EventRegistration;
 use App\Features\Events\Api\TicketAffiliateReversals;
@@ -126,7 +126,7 @@ final readonly class DispatchShareEffectReceiptsAction implements PendingShareEf
                 return true;
             }
 
-            $link->incrementConversions();
+            $link->increment('conversions');
 
             $this->effectReceipts->markSucceeded($receiptId, $workerId, $leaseToken);
 

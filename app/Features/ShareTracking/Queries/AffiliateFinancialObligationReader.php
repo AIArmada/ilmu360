@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Queries;
 
-use AIArmada\Affiliates\Models\Affiliate;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateBalance;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Payouts\Models\AffiliatePayout;
+use AIArmada\Affiliates\Features\Payouts\Models\AffiliatePayoutHold;
+use AIArmada\Affiliates\Features\Payouts\Models\AffiliatePayoutMethod;
 use App\Features\ShareTracking\Api\FinancialObligationReader as FinancialObligationReaderContract;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -12,16 +16,19 @@ final readonly class AffiliateFinancialObligationReader implements FinancialObli
 {
     public function hasNonConversionFinancialRecords(string $affiliateId): bool
     {
-        $affiliate = new Affiliate;
-        $affiliate->setAttribute($affiliate->getKeyName(), $affiliateId);
+        $affiliateMorphType = (new Affiliate)->getMorphClass();
 
-        if ($affiliate->payouts()->exists()
-            || $affiliate->payoutMethods()->exists()
-            || $affiliate->payoutHolds()->exists()) {
+        if (AffiliatePayout::query()
+            ->where('payee_type', $affiliateMorphType)
+            ->where('payee_id', $affiliateId)
+            ->exists()
+            || AffiliatePayoutMethod::query()->where('affiliate_id', $affiliateId)->exists()
+            || AffiliatePayoutHold::query()->where('affiliate_id', $affiliateId)->exists()) {
             return true;
         }
 
-        return $affiliate->balances()
+        return AffiliateBalance::query()
+            ->where('affiliate_id', $affiliateId)
             ->where(function (Builder $query): void {
                 $query->where('holding_minor', '!=', 0)
                     ->orWhere('available_minor', '!=', 0)

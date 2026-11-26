@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Enums\FraudSeverity;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
 // R1 proof: ShareCohortAuthority implements the landing → signup →
 // first COMMITTED outbound share → accepted participation funnel with
 // a fixed 30-day PER-SIGNUP maturation. Weeks mature only once their
@@ -10,9 +10,9 @@ use AIArmada\Affiliates\Enums\FraudSeverity;
 // only CONFIRMED fraud excludes (corrections are not fraud). Every
 // fact below is written by real production ingestion.
 
-use AIArmada\Affiliates\Enums\FraudSignalStatus;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateFraudSignal;
+use AIArmada\Affiliates\Features\Fraud\Api\FraudSeverity;
+use AIArmada\Affiliates\Features\Fraud\Api\FraudSignalStatus;
+use AIArmada\Affiliates\Features\Fraud\Models\AffiliateFraudSignal;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\GuestShareClaims;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;

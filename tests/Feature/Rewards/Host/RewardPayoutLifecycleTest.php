@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateAward;
-use AIArmada\Affiliates\Enums\AffiliateOutcomeDisposition;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateBalance;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliatePayout;
+use AIArmada\Affiliates\Data\AffiliateOutcomeDisposition;
+use AIArmada\Affiliates\Features\Conversions\Actions\RecordAffiliateAward;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateBalance;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Payouts\Models\AffiliatePayout;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Rewards\Actions\ApproveRewardPayoutAction;
 use AIArmada\Rewards\Actions\ConfirmRewardPayoutAction;
@@ -207,8 +207,8 @@ it('rejects new affiliate awards without a host cash policy', function (): void 
         'currency' => 'MYR',
     ]);
 
-    $result = RecordAffiliateAward::run(
-        $affiliate,
+    $result = app(RecordAffiliateAward::class)->post(
+        (string) $affiliate->getKey(),
         'host:reward-award:test-1',
         500,
         'MYR',

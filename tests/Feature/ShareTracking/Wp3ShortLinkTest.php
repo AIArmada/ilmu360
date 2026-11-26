@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\Links\Actions\CreatePublicLink;
@@ -198,7 +198,7 @@ it('rejects unknown, branded, and non-share slugs honestly', function (): void {
 it('keeps opening the public destination with credit cleared after deactivation', function (): void {
     $event = wp3slEvent();
     $link = wp3slLink($this->sharer, route('events.show', $event));
-    $link->deactivate();
+    $link->update(['deactivated_at' => now()]);
 
     $response = $this->get(route('share.short', ['slug' => wp3slShortSlug($link)]));
 

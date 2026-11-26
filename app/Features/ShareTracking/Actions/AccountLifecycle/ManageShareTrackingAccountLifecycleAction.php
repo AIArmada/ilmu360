@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Actions\AccountLifecycle;
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
@@ -51,14 +51,14 @@ final readonly class ManageShareTrackingAccountLifecycleAction
 
             return [
                 'affiliate' => $affiliate->getAttributes(),
-                'links' => $affiliate->links()->get()->map(fn (AffiliateLink $link): array => $link->getAttributes())->all(),
-                'attributions' => $affiliate->attributions()->get()->map(fn (AffiliateAttribution $attribution): array => $attribution->getAttributes())->all(),
+                'links' => AffiliateLink::query()->where('affiliate_id', $affiliate->getKey())->get()->map(fn (AffiliateLink $link): array => $link->getAttributes())->all(),
+                'attributions' => AffiliateAttribution::query()->where('affiliate_id', $affiliate->getKey())->get()->map(fn (AffiliateAttribution $attribution): array => $attribution->getAttributes())->all(),
                 'touchpoints' => AffiliateTouchpoint::query()
                     ->where('affiliate_id', $affiliate->id)
                     ->get()
                     ->map(fn (AffiliateTouchpoint $touchpoint): array => $touchpoint->getAttributes())
                     ->all(),
-                'conversions' => $affiliate->conversions()->get()->map(fn (AffiliateConversion $conversion): array => $conversion->getAttributes())->all(),
+                'conversions' => AffiliateConversion::query()->where('affiliate_id', $affiliate->getKey())->get()->map(fn (AffiliateConversion $conversion): array => $conversion->getAttributes())->all(),
             ];
         });
     }

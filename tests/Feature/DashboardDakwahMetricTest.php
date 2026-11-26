@@ -1,8 +1,9 @@
 <?php
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ApprovedConversion;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 
@@ -16,7 +17,7 @@ test('dashboard presents an attributed follow as a recorded response rather than
     $link = AffiliateLink::query()->findOrFail($linkData->id);
     AffiliateConversion::query()->create([
         'affiliate_id' => $link->affiliate_id,
-        'affiliate_code' => $link->affiliate->code,
+        'affiliate_code' => Affiliate::query()->whereKey($link->affiliate_id)->value('code'),
         'affiliate_link_id' => $link->id,
         'conversion_type' => 'institution_follow',
         'external_reference' => 'institution_follow:dashboard-metric',

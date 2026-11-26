@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\ShareTracking;
 
 use AIArmada\Affiliates\Contracts\FraudRule;
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateFraudSignal;
-use Illuminate\Http\Request;
+use AIArmada\Affiliates\Data\ClickFraudEvidence;
+use AIArmada\Affiliates\Data\ConversionFraudEvidence;
+use AIArmada\Affiliates\Data\FraudFinding;
 use RuntimeException;
 
 final class Wp2LifecycleThrowingRule implements FraudRule
@@ -18,12 +17,12 @@ final class Wp2LifecycleThrowingRule implements FraudRule
         return 'WP2_LIFECYCLE_THROW';
     }
 
-    public function analyzeClick(Affiliate $affiliate, Request $request, array $context): ?AffiliateFraudSignal
+    public function analyzeClick(ClickFraudEvidence $evidence): ?FraudFinding
     {
         return null;
     }
 
-    public function analyzeConversion(AffiliateConversion $conversion, array $context): ?AffiliateFraudSignal
+    public function analyzeConversion(ConversionFraudEvidence $evidence): ?FraudFinding
     {
         throw new RuntimeException('wp2 lifecycle injected failure');
     }

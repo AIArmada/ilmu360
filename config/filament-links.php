@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
 
 return [
     'staff_roles' => ['super_admin', 'admin'],

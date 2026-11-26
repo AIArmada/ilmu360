@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // Late-arrival real-driver proof: on the isolated PostgreSQL 18, an
 // older source delayed by a Signals outage is recovered from an
 // INDEPENDENT OS process through the real producer API. Normal

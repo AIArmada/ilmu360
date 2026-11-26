@@ -118,7 +118,7 @@ it('allows global admins into the admin home and registered affiliate resources 
     $resources = Filament::getPanel('admin')->getResources();
     $affiliateResources = array_values(array_filter(
         $resources,
-        static fn (string $resource): bool => str_starts_with($resource, 'AIArmada\\FilamentAffiliates\\Resources\\'),
+        static fn (string $resource): bool => str_starts_with($resource, 'AIArmada\\FilamentAffiliates\\') && str_contains($resource, '\\Resources\\'),
     ));
 
     expect($affiliateResources)->not->toBeEmpty();

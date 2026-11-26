@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Features\Events\Actions\Commerce;
 
-use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateConversion;
 use AIArmada\Affiliates\Data\AffiliateConversionData;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateProgram;
-use AIArmada\Affiliates\Models\AffiliateProgramMembership;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Conversions\Api\CartConversionRecording;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Programs\Models\AffiliateProgram;
+use AIArmada\Affiliates\Features\Programs\Models\AffiliateProgramMembership;
 use AIArmada\Cart\Cart;
 use AIArmada\Cart\Contracts\CartManagerInterface;
 use AIArmada\Checkout\Models\CheckoutSession;
@@ -34,7 +35,7 @@ final readonly class RecordTicketAffiliateCommissionsAction implements TicketAff
 {
     public function __construct(
         private CartManagerInterface $cartManager,
-        private RecordAffiliateConversion $recordAffiliateConversion,
+        private CartConversionRecording $recordAffiliateConversion,
     ) {}
 
     /** @param list<string> $registrationIds */
@@ -132,7 +133,7 @@ final readonly class RecordTicketAffiliateCommissionsAction implements TicketAff
             return [];
         }
 
-        $affiliate = $attribution->affiliate;
+        $affiliate = Affiliate::query()->whereKey($affiliateId)->first();
         $program = AffiliateProgram::query()->whereKey($programId)->first();
         $membership = AffiliateProgramMembership::query()
             ->where('affiliate_id', $affiliateId)
@@ -250,9 +251,9 @@ final readonly class RecordTicketAffiliateCommissionsAction implements TicketAff
                 }
 
                 $externalReference = sprintf('ticket:%s:registration:%s', $order->getKey(), $registrationId);
-                $conversion = $this->recordAffiliateConversion->recordCommercialForFrozenAttribution(
+                $conversion = $this->recordAffiliateConversion->recordFrozen(
                     $cart,
-                    $attribution,
+                    (string) $attribution->getKey(),
                     [
                         'idempotency_key' => hash('sha256', $externalReference),
                         'affiliate_id' => $affiliateId,

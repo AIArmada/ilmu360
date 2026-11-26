@@ -86,8 +86,8 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/LandingAttribution/CreateLandingAttributionAction.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "target": "table:affiliate_attributions",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateAttribution",
       "reason": "ShareTracking creates the landing-attribution payload through the canonical Affiliates model; Affiliates exposes no mutation action for this application-specific shape and owns its dynamically configured table.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -95,8 +95,8 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/LandingAttribution/TouchPassiveNavigationAttributionAction.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "target": "table:affiliate_attributions",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateAttribution",
       "reason": "ShareTracking refreshes only the passive-navigation timestamps through the canonical Affiliates model; Affiliates exposes no API for this operation and owns its dynamically configured table.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -105,7 +105,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/MemberProfiles/EnsureMemberAffiliateProfileAction.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "model": "AIArmada\\Affiliates\\Features\\Identity\\Models\\Affiliate",
       "reason": "ShareTracking creates and refreshes canonical marked member profiles through the Affiliates model, preserving the locked user identity, eligibility, active status, share purpose, activation timestamp, contact email, metadata merge and deterministic code.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -113,8 +113,8 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/OutboundAttribution/CreateOutboundShareAttributionAction.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "target": "table:affiliate_attributions",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateAttribution",
       "reason": "ShareTracking creates or reuses outbound-share attributions through the canonical Affiliates model; the action owns this application-specific firstOrCreate shape and Affiliates owns its dynamically configured table.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -123,7 +123,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/Touchpoints/RecordOutboundShareTouchpointAction.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateTouchpoint",
       "reason": "ShareTracking records outbound-share touchpoints through the canonical Affiliates model; Affiliates exposes no mutation action for this application-specific payload and owns its dynamically configured table.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -132,7 +132,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/Touchpoints/RecordVisitTouchpointAction.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateTouchpoint",
       "reason": "ShareTracking records visit touchpoints through the canonical Affiliates model; Affiliates exposes no mutation action for this application-specific payload and owns its dynamically configured table.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -141,10 +141,8 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
       "target": "table:affiliate_balances",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateBalance",
-      "relation": "balances",
-      "relation_owner": "AIArmada\\Affiliates\\Models\\Affiliate",
-      "reason": "ShareTracking removes balances through Affiliate::balances() only after the anonymous profile passes retention and financial-history checks.",
+      "model": "AIArmada\\Affiliates\\Features\\Conversions\\Models\\AffiliateBalance",
+      "reason": "ShareTracking removes balances directly through the canonical Affiliates model only after the anonymous profile passes retention and financial-history checks.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
     },
@@ -152,7 +150,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
       "target": "table:affiliate_links",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateLink",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateLink",
       "reason": "ShareTracking removes only tracked short links belonging to an abandoned guest profile after detaching their managed Links rows; the Affiliates table remains package-owned.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -161,7 +159,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "model": "AIArmada\\Affiliates\\Features\\Identity\\Models\\Affiliate",
       "reason": "ShareTracking prunes only re-locked, marked anonymous profiles that pass the held retention and financial-history checks through the canonical Affiliates model.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -169,8 +167,8 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "target": "table:affiliate_attributions",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateAttribution",
       "reason": "ShareTracking removes attributions only for pruned anonymous profiles through the canonical Affiliates model, allowing its configured model deletion behavior to run.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -178,8 +176,8 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateCredential",
+      "target": "table:affiliate_credentials",
+      "model": "AIArmada\\Affiliates\\Features\\Identity\\Models\\AffiliateCredential",
       "reason": "ShareTracking deletes credentials belonging to anonymous profiles only after the profile passes the held retention and eligibility checks.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -187,8 +185,8 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateOwnershipCapability",
+      "target": "table:affiliate_ownership_capabilities",
+      "model": "AIArmada\\Affiliates\\Features\\Identity\\Models\\AffiliateOwnershipCapability",
       "reason": "ShareTracking deletes claim capabilities only for anonymous profiles that pass the held retention and eligibility checks through the canonical Affiliates model.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -197,7 +195,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Actions/GuestProfiles/PruneAbandonedGuestProfilesAction.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateTouchpoint",
       "reason": "ShareTracking deletes touchpoints belonging only to anonymous profiles that pass the held retention and eligibility checks through the canonical Affiliates model.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -206,10 +204,8 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:affiliate_balances",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateBalance",
-      "relation": "balances",
-      "relation_owner": "AIArmada\\Affiliates\\Models\\Affiliate",
-      "reason": "The root account-restoration path removes balances through Affiliate::balances() only when no financial obligations require retaining the profile.",
+      "model": "AIArmada\\Affiliates\\Features\\Conversions\\Models\\AffiliateBalance",
+      "reason": "ShareTracking removes balances directly through the canonical Affiliates model only after the anonymous profile passes retention and financial-history checks.",
       "owner": "ShareTracking",
       "expires": "2027-06-30",
       "validated_by": "phpstan"
@@ -218,7 +214,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "model": "AIArmada\\Affiliates\\Features\\Identity\\Models\\Affiliate",
       "reason": "The root ShareTracking package gateway creates guest Affiliate rows with the required active status, share purpose and metadata, and activation timestamp before issuing credentials and claim capabilities atomically; Affiliates exposes no composite provisioning API and the table remains package-owned.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -227,7 +223,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\Affiliate",
+      "model": "AIArmada\\Affiliates\\Features\\Identity\\Models\\Affiliate",
       "reason": "The root account-restoration path deletes the user's Affiliate only after financial conversions and other monetary obligations are resolved; Affiliate remains package-owned.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -236,7 +232,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:affiliate_links",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateLink",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateLink",
       "reason": "The root ShareTracking gateway retains tracked-link reuse, redirect, and account-cleanup behavior, including destination snapshots, touch times, click counts, deactivation, and deletion; the dynamically configured table remains package-owned.",
       "owner": "ShareTracking",
       "expires": "2027-06-30",
@@ -245,8 +241,8 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateAttribution",
+      "target": "table:affiliate_attributions",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateAttribution",
       "reason": "The root ShareTracking gateway removes unreferenced attributions during account cleanup and expires preserved attribution facts through the canonical Affiliates model; the package owns this dynamically configured table.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -255,18 +251,16 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateConversion",
-      "relation": "conversions",
-      "relation_owner": "AIArmada\\Affiliates\\Models\\Affiliate",
-      "reason": "The root account-restoration ShareTracking path removes only nonmonetary conversions and preserves rows with financial obligations through the canonical Affiliates model.",
+      "model": "AIArmada\\Affiliates\\Features\\Conversions\\Models\\AffiliateConversion",
+      "reason": "The root account-restoration ShareTracking path removes only nonmonetary conversions directly through the canonical Affiliates model and preserves rows with financial obligations.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
     },
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateCredential",
+      "target": "table:affiliate_credentials",
+      "model": "AIArmada\\Affiliates\\Features\\Identity\\Models\\AffiliateCredential",
       "reason": "The root ShareTracking package gateway records valid guest-credential use before downstream link authorization, revokes credentials when profiles are sealed, and deletes them during safe profile cleanup; the package owns this dynamically configured table.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -274,8 +268,8 @@
     {
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
-      "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateOwnershipCapability",
+      "target": "table:affiliate_ownership_capabilities",
+      "model": "AIArmada\\Affiliates\\Features\\Identity\\Models\\AffiliateOwnershipCapability",
       "reason": "The root ShareTracking package gateway removes ownership capabilities during profile cleanup through the canonical Affiliates model; the package owns this dynamically configured table.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -284,7 +278,7 @@
       "rule": "architecture.writeLocation",
       "file": "app/Features/ShareTracking/Services/AffiliatesShareTrackingService.php",
       "target": "table:unknown",
-      "model": "AIArmada\\Affiliates\\Models\\AffiliateTouchpoint",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateTouchpoint",
       "reason": "The root account-restoration ShareTracking path deletes only unreferenced touchpoints while preserving conversion references through the canonical Affiliates model.",
       "owner": "ShareTracking",
       "expires": "2027-06-30"
@@ -375,6 +369,15 @@
       "owner": "Membership",
       "expires": "2027-06-30",
       "validated_by": "phpstan"
+    },
+    {
+      "rule": "architecture.writeLocation",
+      "file": "app/Features/ShareTracking/Actions/EffectReceipts/DispatchShareEffectReceiptsAction.php",
+      "target": "table:affiliate_links",
+      "model": "AIArmada\\Affiliates\\Features\\Attribution\\Models\\AffiliateLink",
+      "reason": "ShareTracking increments the tracked link conversion counter after a committed projection effect; the link row is already locked in the same transaction and Affiliates exposes no counter mutation API for this deferred path.",
+      "owner": "ShareTracking",
+      "expires": "2027-06-30"
     }
   ],
   "read_adapters": {},

@@ -1,8 +1,9 @@
 <?php
 
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Features\ShareTracking\Services\ShareTrackingAnalyticsService;
 use App\Models\User;
@@ -44,7 +45,7 @@ test('channel breakdown includes unattributed channels so visits reconcile with 
 
     $attribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $link->affiliate_id,
-        'affiliate_code' => $link->affiliate->code,
+        'affiliate_code' => Affiliate::query()->whereKey($link->affiliate_id)->value('code'),
         'subject_key' => $link->id,
         'subject_instance' => 'share_tracking_link',
         'affiliate_link_id' => $link->id,

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Actions\GuestClaims;
 
-use AIArmada\Affiliates\Actions\Identity\ClaimAffiliateIdentity;
 use AIArmada\Affiliates\Exceptions\SealedIdentityException;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Identity\Actions\ClaimAffiliateIdentity;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateOwnershipCapability;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use AIArmada\Rewards\Jobs\EvaluateRewardEntitlementJob;

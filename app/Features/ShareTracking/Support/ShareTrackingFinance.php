@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Support;
 
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\States\ConversionStatus;
-use AIArmada\Affiliates\States\PaidConversion;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ConversionStatus;
+use AIArmada\Affiliates\Features\Conversions\States\PaidConversion;
 
 /**
  * Financial preservation guard for share-tracking cleanup/restoration.

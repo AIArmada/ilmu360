@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\Actions\GuestProfiles;
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateAttribution;
-use AIArmada\Affiliates\Models\AffiliateClaim;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateCredential;
-use AIArmada\Affiliates\Models\AffiliateLink;
-use AIArmada\Affiliates\Models\AffiliateOwnershipCapability;
-use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateAttribution;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateBalance;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Fraud\Models\AffiliateFraudSignal;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateClaim;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateCredential;
+use AIArmada\Affiliates\Features\Identity\Models\AffiliateOwnershipCapability;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\CommerceSupport\Support\OwnerScope;
 use App\Features\ShareTracking\Api\FinancialObligationReader;
@@ -99,7 +101,7 @@ final readonly class PruneAbandonedGuestProfilesAction implements GuestProfilePr
             return false;
         }
 
-        if ($affiliate->fraudSignals()->exists()) {
+        if (AffiliateFraudSignal::query()->where('affiliate_id', $affiliate->getKey())->exists()) {
             return false;
         }
 
@@ -111,19 +113,21 @@ final readonly class PruneAbandonedGuestProfilesAction implements GuestProfilePr
         AffiliateCredential::query()->where('affiliate_id', $affiliate->getKey())->delete();
         AffiliateOwnershipCapability::query()->where('affiliate_id', $affiliate->getKey())->delete();
 
-        $affiliate->links()
+        AffiliateLink::query()
+            ->where('affiliate_id', $affiliate->getKey())
             ->get()
             ->each(function (AffiliateLink $link): void {
                 $this->detachTrackedShareLink->detachTrackedShareLink((string) $link->getKey());
                 $link->delete();
             });
 
-        $affiliate->attributions()
+        AffiliateAttribution::query()
+            ->where('affiliate_id', $affiliate->getKey())
             ->get()
             ->each(static fn (AffiliateAttribution $attribution): bool => (bool) $attribution->delete());
 
         AffiliateTouchpoint::query()->where('affiliate_id', $affiliate->getKey())->delete();
-        $affiliate->balances()->delete();
+        AffiliateBalance::query()->where('affiliate_id', $affiliate->getKey())->delete();
         $affiliate->delete();
     }
 }

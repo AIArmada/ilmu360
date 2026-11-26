@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
 use AIArmada\Communications\Contracts\PayloadRedactor;
 use AIArmada\Communications\Support\PayloadRedactorService;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;

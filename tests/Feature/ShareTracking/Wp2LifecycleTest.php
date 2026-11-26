@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use AIArmada\Affiliates\Models\Affiliate;
-use AIArmada\Affiliates\Models\AffiliateConversion;
-use AIArmada\Affiliates\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
+use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
+use AIArmada\Affiliates\Features\Conversions\States\ConversionStatus;
 // WP2 lifecycle proof for the source callers that need the full
 // application schema (events, engagement, follows, saved searches).
 //
@@ -15,8 +15,8 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 // every caller freezes, inherits, or reverses coherently. If any
 // correction hook or atomic wrapper below were deleted, its test fails.
 
-use AIArmada\Affiliates\Services\FraudDetectionService;
-use AIArmada\Affiliates\States\ConversionStatus;
+use AIArmada\Affiliates\Features\Fraud\Api\FraudApi;
+use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
 use AIArmada\Checkout\Models\CheckoutSession;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Follow;
@@ -289,7 +289,7 @@ it('rolls back self check-in together with its outcome on failure', function ():
     $cookie = wp2lcLandingCookie($this, route('events.show', $event).'?share='.$link->custom_slug);
 
     app()->tag([Wp2LifecycleThrowingRule::class], 'affiliates.fraud_rule');
-    app()->forgetInstance(FraudDetectionService::class);
+    app()->forgetInstance(FraudApi::class);
 
     Sanctum::actingAs($actor);
 
