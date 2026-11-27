@@ -24,5 +24,5 @@ it('reconnects cached database connections that may be missing their PDO instanc
             'pgsql' => $pgsqlConnection,
         ]);
 
-    (new ReconnectCachedDatabaseConnections($databaseManager))();
+    new ReconnectCachedDatabaseConnections($databaseManager)();
 });

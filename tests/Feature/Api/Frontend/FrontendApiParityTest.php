@@ -4031,7 +4031,7 @@ it('mirrors the public person page payload for app clients', function () {
         ->and($response->json('data.person.institutions.0.position'))->toBe('Mudarris')
         ->and($response->json('data.person.institutions.0.is_primary'))->toBeTrue()
         ->and($response->json('data.person.institutions.0.public_image_url'))->not->toBeEmpty()
-        ->and(array_key_exists('chip_image_url', is_array($personInstitution) ? $personInstitution : []))->toBeFalse()
+        ->and(is_array($personInstitution) ? $personInstitution : [])->not->toHaveKey('chip_image_url')
         ->and($response->json('data.upcoming_events.0.reference_study_subtitle'))->toBe('Kitab API')
         ->and($response->json('data.upcoming_events.0.event_categories.0.name'))->toBe('Kuliah / Ceramah')
         ->and($response->json('data.upcoming_events.0.event_format'))->toBe('hybrid')
