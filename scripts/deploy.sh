@@ -5,9 +5,10 @@
 # is nothing to copy. What does need to happen is:
 #
 #   1. Laravel caches (config/route/view/compiled) are cleared.
-#   2. PHP-FPM is reloaded so OPcache drops stale bytecode.
+#   2. Pending database migrations are applied.
+#   3. PHP-FPM is reloaded so OPcache drops stale bytecode.
 #
-# Step 2 is not optional: /etc/php/8.5/fpm/php.ini sets
+# Step 3 is not optional: /etc/php/8.5/fpm/php.ini sets
 # opcache.validate_timestamps = 0, so edited PHP and compiled Blade views are
 # served from cache until the pool is reloaded. Clearing caches alone rewrites
 # the compiled view at the same path, which the cached Opcodes still shadow.
@@ -35,6 +36,9 @@ fi
 
 echo "==> Clearing Laravel caches"
 php artisan optimize:clear --ansi
+
+echo "==> Running database migrations"
+php artisan migrate --force --ansi
 
 echo "==> Publishing Filament assets for the installed packages"
 php artisan filament:assets --no-interaction --ansi
