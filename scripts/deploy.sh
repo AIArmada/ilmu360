@@ -1,23 +1,15 @@
 #!/bin/sh
 # Applies this checkout's code changes to the self-managed staging vhost.
 #
-# The vhost serves this working tree directly (nginx root = public/), so there
-# is nothing to copy. What does need to happen is:
-#
-#   1. Laravel caches (config/route/view/compiled) are cleared.
-#   2. Pending database migrations are applied.
-#   3. PHP-FPM is reloaded so OPcache drops stale bytecode.
-#
-# Step 3 is not optional: /etc/php/8.5/fpm/php.ini sets
-# opcache.validate_timestamps = 0, so edited PHP and compiled Blade views are
-# served from cache until the pool is reloaded. Clearing caches alone rewrites
-# the compiled view at the same path, which the cached Opcodes still shadow.
+# The vhost is served by Octane/FrankenPHP on 127.0.0.1:8450 (nginx proxies to
+# it), so deploy must reload Octane workers and Horizon after the caches change.
+# The FrankenPHP config is tracked in scripts/frankenphp/Caddyfile and synced
+# into storage because Octane reads it from there.
 #
 # Static assets are served straight from disk; run `npm run build` first when
 # the change touches resources/.
 #
 # Usage: ./scripts/deploy.sh                 (or: composer deploy)
-#        PHP_FPM_SERVICE=php8.4-fpm ./scripts/deploy.sh
 set -e
 
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
@@ -28,10 +20,14 @@ if [ ! -f artisan ]; then
     exit 1
 fi
 
-# Prefer the FPM build that matches the CLI PHP, unless one is forced.
-if [ -z "${PHP_FPM_SERVICE:-}" ]; then
-    PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
-    PHP_FPM_SERVICE="php${PHP_VERSION}-fpm"
+echo "==> Ensuring the pinned FrankenPHP binary"
+"$REPO_ROOT/scripts/install-frankenphp.sh"
+
+CADDYFILE="storage/app/frankenphp/Caddyfile"
+CADDYFILE_CHANGED=0
+if [ ! -f "$CADDYFILE" ] || ! cmp -s "$REPO_ROOT/scripts/frankenphp/Caddyfile" "$CADDYFILE"; then
+    cp "$REPO_ROOT/scripts/frankenphp/Caddyfile" "$CADDYFILE"
+    CADDYFILE_CHANGED=1
 fi
 
 echo "==> Clearing Laravel caches"
@@ -47,16 +43,15 @@ echo "==> Rebuilding optimized caches (config, routes, events, views, Filament c
 php artisan optimize --ansi
 php artisan filament:optimize --ansi
 
-echo "==> Reloading ${PHP_FPM_SERVICE} (resets OPcache)"
-# The sudoers rule on this host grants `service <pool> reload`, not `systemctl`,
-# so fall back to service(8) when systemctl is refused.
-if [ -t 0 ]; then
-    sudo systemctl reload "$PHP_FPM_SERVICE" 2>/dev/null ||
-        sudo /usr/sbin/service "$PHP_FPM_SERVICE" reload
+if [ "$CADDYFILE_CHANGED" = "1" ]; then
+    echo "==> Restarting Octane for the new FrankenPHP config"
+    php artisan octane:stop --no-interaction || true
 else
-    # No TTY: never block waiting for a password prompt.
-    sudo -n systemctl reload "$PHP_FPM_SERVICE" 2>/dev/null ||
-        sudo -n /usr/sbin/service "$PHP_FPM_SERVICE" reload
+    echo "==> Reloading Octane workers"
+    php artisan octane:reload --no-interaction || true
 fi
+
+echo "==> Restarting Horizon workers"
+php artisan horizon:terminate || true
 
 echo "==> Done. Staging now serves the current working tree."

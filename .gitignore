@@ -23,7 +23,7 @@
 /graphify-out
 /vendor
 /caddy
-frankenphp
+/frankenphp
 frankenphp-worker.php
 Homestead.json
 Homestead.yaml
