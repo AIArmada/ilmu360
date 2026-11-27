@@ -1,11 +1,11 @@
 <?php
 
+use AIArmada\Signals\Features\Ingestion\Api\SignalIngestion;
 use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Feedback\Actions\SubmitAppFeedbackAction;
 use App\Features\Feedback\Enums\AppFeedbackCategory;
 use App\Features\Feedback\Models\AppFeedback;
 use App\Models\User;
-use App\Shared\Signals\SignalIngestion;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Mockery\MockInterface;

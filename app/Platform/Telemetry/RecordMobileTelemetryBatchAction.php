@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Platform\Telemetry;
 
+use AIArmada\Signals\Features\Ingestion\Api\SignalIngestion;
 use AIArmada\Signals\Features\Ingestion\EntryPoints\Http\SignalsIngestionRequestValidator;
 use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Models\User;
-use App\Shared\Signals\SignalIngestion;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -65,7 +65,7 @@ final readonly class RecordMobileTelemetryBatchAction
                     $event,
                 );
 
-                $this->ingestSignalEvent->handle($trackedProperty, $this->payloadForEvent(
+                $this->ingestSignalEvent->handle((string) $trackedProperty->getKey(), $this->payloadForEvent(
                     request: $request,
                     user: $user,
                     anonymousId: $anonymousId,

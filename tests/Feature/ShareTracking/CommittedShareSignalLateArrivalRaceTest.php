@@ -14,8 +14,9 @@ use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
+use AIArmada\Signals\Features\Ingestion\Api\IngestedSignalEvent;
+use AIArmada\Signals\Features\Ingestion\Api\SignalIngestion;
 use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
-use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
@@ -24,7 +25,6 @@ use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Features\ShareTracking\Support\CommittedShareSignal;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
-use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
@@ -39,7 +39,7 @@ function cslaFailingOnceIngestor(SignalIngestion $real): SignalIngestion
 
         public function __construct(private readonly SignalIngestion $inner) {}
 
-        public function handle(TrackedProperty $trackedProperty, array $payload, bool $trusted): SignalEvent
+        public function handle(string $trackedPropertyId, array $payload, bool $trusted): IngestedSignalEvent
         {
             if (! $this->failed) {
                 $this->failed = true;
@@ -47,7 +47,7 @@ function cslaFailingOnceIngestor(SignalIngestion $real): SignalIngestion
                 throw new RuntimeException('csla injected signals outage');
             }
 
-            return $this->inner->handle($trackedProperty, $payload, $trusted);
+            return $this->inner->handle($trackedPropertyId, $payload, $trusted);
         }
     };
 }
@@ -269,7 +269,7 @@ function cslaLateArrivalCase(TestCase $testCase): void
 
         $duplicate = app(CommittedShareSignalProducer::class)->produce((string) $old->getKey());
 
-        expect($duplicate->getKey())->toBe($report['signal_event_id'])
+        expect($duplicate->id)->toBe($report['signal_event_id'])
             ->and(app(CommittedShareSignals::class)->drain(25))
             ->toBe(['processed' => 0, 'projected' => 0, 'failed' => 0])
             ->and(ShareCohortProjection::query()->count())->toBe(2);

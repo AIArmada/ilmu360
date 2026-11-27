@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Signals;
 
-use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Api\IngestedSignalEvent;
 use Illuminate\Http\Request;
 
 interface SignalRecorder
@@ -22,5 +22,5 @@ interface SignalRecorder
         array $properties = [],
         ?Request $request = null,
         ?string $anonymousId = null,
-    ): ?SignalEvent;
+    ): ?IngestedSignalEvent;
 }

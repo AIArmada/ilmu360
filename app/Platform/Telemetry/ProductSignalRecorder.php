@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Platform\Telemetry;
 
-use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Api\IngestedSignalEvent;
+use AIArmada\Signals\Features\Ingestion\Api\SignalIngestion;
 use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
-use App\Shared\Signals\SignalIngestion;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Http\Request;
 use Throwable;
@@ -29,7 +29,7 @@ final readonly class ProductSignalRecorder implements SignalRecorder
         array $properties = [],
         ?Request $request = null,
         ?string $anonymousId = null,
-    ): ?SignalEvent {
+    ): ?IngestedSignalEvent {
         try {
             $trackedProperty = TrackedProperty::query()
                 ->withoutOwnerScope()
@@ -59,7 +59,7 @@ final readonly class ProductSignalRecorder implements SignalRecorder
                 'properties' => $this->normalizeProperties($eventName, $request, $properties),
             ];
 
-            return $this->ingestSignalEvent->handle($trackedProperty, $payload, trusted: true);
+            return $this->ingestSignalEvent->handle((string) $trackedProperty->getKey(), $payload, trusted: true);
         } catch (Throwable $exception) {
             report($exception);
             logger()->warning('Signals product telemetry skipped after ingestion failure.', [

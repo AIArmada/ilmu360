@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
-use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\RealDriverFixture;
@@ -82,9 +81,9 @@ try {
     $event = app(CommittedShareSignalProducer::class)->produce($touchpointId);
 
     $report = [
-        'signal_event_id' => (string) $event->getKey(),
-        'idempotency_key' => (string) $event->idempotency_key,
-        'occurred_at' => CarbonImmutable::parse($event->occurred_at)->setTimezone('UTC')->toIso8601String(),
+        'signal_event_id' => $event->id,
+        'idempotency_key' => (string) $event->idempotencyKey,
+        'occurred_at' => $event->occurredAt->setTimezone('UTC')->toIso8601String(),
     ];
 } catch (Throwable $exception) {
     $fail($exception::class.': '.$exception->getMessage());

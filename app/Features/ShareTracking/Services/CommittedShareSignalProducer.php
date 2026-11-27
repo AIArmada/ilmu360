@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\Services;
 
 use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
-use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Api\IngestedSignalEvent;
+use AIArmada\Signals\Features\Ingestion\Api\SignalIngestion;
 use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\ShareTracking\Support\CommittedShareSignal;
 use App\Features\ShareTracking\Support\ShareTrackingMeasurement;
-use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 use RuntimeException;
@@ -58,7 +58,7 @@ final readonly class CommittedShareSignalProducer
         return 'committed-share:'.$touchpointId;
     }
 
-    public function produce(AffiliateTouchpoint|string $touchpoint): SignalEvent
+    public function produce(AffiliateTouchpoint|string $touchpoint): IngestedSignalEvent
     {
         $row = $touchpoint instanceof AffiliateTouchpoint
             ? $touchpoint
@@ -98,7 +98,7 @@ final readonly class CommittedShareSignalProducer
             $properties['channel'] = $channel;
         }
 
-        return $this->ingestor->handle($property, [
+        return $this->ingestor->handle((string) $property->getKey(), [
             'event_name' => self::EVENT_NAME,
             'event_category' => self::EVENT_CATEGORY,
             'source_event_id' => $key,

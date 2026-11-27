@@ -10,6 +10,8 @@ use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // Signals outage can never roll back the committed source; later
 // recovery applies once.
 
+use AIArmada\Signals\Features\Ingestion\Api\IngestedSignalEvent;
+use AIArmada\Signals\Features\Ingestion\Api\SignalIngestion;
 use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\Events\Models\Event;
@@ -26,7 +28,6 @@ use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Features\ShareTracking\Support\CommittedShareSignal;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
-use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -89,7 +90,7 @@ function cssFailingOnceIngestor(SignalIngestion $real): SignalIngestion
 
         public function __construct(private readonly SignalIngestion $inner) {}
 
-        public function handle(TrackedProperty $trackedProperty, array $payload, bool $trusted): SignalEvent
+        public function handle(string $trackedPropertyId, array $payload, bool $trusted): IngestedSignalEvent
         {
             if (! $this->failed) {
                 $this->failed = true;
@@ -97,7 +98,7 @@ function cssFailingOnceIngestor(SignalIngestion $real): SignalIngestion
                 throw new RuntimeException('css injected signals outage');
             }
 
-            return $this->inner->handle($trackedProperty, $payload, $trusted);
+            return $this->inner->handle($trackedPropertyId, $payload, $trusted);
         }
     };
 }
@@ -128,7 +129,7 @@ it('produces one trusted signal per committed outbound share through the install
     // Retry is a no-op: the semantic key deduplicates to the same event.
     $replayed = app(CommittedShareSignalProducer::class)->produce($touchpoint);
 
-    expect($replayed->getKey())->toBe($event->getKey())
+    expect($replayed->id)->toBe($event->getKey())
         ->and(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(1);
 });
 
@@ -174,7 +175,7 @@ it('fails loudly without a tracked property but keeps the committed source', fun
 
     $recovered = app(CommittedShareSignalProducer::class)->produce($touchpoint);
 
-    expect($recovered->idempotency_key)->toBe('committed-share:'.$touchpoint->getKey())
+    expect($recovered->idempotencyKey)->toBe('committed-share:'.$touchpoint->getKey())
         ->and(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(1);
 });
 
@@ -204,7 +205,7 @@ it('survives a signals outage without rolling back the source and recovers once'
     $first = app(CommittedShareSignalProducer::class)->produce($touchpoint);
     $second = app(CommittedShareSignalProducer::class)->produce($touchpoint);
 
-    expect($second->getKey())->toBe($first->getKey())
+    expect($second->id)->toBe($first->id)
         ->and(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(1);
 });
 
@@ -275,7 +276,7 @@ it('skips poison signals loudly without stalling the pipeline', function (): voi
 
     $property = TrackedProperty::query()->where('slug', 'ilmu360')->firstOrFail();
 
-    app(SignalIngestion::class)->handle($property, [
+    app(SignalIngestion::class)->handle((string) $property->getKey(), [
         'event_name' => CommittedShareSignalProducer::EVENT_NAME,
         'event_category' => CommittedShareSignalProducer::EVENT_CATEGORY,
         'source_event_id' => 'garbage-without-prefix',
@@ -284,7 +285,7 @@ it('skips poison signals loudly without stalling the pipeline', function (): voi
         'properties' => [],
     ], true);
 
-    app(SignalIngestion::class)->handle($property, [
+    app(SignalIngestion::class)->handle((string) $property->getKey(), [
         'event_name' => CommittedShareSignalProducer::EVENT_NAME,
         'event_category' => CommittedShareSignalProducer::EVENT_CATEGORY,
         'source_event_id' => 'committed-share:'.(Str::uuid()),

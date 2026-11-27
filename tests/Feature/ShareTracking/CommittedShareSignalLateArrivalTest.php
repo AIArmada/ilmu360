@@ -8,14 +8,14 @@ declare(strict_types=1);
 // once without a manual reset; replays must not duplicate.
 
 use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
+use AIArmada\Signals\Features\Ingestion\Api\IngestedSignalEvent;
+use AIArmada\Signals\Features\Ingestion\Api\SignalIngestion;
 use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
-use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Models\User;
-use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -66,7 +66,7 @@ function cslFailingOnceIngestor(SignalIngestion $real): SignalIngestion
 
         public function __construct(private readonly SignalIngestion $inner) {}
 
-        public function handle(TrackedProperty $trackedProperty, array $payload, bool $trusted): SignalEvent
+        public function handle(string $trackedPropertyId, array $payload, bool $trusted): IngestedSignalEvent
         {
             if (! $this->failed) {
                 $this->failed = true;
@@ -74,7 +74,7 @@ function cslFailingOnceIngestor(SignalIngestion $real): SignalIngestion
                 throw new RuntimeException('csl injected signals outage');
             }
 
-            return $this->inner->handle($trackedProperty, $payload, $trusted);
+            return $this->inner->handle($trackedPropertyId, $payload, $trusted);
         }
     };
 }
@@ -125,8 +125,8 @@ it('projects a late older signal after a newer event drained, without reset', fu
     // occurrence time preserved behind the cursor.
     $recovered = app(CommittedShareSignalProducer::class)->produce($old);
 
-    expect(CarbonImmutable::parse($recovered->occurred_at)->toIso8601String())->toBe('2026-05-10T08:00:00+00:00')
-        ->and($recovered->idempotency_key)->toBe('committed-share:'.$old->getKey())
+    expect($recovered->occurredAt->toIso8601String())->toBe('2026-05-10T08:00:00+00:00')
+        ->and($recovered->idempotencyKey)->toBe('committed-share:'.$old->getKey())
         ->and(SignalEvent::query()->where('event_name', CommittedShareSignalProducer::EVENT_NAME)->count())->toBe(2);
 
     // Normal drain projects the late old event exactly once — no reset.
@@ -140,7 +140,7 @@ it('projects a late older signal after a newer event drained, without reset', fu
 
     $duplicate = app(CommittedShareSignalProducer::class)->produce($old);
 
-    expect($duplicate->getKey())->toBe($recovered->getKey())
+    expect($duplicate->id)->toBe($recovered->id)
         ->and($reader->drain(25))->toBe(['processed' => 0, 'projected' => 0, 'failed' => 0])
         ->and(ShareCohortProjection::query()->count())->toBe(2);
 

@@ -1,8 +1,8 @@
 <?php
 
+use AIArmada\Signals\Features\Ingestion\Api\SignalIngestion;
 use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Models\User;
-use App\Shared\Signals\SignalIngestion;
 use Mockery\MockInterface;
 
 it('records batched native mobile telemetry events through the dedicated api', function () {
