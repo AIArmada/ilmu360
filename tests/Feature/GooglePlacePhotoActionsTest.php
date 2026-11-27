@@ -98,7 +98,7 @@ it('omits previews when the optional photo endpoint fails or cannot connect', fu
         ['name' => 'places/failed-place/photos/photo-connection'],
     ]);
 
-    expect($previews)->toBe([]);
+    expect($previews)->toBeEmpty();
     Http::assertSentCount(2);
 });
 
@@ -116,6 +116,6 @@ it('ignores foreign photo names and rejects preview urls outside googleuserconte
         ['name' => 'places/current-place/photos/photo-one'],
     ]);
 
-    expect($previews)->toBe([]);
+    expect($previews)->toBeEmpty();
     Http::assertSentCount(1);
 });
