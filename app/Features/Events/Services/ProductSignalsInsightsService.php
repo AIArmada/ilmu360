@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\Services;
 
 use AIArmada\CommerceSupport\Support\UserDateTimeFormatter;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Events\Api\ProductSignalsInsights;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;

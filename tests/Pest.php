@@ -18,7 +18,7 @@ use AIArmada\Events\Features\Taxonomy\Models\EventTaxonomy;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\Discovery\Api\PublicListingsCacheInvalidator;
 use App\Features\Events\Actions\Scheduling\SyncEventScheduleAction;
 use App\Features\Events\Api\AdminEventWriter;

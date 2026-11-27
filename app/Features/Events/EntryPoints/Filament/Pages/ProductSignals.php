@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Features\Events\EntryPoints\Filament\Pages;
 
 use AIArmada\CommerceSupport\Support\UserTimezoneResolver;
-use AIArmada\FilamentSignals\Pages\LiveActivityReport;
+use AIArmada\FilamentSignals\Features\Reporting\EntryPoints\Filament\Pages\LiveActivityReport;
 use App\Features\Events\Api\ProductSignalsDashboardCache;
 use App\Features\Events\Api\ProductSignalsInsights;
 use BackedEnum;

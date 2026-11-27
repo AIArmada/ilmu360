@@ -2,7 +2,7 @@
 
 use AIArmada\References\Enums\ReferenceContributorRole;
 use AIArmada\References\Models\ReferenceContributor;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\SubmitContributionUpdateRequestAction;
 use App\Features\Persons\Api\SpeakerStatus;

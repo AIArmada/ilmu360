@@ -1,9 +1,9 @@
 <?php
 
-use AIArmada\FilamentSignals\Resources\SavedSignalReportResource;
-use AIArmada\FilamentSignals\Resources\SignalGoalResource;
-use AIArmada\FilamentSignals\Resources\SignalSegmentResource;
-use AIArmada\Signals\Models\SavedSignalReport;
+use AIArmada\FilamentSignals\Features\Configuration\EntryPoints\Filament\Resources\SignalGoalResource;
+use AIArmada\FilamentSignals\Features\Configuration\EntryPoints\Filament\Resources\SignalSegmentResource;
+use AIArmada\FilamentSignals\Features\Reporting\EntryPoints\Filament\Resources\SavedSignalReportResource;
+use AIArmada\Signals\Features\Reporting\Models\SavedSignalReport;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;

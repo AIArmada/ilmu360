@@ -4,8 +4,8 @@ namespace App\Providers;
 
 use AIArmada\Addressing\Features\Geography\Models\AddressArea;
 use AIArmada\Addressing\Features\Geography\Models\AddressCountry;
-use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\FilamentSignals\Features\Configuration\EntryPoints\Filament\Policies\TrackedPropertyPolicy;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\SlugRedirects\Api\PublicSlugLookup;
 use App\Host\Affiliates\EloquentAffiliateSnapshotPersistence;
 use App\Host\Pango\ShareCards\PangoShareCardRenderer;
@@ -50,6 +50,8 @@ use App\Shared\Contracts\SearchHealthProbe;
 use App\Shared\Language\LanguageCatalog;
 use App\Shared\Location\VisitorCountryResolving;
 use App\Shared\Media\ShareCards\ShareCardRenderer;
+use App\Shared\Signals\PackageSignalIngestion;
+use App\Shared\Signals\SignalIngestion;
 use App\Shared\Signals\SignalRecorder;
 use App\Shared\Time\UserDateTimeFormatting;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
@@ -129,6 +131,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(McpSurfaceRegistry::class);
 
         $this->app->bind(SignalRecorder::class, ProductSignalRecorder::class);
+        $this->app->bind(SignalIngestion::class, PackageSignalIngestion::class);
         $this->app->bind(VisitorCountryResolving::class, VisitorCountryResolver::class);
         $this->app->bind(UserDateTimeFormatting::class, DefaultUserDateTimeFormatter::class);
         $this->app->bind(MediaCollectionSync::class, EloquentMediaCollectionSync::class);

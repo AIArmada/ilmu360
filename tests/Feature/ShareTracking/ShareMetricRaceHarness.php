@@ -6,8 +6,8 @@ namespace Tests\Feature\ShareTracking;
 
 use AIArmada\Affiliates\Features\Attribution\Models\AffiliateLink;
 use AIArmada\Affiliates\Features\Identity\Models\Affiliate;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;

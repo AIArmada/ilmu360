@@ -6,7 +6,7 @@ namespace App\Platform\Api\Resources;
 
 use AIArmada\Addressing\Features\AddressLifecycle\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Models\User;
 use App\Platform\Api\Admin\AdminResourceHookRegistry;
 use Filament\Resources\Resource;

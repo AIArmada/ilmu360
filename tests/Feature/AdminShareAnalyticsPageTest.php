@@ -1,8 +1,8 @@
 <?php
 
-use AIArmada\FilamentSignals\Pages\PageViewsReport;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\FilamentSignals\Features\Reporting\EntryPoints\Filament\Pages\PageViewsReport;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\Events\EntryPoints\Filament\Pages\ProductSignals;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\EntryPoints\Filament\Pages\ShareAnalytics;

@@ -14,9 +14,8 @@ use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;
@@ -25,19 +24,20 @@ use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Features\ShareTracking\Support\CommittedShareSignal;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
+use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Symfony\Component\Process\Process;
 use Tests\Feature\ShareTracking\ShareMetricRaceHarness;
 use Tests\TestCase;
 
-function cslaFailingOnceIngestor(SignalEventIngestor $real): SignalEventIngestor
+function cslaFailingOnceIngestor(SignalIngestion $real): SignalIngestion
 {
-    return new class($real) implements SignalEventIngestor
+    return new class($real) implements SignalIngestion
     {
         public bool $failed = false;
 
-        public function __construct(private readonly SignalEventIngestor $inner) {}
+        public function __construct(private readonly SignalIngestion $inner) {}
 
         public function handle(TrackedProperty $trackedProperty, array $payload, bool $trusted): SignalEvent
         {
@@ -180,9 +180,9 @@ function cslaLateArrivalCase(TestCase $testCase): void
         $member = User::factory()->create(['email' => 'csla-late@example.test']);
         $link = ShareMetricRaceHarness::link($member, $pageUrl);
 
-        $real = app(SignalEventIngestor::class);
+        $real = app(SignalIngestion::class);
 
-        app()->singleton(SignalEventIngestor::class, fn (): SignalEventIngestor => cslaFailingOnceIngestor($real));
+        app()->singleton(SignalIngestion::class, fn (): SignalIngestion => cslaFailingOnceIngestor($real));
 
         // Old share commits during the outage: source persists, signal missing.
         $testCase->travelTo(CarbonImmutable::parse('2026-05-10T08:00:00Z'));

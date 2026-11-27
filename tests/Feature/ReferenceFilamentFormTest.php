@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\References\Api\Enums\ReferencePartType;
 use App\Features\References\Api\Enums\ReferenceType;
 use App\Features\References\EntryPoints\Filament\Forms\ReferenceFormSchema;

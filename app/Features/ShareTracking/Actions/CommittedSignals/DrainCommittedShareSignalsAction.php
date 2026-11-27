@@ -6,7 +6,7 @@ namespace App\Features\ShareTracking\Actions\CommittedSignals;
 
 use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\Features\Conversions\Models\AffiliateConversion;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Support\CommittedShareSignal;
 use App\Features\ShareTracking\Support\ShareTrackingModel;

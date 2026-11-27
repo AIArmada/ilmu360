@@ -3,7 +3,7 @@
 use AIArmada\Events\Features\Venues\Models\EventLocation;
 use AIArmada\Events\Features\Venues\Models\FacilityType;
 use AIArmada\Events\Features\Venues\Models\VenueFacility;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\DonationChannels\Api\Enums\DonationChannelStatus;
 use App\Features\DonationChannels\Models\DonationChannel;
 use App\Features\Events\Models\Event as EventModel;

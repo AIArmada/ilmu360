@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Features\SlugRedirects\Actions;
 
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\SlugRedirects\Models\SlugRedirect;
 use App\Platform\Routing\PublicSlugRegistry;
 use App\Platform\Routing\PublicSlugResource;

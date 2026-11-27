@@ -4,8 +4,7 @@ use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\NotificationInbox;
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Communications\EntryPoints\Livewire\NotificationsIndex;
 use App\Features\Events\Api\Enums\EventVisibility;
 use App\Features\Events\Models\Event;
@@ -14,6 +13,7 @@ use App\Features\Identity\EntryPoints\Fortify\ResetUserPassword;
 use App\Features\SavedSearches\Models\SavedSearch;
 use App\Models\User;
 use App\Platform\Telemetry\ProductSignalSchemaRegistry;
+use App\Shared\Signals\SignalIngestion;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
@@ -90,7 +90,7 @@ it('stitches login telemetry to browser identity cookies when present', function
 });
 
 it('does not break password login when signals ingestion fails', function () {
-    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+    $this->mock(SignalIngestion::class, function (MockInterface $mock): void {
         $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 
@@ -170,7 +170,7 @@ it('records a signals event when email verification completes', function () {
 });
 
 it('does not break report submission when signals ingestion fails', function () {
-    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+    $this->mock(SignalIngestion::class, function (MockInterface $mock): void {
         $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 
@@ -227,7 +227,7 @@ it('records a signals event when a notification is read via the api', function (
 });
 
 it('does not break notification reads when signals ingestion fails', function () {
-    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+    $this->mock(SignalIngestion::class, function (MockInterface $mock): void {
         $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 
@@ -458,7 +458,7 @@ it('records listing filtered events for filter-only discovery traffic', function
 });
 
 it('does not break search execution when signals ingestion fails', function () {
-    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+    $this->mock(SignalIngestion::class, function (MockInterface $mock): void {
         $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 

@@ -2,7 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Moderation\Enums\ModerationActionType;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Features\Events\Models\Event;
 use App\Features\Events\Models\EventSubmission;

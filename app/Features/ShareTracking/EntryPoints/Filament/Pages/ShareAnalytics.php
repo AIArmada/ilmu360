@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Features\ShareTracking\EntryPoints\Filament\Pages;
 
-use AIArmada\FilamentSignals\Pages\PageViewsReport;
+use AIArmada\FilamentSignals\Features\Reporting\EntryPoints\Filament\Pages\PageViewsReport;
 use App\Features\ShareTracking\Persistence\ShareAnalyticsDashboardCacheStore;
 use App\Features\ShareTracking\Services\Analytics\AdminShareAnalyticsService;
 use App\Features\ShareTracking\Support\ShareTrackingMeasurement;

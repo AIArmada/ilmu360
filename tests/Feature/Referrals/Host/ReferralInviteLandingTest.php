@@ -11,7 +11,7 @@ use AIArmada\Referrals\Actions\RevokeReferralInvite;
 use AIArmada\Referrals\Enums\ReferralInviteStatus;
 use AIArmada\Referrals\Enums\ReferralProgramStatus;
 use AIArmada\Referrals\Models\ReferralInvite;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\ShareTracking\Services\AffiliatesShareTrackingService;
 use App\Models\User;
 use Illuminate\Support\Str;

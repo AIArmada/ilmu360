@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Signals;
 
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use Illuminate\Http\Request;
 
 interface SignalRecorder

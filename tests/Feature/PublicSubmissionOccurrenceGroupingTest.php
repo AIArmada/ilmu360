@@ -11,7 +11,7 @@ use AIArmada\Events\Features\Catalog\Models\EventTimeExpression;
 use AIArmada\Events\Features\Governance\Models\EventSubmissionLog;
 use AIArmada\Events\Features\Taxonomy\Models\EventClassification;
 use AIArmada\Events\Features\Venues\Models\EventLocation;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Events\Actions\Authoring\SyncEventClassificationsAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;

@@ -12,7 +12,7 @@ use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // Guarded test-only worker databases: loopback isolated ports/databases
 // only. Never the live application database (ilmu360 / 127.0.0.1:5432).
 
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Models\ShareSignalReaderCursor;

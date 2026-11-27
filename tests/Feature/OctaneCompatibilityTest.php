@@ -1,8 +1,8 @@
 <?php
 
+use AIArmada\FilamentSignals\Features\Reporting\EntryPoints\Filament\Pages\PageViewsReport;
+use AIArmada\FilamentSignals\Features\Reporting\EntryPoints\Filament\Pages\SignalsDashboard;
 use AIArmada\FilamentSignals\FilamentSignalsPlugin;
-use AIArmada\FilamentSignals\Pages\PageViewsReport;
-use AIArmada\FilamentSignals\Pages\SignalsDashboard;
 use App\Platform\Media\AuditedMediaObserver;
 use App\Providers\Filament\AdminPanelProvider;
 use Filament\Panel;

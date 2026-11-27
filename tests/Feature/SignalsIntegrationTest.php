@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\Events\Data\RegistrationMode;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\SignalIdentity;
-use AIArmada\Signals\Models\SignalSession;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalIdentity;
+use AIArmada\Signals\Features\Ingestion\Models\SignalSession;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use AIArmada\Signals\SignalsServiceProvider;
 use App\Features\Events\Models\Event;
 use App\Features\Places\Models\Venue;

@@ -1,11 +1,11 @@
 <?php
 
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Feedback\Actions\SubmitAppFeedbackAction;
 use App\Features\Feedback\Enums\AppFeedbackCategory;
 use App\Features\Feedback\Models\AppFeedback;
 use App\Models\User;
+use App\Shared\Signals\SignalIngestion;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Mockery\MockInterface;
@@ -61,7 +61,7 @@ it('does not emit a signal when a submission is replayed', function () {
 it('keeps the feedback when signal ingestion fails', function () {
     Notification::fake();
 
-    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+    $this->mock(SignalIngestion::class, function (MockInterface $mock): void {
         $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 

@@ -9,7 +9,7 @@ use AIArmada\Addressing\Features\Geography\Models\State;
 use AIArmada\Authz\Features\Authorization\Models\Role;
 use AIArmada\CommerceSupport\Features\ReferenceData\Models\Currency;
 use AIArmada\Membership\Enums\MemberRole;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;

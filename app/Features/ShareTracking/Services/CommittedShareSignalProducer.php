@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Features\ShareTracking\Services;
 
 use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\ShareTracking\Support\CommittedShareSignal;
 use App\Features\ShareTracking\Support\ShareTrackingMeasurement;
+use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 use RuntimeException;
@@ -46,7 +46,7 @@ final readonly class CommittedShareSignalProducer
     public const string TOUCHPOINT_TYPE = CommittedShareSignal::TOUCHPOINT_TYPE;
 
     public function __construct(
-        private SignalEventIngestor $ingestor,
+        private SignalIngestion $ingestor,
     ) {}
 
     public static function semanticKey(string $touchpointId): string

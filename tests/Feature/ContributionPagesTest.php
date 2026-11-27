@@ -8,7 +8,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\PersonNameType;
 use AIArmada\Persons\Models\Title;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Contributions\Actions\ApproveContributionRequestAction;
 use App\Features\Contributions\Actions\RejectContributionRequestAction;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;

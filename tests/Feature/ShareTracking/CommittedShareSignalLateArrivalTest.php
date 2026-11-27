@@ -8,14 +8,14 @@ declare(strict_types=1);
 // once without a manual reset; replays must not duplicate.
 
 use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Models\ShareCohortProjection;
 use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Models\User;
+use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -58,13 +58,13 @@ function cslShare(TestCase $testCase, User $user, CarbonImmutable $at, ?string $
     return AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->latest('touched_at')->firstOrFail();
 }
 
-function cslFailingOnceIngestor(SignalEventIngestor $real): SignalEventIngestor
+function cslFailingOnceIngestor(SignalIngestion $real): SignalIngestion
 {
-    return new class($real) implements SignalEventIngestor
+    return new class($real) implements SignalIngestion
     {
         public bool $failed = false;
 
-        public function __construct(private readonly SignalEventIngestor $inner) {}
+        public function __construct(private readonly SignalIngestion $inner) {}
 
         public function handle(TrackedProperty $trackedProperty, array $payload, bool $trusted): SignalEvent
         {
@@ -80,9 +80,9 @@ function cslFailingOnceIngestor(SignalEventIngestor $real): SignalEventIngestor
 }
 
 it('projects a late older signal after a newer event drained, without reset', function (): void {
-    $real = app(SignalEventIngestor::class);
+    $real = app(SignalIngestion::class);
 
-    app()->singleton(SignalEventIngestor::class, fn (): SignalEventIngestor => cslFailingOnceIngestor($real));
+    app()->singleton(SignalIngestion::class, fn (): SignalIngestion => cslFailingOnceIngestor($real));
 
     // Old share commits during the outage: the source persists with
     // its original time, but no signal is ingested yet.

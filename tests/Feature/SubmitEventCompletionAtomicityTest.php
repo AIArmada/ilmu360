@@ -6,7 +6,7 @@ use AIArmada\Events\Features\Catalog\Actions\CreateEventSessionAction;
 use AIArmada\Events\Features\Catalog\Models\EventInvolvement;
 use AIArmada\Events\Features\Catalog\Models\EventOccurrence;
 use AIArmada\Events\Features\Taxonomy\Models\EventTerm;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Events\Actions\Authoring\SyncEventKeyPeopleAction;
 use App\Features\Events\Api\Enums\EventAgeGroup;
 use App\Features\Events\Api\Enums\EventFormat;

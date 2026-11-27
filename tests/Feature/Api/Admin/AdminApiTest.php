@@ -13,7 +13,7 @@ use AIArmada\Events\Features\Venues\Models\FacilityType;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Organizations\Actions\CreateOrganizationAction;
 use AIArmada\Organizations\Models\Organization;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\Contributions\Api\Enums\ContributionSubjectType;
 use App\Features\Contributions\Enums\ContributionRequestStatus;
 use App\Features\Contributions\Enums\ContributionRequestType;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Platform\Telemetry;
 
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
+use App\Shared\Signals\SignalIngestion;
 use App\Shared\Signals\SignalRecorder;
 use Illuminate\Http\Request;
 use Throwable;
@@ -14,7 +14,7 @@ use Throwable;
 final readonly class ProductSignalRecorder implements SignalRecorder
 {
     public function __construct(
-        private SignalEventIngestor $ingestSignalEvent,
+        private SignalIngestion $ingestSignalEvent,
         private ProductSignalsClientContext $clientContext,
         private ProductSignalSchemaRegistry $schemaRegistry,
     ) {}

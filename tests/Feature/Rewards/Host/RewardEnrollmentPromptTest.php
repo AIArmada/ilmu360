@@ -9,7 +9,7 @@ use AIArmada\Rewards\Enums\RewardProgramStatus;
 use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardProgramVersion;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Identity\EntryPoints\Livewire\Pages\Dashboard\UserDashboard;
 use App\Features\Registration\Models\EventCheckin;
 use App\Features\ShareTracking\Api\ShareOutcomeBusinessKey;

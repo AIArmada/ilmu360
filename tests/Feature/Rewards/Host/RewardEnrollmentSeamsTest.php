@@ -13,7 +13,7 @@ use AIArmada\Rewards\Models\RewardEnrollment;
 use AIArmada\Rewards\Models\RewardEnrollmentAcceptance;
 use AIArmada\Rewards\Models\RewardEnrollmentPeriod;
 use AIArmada\Rewards\Models\RewardProgramVersion;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Rewards\Actions\Enrollment\EnrollRewardProgramMemberAction;
 use App\Features\Rewards\Api\MemberEnrollment;
 use App\Features\Rewards\Api\MemberEnrollmentSnapshot;

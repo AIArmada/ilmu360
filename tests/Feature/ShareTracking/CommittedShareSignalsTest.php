@@ -10,9 +10,8 @@ use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
 // Signals outage can never roll back the committed source; later
 // recovery applies once.
 
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\Events\Models\Event;
 use App\Features\ShareTracking\Api\CommittedShareSignals;
 use App\Features\ShareTracking\Api\PendingShareEffects;
@@ -27,6 +26,7 @@ use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Features\ShareTracking\Support\CommittedShareSignal;
 use App\Models\User;
 use App\Shared\ShareTracking\ShareRequestContext;
+use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -81,13 +81,13 @@ function cssShare(TestCase $testCase, User $user, CarbonImmutable $at, ?string $
     return AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->latest('touched_at')->firstOrFail();
 }
 
-function cssFailingOnceIngestor(SignalEventIngestor $real): SignalEventIngestor
+function cssFailingOnceIngestor(SignalIngestion $real): SignalIngestion
 {
-    return new class($real) implements SignalEventIngestor
+    return new class($real) implements SignalIngestion
     {
         public bool $failed = false;
 
-        public function __construct(private readonly SignalEventIngestor $inner) {}
+        public function __construct(private readonly SignalIngestion $inner) {}
 
         public function handle(TrackedProperty $trackedProperty, array $payload, bool $trusted): SignalEvent
         {
@@ -179,9 +179,9 @@ it('fails loudly without a tracked property but keeps the committed source', fun
 });
 
 it('survives a signals outage without rolling back the source and recovers once', function (): void {
-    $real = app(SignalEventIngestor::class);
+    $real = app(SignalIngestion::class);
 
-    app()->singleton(SignalEventIngestor::class, fn (): SignalEventIngestor => cssFailingOnceIngestor($real));
+    app()->singleton(SignalIngestion::class, fn (): SignalIngestion => cssFailingOnceIngestor($real));
 
     $payload = cssPayload($this, $this->sharer, route('events.show', $this->event));
 
@@ -275,7 +275,7 @@ it('skips poison signals loudly without stalling the pipeline', function (): voi
 
     $property = TrackedProperty::query()->where('slug', 'ilmu360')->firstOrFail();
 
-    app(SignalEventIngestor::class)->handle($property, [
+    app(SignalIngestion::class)->handle($property, [
         'event_name' => CommittedShareSignalProducer::EVENT_NAME,
         'event_category' => CommittedShareSignalProducer::EVENT_CATEGORY,
         'source_event_id' => 'garbage-without-prefix',
@@ -284,7 +284,7 @@ it('skips poison signals loudly without stalling the pipeline', function (): voi
         'properties' => [],
     ], true);
 
-    app(SignalEventIngestor::class)->handle($property, [
+    app(SignalIngestion::class)->handle($property, [
         'event_name' => CommittedShareSignalProducer::EVENT_NAME,
         'event_category' => CommittedShareSignalProducer::EVENT_CATEGORY,
         'source_event_id' => 'committed-share:'.(Str::uuid()),

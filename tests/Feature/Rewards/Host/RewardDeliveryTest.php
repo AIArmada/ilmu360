@@ -3,9 +3,8 @@
 declare(strict_types=1);
 
 use AIArmada\Affiliates\Features\Attribution\Models\AffiliateTouchpoint;
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\SignalEvent;
-use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Features\Communications\Api\AccountNotificationPreferences;
 use App\Features\Events\Models\Event;
 use App\Features\Rewards\Actions\GratitudeDigests\DispatchDueRewardDigestsAction;
@@ -17,6 +16,7 @@ use App\Features\ShareTracking\Services\CommittedShareSignalProducer;
 use App\Features\ShareTracking\Services\ShareCohortAuthority;
 use App\Features\ShareTracking\Support\ShareTrackingMeasurement;
 use App\Models\User;
+use App\Shared\Signals\SignalIngestion;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Carbon;
@@ -121,7 +121,7 @@ it('resumes interrupted drains and skips poison signals through the operations c
 
     $property = TrackedProperty::query()->where('slug', 'ilmu360')->firstOrFail();
 
-    app(SignalEventIngestor::class)->handle($property, [
+    app(SignalIngestion::class)->handle($property, [
         'event_name' => CommittedShareSignalProducer::EVENT_NAME,
         'event_category' => CommittedShareSignalProducer::EVENT_CATEGORY,
         'source_event_id' => 'garbage-without-prefix',

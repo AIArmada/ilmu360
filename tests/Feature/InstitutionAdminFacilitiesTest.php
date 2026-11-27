@@ -6,7 +6,7 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Features\Venues\Models\FacilityType;
 use AIArmada\Events\Features\Venues\Models\VenueFacility;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Institutions\Actions\SyncInstitutionVenuesAction;
 use App\Features\Institutions\Api\Enums\InstitutionNameType;
 use App\Features\Institutions\Api\Enums\InstitutionStatus;

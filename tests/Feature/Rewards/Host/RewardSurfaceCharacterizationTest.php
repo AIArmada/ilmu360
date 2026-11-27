@@ -25,7 +25,7 @@ use AIArmada\Rewards\Models\RewardPayee;
 use AIArmada\Rewards\Models\RewardPayoutRequest;
 use AIArmada\Rewards\Models\RewardProgram;
 use AIArmada\Rewards\Models\RewardRecovery;
-use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Features\Ingestion\Models\SignalEvent;
 use App\Features\Rewards\EntryPoints\Livewire\Pages\Dashboard\RewardMemberIndex;
 use App\Features\Rewards\FeatureServiceProvider as RewardsFeatureServiceProvider;
 use App\Features\Rewards\Policies\RewardAppealPolicy;

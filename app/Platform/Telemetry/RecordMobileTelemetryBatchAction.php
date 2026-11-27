@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Platform\Telemetry;
 
-use AIArmada\Signals\Contracts\SignalEventIngestor;
-use AIArmada\Signals\Models\TrackedProperty;
-use AIArmada\Signals\Services\SignalsIngestionRequestValidator;
+use AIArmada\Signals\Features\Ingestion\EntryPoints\Http\SignalsIngestionRequestValidator;
+use AIArmada\Signals\Features\Ingestion\Models\TrackedProperty;
 use App\Models\User;
+use App\Shared\Signals\SignalIngestion;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -15,7 +15,7 @@ use Throwable;
 final readonly class RecordMobileTelemetryBatchAction
 {
     public function __construct(
-        private SignalEventIngestor $ingestSignalEvent,
+        private SignalIngestion $ingestSignalEvent,
         private ProductSignalsClientContext $clientContext,
         private SignalsIngestionRequestValidator $requestValidator,
     ) {}
