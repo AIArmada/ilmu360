@@ -34,13 +34,15 @@ Declare each selected index in the schema migration that creates or changes the 
 
 ## Stage changes that affect existing rows
 
-Adding a required or unique column to a populated table often needs multiple deployment-safe steps. Add a nullable column, deploy code that can handle both states, then add the required constraint or index only after every row is valid.
+Adding a required or unique column to a populated table often needs multiple deployment-safe steps. Add a nullable column, deploy code that can handle both states, backfill existing rows in bounded chunks, then add the required constraint or index after the data is valid.
 
 Do not assume this migration is safe on a populated table:
 
 ```php
 $table->string('slug')->unique();
 ```
+
+Large backfills usually work better as an observable, restartable command or job than inside a schema migration. Small deterministic data changes may be reasonable in a migration when you understand their locking, transaction, and deployment behavior.
 
 ## Mirror defaults only when unsaved models need them
 
@@ -62,4 +64,4 @@ Implement `down()` when you can safely reverse the change. A rollback that drops
 
 ## Keep migrations focused
 
-Keep each migration small enough to reason about, deploy, and reverse. Do not split related operations only to enforce a blanket separation between data definition and data manipulation.
+Keep each migration small enough to reason about, deploy, and reverse. Separate long-running backfills from schema changes when the split reduces locks and supports phased deployment. Do not split related operations only to enforce a blanket separation between data definition and data manipulation.

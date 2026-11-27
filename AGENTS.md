@@ -423,13 +423,6 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 - Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
 
-=== herd rules ===
-
-# Laravel Herd
-
-- The application is served by Laravel Herd at `https?://[kebab-case-project-dir].test`. Use the `get-absolute-url` tool to generate valid URLs. Never run commands to serve the site. It is always available.
-- Use the `herd` CLI to manage services, PHP versions, and sites (e.g. `herd sites`, `herd services:start <service>`, `herd php:list`). Run `herd list` to discover all available commands.
-
 === tests rules ===
 
 # Test Enforcement
@@ -468,21 +461,15 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 === laravel-octane/core rules ===
 
-# Octane
+# Laravel Octane
 
-- Octane boots the application once and reuses it across requests, so singletons persist between requests.
-- The Laravel container's `scoped` method may be used as a safe alternative to `singleton`.
-- Never inject the container, request, or config repository into a singleton's constructor; use a resolver closure or `bind()` instead:
+This application uses Laravel Octane, a long-running PHP server. The application bootstraps once and handles many requests within the same process.
 
-```php
-// Bad
-$this->app->singleton(Service::class, fn (Application $app) => new Service($app['request']));
+- Never store request-specific state in singletons or static properties, because it can leak across requests.
+- Use `config('octane.server')` to detect the active driver (`swoole`, `roadrunner`, or `frankenphp`).
+- Prefer scoped bindings (`$this->app->scoped()`) over singletons for per-request services.
 
-// Good
-$this->app->singleton(Service::class, fn () => new Service(fn () => request()));
-```
-
-- Never append to static properties, as they accumulate in memory across requests.
+When working on Octane-specific features (concurrency, shared tables, memory, driver configuration, testing), invoke `octane-development` for detailed rules.
 
 === pint/core rules ===
 
@@ -505,6 +492,20 @@ $this->app->singleton(Service::class, fn () => new Service(fn () => request()));
 - Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `php artisan test --compact`.
 - Rerun a test after each change to it.
 - Run `vendor/bin/pest` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
+
+=== aiarmada/commerce-support/core rules ===
+
+## Commerce Support
+
+- Use `Data\RecordReference` for persisted identities across package contracts. Convert Eloquent models at the application or driver boundary using `Support\EloquentRecordReference`.
+- Host tenancy resolvers implement `Contracts\OwnerResolverInterface::resolve(): ?RecordReference`. Null is unresolved; it does not grant global access.
+- Re-enter trusted owner context with `Support\OwnerContext::withOwner()` and enforce scoped writes. Only explicitly authorized system work may use a null owner.
+- Queued work implements `Contracts\OwnerScopedJob` and returns `Data\OwnerJobContext`; `Traits\OwnerContextJob` restores the trusted owner before executing `performJob()`.
+- Use `Persistence\OwnerCache`, `Persistence\OwnerFilesystem`, and `Persistence\VersionedCache` rather than constructing ad hoc tenant cache keys or paths.
+- Reference-data operations go through `Features\ReferenceData\Api\ReferenceDataApi`. Reporting and UserPreferences own their own table writes.
+- Webhooks owns the `webhook_calls` writes; extend `Features\Webhooks\EntryPoints\CommerceWebhookProcessor` for provider jobs. Use `Features\SignedDownloads\Api\SignedDownloadApi` for owner-bound temporary download issuance and authorization.
+- Payment subject contracts carry record identities and actor data rather than Eloquent models. Convert incoming HTTP requests to `Data\WebhookRequestData` with `EntryPoints\Http\WebhookRequestMapper` before entering payment webhook contracts.
+- Outbound HTTP uses validated public targets and the pinned HTTP driver where untrusted URLs are involved. Never bypass DNS/IP validation or enable unvalidated redirects.
 
 === aiarmada/commerce-support/laravel-dune rules ===
 

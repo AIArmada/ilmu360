@@ -9,7 +9,7 @@
 
 Moving an Eloquent model changes its FQCN! Before moving any model involved in `morphTo` / `morphMany` / Spatie Permissions / Activitylog / Notifications:
 - Inspect `database-schema` via Boost MCP for `*_type` columns containing literal `'App\\Models\\...'` class names.
-- Define an explicit `Relation::enforceMorphMap([...])` mapping stable short aliases (e.g. `'order' => Order::class`) before moving the model class.
+- Define an explicit `Relation::enforceMorphMap([...])` mapping stable short aliases (e.g. `'order' => Order::class`) and backfill existing rows if needed before moving the model class.
 
 ## 3. Eloquent Observers & Model Hooks
 

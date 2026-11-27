@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Livewire\Livewire;
-use Symfony\Component\HttpFoundation\Response;
+use Tests\Support\FreshTimezoneCapture;
 
 function freshTimezoneSessionId(array $attributes): string
 {
@@ -59,18 +59,6 @@ function freshTimezoneProbe(
     }
 
     return $request->withHeaders($headers)->get('/_timezone-probe'.$query);
-}
-
-final class FreshTimezoneCapture
-{
-    public static ?string $timezone = null;
-
-    public function handle(Request $request, Closure $next): Response
-    {
-        self::$timezone = FilamentTimezone::get();
-
-        return $next($request);
-    }
 }
 
 beforeEach(function (): void {

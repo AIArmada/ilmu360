@@ -67,7 +67,7 @@
         "laravel/framework": "^13.20",
         "laravel/horizon": "^5.47",
         "laravel/mcp": "^1.0",
-        "laravel/octane": "2.17.4",
+        "laravel/octane": "^2.26",
         "laravel/passport": "^13.7",
         "laravel/sanctum": "^4.3",
         "laravel/scout": "^11.3",
@@ -85,7 +85,7 @@
         "spatie/laravel-deleted-models": "^1.2",
         "spatie/laravel-model-states": "^2.14",
         "spatie/laravel-query-builder": "^7.3",
-        "spatie/laravel-sluggable": "^4.0",
+        "spatie/laravel-sluggable": "^6.0",
         "tapp/filament-auditing": "^4.0",
         "typesense/typesense-php": "^6.0",
         "ysfkaya/filament-phone-input": "^4.2"
