@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use AIArmada\Events\Contracts\EventSearchRelationProvider;
+use AIArmada\Events\Features\Search\Actions\UpsertEventSearchDocumentAction;
+use AIArmada\Events\Features\Search\Models\EventSearchDocument;
 use App\Features\Discovery\Services\EventDiscoveryCriteriaFactory;
 use App\Features\Events\Api\Data\EventDiscoveryHit;
 use App\Features\Events\Api\EventCategoryCatalog;
@@ -24,8 +27,10 @@ use App\Features\Persons\Api\PersonLookup;
 use App\Features\Places\Api\PlaceCatalog;
 use App\Features\Places\Api\SpaceLocation;
 use App\Features\References\Api\ReferenceQueries;
+use App\Features\References\Models\Reference;
 use App\Platform\Location\SpatialAddressQuery;
 use App\Platform\Search\DatabaseFuzzyMatcher;
+use Illuminate\Support\Str;
 use Tests\Support\RecordingEventSearchRelationProvider;
 
 it('returns immutable PostgreSQL search hits without importing event models into Discovery', function (): void {
@@ -120,4 +125,53 @@ it('uses the injected search relation provider only when the owning feature rend
     $cards->forIds([(string) $event->getKey()]);
 
     expect($provider->calls)->toBeGreaterThan(0);
+});
+
+it('loads active event references through the configured relation provider', function (): void {
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+        'starts_at' => now()->addDay(),
+    ]);
+    $reference = Reference::factory()->create([
+        'status' => 'verified',
+        'published_at' => now(),
+    ]);
+    $event->references()->attach($reference, [
+        'id' => (string) Str::uuid(),
+        'sort_order' => 0,
+    ]);
+
+    $loaded = Event::query()
+        ->with(app(EventSearchRelationProvider::class)->relations())
+        ->whereKey($event->getKey())
+        ->firstOrFail();
+
+    expect($loaded->references)->toHaveCount(1)
+        ->and((string) $loaded->references->first()->getKey())->toBe((string) $reference->getKey());
+});
+
+it('builds an event search document through the configured relation provider', function (): void {
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now(),
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHours(2),
+    ]);
+
+    config()->set('events.sync.build_search_documents', true);
+
+    app(UpsertEventSearchDocumentAction::class)->handle(Event::class, (string) $event->getKey());
+
+    $document = EventSearchDocument::query()
+        ->where('searchable_type', (new Event)->getMorphClass())
+        ->where('searchable_id', (string) $event->getKey())
+        ->where('document_type', 'event')
+        ->first();
+
+    expect($document)->not->toBeNull()
+        ->and($document->title)->toBe((string) $event->title)
+        ->and($document->event_id)->toBe((string) $event->getKey());
 });

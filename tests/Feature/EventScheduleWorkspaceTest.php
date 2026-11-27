@@ -53,7 +53,8 @@ it('lets a draft event creator add and edit occurrences and sessions', function 
     expect($occurrence->starts_at->toIso8601String())->toBe('2026-10-11T12:00:00+00:00')
         ->and($occurrence->ends_at->toIso8601String())->toBe('2026-10-11T14:00:00+00:00')
         ->and($occurrence->timezone)->toBe('Asia/Kuala_Lumpur')
-        ->and($occurrence->capacity)->toBe(120);
+        ->and($occurrence->capacity)->toBe(120)
+        ->and($occurrence->issue_passes_for_free)->toBeNull();
 
     $component
         ->call('openSessionForm', $occurrence->getKey())
@@ -74,7 +75,8 @@ it('lets a draft event creator add and edit occurrences and sessions', function 
 
     expect($session->starts_at->toIso8601String())->toBe('2026-10-11T12:30:00+00:00')
         ->and($session->ends_at->toIso8601String())->toBe('2026-10-11T13:30:00+00:00')
-        ->and($session->summary)->toBe('A short opening session.');
+        ->and($session->summary)->toBe('A short opening session.')
+        ->and($session->issue_passes_for_free)->toBeNull();
 
     $component
         ->call('editOccurrence', $occurrence->getKey())
